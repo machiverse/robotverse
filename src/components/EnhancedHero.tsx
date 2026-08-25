@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import RobotArmStage from "@/components/hero/RobotArmStage";
+import HeroVideoSlider from "@/components/hero/HeroVideoSlider";
 
 const heroContent = {
   title: "Your Complete Robotics Solution",
@@ -124,119 +124,129 @@ const EnhancedHero = () => {
   };
 
   return (
-    <section className="relative flex min-h-[640px] items-center overflow-hidden bg-background pt-20 pb-16 lg:min-h-[700px] lg:pt-24 lg:pb-20">
+    <section className="relative flex w-full items-center overflow-hidden min-h-[75vh] pt-24 pb-24 lg:min-h-[85vh] lg:pt-28 lg:pb-28">
+      {/* Full-bleed video slider background + dots */}
+      <HeroVideoSlider />
 
+      {/* Readability overlays */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-black/75 via-black/50 to-black/30"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-32 bg-gradient-to-t from-background to-transparent"
+      />
 
-      <div className="container relative z-10 mx-auto w-full px-4">
-        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-6">
-          {/* 3D stage — above the copy on small screens, right-bleeding on lg+ */}
-          <div className="order-2 self-stretch lg:order-2 lg:col-span-7 lg:mr-[calc(50%-50vw)]">
-            <div className="h-full min-h-[320px] w-full lg:min-h-[520px]">
-              <RobotArmStage />
-            </div>
-          </div>
+      <div className="container relative z-20 mx-auto w-full px-4">
+        <div className="max-w-2xl">
+          <h1
+            className="rv-hero-enter text-3xl font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-5xl lg:text-7xl"
+            style={enter(0)}
+          >
+            {heroContent.title}
+          </h1>
 
+          <p
+            className="rv-hero-enter mt-5 max-w-[52ch] text-lg leading-[1.55] text-white/80 lg:text-xl"
+            style={enter(1)}
+          >
+            {heroContent.subtitle}
+          </p>
 
-          {/* Copy + search */}
-          <div className="order-1 lg:order-1 lg:col-span-5">
-            <h1
-              className="rv-hero-enter text-5xl font-semibold leading-[1.05] tracking-[-0.03em] text-foreground lg:text-[64px]"
-              style={enter(0)}
-            >
-              {heroContent.title}
-            </h1>
-
-            <p
-              className="rv-hero-enter mt-5 max-w-[52ch] text-lg leading-[1.55] text-muted-foreground"
-              style={enter(1)}
-            >
-              {heroContent.subtitle}
-            </p>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSearch();
-              }}
-              className="rv-hero-enter mt-8 rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-md)]"
-              style={enter(2)}
-            >
-              <div className="grid grid-cols-1 gap-3">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    aria-label="Search robots, parts, and services"
-                    placeholder="Search robots, parts, services..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-11 rounded-xl border-border bg-input pl-9 text-sm"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Select
-                    value={selectedCategory}
-                    onValueChange={setSelectedCategory}
-                    disabled={loading}
-                  >
-                    <SelectTrigger
-                      aria-label="Select category"
-                      className="h-11 rounded-xl border-border bg-input text-sm disabled:opacity-60"
-                    >
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={selectedLocation}
-                    onValueChange={setSelectedLocation}
-                    disabled={loading}
-                  >
-                    <SelectTrigger
-                      aria-label="Select location"
-                      className="h-11 rounded-xl border-border bg-input text-sm disabled:opacity-60"
-                    >
-                      <SelectValue placeholder="All Locations" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location} value={location}>
-                          {location}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button type="submit" className="h-11 w-full rounded-xl text-sm" aria-label="Perform search">
-                  <Search className="mr-2 h-4 w-4" /> Search
-                </Button>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSearch();
+            }}
+            className="rv-hero-enter mt-8 w-full rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-md"
+            style={enter(2)}
+          >
+            <div className="grid grid-cols-1 gap-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
+                <Input
+                  aria-label="Search robots, parts, and services"
+                  placeholder="Search robots, parts, services..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-11 rounded-xl border-white/25 bg-white/15 pl-9 text-sm text-white placeholder:text-white/60 focus-visible:ring-white/40"
+                />
               </div>
-            </form>
 
-            <div
-              className="rv-hero-enter mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
-              style={enter(3)}
-            >
-              <Button variant="default" size="lg" className="h-auto px-6 py-3 text-base" asChild>
-                <Link to="/robots">Explore Robots</Link>
-              </Button>
-              <Button variant="link" size="sm" className="text-sm text-foreground" asChild>
-                <Link to="/auth">Start Selling</Link>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                  disabled={loading}
+                >
+                  <SelectTrigger
+                    aria-label="Select category"
+                    className="h-11 rounded-xl border-white/25 bg-white/15 text-sm text-white disabled:opacity-60"
+                  >
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={selectedLocation}
+                  onValueChange={setSelectedLocation}
+                  disabled={loading}
+                >
+                  <SelectTrigger
+                    aria-label="Select location"
+                    className="h-11 rounded-xl border-white/25 bg-white/15 text-sm text-white disabled:opacity-60"
+                  >
+                    <SelectValue placeholder="All Locations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations.map((location) => (
+                      <SelectItem key={location} value={location}>
+                        {location}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button type="submit" className="h-11 w-full rounded-xl text-sm" aria-label="Perform search">
+                <Search className="mr-2 h-4 w-4" /> Search
               </Button>
             </div>
+          </form>
+
+          <div
+            className="rv-hero-enter mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4"
+            style={enter(3)}
+          >
+            <Button
+              size="lg"
+              className="h-auto bg-white px-6 py-3 text-base text-neutral-900 hover:bg-white/90"
+              asChild
+            >
+              <Link to="/robots">Explore Robots</Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-auto border-white/40 bg-transparent px-6 py-3 text-base text-white hover:bg-white/10 hover:text-white"
+              asChild
+            >
+              <Link to="/auth">Start Selling</Link>
+            </Button>
           </div>
         </div>
       </div>
     </section>
   );
 };
+
 
 export default EnhancedHero;
