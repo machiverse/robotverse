@@ -125,15 +125,7 @@ const EnhancedHero = () => {
 
   return (
     <section className="relative flex min-h-[640px] items-center overflow-hidden bg-background pt-20 pb-16 lg:min-h-[700px] lg:pt-24 lg:pb-20">
-      {/* The one gradient on the page: a very subtle radial behind the arm. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(120% 90% at 72% 45%, hsl(var(--primary)/0.12), transparent 62%)",
-        }}
-      />
+
 
       <div className="container relative z-10 mx-auto w-full px-4">
         <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-6">
