@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import RobotArmStage from "@/components/hero/RobotArmStage";
+import HeroVideoSlider from "@/components/hero/HeroVideoSlider";
 
 const heroContent = {
   title: "Your Complete Robotics Solution",
