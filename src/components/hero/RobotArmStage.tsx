@@ -1,65 +1,54 @@
-import React, { Component, Suspense, lazy, useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import heroPoster from "@/assets/industrial-robot-hero.jpg";
 
-const RobotArm3D = lazy(() => import("@/components/hero/RobotArm3D"));
-
-const Poster = () => (
-  <img
-    src={heroPoster}
-    alt="Six-axis industrial robot arm"
-    className="h-full w-full object-cover opacity-40"
-    loading="lazy"
-    decoding="async"
-  />
-);
-
-class CanvasBoundary extends Component<{ children: React.ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  componentDidCatch(error: unknown) {
-    console.error("RobotArm3D failed, falling back to poster:", error);
-  }
-  render() {
-    return this.state.failed ? <Poster /> : this.props.children;
-  }
-}
-
-const supports3D = () => {
-  try {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-    // Small screens get the static poster — no WebGL cost on phones.
-    if (window.innerWidth < 768) return false;
-    const cores = navigator.hardwareConcurrency;
-    if (typeof cores === "number" && cores <= 4) return false;
-    const canvas = document.createElement("canvas");
-    const gl =
-      canvas.getContext("webgl2") ||
-      canvas.getContext("webgl") ||
-      canvas.getContext("experimental-webgl");
-    return !!gl;
-  } catch {
-    return false;
-  }
-};
-
-/** Lazily mounts the 3D arm; degrades to a static poster whenever it shouldn't run. */
+/** Looping industrial robot footage with poster fallback. */
 const RobotArmStage = () => {
-  const [enabled, setEnabled] = useState(false);
-
-  useEffect(() => {
-    setEnabled(supports3D());
-  }, []);
-
-  if (!enabled) return <Poster />;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoFailed, setVideoFailed] = useState(false);
 
   return (
-    <CanvasBoundary>
-      <Suspense fallback={<Poster />}>
-        <RobotArm3D />
-      </Suspense>
-    </CanvasBoundary>
+    <div className="relative h-full w-full overflow-hidden rounded-2xl lg:rounded-none">
+      {!videoFailed ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          poster={heroPoster}
+          onError={() => setVideoFailed(true)}
+          className="h-full w-full object-cover"
+        >
+          <source
+            src="https://videos.pexels.com/video-files/5532767/5532767-hd_1920_1080_25fps.mp4"
+            type="video/mp4"
+          />
+          <source
+            src="https://videos.pexels.com/video-files/5532767/5532767-sd_640_360_25fps.mp4"
+            type="video/mp4"
+          />
+        </video>
+      ) : (
+        <img
+          src={heroPoster}
+          alt="Industrial robot arm working on a manufacturing line"
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      )}
+
+      {/* Gradient overlays keep the hero copy readable */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent"
+      />
+    </div>
   );
 };
 
