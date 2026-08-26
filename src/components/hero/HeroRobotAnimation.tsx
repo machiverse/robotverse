@@ -376,7 +376,7 @@ const Floor = () => (
       <meshStandardMaterial color={GROUND} metalness={0.9} roughness={0.15} />
     </mesh>
     <gridHelper
-      args={[70, 70, "#2b3murky", "#1d2733"]}
+      args={[70, 70, "#243040", "#1d2733"]}
       position={[0, FLOOR_Y + 0.01, 0]}
     />
   </>
@@ -435,7 +435,7 @@ const Scene = () => (
 
     {/* Far background silhouette */}
     <RobotArm
-      position={[6.8, FLOOR_Y, -11}
+      position={[6.8, FLOOR_Y, -11]}
       rotation={[0, -0.9, 0]}
       scale={0.5}
       mode="idle"
