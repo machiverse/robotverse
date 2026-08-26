@@ -99,7 +99,7 @@ const RobotArm = () => {
   });
 
   return (
-    <group position={[0, -1.1, 0]} scale={1.1}>
+    <group position={[2.1, -1.4, 0]} scale={0.95}>
       {/* Base pedestal */}
       <mesh position={[0, 0.11, 0]} castShadow>
         <cylinderGeometry args={[0.72, 0.85, 0.22, 40]} />
@@ -280,7 +280,7 @@ const HeroRobotAnimation = () => {
           dpr={[1, 1.5]}
           shadows
           gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-          camera={{ position: [4.6, 2.4, 5.4], fov: 40 }}
+          camera={{ position: [5.6, 3.4, 9.4], fov: 34 }}
           onCreated={({ gl }) => {
             gl.domElement.addEventListener("webglcontextlost", () => setFailed(true));
           }}
