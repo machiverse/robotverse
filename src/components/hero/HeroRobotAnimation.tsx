@@ -218,11 +218,11 @@ const Sparks = () => {
 
 const Floor = () => (
   <>
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.11, 0]} receiveShadow>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.4, 0]} receiveShadow>
       <planeGeometry args={[60, 60]} />
       <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.2} />
     </mesh>
-    <gridHelper args={[40, 40, "#3a4a5c", "#26303c"]} position={[0, -1.1, 0]} />
+    <gridHelper args={[40, 40, "#3a4a5c", "#26303c"]} position={[0, -1.39, 0]} />
   </>
 );
 
