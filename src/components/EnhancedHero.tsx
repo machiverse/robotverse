@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import HeroVideoSlider from "@/components/hero/HeroVideoSlider";
+import HeroRobotAnimation from "@/components/hero/HeroRobotAnimation";
 
 const heroContent = {
   title: "Your Complete Robotics Solution",
@@ -125,8 +125,8 @@ const EnhancedHero = () => {
 
   return (
     <section className="relative flex w-full items-center overflow-hidden min-h-[75vh] pt-24 pb-24 lg:min-h-[85vh] lg:pt-28 lg:pb-28">
-      {/* Full-bleed video slider background + dots */}
-      <HeroVideoSlider />
+      {/* Full-bleed real-time 3D industrial robot background */}
+      <HeroRobotAnimation />
 
       {/* Readability overlays */}
       <div
