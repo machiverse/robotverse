@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 import type { Group, Mesh, Points as ThreePoints } from "three";
 import * as THREE from "three";
 import heroPoster from "@/assets/industrial-robot-hero.jpg";
@@ -9,31 +10,31 @@ import heroPoster from "@/assets/industrial-robot-hero.jpg";
 /* ------------------------------------------------------------------ */
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-/** Mechanical ease: fast mid-stroke, damped at both ends. */
-const ease = (t: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(Math.max(t, 0), 1));
+/** Sine ease — smooth mechanical acceleration / deceleration. */
+const ease = (t: number) => (1 - Math.cos(Math.min(Math.max(t, 0), 1) * Math.PI)) / 2;
 
 interface Pose {
-  base: number; // Y sweep
-  shoulder: number; // pitch
-  elbow: number; // pitch
-  wrist: number; // pitch
-  grip: number; // 0 open .. 1 closed
+  base: number;
+  shoulder: number;
+  elbow: number;
+  wrist: number;
+  grip: number;
 }
 
-/** Continuous pick-and-place cycle, durations in seconds. */
+/** 8-second pick-and-place cycle (phase durations in seconds). */
 const STEPS: Array<{ pose: Pose; dur: number }> = [
-  // reach forward + down to the pick point
-  { pose: { base: -0.55, shoulder: 0.55, elbow: 1.15, wrist: 0.35, grip: 0 }, dur: 2 },
-  // gripper closes
-  { pose: { base: -0.55, shoulder: 0.58, elbow: 1.18, wrist: 0.36, grip: 1 }, dur: 0.5 },
-  // lift and rotate
-  { pose: { base: -0.1, shoulder: 0.05, elbow: 0.7, wrist: 0.1, grip: 1 }, dur: 2 },
-  // arc across to the place position
-  { pose: { base: 0.85, shoulder: 0.4, elbow: 1.0, wrist: 0.3, grip: 1 }, dur: 1.5 },
-  // release
-  { pose: { base: 0.85, shoulder: 0.42, elbow: 1.02, wrist: 0.31, grip: 0 }, dur: 0.5 },
-  // return home
-  { pose: { base: 0, shoulder: -0.12, elbow: 0.6, wrist: 0.05, grip: 0 }, dur: 2 },
+  // 0–2s reach right and down to the pick point
+  { pose: { base: -0.62, shoulder: 0.6, elbow: 1.2, wrist: 0.38, grip: 0 }, dur: 2 },
+  // 2–2.5s gripper closes
+  { pose: { base: -0.62, shoulder: 0.63, elbow: 1.23, wrist: 0.39, grip: 1 }, dur: 0.5 },
+  // 2.5–4.5s lift and swing left in an arc — carrying
+  { pose: { base: 0.75, shoulder: 0.05, elbow: 0.68, wrist: 0.1, grip: 1 }, dur: 2 },
+  // 4.5–5s release
+  { pose: { base: 0.78, shoulder: 0.34, elbow: 0.95, wrist: 0.28, grip: 0 }, dur: 0.5 },
+  // 5–7s return home
+  { pose: { base: 0, shoulder: -0.14, elbow: 0.58, wrist: 0.04, grip: 0 }, dur: 2 },
+  // 7–8s dwell at home
+  { pose: { base: 0, shoulder: -0.14, elbow: 0.58, wrist: 0.04, grip: 0 }, dur: 1 },
 ];
 
 const CYCLE = STEPS.reduce((s, k) => s + k.dur, 0);
@@ -60,33 +61,69 @@ function poseAt(time: number): Pose {
 }
 
 /* ------------------------------------------------------------------ */
-/* Materials                                                           */
+/* Palette                                                            */
 /* ------------------------------------------------------------------ */
 
-const BODY = "#FFD100"; // FANUC yellow
-const DARK_STEEL = "#2a2a2a";
-const CHROME = "#444444";
+const ORANGE = "#FF6B00";
+const CHROME = "#333333";
+const STEEL = "#1a1a1a";
+const GROUND = "#0a0a0f";
+const FOG = "#0a0a0f";
 
-const Link = () => <meshStandardMaterial color={BODY} metalness={0.35} roughness={0.35} />;
-const Joint = () => <meshStandardMaterial color={CHROME} metalness={0.9} roughness={0.25} />;
-const Steel = () => <meshStandardMaterial color={DARK_STEEL} metalness={0.7} roughness={0.4} />;
+const Link = () => <meshStandardMaterial color={ORANGE} metalness={0.4} roughness={0.32} />;
+const Joint = () => <meshStandardMaterial color={CHROME} metalness={0.95} roughness={0.2} />;
+const Steel = () => <meshStandardMaterial color={STEEL} metalness={0.75} roughness={0.35} />;
 
 /* ------------------------------------------------------------------ */
-/* Robot rig                                                           */
+/* Robot rig — shared, scalable                                       */
 /* ------------------------------------------------------------------ */
 
-const RobotArm = () => {
+interface RobotProps {
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number;
+  /** seconds offset into the cycle, so each robot is out of phase */
+  offset?: number;
+  /** short repetitive weld dither instead of the full pick-and-place */
+  mode?: "pick" | "weld" | "idle";
+  /** ref exposed so spark emitters can follow the tool tip */
+  toolRef?: React.RefObject<Group>;
+  castShadows?: boolean;
+}
+
+const RobotArm = ({
+  position = [0, 0, 0],
+  rotation = [0, 0, 0],
+  scale = 1,
+  offset = 0,
+  mode = "pick",
+  toolRef,
+  castShadows = true,
+}: RobotProps) => {
   const baseJoint = useRef<Group>(null);
   const shoulder = useRef<Group>(null);
   const elbow = useRef<Group>(null);
   const wrist = useRef<Group>(null);
   const fingerL = useRef<Mesh>(null);
   const fingerR = useRef<Mesh>(null);
-  const clock = useRef(0);
 
-  useFrame((_, delta) => {
-    clock.current += Math.min(delta, 0.1);
-    const p = poseAt(clock.current);
+  useFrame((state) => {
+    const t = state.clock.elapsedTime + offset;
+
+    let p: Pose;
+    if (mode === "weld") {
+      p = {
+        base: Math.sin(t * 0.35) * 0.45,
+        shoulder: 0.34 + Math.sin(t * 1.6) * 0.075,
+        elbow: 0.98 + Math.cos(t * 1.6) * 0.06,
+        wrist: 0.3 + Math.sin(t * 3.1) * 0.05,
+        grip: 1,
+      };
+    } else if (mode === "idle") {
+      p = { base: Math.sin(t * 0.18) * 0.7, shoulder: 0.1, elbow: 0.8, wrist: 0.2, grip: 0.4 };
+    } else {
+      p = poseAt(t);
+    }
 
     if (baseJoint.current) baseJoint.current.rotation.y = p.base;
     if (shoulder.current) shoulder.current.rotation.z = p.shoulder;
@@ -99,20 +136,20 @@ const RobotArm = () => {
   });
 
   return (
-    <group position={[2.1, -1.4, 0]} scale={0.95}>
+    <group position={position} rotation={rotation} scale={scale}>
       {/* Base pedestal */}
-      <mesh position={[0, 0.11, 0]} castShadow>
+      <mesh position={[0, 0.11, 0]} castShadow={castShadows}>
         <cylinderGeometry args={[0.72, 0.85, 0.22, 40]} />
         <Steel />
       </mesh>
-      <mesh position={[0, 0.32, 0]}>
+      <mesh position={[0, 0.32, 0]} castShadow={castShadows}>
         <cylinderGeometry args={[0.55, 0.62, 0.24, 36]} />
         <Steel />
       </mesh>
 
       {/* J1 — base rotation */}
       <group ref={baseJoint} position={[0, 0.44, 0]}>
-        <mesh position={[0, 0.18, 0]}>
+        <mesh position={[0, 0.18, 0]} castShadow={castShadows}>
           <cylinderGeometry args={[0.44, 0.5, 0.36, 32]} />
           <Link />
         </mesh>
@@ -123,8 +160,7 @@ const RobotArm = () => {
             <sphereGeometry args={[0.3, 28, 28]} />
             <Joint />
           </mesh>
-          {/* upper arm */}
-          <mesh position={[0, 0.72, 0]} castShadow>
+          <mesh position={[0, 0.72, 0]} castShadow={castShadows}>
             <boxGeometry args={[0.42, 1.5, 0.46]} />
             <Link />
           </mesh>
@@ -135,13 +171,12 @@ const RobotArm = () => {
               <sphereGeometry args={[0.24, 24, 24]} />
               <Joint />
             </mesh>
-            {/* forearm */}
-            <mesh position={[0, 0.6, 0]} castShadow>
+            <mesh position={[0, 0.6, 0]} castShadow={castShadows}>
               <boxGeometry args={[0.3, 1.2, 0.32]} />
               <Link />
             </mesh>
 
-            {/* J4/J5 — wrist */}
+            {/* J4/J5 — wrist + tool */}
             <group ref={wrist} position={[0, 1.2, 0]}>
               <mesh>
                 <sphereGeometry args={[0.17, 20, 20]} />
@@ -151,7 +186,7 @@ const RobotArm = () => {
                 <boxGeometry args={[0.24, 0.26, 0.24]} />
                 <Steel />
               </mesh>
-              {/* gripper fingers */}
+              <group ref={toolRef} position={[0, 0.5, 0]} />
               <mesh ref={fingerL} position={[-0.085, 0.44, 0]}>
                 <boxGeometry args={[0.07, 0.3, 0.16]} />
                 <Steel />
@@ -169,32 +204,53 @@ const RobotArm = () => {
 };
 
 /* ------------------------------------------------------------------ */
-/* Atmosphere                                                          */
+/* Particle layer 1 — welding sparks                                  */
 /* ------------------------------------------------------------------ */
 
-const COUNT = 28;
+const SPARKS = 50;
 
-const Sparks = () => {
+const Sparks = ({ origin }: { origin: [number, number, number] }) => {
   const points = useRef<ThreePoints>(null);
 
-  const positions = useMemo(() => {
-    const arr = new Float32Array(COUNT * 3);
-    for (let i = 0; i < COUNT; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 9;
-      arr[i * 3 + 1] = Math.random() * 4.5 - 0.5;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 6;
+  const state = useMemo(() => {
+    const pos = new Float32Array(SPARKS * 3);
+    const vel = new Float32Array(SPARKS * 3);
+    const life = new Float32Array(SPARKS);
+    for (let i = 0; i < SPARKS; i++) {
+      life[i] = Math.random();
+      pos[i * 3] = origin[0];
+      pos[i * 3 + 1] = origin[1];
+      pos[i * 3 + 2] = origin[2];
+      vel[i * 3] = (Math.random() - 0.5) * 1.4;
+      vel[i * 3 + 1] = Math.random() * 0.9;
+      vel[i * 3 + 2] = (Math.random() - 0.5) * 1.4;
     }
-    return arr;
-  }, []);
+    return { pos, vel, life };
+  }, [origin]);
 
-  useFrame((state) => {
+  useFrame((_, delta) => {
     const geo = points.current?.geometry;
     if (!geo) return;
     const attr = geo.getAttribute("position") as THREE.BufferAttribute;
-    const t = state.clock.elapsedTime;
-    for (let i = 0; i < COUNT; i++) {
-      attr.array[i * 3 + 1] = positions[i * 3 + 1] + Math.sin(t * 0.25 + i) * 0.28;
-      attr.array[i * 3] = positions[i * 3] + Math.cos(t * 0.18 + i * 1.7) * 0.2;
+    const d = Math.min(delta, 0.05);
+    for (let i = 0; i < SPARKS; i++) {
+      state.life[i] -= d * 0.75;
+      if (state.life[i] <= 0) {
+        state.life[i] = 1;
+        state.pos[i * 3] = origin[0];
+        state.pos[i * 3 + 1] = origin[1];
+        state.pos[i * 3 + 2] = origin[2];
+        state.vel[i * 3] = (Math.random() - 0.5) * 1.4;
+        state.vel[i * 3 + 1] = Math.random() * 0.9;
+        state.vel[i * 3 + 2] = (Math.random() - 0.5) * 1.4;
+      }
+      state.vel[i * 3 + 1] -= d * 2.6; // gravity
+      state.pos[i * 3] += state.vel[i * 3] * d;
+      state.pos[i * 3 + 1] += state.vel[i * 3 + 1] * d;
+      state.pos[i * 3 + 2] += state.vel[i * 3 + 2] * d;
+      attr.array[i * 3] = state.pos[i * 3];
+      attr.array[i * 3 + 1] = state.pos[i * 3 + 1];
+      attr.array[i * 3 + 2] = state.pos[i * 3 + 2];
     }
     attr.needsUpdate = true;
   });
@@ -202,32 +258,210 @@ const Sparks = () => {
   return (
     <points ref={points}>
       <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+        <bufferAttribute attach="attributes-position" args={[state.pos, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        color="#9fd0ff"
-        size={0.055}
+        color="#FFAA22"
+        size={0.05}
         sizeAttenuation
         transparent
-        opacity={0.6}
+        opacity={0.95}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Particle layer 2 — atmospheric dust                                */
+/* ------------------------------------------------------------------ */
+
+const DUST = 200;
+
+const Dust = () => {
+  const points = useRef<ThreePoints>(null);
+
+  const base = useMemo(() => {
+    const arr = new Float32Array(DUST * 3);
+    for (let i = 0; i < DUST; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 26;
+      arr[i * 3 + 1] = Math.random() * 8 - 1;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 20;
+    }
+    return arr;
+  }, []);
+
+  useFrame((s) => {
+    const geo = points.current?.geometry;
+    if (!geo) return;
+    const attr = geo.getAttribute("position") as THREE.BufferAttribute;
+    const t = s.clock.elapsedTime;
+    for (let i = 0; i < DUST; i++) {
+      attr.array[i * 3] = base[i * 3] + Math.sin(t * 0.11 + i * 1.3) * 0.4;
+      attr.array[i * 3 + 1] = base[i * 3 + 1] + Math.sin(t * 0.16 + i) * 0.35;
+      attr.array[i * 3 + 2] = base[i * 3 + 2] + Math.cos(t * 0.09 + i * 0.7) * 0.4;
+    }
+    attr.needsUpdate = true;
+  });
+
+  return (
+    <points ref={points}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[base, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        color="#aabbff"
+        size={0.035}
+        sizeAttenuation
+        transparent
+        opacity={0.42}
         depthWrite={false}
       />
     </points>
   );
 };
 
+/* ------------------------------------------------------------------ */
+/* Particle layer 3 — volumetric light shafts                         */
+/* ------------------------------------------------------------------ */
+
+const RAYS: Array<{ x: number; z: number; w: number; tilt: number }> = [
+  { x: -4.5, z: -2, w: 1.6, tilt: 0.18 },
+  { x: 0.5, z: -4, w: 2.2, tilt: -0.12 },
+  { x: 3.6, z: 0.5, w: 1.9, tilt: 0.1 },
+  { x: 7.5, z: -3, w: 1.4, tilt: -0.2 },
+];
+
+const LightShafts = () => {
+  const group = useRef<Group>(null);
+
+  useFrame((s) => {
+    if (!group.current) return;
+    const t = s.clock.elapsedTime;
+    group.current.children.forEach((child, i) => {
+      child.rotation.z = RAYS[i].tilt + Math.sin(t * 0.13 + i) * 0.02;
+    });
+  });
+
+  return (
+    <group ref={group}>
+      {RAYS.map((ray, i) => (
+        <mesh key={i} position={[ray.x, 3.2, ray.z]} rotation={[0, 0, ray.tilt]}>
+          <planeGeometry args={[ray.w, 10]} />
+          <meshBasicMaterial
+            color="#dce8ff"
+            transparent
+            opacity={i % 2 === 0 ? 0.07 : 0.05}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Environment                                                        */
+/* ------------------------------------------------------------------ */
+
+const FLOOR_Y = -1.45;
+
 const Floor = () => (
   <>
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.4, 0]} receiveShadow>
-      <planeGeometry args={[60, 60]} />
-      <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.2} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, FLOOR_Y, 0]} receiveShadow>
+      <planeGeometry args={[80, 80]} />
+      <meshStandardMaterial color={GROUND} metalness={0.9} roughness={0.15} />
     </mesh>
-    <gridHelper args={[40, 40, "#3a4a5c", "#26303c"]} position={[0, -1.39, 0]} />
+    <gridHelper
+      args={[70, 70, "#2b3murky", "#1d2733"]}
+      position={[0, FLOOR_Y + 0.01, 0]}
+    />
   </>
 );
 
 /* ------------------------------------------------------------------ */
-/* Canvas wrapper                                                      */
+/* Scene                                                              */
+/* ------------------------------------------------------------------ */
+
+const Scene = () => (
+  <>
+    <fog attach="fog" args={[FOG, 8, 25]} />
+
+    <ambientLight intensity={0.2} color="#0a0a1a" />
+    {/* main key light, top-right, warm */}
+    <directionalLight
+      position={[7, 9, 4]}
+      intensity={2}
+      color="#fff5e6"
+      castShadow
+      shadow-mapSize={[1024, 1024]}
+      shadow-camera-left={-10}
+      shadow-camera-right={10}
+      shadow-camera-top={10}
+      shadow-camera-bottom={-10}
+    />
+    {/* cool fill from the left */}
+    <directionalLight position={[-8, 3, 3]} intensity={0.5} color="#4488ff" />
+    {/* rim / back light for the silhouette edge */}
+    <directionalLight position={[1.5, 3.5, -8]} intensity={1} color="#cfe4ff" />
+    {/* pool of light on the floor under the hero robot */}
+    <spotLight
+      position={[2.4, 7, 1.2]}
+      target-position={[2.4, FLOOR_Y, 0]}
+      angle={0.5}
+      penumbra={0.85}
+      intensity={40}
+      distance={16}
+      color="#ffd9a8"
+    />
+    <pointLight position={[-2, 0.4, 3]} intensity={9} distance={10} color="#4a9eff" />
+
+    {/* Foreground hero robot */}
+    <RobotArm position={[2.3, FLOOR_Y, 0.4]} scale={1} />
+
+    {/* Mid-ground welding robot */}
+    <RobotArm
+      position={[-3.4, FLOOR_Y, -5.2]}
+      rotation={[0, 0.7, 0]}
+      scale={0.72}
+      mode="weld"
+      offset={3.1}
+      castShadows={false}
+    />
+    <Sparks origin={[-3.0, FLOOR_Y + 2.3, -4.9]} />
+
+    {/* Far background silhouette */}
+    <RobotArm
+      position={[6.8, FLOOR_Y, -11}
+      rotation={[0, -0.9, 0]}
+      scale={0.5}
+      mode="idle"
+      offset={6.4}
+      castShadows={false}
+    />
+
+    <Floor />
+    <Dust />
+    <LightShafts />
+
+    {/* slow cinematic auto-orbit, user interaction disabled */}
+    <OrbitControls
+      target={[1.4, 0.6, 0]}
+      autoRotate
+      autoRotateSpeed={0.3}
+      enableZoom={false}
+      enablePan={false}
+      enableRotate={false}
+      enableDamping={false}
+    />
+  </>
+);
+
+/* ------------------------------------------------------------------ */
+/* Fallback + wrapper                                                 */
 /* ------------------------------------------------------------------ */
 
 const supportsWebGL = () => {
@@ -240,19 +474,23 @@ const supportsWebGL = () => {
   }
 };
 
-const Poster = () => (
-  <img
-    src={heroPoster}
-    alt="Industrial six-axis robot arm working on a factory floor"
-    className="h-full w-full object-cover"
-    decoding="async"
-  />
+/** Cinematic still fallback: slow Ken Burns zoom on the poster. */
+const PosterFallback = () => (
+  <div className="absolute inset-0 z-0 overflow-hidden bg-[#0a0a0f]">
+    <img
+      src={heroPoster}
+      alt="Industrial six-axis robot arms working on a factory floor"
+      className="rv-ken-burns h-full w-full object-cover"
+      decoding="async"
+    />
+  </div>
 );
 
 /**
- * Full-bleed hero background: real-time WebGL 3D industrial robot arm
- * running a continuous pick-and-place cycle. Falls back to a poster still
- * when WebGL is unavailable or the user prefers reduced motion.
+ * Full-bleed cinematic hero background: real-time WebGL industrial scene with
+ * three robot arms at different depths, volumetric fog, light shafts, welding
+ * sparks, drifting dust and a slow camera orbit. Falls back to a Ken Burns
+ * poster still on mobile, without WebGL, or under reduced-motion.
  */
 const HeroRobotAnimation = () => {
   const [failed, setFailed] = useState(false);
@@ -260,46 +498,28 @@ const HeroRobotAnimation = () => {
   const fallback = useMemo(() => {
     if (typeof window === "undefined") return true;
     return (
+      window.innerWidth < 768 ||
       !supportsWebGL() ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     );
   }, []);
 
-  if (fallback || failed) {
-    return (
-      <div className="absolute inset-0 z-0 overflow-hidden bg-neutral-900">
-        <Poster />
-      </div>
-    );
-  }
+  if (fallback || failed) return <PosterFallback />;
 
   return (
-    <div className="absolute inset-0 z-0 overflow-hidden bg-[#101418]">
-      <Suspense fallback={<Poster />}>
+    <div className="absolute inset-0 z-0 overflow-hidden bg-[#0a0a0f]">
+      <Suspense fallback={<PosterFallback />}>
         <Canvas
           dpr={[1, 1.5]}
           shadows
+          frameloop="always"
           gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-          camera={{ position: [5.6, 3.4, 9.4], fov: 34 }}
+          camera={{ position: [6.2, 1.1, 9.6], fov: 36 }}
           onCreated={({ gl }) => {
             gl.domElement.addEventListener("webglcontextlost", () => setFailed(true));
           }}
         >
-          <ambientLight intensity={0.3} color="#8fa6bf" />
-          <directionalLight
-            position={[6, 9, 4]}
-            intensity={1.5}
-            color="#ffffff"
-            castShadow
-            shadow-mapSize={[1024, 1024]}
-          />
-          <pointLight position={[-2, 0.2, 2.5]} intensity={12} distance={9} color="#4a9eff" />
-          <directionalLight position={[-5, 3, -6]} intensity={0.6} color="#7fb6ff" />
-
-          <RobotArm />
-          <Floor />
-          <Sparks />
-          <fog attach="fog" args={["#101418", 9, 22]} />
+          <Scene />
         </Canvas>
       </Suspense>
     </div>
