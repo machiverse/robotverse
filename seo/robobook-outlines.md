@@ -229,7 +229,7 @@ Frame payload as one of the most misunderstood robot-selection variables. Explai
 
 **Internal link note:** Each example should link to a relevant listing or payload page.
 
-### H2: When to use RobotVerse AI Assistant
+### H2: When to use RobotVerse Assistant
 
 #### H3: Use AI when multiple payload classes could work
 
