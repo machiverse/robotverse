@@ -1,6 +1,19 @@
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, Square, Trash2, Bot, User, LogIn, Sparkles, MessageSquare, Copy, Check, FileSearch, ExternalLink } from "lucide-react";
+import {
+  Send,
+  Square,
+  Trash2,
+  Bot,
+  User,
+  LogIn,
+  Sparkles,
+  MessageSquare,
+  Copy,
+  Check,
+  FileSearch,
+  ExternalLink,
+} from "lucide-react";
 import ResultTabsView from "./ResultTabsView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +53,20 @@ const QUICK_PROMPTS = [
 ];
 
 const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, className }) => {
-  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn, lastResultCounts, lastUserQuery, visibleTabs } =
-    useAIAssistantContext();
+  const {
+    messages,
+    isLoading,
+    error,
+    sendMessage,
+    clearChat,
+    stopGeneration,
+    canQuery,
+    remainingFree,
+    isLoggedIn,
+    lastResultCounts,
+    lastUserQuery,
+    visibleTabs,
+  } = useAIAssistantContext();
 
   const [input, setInput] = useState("");
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -50,25 +75,33 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
 
   // Determine if we should show "Submit Request" - when key categories have 0 results
   // Check both API result counts AND AI response content for "not found" patterns
-  const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant')?.content?.toLowerCase() || '';
-  const aiSaysNotFound = lastAssistantMsg.match(/no\s+(exact\s+)?match|not\s+(available|found)|cannot\s+find|don'?t\s+have|couldn'?t\s+find|no\s+\w+\s+(robots?|parts?|spare|eoat|services?)\s+(found|available|listed|in)/i);
-  
-  const hasLowResults = !isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
-    // API says zero core results
-    (lastResultCounts && (lastResultCounts.robots + lastResultCounts.spareParts + lastResultCounts.services) === 0) ||
-    // OR the AI response itself says nothing was found
-    !!aiSaysNotFound
+  const lastAssistantMsg =
+    [...messages]
+      .reverse()
+      .find((m) => m.role === "assistant")
+      ?.content?.toLowerCase() || "";
+  const aiSaysNotFound = lastAssistantMsg.match(
+    /no\s+(exact\s+)?match|not\s+(available|found)|cannot\s+find|don'?t\s+have|couldn'?t\s+find|no\s+\w+\s+(robots?|parts?|spare|eoat|services?)\s+(found|available|listed|in)/i,
   );
 
+  const hasLowResults =
+    !isLoading &&
+    messages.length > 0 &&
+    messages[messages.length - 1]?.role === "assistant" &&
+    // API says zero core results
+    ((lastResultCounts && lastResultCounts.robots + lastResultCounts.spareParts + lastResultCounts.services === 0) ||
+      // OR the AI response itself says nothing was found
+      !!aiSaysNotFound);
+
   // Detect product type from query for pre-filling the modal
-  const detectProductType = (): 'robot' | 'spare_part' | 'service' | undefined => {
+  const detectProductType = (): "robot" | "spare_part" | "service" | undefined => {
     const q = lastUserQuery.toLowerCase();
-    if (q.match(/spare|part|eoat|gripper|sensor|controller|component|pendant/)) return 'spare_part';
-    if (q.match(/service|maintenance|repair|integrat|program/)) return 'service';
-    return 'robot';
+    if (q.match(/spare|part|eoat|gripper|sensor|controller|component|pendant/)) return "spare_part";
+    if (q.match(/service|maintenance|repair|integrat|program/)) return "service";
+    return "robot";
   };
 
-  const latestUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+  const latestUserMessage = [...messages].reverse().find((m) => m.role === "user")?.content || "";
   const requestQuery = lastUserQuery.trim() || latestUserMessage;
 
   const lastMessageRole = messages[messages.length - 1]?.role;
@@ -179,66 +212,66 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
       {/* Messages */}
       <ScrollArea className={cn("flex-1", fullPage ? "px-4 sm:px-6 lg:px-0 py-5" : "px-3 py-3")} ref={scrollRef}>
         <div className={cn(fullPage && "max-w-3xl mx-auto")}>
-        {messages.length === 0 ? (
-          <EmptyState
-            onPromptClick={(query) => {
-              setInput(query);
-              inputRef.current?.focus();
-            }}
-            fullPage={fullPage}
-          />
-        ) : (
-          <div className="space-y-5">
-            {messages.map((msg, i) => {
-              const isLastAssistant = msg.role === 'assistant' && i === messages.length - 1;
-              return (
-                <MessageBubble
-                  key={i}
-                  message={msg}
-                  resultCounts={isLastAssistant ? lastResultCounts : null}
-                  isLastAssistant={isLastAssistant}
-                  visibleTabs={isLastAssistant ? visibleTabs : []}
-                />
-              );
-            })}
+          {messages.length === 0 ? (
+            <EmptyState
+              onPromptClick={(query) => {
+                setInput(query);
+                inputRef.current?.focus();
+              }}
+              fullPage={fullPage}
+            />
+          ) : (
+            <div className="space-y-5">
+              {messages.map((msg, i) => {
+                const isLastAssistant = msg.role === "assistant" && i === messages.length - 1;
+                return (
+                  <MessageBubble
+                    key={i}
+                    message={msg}
+                    resultCounts={isLastAssistant ? lastResultCounts : null}
+                    isLastAssistant={isLastAssistant}
+                    visibleTabs={isLastAssistant ? visibleTabs : []}
+                  />
+                );
+              })}
 
-            {/* Streaming / chain state indicator */}
-            {isLoading && lastMessageRole !== "assistant" && <AssistantThinking />}
-          </div>
-        )}
+              {/* Streaming / chain state indicator */}
+              {isLoading && lastMessageRole !== "assistant" && <AssistantThinking />}
+            </div>
+          )}
 
-        {/* Submit Request CTA when no results found */}
-        {hasLowResults && (
-          <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 animate-fade-in">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-                <FileSearch className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground">Can't find what you need?</p>
-                <p className="text-xs text-muted-foreground mt-0.5 mb-3">
-                  Submit a request and our team will connect you with the right sellers and providers.
-                </p>
-                <Button
-                  size="sm"
-                  className="h-8 text-xs rounded-lg px-4 shadow-sm"
-                  onClick={() => setShowRequestModal(true)}
-                >
-                  <FileSearch className="w-3.5 h-3.5 mr-1.5" />
-                  Submit a Request
-                </Button>
+          {/* Submit Request CTA when no results found */}
+          {hasLowResults && (
+            <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 animate-fade-in">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                  <FileSearch className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">Can't find what you need?</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+                    Submit a request and our team will connect you with the right sellers and providers.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs rounded-lg px-4 shadow-sm"
+                    onClick={() => setShowRequestModal(true)}
+                  >
+                    <FileSearch className="w-3.5 h-3.5 mr-1.5" />
+                    Submit a Request
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Error / Login prompt */}
-        {error === "login_required" && <LoginRequiredBanner remainingFree={remainingFree} />}
-        {error && error !== "login_required" && (
-          <div className="mt-3 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive">
-            {error}
-          </div>
-        )}
+          {/* Error / Login prompt */}
+          {error === "login_required" && <LoginRequiredBanner remainingFree={remainingFree} />}
+          {error && error !== "login_required" && (
+            <div className="mt-3 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive">
+              {error}
+            </div>
+          )}
         </div>
       </ScrollArea>
 
@@ -251,7 +284,12 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
       />
 
       {/* Input */}
-      <div className={cn("p-3 sm:p-4 border-t border-border/30 bg-background/80 backdrop-blur-sm", fullPage && "px-4 sm:px-6 lg:px-0")}>
+      <div
+        className={cn(
+          "p-3 sm:p-4 border-t border-border/30 bg-background/80 backdrop-blur-sm",
+          fullPage && "px-4 sm:px-6 lg:px-0",
+        )}
+      >
         <div className={cn("flex gap-2 items-center", fullPage && "max-w-3xl mx-auto")}>
           <div className="flex-1 relative">
             <Input
@@ -263,7 +301,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
               disabled={!canQuery || isLoading}
               className={cn(
                 "text-sm rounded-xl border-border/50 bg-muted/30 pr-3 focus:bg-background transition-colors",
-                fullPage ? "h-12" : "h-10"
+                fullPage ? "h-12" : "h-10",
               )}
             />
           </div>
@@ -273,7 +311,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
               variant="outline"
               className={cn(
                 "shrink-0 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10",
-                fullPage ? "h-12 w-12" : "h-10 w-10"
+                fullPage ? "h-12 w-12" : "h-10 w-10",
               )}
               onClick={stopGeneration}
             >
@@ -282,10 +320,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           ) : (
             <Button
               size="icon"
-              className={cn(
-                "shrink-0 rounded-xl shadow-md",
-                fullPage ? "h-12 w-12" : "h-10 w-10"
-              )}
+              className={cn("shrink-0 rounded-xl shadow-md", fullPage ? "h-12 w-12" : "h-10 w-10")}
               onClick={handleSend}
               disabled={!input.trim() || !canQuery}
             >
@@ -319,7 +354,7 @@ const EmptyState: React.FC<{
       </div>
     </div>
     <div className="text-center space-y-1.5">
-      <p className="font-bold text-foreground text-base">How can RobotVerse AI help?</p>
+      <p className="font-bold text-foreground text-base">How can RobotVerse help?</p>
       <p className="text-sm text-muted-foreground">Ask about robots, spare parts, EOAT, integrators or services</p>
     </div>
     <div className={cn("grid gap-2.5 w-full", fullPage ? "grid-cols-2 max-w-lg" : "grid-cols-1 max-w-xs")}>
@@ -396,18 +431,26 @@ const LoginRequiredBanner: React.FC<{ remainingFree: number }> = ({ remainingFre
 
 /* ─── Message Bubble ─── */
 
-const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts | null; isLastAssistant?: boolean; visibleTabs?: string[] }> = ({ message, resultCounts, isLastAssistant, visibleTabs = [] }) => {
+const MessageBubble: React.FC<{
+  message: AIMessage;
+  resultCounts?: ResultCounts | null;
+  isLastAssistant?: boolean;
+  visibleTabs?: string[];
+}> = ({ message, resultCounts, isLastAssistant, visibleTabs = [] }) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
 
   const InternalLink = ({ href, children, ...props }: any) => {
-    const isInternal = href && (href.startsWith('/') || href.startsWith('https://robotverse.in/'));
+    const isInternal = href && (href.startsWith("/") || href.startsWith("https://robotverse.in/"));
     if (isInternal) {
-      const path = href.startsWith('https://robotverse.in') ? href.replace('https://robotverse.in', '') : href;
+      const path = href.startsWith("https://robotverse.in") ? href.replace("https://robotverse.in", "") : href;
       return (
         <button
-          onClick={(e) => { e.preventDefault(); navigate(path); }}
+          onClick={(e) => {
+            e.preventDefault();
+            navigate(path);
+          }}
           className="inline-flex items-center gap-1 text-primary font-semibold hover:text-primary/80 transition-colors cursor-pointer text-[12px] bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20"
           {...props}
         >
@@ -416,7 +459,11 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
         </button>
       );
     }
-    return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+        {children}
+      </a>
+    );
   };
 
   const handleCopy = async () => {
