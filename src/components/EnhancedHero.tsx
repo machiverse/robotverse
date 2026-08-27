@@ -210,7 +210,7 @@ const EnhancedHero = () => {
                 >
                   <SelectTrigger
                     aria-label="Select category"
-                    className="h-11 rounded-xl border-white/25 bg-white/15 text-sm text-white disabled:opacity-60"
+                    className="h-11 w-full min-w-0 rounded-xl border-white/25 bg-white/15 text-sm text-white disabled:opacity-60"
                   >
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
@@ -230,7 +230,7 @@ const EnhancedHero = () => {
                 >
                   <SelectTrigger
                     aria-label="Select location"
-                    className="h-11 rounded-xl border-white/25 bg-white/15 text-sm text-white disabled:opacity-60"
+                    className="h-11 w-full min-w-0 rounded-xl border-white/25 bg-white/15 text-sm text-white disabled:opacity-60"
                   >
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
