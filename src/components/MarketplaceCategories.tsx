@@ -210,7 +210,7 @@ const MarketplaceCategories = () => {
   );
 
   return (
-    <section className="py-10 md:py-14 bg-muted/20">
+    <section className="relative z-10 py-10 md:py-14 bg-background">
       <div className="container mx-auto px-4">
         <h2 className="text-2xl md:text-3xl font-bold mb-2 text-foreground">
           Everything You Need in One Marketplace
