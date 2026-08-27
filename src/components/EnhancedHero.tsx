@@ -147,7 +147,7 @@ const EnhancedHero = () => {
 
       {/* Slide indicators — bottom-right, desktop only */}
       {!reducedMotion && (
-        <div className="absolute bottom-8 right-6 z-20 hidden items-center gap-2 md:flex lg:right-10">
+        <div className="absolute bottom-8 right-24 z-20 hidden items-center gap-2 md:flex lg:right-28">
           {HERO_SLIDES.map((slide, i) => (
             <button
               key={slide.src}
