@@ -310,7 +310,9 @@ const RobotArm = ({
 /* Welding sparks — spawn from the live tool-tip world position        */
 /* ------------------------------------------------------------------ */
 
-const SPARKS = 90;
+const SPARKS = 240;
+const BURST_COUNT = 60;
+const BURST_EVERY = 0.8;
 
 interface EmitterProps {
   toolRef: React.RefObject<Group>;
@@ -323,17 +325,47 @@ const Sparks = ({ toolRef, active }: EmitterProps) => {
 
   const state = useMemo(() => {
     const pos = new Float32Array(SPARKS * 3);
+    const prev1 = new Float32Array(SPARKS * 3);
+    const prev2 = new Float32Array(SPARKS * 3);
     const vel = new Float32Array(SPARKS * 3);
     const life = new Float32Array(SPARKS);
     for (let i = 0; i < SPARKS; i++) {
       pos[i * 3 + 1] = -999;
+      prev1[i * 3 + 1] = -999;
+      prev2[i * 3 + 1] = -999;
       life[i] = Math.random() * 0.4;
     }
-    return { pos, vel, life };
+    return { pos, prev1, prev2, vel, life, wasOn: false, burstTimer: 0 };
   }, []);
 
+  const geoRef = useRef<THREE.BufferGeometry>(null);
+  const trail1 = useRef<ThreePoints>(null);
+  const trail2 = useRef<ThreePoints>(null);
+
+  /** Respawn one spark at the tool tip. `boost` multiplies velocity. */
+  const spawn = (i: number, boost: number) => {
+    const { pos, prev1, prev2, vel, life } = state;
+    life[i] = 0.9 + Math.random() * 1.1;
+    pos[i * 3] = world.x;
+    pos[i * 3 + 1] = world.y;
+    pos[i * 3 + 2] = world.z;
+    prev1[i * 3] = world.x;
+    prev1[i * 3 + 1] = world.y;
+    prev1[i * 3 + 2] = world.z;
+    prev2[i * 3] = world.x;
+    prev2[i * 3 + 1] = world.y;
+    prev2[i * 3 + 2] = world.z;
+    vel[i * 3] = (Math.random() - 0.5) * 14 * boost;
+    vel[i * 3 + 1] = (0.5 + Math.random() * 4.5) * boost;
+    // ~40% of sparks fly hard toward the camera (+Z) so they exit the screen
+    vel[i * 3 + 2] =
+      Math.random() < 0.4
+        ? (3 + Math.random() * 6) * boost
+        : (Math.random() - 0.5) * 14 * boost;
+  };
+
   useFrame((_, delta) => {
-    const geo = points.current?.geometry;
+    const geo = geoRef.current;
     const tool = toolRef.current;
     if (!geo || !tool) return;
     tool.getWorldPosition(world);
@@ -341,49 +373,140 @@ const Sparks = ({ toolRef, active }: EmitterProps) => {
     const attr = geo.getAttribute("position") as THREE.BufferAttribute;
     const d = Math.min(delta, 0.05);
     const on = active.current;
+    const { pos, prev1, prev2, vel, life } = state;
+
+    // Burst rhythm: one on weld start, then roughly every 0.8s while welding.
+    let burst = 0;
+    if (on) {
+      if (!state.wasOn) {
+        burst = BURST_COUNT;
+        state.burstTimer = 0;
+      } else {
+        state.burstTimer += d;
+        if (state.burstTimer >= BURST_EVERY) {
+          state.burstTimer -= BURST_EVERY;
+          burst = BURST_COUNT;
+        }
+      }
+    }
+    state.wasOn = on;
 
     for (let i = 0; i < SPARKS; i++) {
-      state.life[i] -= d * 1.6;
-      if (state.life[i] <= 0) {
+      life[i] -= d * 1.0;
+
+      if (burst > 0 && on && life[i] > 0) {
+        // force-respawn part of the field for the burst pulse
+        spawn(i, 1.8);
+        burst--;
+      } else if (life[i] <= 0) {
         if (!on) {
-          state.pos[i * 3 + 1] = -999;
-          attr.array[i * 3 + 1] = -999;
+          pos[i * 3 + 1] = -999;
+          prev1[i * 3 + 1] = -999;
+          prev2[i * 3 + 1] = -999;
           continue;
         }
-        state.life[i] = 0.35 + Math.random() * 0.5;
-        state.pos[i * 3] = world.x;
-        state.pos[i * 3 + 1] = world.y;
-        state.pos[i * 3 + 2] = world.z;
-        state.vel[i * 3] = (Math.random() - 0.5) * 2.4;
-        state.vel[i * 3 + 1] = Math.random() * 1.8 + 0.2;
-        state.vel[i * 3 + 2] = (Math.random() - 0.5) * 2.4;
+        spawn(i, burst > 0 ? 1.8 : 1);
+        if (burst > 0) burst--;
       }
-      state.vel[i * 3 + 1] -= d * 5.2; // gravity
-      state.pos[i * 3] += state.vel[i * 3] * d;
-      state.pos[i * 3 + 1] += state.vel[i * 3 + 1] * d;
-      state.pos[i * 3 + 2] += state.vel[i * 3 + 2] * d;
-      attr.array[i * 3] = state.pos[i * 3];
-      attr.array[i * 3 + 1] = state.pos[i * 3 + 1];
-      attr.array[i * 3 + 2] = state.pos[i * 3 + 2];
+
+      // shift the short position history (comet tail samples)
+      prev2[i * 3] = prev1[i * 3];
+      prev2[i * 3 + 1] = prev1[i * 3 + 1];
+      prev2[i * 3 + 2] = prev1[i * 3 + 2];
+      prev1[i * 3] = pos[i * 3];
+      prev1[i * 3 + 1] = pos[i * 3 + 1];
+      prev1[i * 3 + 2] = pos[i * 3 + 2];
+
+      vel[i * 3 + 1] -= d * 4.0; // gravity
+      // air drag
+      vel[i * 3] *= 0.985;
+      vel[i * 3 + 1] *= 0.985;
+      vel[i * 3 + 2] *= 0.985;
+
+      pos[i * 3] += vel[i * 3] * d;
+      pos[i * 3 + 1] += vel[i * 3 + 1] * d;
+      pos[i * 3 + 2] += vel[i * 3 + 2] * d;
     }
+
     attr.needsUpdate = true;
+    const t1 = trail1.current?.geometry.getAttribute("position") as
+      | THREE.BufferAttribute
+      | undefined;
+    const t2 = trail2.current?.geometry.getAttribute("position") as
+      | THREE.BufferAttribute
+      | undefined;
+    if (t1) t1.needsUpdate = true;
+    if (t2) t2.needsUpdate = true;
   });
 
   return (
-    <points ref={points} frustumCulled={false}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[state.pos, 3]} />
-      </bufferGeometry>
-      <pointsMaterial
-        color="#FFC24A"
-        size={0.055}
-        sizeAttenuation
-        transparent
-        opacity={0.95}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
+    <>
+      {/* hot core + soft halo share one position buffer (fake bloom) */}
+      <points ref={points} frustumCulled={false}>
+        <bufferGeometry ref={geoRef}>
+          <bufferAttribute attach="attributes-position" args={[state.pos, 3]} />
+        </bufferGeometry>
+        <pointsMaterial
+          color="#FFF0C0"
+          size={0.085}
+          sizeAttenuation
+          transparent
+          opacity={1}
+          fog={false}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </points>
+
+      <points frustumCulled={false}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[state.pos, 3]} />
+        </bufferGeometry>
+        <pointsMaterial
+          color="#FF8A1E"
+          size={0.26}
+          sizeAttenuation
+          transparent
+          opacity={0.22}
+          fog={false}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </points>
+
+      {/* comet tails — dimmer layers at the previous two sampled positions */}
+      <points ref={trail1} frustumCulled={false}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[state.prev1, 3]} />
+        </bufferGeometry>
+        <pointsMaterial
+          color="#FFB25A"
+          size={0.07}
+          sizeAttenuation
+          transparent
+          opacity={0.45}
+          fog={false}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </points>
+
+      <points ref={trail2} frustumCulled={false}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[state.prev2, 3]} />
+        </bufferGeometry>
+        <pointsMaterial
+          color="#FF8A1E"
+          size={0.055}
+          sizeAttenuation
+          transparent
+          opacity={0.22}
+          fog={false}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </points>
+    </>
   );
 };
 
