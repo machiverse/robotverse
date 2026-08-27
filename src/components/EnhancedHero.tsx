@@ -126,8 +126,8 @@ const EnhancedHero = () => {
 
   return (
     <section className="relative isolate flex w-full items-center overflow-hidden min-h-[80vh] pt-24 pb-20 md:min-h-[88vh] lg:min-h-[92vh] lg:pt-28 lg:pb-24">
-      {/* Full-bleed real-time 3D industrial robot background (never remounts) */}
-      <HeroRobotAnimation />
+      {/* Full-bleed photographic industrial robot slideshow */}
+      <HeroImageSlider index={slideIndex} reducedMotion={reducedMotion} />
 
       {/* Readability overlays */}
       <div
@@ -139,8 +139,30 @@ const EnhancedHero = () => {
         className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-32 bg-gradient-to-t from-background to-transparent"
       />
 
+      {/* Weld spatter overlay, active on the welding slide only */}
+      <HeroWeldSparks active={!reducedMotion && slideIndex === 0} />
+
       {/* Screen-wide ambient ember drift (above overlays, below copy) */}
       <HeroEmbers />
+
+      {/* Slide indicators — bottom-right, desktop only */}
+      {!reducedMotion && (
+        <div className="absolute bottom-8 right-6 z-20 hidden items-center gap-2 md:flex lg:right-10">
+          {HERO_SLIDES.map((slide, i) => (
+            <button
+              key={slide.src}
+              type="button"
+              aria-label={`Show slide ${i + 1}`}
+              aria-current={i === slideIndex}
+              onClick={() => setSlideIndex(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === slideIndex ? "w-7 bg-white/70" : "w-1.5 bg-white/30 hover:bg-white/50"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+
 
       <div className="container relative z-20 mx-auto w-full px-4">
         <div className="max-w-4xl">
