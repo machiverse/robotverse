@@ -516,6 +516,7 @@ const Sparks = ({ toolRef, active }: EmitterProps) => {
 
 const ArcFlash = ({ toolRef, active }: EmitterProps) => {
   const flash = useRef<Mesh>(null);
+  const halo = useRef<Mesh>(null);
   const light = useRef<PointLight>(null);
   const world = useMemo(() => new THREE.Vector3(), []);
 
@@ -524,7 +525,7 @@ const ArcFlash = ({ toolRef, active }: EmitterProps) => {
     if (!tool) return;
     tool.getWorldPosition(world);
     const on = active.current;
-    const jitter = 6 + Math.random() * 14;
+    const jitter = 14 + Math.random() * 28;
 
     if (light.current) {
       light.current.position.copy(world);
@@ -534,20 +535,38 @@ const ArcFlash = ({ toolRef, active }: EmitterProps) => {
       flash.current.visible = on;
       flash.current.position.copy(world);
       flash.current.quaternion.copy(camera.quaternion);
-      const s = on ? 0.28 + Math.random() * 0.22 : 0.001;
+      const s = on ? 0.45 + Math.random() * 0.5 : 0.001;
       flash.current.scale.setScalar(s);
+    }
+    if (halo.current) {
+      halo.current.visible = on;
+      halo.current.position.copy(world);
+      halo.current.quaternion.copy(camera.quaternion);
+      halo.current.scale.setScalar(on ? 2.5 * (0.85 + Math.random() * 0.3) : 0.001);
     }
   });
 
   return (
     <>
-      <pointLight ref={light} color={ARC} intensity={0} distance={7} decay={2} />
+      <pointLight ref={light} color={ARC} intensity={0} distance={12} decay={2} />
       <mesh ref={flash} visible={false} frustumCulled={false}>
         <planeGeometry args={[1, 1]} />
         <meshBasicMaterial
           color={ARC}
           transparent
           opacity={0.85}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+      {/* very faint wide bloom of the arc into the fog */}
+      <mesh ref={halo} visible={false} frustumCulled={false}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial
+          color={ARC}
+          transparent
+          opacity={0.12}
+          fog={false}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
