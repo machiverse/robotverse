@@ -280,3 +280,41 @@ All colors MUST be HSL.
     @apply bg-card border border-border rounded-[10px] transition-colors duration-150 hover:border-muted-foreground/30;
   }
 }
+/* Hero ambient embers — slow upward + leftward drift with a gentle flicker. */
+@keyframes rv-ember-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.9);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(var(--rv-ember-drift, -120px), -70vh, 0) scale(1.15);
+    opacity: 0;
+  }
+}
+
+.rv-ember {
+  animation: rv-ember-drift var(--rv-ember-dur, 18s) linear infinite;
+  animation-delay: var(--rv-ember-delay, 0s);
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-ember {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .rv-ember {
+    display: none;
+  }
+}

@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import HeroRobotAnimation from "@/components/hero/HeroRobotAnimation";
+import HeroEmbers from "@/components/hero/HeroEmbers";
 
 const HERO_TITLE = "Your Complete Robotics Solution";
 const HERO_SUBTITLE =
@@ -135,6 +136,9 @@ const EnhancedHero = () => {
         aria-hidden="true"
         className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-32 bg-gradient-to-t from-background to-transparent"
       />
+
+      {/* Screen-wide ambient ember drift (above overlays, below copy) */}
+      <HeroEmbers />
 
       <div className="container relative z-20 mx-auto w-full px-4">
         <div className="max-w-4xl">
