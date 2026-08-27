@@ -318,3 +318,78 @@ All colors MUST be HSL.
     display: none;
   }
 }
+
+/* Hero image slider — Ken Burns drift (alternating pan direction per slide). */
+@keyframes rv-kb-left {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.12) translate3d(-2.5%, -1.5%, 0);
+  }
+}
+
+@keyframes rv-kb-right {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.12) translate3d(2.5%, -1.5%, 0);
+  }
+}
+
+.rv-kb-left,
+.rv-kb-right {
+  will-change: transform;
+}
+
+.rv-kb-left {
+  animation: rv-kb-left 8200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.rv-kb-right {
+  animation: rv-kb-right 8200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-kb-left,
+  .rv-kb-right {
+    animation: none;
+  }
+}
+
+/* Weld spatter overlay for the welding slide — fast, downward-arcing sparks. */
+@keyframes rv-spark-fly {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate3d(var(--rv-spark-x, 90px), var(--rv-spark-y, 180px), 0) scale(0.4);
+    opacity: 0;
+  }
+}
+
+.rv-spark {
+  animation: rv-spark-fly var(--rv-spark-dur, 2.2s) cubic-bezier(0.25, 0.6, 0.6, 1) infinite;
+  animation-delay: var(--rv-spark-delay, 0s);
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-spark {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .rv-spark {
+    display: none;
+  }
+}
