@@ -33,6 +33,7 @@ const EnhancedHero = () => {
   const [categories, setCategories] = useState<string[]>(["All Categories"]);
   const [locations, setLocations] = useState<string[]>(["All Locations"]);
   const [loading, setLoading] = useState<boolean>(true);
+  const { index: slideIndex, setIndex: setSlideIndex, reducedMotion } = useHeroSlides();
 
   useEffect(() => {
     const fetchFilters = async () => {
