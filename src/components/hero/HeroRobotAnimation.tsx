@@ -1124,7 +1124,7 @@ const HeroRobotAnimation = () => {
           shadows
           frameloop="always"
           gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-          camera={{ position: [6.2, 1.1, 9.6], fov: 36 }}
+          camera={{ position: [6.2, 1.1, 9.6], fov: 36, near: 0.1, far: 120 }}
           onCreated={({ gl }) => {
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 1.25;
