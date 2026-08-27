@@ -125,7 +125,7 @@ const EnhancedHero = () => {
   };
 
   return (
-    <section className="relative isolate flex w-full items-center overflow-hidden min-h-[80vh] pt-24 pb-20 md:min-h-[88vh] lg:min-h-[92vh] lg:pt-28 lg:pb-24">
+    <section className="relative isolate flex w-full items-center overflow-hidden min-h-[80vh] pt-20 pb-12 md:min-h-[88vh] md:pt-24 md:pb-20 lg:min-h-[92vh] lg:pt-28 lg:pb-24">
       {/* Full-bleed photographic industrial robot slideshow */}
       <HeroImageSlider index={slideIndex} reducedMotion={reducedMotion} />
 
@@ -177,7 +177,7 @@ const EnhancedHero = () => {
             {HERO_TITLE}
           </h1>
           <p
-            className="rv-hero-enter mt-4 max-w-[58ch] text-lg leading-[1.55] text-white/80 lg:text-xl"
+            className="rv-hero-enter mt-3 max-w-[58ch] text-base leading-[1.5] text-white/80 sm:mt-4 sm:text-lg lg:text-xl"
             style={enter(1)}
           >
             {HERO_SUBTITLE}
@@ -188,7 +188,7 @@ const EnhancedHero = () => {
               e.preventDefault();
               handleSearch();
             }}
-            className="mt-6 w-full rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-md"
+            className="mt-4 w-full min-w-0 rounded-2xl border border-white/20 bg-white/10 p-3.5 backdrop-blur-md sm:mt-6 sm:p-5"
           >
             <div className="grid grid-cols-1 gap-3">
               <div className="relative">
@@ -250,7 +250,7 @@ const EnhancedHero = () => {
             </div>
           </form>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <div className="mt-4 flex flex-col gap-2.5 sm:mt-6 sm:flex-row sm:items-center sm:gap-4">
             <Button
               size="lg"
               className="h-auto bg-white px-6 py-3 text-base text-neutral-900 hover:bg-white/90"
