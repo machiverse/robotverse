@@ -164,7 +164,7 @@ const HomeRobotListings = () => {
 
   if (loading) {
     return (
-      <section className="pt-10 pb-20 md:pt-12 md:pb-28 bg-background">
+      <section className="relative z-10 pt-10 pb-20 md:pt-12 md:pb-28 bg-background">
         <div className="container mx-auto px-4">
           <div className="mb-8 space-y-3">
             <div className="h-8 w-64 rounded-md bg-muted animate-pulse" />
@@ -204,7 +204,7 @@ const HomeRobotListings = () => {
 
   if (robotTypes.length === 0) {
     return (
-      <section className="pt-10 pb-20 md:pt-12 md:pb-28 bg-background">
+      <section className="relative z-10 pt-10 pb-20 md:pt-12 md:pb-28 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-xl mx-auto rounded-lg border border-border bg-card p-8 text-center">
             <Bot className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -228,7 +228,7 @@ const HomeRobotListings = () => {
   const overallStats = getOverallStats();
 
   return (
-    <section className="pt-10 pb-20 md:pt-12 md:pb-28 bg-background">
+    <section className="relative z-10 pt-10 pb-20 md:pt-12 md:pb-28 bg-background">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="text-center mb-8">

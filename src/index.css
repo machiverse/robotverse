@@ -203,54 +203,6 @@ All colors MUST be HSL.
   }
 }
 
-/* Hero slider — soft vertical fade-through for the rotating copy. */
-@keyframes rv-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.rv-slide-in {
-  opacity: 0;
-  animation: rv-slide-in 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Active dot progress fill, driven by animation-play-state for pause. */
-@keyframes rv-dot-fill {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-
-.rv-dot-fill {
-  transform-origin: left center;
-  animation: rv-dot-fill 6000ms linear forwards;
-}
-
-.rv-dot-fill[data-paused="true"] {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rv-slide-in {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-  .rv-dot-fill {
-    animation: none;
-    transform: scaleX(1);
-  }
-}
-
 
 
 
