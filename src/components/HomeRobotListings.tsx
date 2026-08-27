@@ -228,7 +228,7 @@ const HomeRobotListings = () => {
   const overallStats = getOverallStats();
 
   return (
-    <section className="pt-10 pb-20 md:pt-12 md:pb-28 bg-background">
+    <section className="relative z-10 pt-10 pb-20 md:pt-12 md:pb-28 bg-background">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="text-center mb-8">
