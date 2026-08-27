@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,61 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import HeroRobotAnimation from "@/components/hero/HeroRobotAnimation";
 
-const heroContent = {
-  title: "Your Complete Robotics Solution",
-  subtitle:
-    "Buy Industrial Robots with Spare Parts, Services, Logistics & Finance – All in One Platform",
-};
+interface HeroSlide {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  cta: { label: string; href: string };
+}
+
+const SLIDES: HeroSlide[] = [
+  {
+    eyebrow: "Industrial Robotics Marketplace",
+    title: "Your Complete Robotics Solution",
+    subtitle:
+      "Buy Industrial Robots with Spare Parts, Services, Logistics & Finance – All in One Platform",
+    cta: { label: "Explore Robots", href: "/robots" },
+  },
+  {
+    eyebrow: "New • Used • Refurbished",
+    title: "Verified Industrial Robots, Ready to Deploy",
+    subtitle:
+      "FANUC, ABB, KUKA, Yaskawa and more — inspected, condition-graded and available across India.",
+    cta: { label: "Browse Inventory", href: "/robots" },
+  },
+  {
+    eyebrow: "Spare Parts",
+    title: "Every Part. Every Controller Generation.",
+    subtitle:
+      "Servo motors, teach pendants, drives, cables and boards for current and legacy controllers.",
+    cta: { label: "Find Spare Parts", href: "/parts" },
+  },
+  {
+    eyebrow: "Service & Integration",
+    title: "Installation, Retrofit and AMC Support",
+    subtitle:
+      "Connect with certified integrators and service engineers for commissioning, programming and maintenance.",
+    cta: { label: "Find Service Providers", href: "/services" },
+  },
+  {
+    eyebrow: "Live Auctions",
+    title: "Bid on Robots at Real Market Value",
+    subtitle: "Transparent, time-bound auctions on surplus and plant-closure inventory.",
+    cta: { label: "View Auctions", href: "/auctions" },
+  },
+  {
+    eyebrow: "Logistics & Finance",
+    title: "Shipped, Insured and Financed",
+    subtitle:
+      "Rigging, transport and equipment financing arranged end to end, so the robot lands ready to run.",
+    cta: { label: "Explore Financing", href: "/financing" },
+  },
+];
+
+const SLIDE_MS = 6000;
 
 /** Fade + 8px rise, 60ms stagger, once on mount. */
 const enter = (index: number) => ({
@@ -33,6 +80,40 @@ const EnhancedHero = () => {
   const [categories, setCategories] = useState<string[]>(["All Categories"]);
   const [locations, setLocations] = useState<string[]>(["All Locations"]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  const reducedMotion = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
+
+  const [current, setCurrent] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const [tabHidden, setTabHidden] = useState(false);
+  const timerKey = useRef(0);
+  const [tick, setTick] = useState(0);
+
+  const paused = hovered || focusWithin || tabHidden || reducedMotion;
+
+  const goTo = useCallback((index: number) => {
+    setCurrent(((index % SLIDES.length) + SLIDES.length) % SLIDES.length);
+    timerKey.current += 1;
+    setTick((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    const onVisibility = () => setTabHidden(document.hidden);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  useEffect(() => {
+    if (paused) return;
+    const id = window.setTimeout(() => {
+      setCurrent((i) => (i + 1) % SLIDES.length);
+    }, SLIDE_MS);
+    return () => window.clearTimeout(id);
+  }, [paused, current, tick]);
 
   useEffect(() => {
     const fetchFilters = async () => {
@@ -123,9 +204,28 @@ const EnhancedHero = () => {
     navigate(`/robots?${params.toString()}`);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      goTo(current + 1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      goTo(current - 1);
+    }
+  };
+
+  const slide = SLIDES[current];
+
   return (
-    <section className="relative flex w-full items-center overflow-hidden min-h-[75vh] pt-24 pb-24 lg:min-h-[85vh] lg:pt-28 lg:pb-28">
-      {/* Full-bleed real-time 3D industrial robot background */}
+    <section
+      className="relative flex w-full items-center overflow-hidden min-h-[80vh] pt-24 pb-20 md:min-h-[88vh] lg:min-h-[92vh] lg:pt-28 lg:pb-24"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={() => setFocusWithin(false)}
+      onKeyDown={handleKeyDown}
+    >
+      {/* Full-bleed real-time 3D industrial robot background (never remounts) */}
       <HeroRobotAnimation />
 
       {/* Readability overlays */}
@@ -140,27 +240,52 @@ const EnhancedHero = () => {
 
       <div className="container relative z-20 mx-auto w-full px-4">
         <div className="max-w-2xl">
-          <h1
-            className="rv-hero-enter text-3xl font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-5xl lg:text-7xl"
-            style={enter(0)}
+          <div
+            role="region"
+            aria-roledescription="carousel"
+            aria-label="RobotVerse highlights"
           >
-            {heroContent.title}
-          </h1>
-
-          <p
-            className="rv-hero-enter mt-5 max-w-[52ch] text-lg leading-[1.55] text-white/80 lg:text-xl"
-            style={enter(1)}
-          >
-            {heroContent.subtitle}
-          </p>
+            <div
+              aria-live="polite"
+              className="min-h-[188px] sm:min-h-[248px] lg:min-h-[300px]"
+            >
+              {SLIDES.map((s, i) => {
+                const active = i === current;
+                if (!active) {
+                  return <div key={s.title} aria-hidden="true" className="hidden" />;
+                }
+                return (
+                  <div key={s.title} aria-hidden={false}>
+                    <p
+                      className="rv-slide-in text-xs font-semibold uppercase tracking-[0.18em] text-white/70"
+                      style={enter(0)}
+                    >
+                      {s.eyebrow}
+                    </p>
+                    <h1
+                      className="rv-slide-in mt-3 text-3xl font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-5xl lg:text-6xl"
+                      style={enter(1)}
+                    >
+                      {s.title}
+                    </h1>
+                    <p
+                      className="rv-slide-in mt-4 max-w-[52ch] text-base leading-[1.55] text-white/80 sm:text-lg lg:text-xl"
+                      style={enter(2)}
+                    >
+                      {s.subtitle}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSearch();
             }}
-            className="rv-hero-enter mt-8 w-full rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-md"
-            style={enter(2)}
+            className="mt-6 w-full rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-md"
           >
             <div className="grid grid-cols-1 gap-3">
               <div className="relative">
@@ -222,16 +347,13 @@ const EnhancedHero = () => {
             </div>
           </form>
 
-          <div
-            className="rv-hero-enter mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4"
-            style={enter(3)}
-          >
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <Button
               size="lg"
               className="h-auto bg-white px-6 py-3 text-base text-neutral-900 hover:bg-white/90"
               asChild
             >
-              <Link to="/robots">Explore Robots</Link>
+              <Link to={slide.cta.href}>{slide.cta.label}</Link>
             </Button>
             <Button
               variant="outline"
@@ -242,11 +364,59 @@ const EnhancedHero = () => {
               <Link to="/auth">Start Selling</Link>
             </Button>
           </div>
+
+          {/* Progress dots */}
+          <div className="mt-6 flex items-center gap-2">
+            {SLIDES.map((s, i) => {
+              const active = i === current;
+              return (
+                <button
+                  key={s.title}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  aria-label={`Go to slide ${i + 1}`}
+                  aria-current={active}
+                  className={
+                    active
+                      ? "relative h-1.5 w-10 overflow-hidden rounded-full bg-white/25"
+                      : "h-1.5 w-1.5 rounded-full bg-white/35 transition-colors hover:bg-white/60"
+                  }
+                >
+                  {active && (
+                    <span
+                      key={`${i}-${tick}`}
+                      data-paused={paused}
+                      className="rv-dot-fill absolute inset-0 block rounded-full bg-white"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
+      </div>
+
+      {/* Prev / Next arrows — desktop only, clear of the search panel */}
+      <div className="pointer-events-none absolute inset-y-0 right-6 z-20 hidden items-center gap-3 lg:flex">
+        <button
+          type="button"
+          onClick={() => goTo(current - 1)}
+          aria-label="Previous slide"
+          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white/80 backdrop-blur-sm transition-colors hover:bg-white/20 hover:text-white"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => goTo(current + 1)}
+          aria-label="Next slide"
+          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white/80 backdrop-blur-sm transition-colors hover:bg-white/20 hover:text-white"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
       </div>
     </section>
   );
 };
-
 
 export default EnhancedHero;
