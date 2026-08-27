@@ -131,7 +131,7 @@ const EnhancedHero = () => {
       {/* Readability overlays */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-black/75 via-black/50 to-black/30"
+        className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-black/80 via-black/40 to-black/5"
       />
       <div
         aria-hidden="true"
