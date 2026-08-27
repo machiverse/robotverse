@@ -53,7 +53,7 @@ const HeroImageSlider = ({ index, reducedMotion }: HeroImageSliderProps) => {
             loading={i === 0 ? "eager" : "lazy"}
             decoding="async"
             fetchPriority={i === 0 ? "high" : "low"}
-            className={`absolute inset-0 h-full w-full object-cover ${
+            className={`absolute inset-0 h-full w-full object-cover object-[74%_center] sm:object-[68%_center] md:object-[62%_center] lg:object-center ${
               !reducedMotion && isActive ? (i % 2 === 0 ? "rv-kb-left" : "rv-kb-right") : ""
             }`}
             style={{
