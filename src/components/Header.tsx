@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useNavigate } from "react-router-dom";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
+import robotverseLogoLight from "@/assets/robotverse-r-logo-light.png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -53,7 +54,8 @@ const Header = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-contain" />
+            <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-contain dark:hidden" />
+            <img src={robotverseLogoLight} alt="" aria-hidden="true" className="h-10 w-10 object-contain hidden dark:block" />
             <span className="text-xl font-bold text-foreground">
               RobotVerse
             </span>

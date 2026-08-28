@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Phone, MapPin, Facebook, Youtube, Linkedin, Instagram } from "lucide-react";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
+import robotverseLogoLight from "@/assets/robotverse-r-logo-light.png";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -13,7 +14,8 @@ const Footer = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <img src={robotverseLogo} alt="RobotVerse" className="h-10 w-10 object-contain" />
+              <img src={robotverseLogo} alt="RobotVerse" className="h-10 w-10 object-contain dark:hidden" />
+              <img src={robotverseLogoLight} alt="" aria-hidden="true" className="h-10 w-10 object-contain hidden dark:block" />
               <span className="text-xl font-bold text-foreground">RobotVerse</span>
             </div>
 
