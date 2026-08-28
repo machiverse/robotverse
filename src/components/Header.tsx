@@ -53,9 +53,7 @@ const Header = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <span className="inline-flex rounded-lg dark:bg-[hsl(210_20%_96%)] dark:p-1">
-              <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-contain bg-card dark:bg-transparent rounded-lg border border-border dark:border-transparent shadow-sm" />
-            </span>
+            <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-contain" />
             <span className="text-xl font-bold text-foreground">
               RobotVerse
             </span>

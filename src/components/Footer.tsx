@@ -13,13 +13,7 @@ const Footer = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <span className="inline-flex rounded-lg dark:bg-[hsl(210_20%_96%)] dark:p-1">
-                <img
-                  src={robotverseLogo}
-                  alt="RobotVerse"
-                  className="h-10 w-10 object-contain bg-card dark:bg-transparent rounded-lg border border-border dark:border-transparent shadow-sm"
-                />
-              </span>
+              <img src={robotverseLogo} alt="RobotVerse" className="h-10 w-10 object-contain" />
               <span className="text-xl font-bold text-foreground">RobotVerse</span>
             </div>
 
