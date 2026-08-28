@@ -323,13 +323,8 @@ const EnhancedHeader = () => {
         <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-6">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 flex-shrink-0 group">
-            <div className="relative dark:bg-[hsl(210_20%_96%)] dark:p-1 rounded-xl">
-              <img
-                src={robotverseLogo}
-                alt="RobotVerse Logo"
-                className="h-11 w-11 object-contain bg-card dark:bg-transparent rounded-xl border-2 border-primary/20 dark:border-transparent shadow-md transition-transform duration-200 group-hover:scale-105"
-              />
-            </div>
+            <img src={robotverseLogo} alt="RobotVerse Logo" className="h-11 w-11 object-contain dark:hidden" />
+            <img src={robotverseLogoLight} alt="" aria-hidden="true" className="h-11 w-11 object-contain hidden dark:block" />
             <div className="hidden sm:block">
               <span className="text-xl font-bold text-foreground tracking-tight">RobotVerse</span>
               <p className="text-[10px] text-muted-foreground font-medium -mt-0.5 tracking-[0.06em]">
