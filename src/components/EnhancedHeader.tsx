@@ -32,6 +32,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
 import { useRobotComparison } from "@/contexts/RobotComparisonContext";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
+import robotverseLogoLight from "@/assets/robotverse-r-logo-light.png";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { NAVIGATION_CONFIG } from "@/constants/navigationMenus";
 import { cn } from "@/lib/utils";
