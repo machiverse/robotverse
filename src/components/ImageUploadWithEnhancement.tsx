@@ -128,13 +128,13 @@ export const ImageUploadWithEnhancement: React.FC<ImageUploadWithEnhancementProp
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'complete':
-        return <CheckCircle2 className="w-4 h-4 text-green-600" />
+        return <CheckCircle2 className="w-4 h-4 text-success" />
       case 'error':
         return <AlertCircle className="w-4 h-4 text-red-600" />
       case 'enhancing':
-        return <Sparkles className="w-4 h-4 text-blue-600 animate-pulse" />
+        return <Sparkles className="w-4 h-4 text-primary animate-pulse" />
       default:
-        return <Upload className="w-4 h-4 text-gray-600" />
+        return <Upload className="w-4 h-4 text-muted-foreground" />
     }
   }
 
@@ -153,7 +153,7 @@ export const ImageUploadWithEnhancement: React.FC<ImageUploadWithEnhancementProp
             <p className="text-primary hover:text-primary/80 font-medium">
               Click to upload images or drag and drop
             </p>
-            {enhance && <Sparkles className="w-4 h-4 text-blue-600" />}
+            {enhance && <Sparkles className="w-4 h-4 text-primary" />}
           </div>
           <p className="text-sm text-muted-foreground">
             PNG, JPG, WEBP up to 10MB each (Max {maxImages} images)
@@ -244,12 +244,12 @@ export const ImageUploadWithEnhancement: React.FC<ImageUploadWithEnhancementProp
                       Main
                     </Badge>
                   )}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                  <div className="absolute inset-0 bg-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 text-white hover:text-white hover:bg-red-500/80"
+                      className="h-8 w-8 p-0 text-primary-foreground hover:text-primary-foreground hover:bg-red-500/80"
                       onClick={() => removeImage(index, 'file')}
                     >
                       <X className="w-4 h-4" />
@@ -272,12 +272,12 @@ export const ImageUploadWithEnhancement: React.FC<ImageUploadWithEnhancementProp
                     Main
                   </Badge>
                 )}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                <div className="absolute inset-0 bg-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-white hover:text-white hover:bg-white/20"
+                    className="h-8 w-8 p-0 text-primary-foreground hover:text-primary-foreground hover:bg-card/20"
                     onClick={() => window.open(url, '_blank')}
                   >
                     <Eye className="w-4 h-4" />
@@ -286,7 +286,7 @@ export const ImageUploadWithEnhancement: React.FC<ImageUploadWithEnhancementProp
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-white hover:text-white hover:bg-red-500/80"
+                    className="h-8 w-8 p-0 text-primary-foreground hover:text-primary-foreground hover:bg-red-500/80"
                     onClick={() => removeImage(index, 'url')}
                   >
                     <X className="w-4 h-4" />

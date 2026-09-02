@@ -333,7 +333,7 @@ const ProfileSettings = () => {
   ];
 
   const getCompletionColor = (completion: number) => {
-    if (completion >= 80) return 'text-green-600';
+    if (completion >= 80) return 'text-success';
     if (completion >= 60) return 'text-yellow-600';
     return 'text-red-600';
   };
@@ -382,18 +382,18 @@ const ProfileSettings = () => {
         <div className={cn(
           "mb-8 p-4 rounded-xl border-2 transition-colors",
           profileCompletion >= 80 
-            ? "border-green-500/30 bg-green-500/5" 
+            ? "border-success/30 bg-success/5" 
             : "border-amber-500/30 bg-amber-500/5"
         )}>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className={cn(
                 "w-12 h-12 rounded-xl flex items-center justify-center",
-                profileCompletion >= 80 ? "bg-green-500/10" : "bg-amber-500/10"
+                profileCompletion >= 80 ? "bg-success/10" : "bg-amber-500/10"
               )}>
                 <Activity className={cn(
                   "w-6 h-6",
-                  profileCompletion >= 80 ? "text-green-600" : "text-amber-600"
+                  profileCompletion >= 80 ? "text-success" : "text-amber-600"
                 )} />
               </div>
               <div>
@@ -411,7 +411,7 @@ const ProfileSettings = () => {
             <div className="text-right hidden sm:block">
               <div className={cn(
                 "text-3xl font-bold",
-                profileCompletion >= 80 ? "text-green-600" : "text-amber-600"
+                profileCompletion >= 80 ? "text-success" : "text-amber-600"
               )}>
                 {profileCompletion}%
               </div>
@@ -469,7 +469,7 @@ const ProfileSettings = () => {
                         <label className="cursor-pointer">
                           <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors">
                             {avatarLoading ? (
-                              <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                              <div className="animate-spin w-4 h-4 border-2 border-border/50 border-t-transparent rounded-full" />
                             ) : (
                               <Camera className="w-4 h-4" />
                             )}
@@ -678,7 +678,7 @@ const ProfileSettings = () => {
                     <div className="flex justify-end pt-4">
                       <Button onClick={handleSaveProfile} disabled={saving} className="flex items-center gap-2">
                         {saving ? (
-                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                          <div className="animate-spin w-4 h-4 border-2 border-border/50 border-t-transparent rounded-full" />
                         ) : (
                           <Save className="w-4 h-4" />
                         )}

@@ -110,7 +110,7 @@ const Analytics = () => {
       {/* Header */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+          <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
             <BarChart3 className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
@@ -125,73 +125,73 @@ const Analytics = () => {
       {/* Key Metrics - Gradient Cards */}
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
         {/* Total Revenue */}
-        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/20">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <Card className="relative overflow-hidden border-0 bg-success text-primary-foreground shadow-lg shadow-emerald-500/20">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-card/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-100">
+            <CardTitle className="text-sm font-medium text-success">
               Total Revenue
             </CardTitle>
-            <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center">
+            <div className="h-9 w-9 rounded-full bg-card/20 flex items-center justify-center">
               <DollarSign className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">₹{analytics.totalRevenue.toLocaleString()}</div>
             <div className="flex items-center gap-1 mt-2">
-              <ArrowUpRight className="h-4 w-4 text-emerald-200" />
-              <span className="text-sm text-emerald-100">From all listings</span>
+              <ArrowUpRight className="h-4 w-4 text-success" />
+              <span className="text-sm text-success">From all listings</span>
             </div>
           </CardContent>
         </Card>
 
         {/* Total Views */}
-        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/20">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <Card className="relative overflow-hidden border-0 bg-primary text-primary-foreground shadow-lg shadow-blue-500/20">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-card/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-100">
+            <CardTitle className="text-sm font-medium text-primary">
               Total Views
             </CardTitle>
-            <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center">
+            <div className="h-9 w-9 rounded-full bg-card/20 flex items-center justify-center">
               <Eye className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{analytics.totalViews.toLocaleString()}</div>
             <div className="flex items-center gap-1 mt-2">
-              <Users className="h-4 w-4 text-blue-200" />
-              <span className="text-sm text-blue-100">Across all products</span>
+              <Users className="h-4 w-4 text-primary" />
+              <span className="text-sm text-primary">Across all products</span>
             </div>
           </CardContent>
         </Card>
 
         {/* Total Listings */}
-        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-violet-500 to-violet-600 text-white shadow-lg shadow-violet-500/20">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <Card className="relative overflow-hidden border-0 bg-primary text-primary-foreground shadow-lg shadow-violet-500/20">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-card/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-violet-100">
+            <CardTitle className="text-sm font-medium text-primary">
               Total Listings
             </CardTitle>
-            <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center">
+            <div className="h-9 w-9 rounded-full bg-card/20 flex items-center justify-center">
               <Target className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{analytics.totalListings}</div>
             <div className="flex items-center gap-1 mt-2">
-              <Zap className="h-4 w-4 text-violet-200" />
-              <span className="text-sm text-violet-100">{analytics.activeListings} active</span>
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="text-sm text-primary">{analytics.activeListings} active</span>
             </div>
           </CardContent>
         </Card>
 
         {/* Avg. Price */}
-        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <Card className="relative overflow-hidden border-0 bg-warning text-primary-foreground shadow-lg shadow-amber-500/20">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-card/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-amber-100">
               Avg. Price
             </CardTitle>
-            <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center">
+            <div className="h-9 w-9 rounded-full bg-card/20 flex items-center justify-center">
               <TrendingUp className="h-5 w-5" />
             </div>
           </CardHeader>
@@ -226,25 +226,25 @@ const Analytics = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                    <Bot className="h-5 w-5 text-white" />
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <Bot className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <div>
                     <p className="font-semibold">Robots</p>
                     <p className="text-xs text-muted-foreground">Industrial automation</p>
                   </div>
                 </div>
-                <span className="text-2xl font-bold text-cyan-600">{analytics.robotsCount}</span>
+                <span className="text-2xl font-bold text-primary">{analytics.robotsCount}</span>
               </div>
-              <Progress value={getPercentage(analytics.robotsCount)} className="h-2 bg-cyan-100" />
+              <Progress value={getPercentage(analytics.robotsCount)} className="h-2 bg-primary/10" />
             </div>
 
             {/* Spare Parts */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                    <Package className="h-5 w-5 text-white" />
+                  <div className="h-10 w-10 rounded-xl bg-warning flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <Package className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <div>
                     <p className="font-semibold">Spare Parts</p>
@@ -260,34 +260,34 @@ const Analytics = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/20">
-                    <Wrench className="h-5 w-5 text-white" />
+                  <div className="h-10 w-10 rounded-xl bg-success flex items-center justify-center shadow-lg shadow-green-500/20">
+                    <Wrench className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <div>
                     <p className="font-semibold">Services</p>
                     <p className="text-xs text-muted-foreground">Maintenance & repair</p>
                   </div>
                 </div>
-                <span className="text-2xl font-bold text-green-600">{analytics.servicesCount}</span>
+                <span className="text-2xl font-bold text-success">{analytics.servicesCount}</span>
               </div>
-              <Progress value={getPercentage(analytics.servicesCount)} className="h-2 bg-green-100" />
+              <Progress value={getPercentage(analytics.servicesCount)} className="h-2 bg-success/10" />
             </div>
 
             {/* Logistics */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                    <Truck className="h-5 w-5 text-white" />
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <Truck className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <div>
                     <p className="font-semibold">Logistics</p>
                     <p className="text-xs text-muted-foreground">Shipping & delivery</p>
                   </div>
                 </div>
-                <span className="text-2xl font-bold text-purple-600">{analytics.logisticsCount}</span>
+                <span className="text-2xl font-bold text-primary">{analytics.logisticsCount}</span>
               </div>
-              <Progress value={getPercentage(analytics.logisticsCount)} className="h-2 bg-purple-100" />
+              <Progress value={getPercentage(analytics.logisticsCount)} className="h-2 bg-primary/10" />
             </div>
           </div>
         </CardContent>
@@ -298,8 +298,8 @@ const Analytics = () => {
         <Card className="border-muted/60">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-white" />
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                <Activity className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
                 <CardTitle>Performance Overview</CardTitle>
@@ -309,34 +309,34 @@ const Analytics = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5">
                 <div className="flex items-center gap-3">
-                  <Eye className="h-5 w-5 text-indigo-600" />
+                  <Eye className="h-5 w-5 text-primary" />
                   <span className="font-medium">Views this month</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-bold text-indigo-600">{analytics.totalViews}</span>
-                  <Badge className="bg-green-100 text-green-700 border-0">
+                  <span className="text-xl font-bold text-primary">{analytics.totalViews}</span>
+                  <Badge className="bg-success/10 text-success border-0">
                     <ArrowUpRight className="h-3 w-3 mr-1" />
                     Active
                   </Badge>
                 </div>
               </div>
               
-              <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-success/5">
                 <div className="flex items-center gap-3">
-                  <Target className="h-5 w-5 text-emerald-600" />
+                  <Target className="h-5 w-5 text-success" />
                   <span className="font-medium">Active listings</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-bold text-emerald-600">{analytics.activeListings}</span>
-                  <Badge className="bg-emerald-100 text-emerald-700 border-0">
+                  <span className="text-xl font-bold text-success">{analytics.activeListings}</span>
+                  <Badge className="bg-success/10 text-success border-0">
                     of {analytics.totalListings}
                   </Badge>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-warning/5">
                 <div className="flex items-center gap-3">
                   <DollarSign className="h-5 w-5 text-amber-600" />
                   <span className="font-medium">Revenue potential</span>
@@ -352,8 +352,8 @@ const Analytics = () => {
         <Card className="border-muted/60">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-white" />
+              <div className="h-10 w-10 rounded-xl bg-destructive flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
                 <CardTitle>Quick Insights</CardTitle>
@@ -364,11 +364,11 @@ const Analytics = () => {
           <CardContent>
             <div className="space-y-4">
               {analytics.robotsCount > 0 && (
-                <div className="flex items-start gap-3 p-4 rounded-xl border border-cyan-200 bg-cyan-50/50 dark:border-cyan-800 dark:bg-cyan-950/20">
-                  <Bot className="h-5 w-5 text-cyan-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-4 rounded-xl border border-primary/30 bg-primary/10 dark:border-primary/30 dark:bg-primary/20">
+                  <Bot className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium text-cyan-900 dark:text-cyan-100">Robot Listings</p>
-                    <p className="text-sm text-cyan-700 dark:text-cyan-300">
+                    <p className="font-medium text-primary dark:text-primary">Robot Listings</p>
+                    <p className="text-sm text-primary dark:text-primary">
                       You have {analytics.robotsCount} robot{analytics.robotsCount > 1 ? 's' : ''} listed
                     </p>
                   </div>
@@ -388,11 +388,11 @@ const Analytics = () => {
               )}
 
               {analytics.servicesCount > 0 && (
-                <div className="flex items-start gap-3 p-4 rounded-xl border border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
-                  <Wrench className="h-5 w-5 text-green-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-4 rounded-xl border border-success/30 bg-success/10 dark:border-success/30 dark:bg-success/20">
+                  <Wrench className="h-5 w-5 text-success mt-0.5" />
                   <div>
-                    <p className="font-medium text-green-900 dark:text-green-100">Service Offerings</p>
-                    <p className="text-sm text-green-700 dark:text-green-300">
+                    <p className="font-medium text-success dark:text-success">Service Offerings</p>
+                    <p className="text-sm text-success dark:text-success">
                       {analytics.servicesCount} service{analytics.servicesCount > 1 ? 's' : ''} active
                     </p>
                   </div>

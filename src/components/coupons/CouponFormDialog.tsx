@@ -278,7 +278,7 @@ export default function CouponFormDialog({ open, onOpenChange, initial, onSubmit
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate flex items-center gap-2">
                             {r.name}
-                            {checked && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                            {checked && <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />}
                           </div>
                           <div className="text-xs text-muted-foreground truncate">
                             {[r.brand, r.model].filter(Boolean).join(" · ")}

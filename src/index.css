@@ -10,106 +10,201 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 210 30% 8%;
-    --foreground: 210 20% 98%;
+    --background: 210 20% 99%;
+    --foreground: 215 28% 12%;
 
-    --card: 210 25% 12%;
-    --card-foreground: 210 20% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 12%;
 
-    --popover: 210 25% 12%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 12%;
 
-    --primary: 200 100% 50%;
-    --primary-foreground: 210 30% 8%;
-    --primary-glow: 200 100% 60%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 14% 42%;
 
-    --secondary: 210 20% 20%;
-    --secondary-foreground: 210 20% 98%;
+    --border: 214 20% 90%;
+    --input: 214 20% 88%;
 
-    --muted: 210 20% 16%;
-    --muted-foreground: 210 10% 65%;
+    --primary: 210 72% 30%;
+    --primary-foreground: 210 40% 98%;
 
-    --accent: 270 100% 60%;
-    --accent-foreground: 210 20% 98%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 215 28% 12%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
+    --ring: 210 72% 30%;
 
-    --border: 210 20% 20%;
-    --input: 210 20% 16%;
-    --ring: 200 100% 50%;
+    --accent: 210 22% 95%;
+    --accent-foreground: 215 28% 12%;
 
-    /* Custom robot-themed tokens */
-    --header-bg: 210 25% 10%;
-    --header-border: 210 20% 18%;
-    --nav-bg: 210 25% 12%;
-    --nav-hover: 200 100% 50%;
-    
-    --gradient-primary: linear-gradient(135deg, hsl(200 100% 50%), hsl(270 100% 60%));
-    --gradient-hero: linear-gradient(135deg, hsl(210 30% 8%), hsl(210 25% 12%));
-    --gradient-card: linear-gradient(145deg, hsl(210 25% 12%), hsl(210 20% 16%));
-    --gradient-header: linear-gradient(180deg, hsl(210 25% 10%), hsl(210 25% 12%));
-    
-    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.2);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.3);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.35);
-    --shadow-header: 0 2px 8px hsl(0 0% 0% / 0.3);
-    --shadow-dropdown: 0 10px 40px hsl(0 0% 0% / 0.4);
-    --shadow-neon: 0 0 20px hsl(200 100% 50% / 0.3);
-    --shadow-glow: 0 10px 40px hsl(200 100% 50% / 0.2);
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 210 25% 10%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 200 100% 50%;
-    --sidebar-primary-foreground: 210 30% 8%;
-    --sidebar-accent: 210 20% 16%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 210 20% 18%;
-    --sidebar-ring: 200 100% 50%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
+    --success: 152 52% 32%;
+    --warning: 32 84% 42%;
+    --destructive: 0 65% 45%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --header-bg: 0 0% 100%;
+    --header-border: 214 20% 90%;
+    --nav-bg: 0 0% 100%;
+    --nav-hover: 210 72% 30%;
+
+    --shadow-sm: 0 1px 2px hsl(214 30% 20% / 0.04), 0 1px 3px hsl(214 30% 20% / 0.06);
+    --shadow-md: 0 2px 4px hsl(214 30% 20% / 0.04), 0 4px 12px hsl(214 30% 20% / 0.08);
+    --shadow-lg: 0 4px 8px hsl(214 30% 20% / 0.04), 0 12px 32px hsl(214 30% 20% / 0.10);
+    --shadow-header: 0 1px 2px hsl(214 30% 20% / 0.06);
+
+    --radius: 0.625rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 28% 12%;
+    --sidebar-primary: 210 72% 30%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent-foreground: 215 28% 12%;
+    --sidebar-border: 214 20% 90%;
+    --sidebar-ring: 210 72% 30%;
+
+    color-scheme: light;
+  }
+
+  /* =======================================================================
+     DARK THEME — a purpose-built navy ramp (not an inversion of the light
+     palette). Elevation is expressed by raising lightness; the accent is
+     desaturated and lifted; neutrals carry a navy hue.
+     ======================================================================= */
+  .dark {
+    --background: 214 32% 7%;
+    --foreground: 210 20% 93%;
+
+    --card: 214 30% 10%;
+    --card-foreground: 210 20% 93%;
+
+    --popover: 214 28% 13%;
+    --popover-foreground: 210 20% 93%;
+
+    --muted: 214 26% 14%;
+    --muted-foreground: 213 14% 64%;
+
+    --border: 214 22% 19%;
+    --input: 214 24% 16%;
+
+    --primary: 208 76% 60%;
+    --primary-foreground: 214 40% 8%;
+
+    --secondary: 214 26% 15%;
+    --secondary-foreground: 210 20% 93%;
+
+    --ring: 208 76% 60%;
+
+    --accent: 214 26% 17%;
+    --accent-foreground: 210 20% 93%;
+
+    --success: 152 44% 50%;
+    --warning: 36 76% 58%;
+    --destructive: 0 62% 58%;
+    --destructive-foreground: 214 40% 8%;
+
+    --header-bg: 214 30% 9%;
+    --header-border: 214 22% 18%;
+    --nav-bg: 214 30% 9%;
+    --nav-hover: 208 76% 60%;
+
+    --shadow-sm: 0 1px 2px hsl(214 40% 2% / 0.5), 0 1px 3px hsl(214 40% 2% / 0.35);
+    --shadow-md: 0 2px 4px hsl(214 40% 2% / 0.5), 0 4px 12px hsl(214 40% 2% / 0.4);
+    --shadow-lg: 0 4px 8px hsl(214 40% 2% / 0.5), 0 12px 32px hsl(214 40% 2% / 0.45);
+    --shadow-header: 0 1px 0 hsl(214 22% 22% / 1);
+
+    --sidebar-background: 214 30% 9%;
+    --sidebar-foreground: 210 20% 93%;
+    --sidebar-primary: 208 76% 60%;
+    --sidebar-primary-foreground: 214 40% 8%;
+    --sidebar-accent: 214 26% 15%;
+    --sidebar-accent-foreground: 210 20% 93%;
+    --sidebar-border: 214 22% 18%;
+    --sidebar-ring: 208 76% 60%;
+
+    color-scheme: dark;
   }
 }
+
+
+/* =========================================================================
+   OEM MANUFACTURER COLOUR LAYER — NOT interface tokens.
+   These encode the physical colour-coding of robot OEMs (FANUC yellow, ABB
+   red, KUKA orange, Yaskawa blue) and may ONLY be rendered as a shape:
+   a 3px card rail or a 7px brand dot. Never a background behind text, never
+   on a button/control/status badge, never a gradient, never text colour.
+   src/lib/oemColors.ts is the source of truth for the brand mapping.
+   ========================================================================= */
+:root {
+  --oem-fanuc: #e8b400;
+  --oem-abb: #c8321e;
+  --oem-kuka: #e85d14;
+  --oem-yaskawa: #0b4da2;
+  --oem-cobot: #0e7c7b;
+  --oem-kawasaki: #2e7d32;
+  --oem-nachi: #5a6b7c;
+  --oem-white: #9aa5b1;
+  --oem-other: #c4cbd3;
+}
+
+/* Dark-mode OEM ramp: lifted so each brand stays recognisable and visible on a
+   near-black navy surface. Same variable names — same rail/dot-only rule. */
+.dark {
+  --oem-fanuc: #ffc61a;
+  --oem-abb: #f0563d;
+  --oem-kuka: #ff7a33;
+  --oem-yaskawa: #4a90e2;
+  --oem-cobot: #22a8a6;
+  --oem-kawasaki: #52b356;
+  --oem-nachi: #8b9aab;
+  --oem-white: #b6c0cb;
+  --oem-other: #7d8894;
+}
+
+/* Dark mode: light map tiles are inverted to a muted dark treatment. */
+.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip,
+.dark .leaflet-control-zoom a {
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+}
+
+/* Hero copy entrance — fade + 8px rise, staggered, once on mount. */
+@keyframes rv-hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rv-hero-enter {
+  opacity: 0;
+  animation: rv-hero-rise 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes rv-hero-rise {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .rv-hero-enter {
+    animation: rv-hero-rise 300ms linear forwards;
+  }
+}
+
+
+
 
 @layer base {
   * {
@@ -124,6 +219,21 @@ All colors MUST be HSL.
 
   html {
     overflow-x: hidden;
+  }
+
+  h1 {
+    letter-spacing: -0.03em;
+  }
+
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -167,6 +277,138 @@ All colors MUST be HSL.
   }
   
   .card-professional {
-    @apply bg-card border border-border rounded-xl shadow-md transition-all duration-200 hover:shadow-lg;
+    @apply bg-card border border-border rounded-[10px] transition-colors duration-150 hover:border-muted-foreground/30;
+  }
+}
+/* Hero ambient embers — slow upward + leftward drift with a gentle flicker. */
+@keyframes rv-ember-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.9);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(var(--rv-ember-drift, -120px), -70vh, 0) scale(1.15);
+    opacity: 0;
+  }
+}
+
+.rv-ember {
+  animation: rv-ember-drift var(--rv-ember-dur, 18s) linear infinite;
+  animation-delay: var(--rv-ember-delay, 0s);
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-ember {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .rv-ember {
+    display: none;
+  }
+}
+
+/* Hero image slider — Ken Burns drift (alternating pan direction per slide). */
+@keyframes rv-kb-left {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.12) translate3d(-2.5%, -1.5%, 0);
+  }
+}
+
+@keyframes rv-kb-right {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.12) translate3d(2.5%, -1.5%, 0);
+  }
+}
+
+.rv-kb-left,
+.rv-kb-right {
+  will-change: transform;
+}
+
+/* Below 768px: gentler drift so object-position framing isn't cropped further. */
+@keyframes rv-kb-soft {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.06) translate3d(0, -1%, 0);
+  }
+}
+
+@media (max-width: 767px) {
+  .rv-kb-left,
+  .rv-kb-right {
+    animation: rv-kb-soft 8200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+}
+
+@media (min-width: 768px) {
+  .rv-kb-left {
+    animation: rv-kb-left 8200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .rv-kb-right {
+    animation: rv-kb-right 8200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-kb-left,
+  .rv-kb-right {
+    animation: none;
+  }
+}
+
+/* Weld spatter overlay for the welding slide — fast, downward-arcing sparks. */
+@keyframes rv-spark-fly {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate3d(var(--rv-spark-x, 90px), var(--rv-spark-y, 180px), 0) scale(0.4);
+    opacity: 0;
+  }
+}
+
+.rv-spark {
+  animation: rv-spark-fly var(--rv-spark-dur, 2.2s) cubic-bezier(0.25, 0.6, 0.6, 1) infinite;
+  animation-delay: var(--rv-spark-delay, 0s);
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-spark {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .rv-spark {
+    display: none;
   }
 }

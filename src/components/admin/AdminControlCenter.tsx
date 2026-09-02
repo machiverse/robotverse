@@ -351,29 +351,29 @@ const AdminControlCenter = () => {
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case "button_click": return <MousePointer className="h-4 w-4 text-blue-500" />;
-      case "message": return <MessageSquare className="h-4 w-4 text-purple-500" />;
+      case "button_click": return <MousePointer className="h-4 w-4 text-primary" />;
+      case "message": return <MessageSquare className="h-4 w-4 text-primary" />;
       case "notification": return <Bell className="h-4 w-4 text-orange-500" />;
-      case "post": return <FileText className="h-4 w-4 text-green-500" />;
-      case "blog": return <FileText className="h-4 w-4 text-teal-500" />;
+      case "post": return <FileText className="h-4 w-4 text-success" />;
+      case "blog": return <FileText className="h-4 w-4 text-success" />;
       case "like": return <Heart className="h-4 w-4 text-red-500" />;
-      case "comment": return <MessageSquare className="h-4 w-4 text-indigo-500" />;
-      case "chat_started": return <Send className="h-4 w-4 text-cyan-500" />;
+      case "comment": return <MessageSquare className="h-4 w-4 text-primary" />;
+      case "chat_started": return <Send className="h-4 w-4 text-primary" />;
       case "access_request": return <UserPlus className="h-4 w-4 text-yellow-500" />;
-      case "view": return <Eye className="h-4 w-4 text-gray-500" />;
+      case "view": return <Eye className="h-4 w-4 text-muted-foreground" />;
       default: return <Activity className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getActivityBadgeColor = (type: string) => {
     switch (type) {
-      case "button_click": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-      case "message": return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
+      case "button_click": return "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary";
+      case "message": return "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary";
       case "notification": return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400";
-      case "post": case "blog": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+      case "post": case "blog": return "bg-success/10 text-success dark:bg-success/30 dark:text-success";
       case "like": return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-      case "comment": return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400";
-      case "chat_started": return "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400";
+      case "comment": return "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary";
+      case "chat_started": return "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary";
       case "access_request": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
       default: return "bg-muted text-muted-foreground";
     }
@@ -485,43 +485,43 @@ const AdminControlCenter = () => {
 
       {/* Stats Grid - 2 Rows of 8 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 border-blue-200 dark:border-blue-800">
+        <Card className="bg-primary/5 border-primary/30 dark:border-primary/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Views</p>
                 <p className="text-xl font-bold">{stats.totalViews.toLocaleString()}</p>
               </div>
-              <Eye className="h-5 w-5 text-blue-500" />
+              <Eye className="h-5 w-5 text-primary" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30 border-green-200 dark:border-green-800">
+        <Card className="bg-success/5 border-success/30 dark:border-success/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Active Today</p>
-                <p className="text-xl font-bold text-green-600">{stats.activeToday}</p>
+                <p className="text-xl font-bold text-success">{stats.activeToday}</p>
               </div>
-              <TrendingUp className="h-5 w-5 text-green-500" />
+              <TrendingUp className="h-5 w-5 text-success" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/30 border-purple-200 dark:border-purple-800">
+        <Card className="bg-primary/5 border-primary/30 dark:border-primary/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Messages</p>
                 <p className="text-xl font-bold">{stats.totalMessages}</p>
               </div>
-              <MessageSquare className="h-5 w-5 text-purple-500" />
+              <MessageSquare className="h-5 w-5 text-primary" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/30 border-orange-200 dark:border-orange-800">
+        <Card className="bg-warning/5 border-orange-200 dark:border-orange-800">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
@@ -533,19 +533,19 @@ const AdminControlCenter = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-950/50 dark:to-cyan-900/30 border-cyan-200 dark:border-cyan-800">
+        <Card className="bg-primary/5 border-primary/30 dark:border-primary/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Button Clicks</p>
                 <p className="text-xl font-bold">{stats.totalButtonClicks}</p>
               </div>
-              <MousePointer className="h-5 w-5 text-cyan-500" />
+              <MousePointer className="h-5 w-5 text-primary" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/30 border-red-200 dark:border-red-800">
+        <Card className="bg-destructive/5 border-red-200 dark:border-red-800">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
@@ -557,14 +557,14 @@ const AdminControlCenter = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/50 dark:to-indigo-900/30 border-indigo-200 dark:border-indigo-800">
+        <Card className="bg-primary/5 border-primary/30 dark:border-primary/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Comments</p>
                 <p className="text-xl font-bold">{stats.totalComments}</p>
               </div>
-              <MessageSquare className="h-5 w-5 text-indigo-500" />
+              <MessageSquare className="h-5 w-5 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -587,7 +587,7 @@ const AdminControlCenter = () => {
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-blue-500" />
+              <Bot className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-[10px] text-muted-foreground">Robots Viewed</p>
                 <p className="text-lg font-bold">{stats.robotsViewed}</p>
@@ -611,7 +611,7 @@ const AdminControlCenter = () => {
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
-              <Settings className="h-4 w-4 text-purple-500" />
+              <Settings className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-[10px] text-muted-foreground">Services Viewed</p>
                 <p className="text-lg font-bold">{stats.servicesViewed}</p>
@@ -623,7 +623,7 @@ const AdminControlCenter = () => {
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
-              <Send className="h-4 w-4 text-green-500" />
+              <Send className="h-4 w-4 text-success" />
               <div>
                 <p className="text-[10px] text-muted-foreground">Chats Started</p>
                 <p className="text-lg font-bold">{stats.chatsStarted}</p>
@@ -635,7 +635,7 @@ const AdminControlCenter = () => {
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-teal-500" />
+              <FileText className="h-4 w-4 text-success" />
               <div>
                 <p className="text-[10px] text-muted-foreground">Inquiries</p>
                 <p className="text-lg font-bold">{stats.inquiriesSent}</p>
@@ -650,7 +650,7 @@ const AdminControlCenter = () => {
               <UserPlus className="h-4 w-4 text-yellow-500" />
               <div>
                 <p className="text-[10px] text-muted-foreground">New Users Today</p>
-                <p className="text-lg font-bold text-green-600">{stats.newUsersToday}</p>
+                <p className="text-lg font-bold text-success">{stats.newUsersToday}</p>
               </div>
             </div>
           </CardContent>

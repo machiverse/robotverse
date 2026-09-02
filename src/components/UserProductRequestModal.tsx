@@ -21,9 +21,9 @@ interface UserProductRequestModalProps {
 }
 
 const PRODUCT_TYPES = [
-  { value: 'robot', label: 'Robot / Automation Equipment', icon: Bot, color: 'bg-blue-100 text-blue-800' },
-  { value: 'spare_part', label: 'Spare Parts / Components', icon: Package, color: 'bg-green-100 text-green-800' },
-  { value: 'service', label: 'Service / Maintenance', icon: Wrench, color: 'bg-purple-100 text-purple-800' },
+  { value: 'robot', label: 'Robot / Automation Equipment', icon: Bot, color: 'bg-primary/10 text-primary' },
+  { value: 'spare_part', label: 'Spare Parts / Components', icon: Package, color: 'bg-success/10 text-success' },
+  { value: 'service', label: 'Service / Maintenance', icon: Wrench, color: 'bg-primary/10 text-primary' },
 ];
 
 const UserProductRequestModal = ({ open, onOpenChange, defaultProductType, initialQuery }: UserProductRequestModalProps) => {

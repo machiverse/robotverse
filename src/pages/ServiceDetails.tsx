@@ -7,6 +7,7 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import Footer from "@/components/Footer";
 import ServiceRequestModal from "@/components/ServiceRequestModal";
+import { RequestQuoteButton } from "@/components/pricing/PriceElements";
 import { ListingRatingSummary } from "@/components/reviews/ListingRatingSummary";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { useAuth } from "@/hooks/useAuth";
@@ -122,13 +123,11 @@ const ServiceDetails = () => {
     fetchService();
   }, [id, trackItemView]);
 
+  const hasPublishedPrice = !!service?.priceRange && !/contact/i.test(service.priceRange);
+
   const handleRequestQuote = () => {
     if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Login Required",
-        description: "Please sign in to request a quote from service providers.",
-      });
+      navigate("/auth");
       return;
     }
 
@@ -277,12 +276,18 @@ const ServiceDetails = () => {
                 {/* Price Card */}
                 <Card className="border-primary/20 bg-primary/5">
                   <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
                         <p className="text-sm text-muted-foreground mb-1">Service Price Range</p>
-                        <p className="text-3xl font-bold text-primary">{service.priceRange}</p>
+                        {hasPublishedPrice ? (
+                          <p className="text-3xl font-bold text-primary">{service.priceRange}</p>
+                        ) : (
+                          <div className="max-w-xs mt-2">
+                            <RequestQuoteButton onClick={handleRequestQuote} />
+                          </div>
+                        )}
                       </div>
-                      <Wrench className="w-12 h-12 text-primary/20" />
+                      <Wrench className="w-12 h-12 text-primary/20 shrink-0" />
                     </div>
                   </CardContent>
                 </Card>
@@ -320,8 +325,8 @@ const ServiceDetails = () => {
                       </div>
                     </div>
                     <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-                      <div className="p-2 rounded-lg bg-green-500/10">
-                        <Shield className="w-5 h-5 text-green-500" />
+                      <div className="p-2 rounded-lg bg-success/10">
+                        <Shield className="w-5 h-5 text-success" />
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Verification</p>
@@ -358,7 +363,7 @@ const ServiceDetails = () => {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-foreground truncate">{service.provider}</p>
-                        <div className="flex items-center gap-1 text-xs text-green-600">
+                        <div className="flex items-center gap-1 text-xs text-success">
                           <Shield className="w-3 h-3" />
                           <span>Verified</span>
                         </div>

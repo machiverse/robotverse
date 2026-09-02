@@ -82,9 +82,9 @@ export const CreditPacksStore = ({ onPurchaseComplete }: CreditPacksStoreProps) 
 
               <CardContent className="text-center">
                 <div className="mb-3">
-                  <span className="text-3xl font-bold text-primary">{pack.credits_amount}</span>
+                  <span className="text-3xl font-bold text-primary tabular">{pack.credits_amount}</span>
                   {pack.bonus_credits > 0 && (
-                    <span className="text-lg text-green-500 font-semibold ml-1">+{pack.bonus_credits}</span>
+                    <span className="text-lg text-success font-semibold ml-1">+{pack.bonus_credits}</span>
                   )}
                   <p className="text-sm text-muted-foreground">credits</p>
                 </div>
@@ -99,7 +99,7 @@ export const CreditPacksStore = ({ onPurchaseComplete }: CreditPacksStoreProps) 
                 </div>
 
                 {pack.bonus_credits > 0 && (
-                  <Badge variant="secondary" className="mt-2 bg-green-500/10 text-green-600 border-green-500/20">
+                  <Badge variant="secondary" className="mt-2 bg-success/10 text-success border-success/30">
                     +{pack.bonus_credits} Bonus Credits
                   </Badge>
                 )}

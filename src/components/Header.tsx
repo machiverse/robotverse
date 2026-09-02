@@ -4,7 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useNavigate } from "react-router-dom";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
+import robotverseLogoLight from "@/assets/robotverse-r-logo-light.png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -52,8 +54,9 @@ const Header = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm" />
-            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-contain dark:hidden" />
+            <img src={robotverseLogoLight} alt="" aria-hidden="true" className="h-10 w-10 object-contain hidden dark:block" />
+            <span className="text-xl font-bold text-foreground">
               RobotVerse
             </span>
           </Link>
@@ -87,6 +90,7 @@ const Header = () => {
                 className="pl-10 pr-4 py-2 bg-input border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm w-64"
               />
             </div>
+            <ThemeToggle />
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -107,7 +111,7 @@ const Header = () => {
 
                 {/* Dropdown Menu */}
                 {isProfileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in-0 zoom-in-95">
+                  <div className="absolute right-0 mt-2 w-64 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in-0 zoom-in-95">
                     {/* User Info Header */}
                     <div className="px-4 py-3 border-b border-border bg-muted/30">
                       <p className="font-semibold text-foreground truncate">
@@ -150,7 +154,7 @@ const Header = () => {
               </div>
             ) : (
               <Link to="/auth">
-                <Button variant="neon" size="sm">
+                <Button variant="outline" size="sm">
                   <User className="w-4 h-4" />
                   Sign In
                 </Button>
@@ -236,7 +240,7 @@ const Header = () => {
                   </div>
                 ) : (
                   <Link to="/auth">
-                    <Button variant="neon" size="sm" className="w-full">
+                    <Button variant="outline" size="sm" className="w-full">
                       <User className="w-4 h-4" />
                       Sign In
                     </Button>

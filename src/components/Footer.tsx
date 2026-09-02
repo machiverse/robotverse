@@ -2,24 +2,23 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Phone, MapPin, Facebook, Youtube, Linkedin, Instagram } from "lucide-react";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
+import robotverseLogoLight from "@/assets/robotverse-r-logo-light.png";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gradient-to-br from-primary/5 to-secondary/5 border-t">
+    <footer className="bg-primary/5 border-t">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <img
-                src={robotverseLogo}
-                alt="RobotVerse"
-                className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm"
-              />
-              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">RobotVerse</span>
+              <img src={robotverseLogo} alt="RobotVerse" className="h-10 w-10 object-contain dark:hidden" />
+              <img src={robotverseLogoLight} alt="" aria-hidden="true" className="h-10 w-10 object-contain hidden dark:block" />
+              <span className="text-xl font-bold text-foreground">RobotVerse</span>
             </div>
+
             <p className="text-muted-foreground text-sm leading-relaxed">
               The ultimate marketplace for industrial robots, spare parts, and professional services. Connecting buyers,
               sellers, and service providers worldwide.

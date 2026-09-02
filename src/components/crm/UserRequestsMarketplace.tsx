@@ -24,9 +24,9 @@ interface UserRequestsMarketplaceProps {
 }
 
 const TYPE_CONFIG = {
-  robot: { icon: Bot, label: 'Robot', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-l-blue-500' },
-  spare_part: { icon: Package, label: 'Spare Part', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-l-emerald-500' },
-  service: { icon: Wrench, label: 'Service', color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-l-purple-500' },
+  robot: { icon: Bot, label: 'Robot', color: 'text-primary', bg: 'bg-primary/10 dark:bg-primary/30', border: 'border-l-blue-500' },
+  spare_part: { icon: Package, label: 'Spare Part', color: 'text-success', bg: 'bg-success/10 dark:bg-success/30', border: 'border-l-emerald-500' },
+  service: { icon: Wrench, label: 'Service', color: 'text-primary', bg: 'bg-primary/10 dark:bg-primary/30', border: 'border-l-purple-500' },
 };
 
 const getCreditsNeeded = (productType: string): number => {
@@ -468,7 +468,7 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
                         </Button>
                       ) : (
                         <>
-                          <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-600">
+                          <Badge variant="outline" className="text-xs border-success/30 text-success">
                             <Unlock className="w-3 h-3 mr-1" /> Unlocked
                           </Badge>
                           <Button size="sm" onClick={() => openQuoteModal(r)}>

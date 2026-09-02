@@ -72,8 +72,8 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
   });
 
   const urgencyOptions = [
-    { value: 'low', label: 'Low Priority - Within a week', color: 'text-green-700 bg-green-50 border-green-200' },
-    { value: 'normal', label: 'Normal - Within 2-3 days', color: 'text-blue-700 bg-blue-50 border-blue-200' },
+    { value: 'low', label: 'Low Priority - Within a week', color: 'text-success bg-success/10 border-success/30' },
+    { value: 'normal', label: 'Normal - Within 2-3 days', color: 'text-primary bg-primary/10 border-primary/30' },
     { value: 'high', label: 'High Priority - Within 24 hours', color: 'text-orange-700 bg-orange-50 border-orange-200' },
     { value: 'urgent', label: 'Urgent - ASAP', color: 'text-red-700 bg-red-50 border-red-200' }
   ];
@@ -243,7 +243,7 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
       <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
         <DialogHeader className="pb-6 border-b border-border">
           <DialogTitle className="flex items-center text-2xl font-bold">
-            <MessageSquare className="w-6 h-6 mr-3 text-blue-600" />
+            <MessageSquare className="w-6 h-6 mr-3 text-primary" />
             Request Professional Service
           </DialogTitle>
           <DialogDescription className="text-lg text-muted-foreground">
@@ -255,40 +255,40 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
           {/* --- Left Column: Service Info, Provider, Description --- */}
           <div className="lg:col-span-1 space-y-7">
             {/* Service Info Card */}
-            <Card className="rounded-xl overflow-hidden border border-gray-200 shadow">
-              <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
-                <CardTitle className="flex items-center text-lg font-bold text-white">
-                  <Settings className="w-5 h-5 mr-2 text-white" />
+            <Card className="rounded-xl overflow-hidden border border-border shadow">
+              <CardHeader className="bg-primary p-4">
+                <CardTitle className="flex items-center text-lg font-bold text-primary-foreground">
+                  <Settings className="w-5 h-5 mr-2 text-primary-foreground" />
                   Service Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4 bg-white">
+              <CardContent className="p-6 space-y-4 bg-card">
                 <div>
-                  <Label className="text-xs uppercase font-semibold text-gray-500">Service Name</Label>
-                  <p className="mt-1 font-bold text-lg text-gray-900">{service.name}</p>
+                  <Label className="text-xs uppercase font-semibold text-muted-foreground">Service Name</Label>
+                  <p className="mt-1 font-bold text-lg text-foreground">{service.name}</p>
                 </div>
                 <Separator />
                 <div className="grid gap-4">
                   <div>
-                    <Label className="text-xs uppercase font-semibold text-gray-500">Category</Label>
-                    <Badge className="mt-1 bg-blue-100 text-blue-800 font-medium">{service.category}</Badge>
+                    <Label className="text-xs uppercase font-semibold text-muted-foreground">Category</Label>
+                    <Badge className="mt-1 bg-primary/10 text-primary font-medium">{service.category}</Badge>
                   </div>
                   <div>
-                    <Label className="text-xs uppercase font-semibold text-gray-500">Price Range</Label>
-                    <p className="flex items-center mt-1 font-semibold text-green-700">
-                      <DollarSign className="w-4 h-4 mr-1 text-green-600" />
+                    <Label className="text-xs uppercase font-semibold text-muted-foreground">Price Range</Label>
+                    <p className="flex items-center mt-1 font-semibold text-success">
+                      <DollarSign className="w-4 h-4 mr-1 text-success" />
                       {service.priceRange}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-xs uppercase font-semibold text-gray-500">Location</Label>
-                    <p className="flex items-center mt-1 font-medium text-gray-800">
-                      <MapPin className="w-4 h-4 mr-1 text-blue-600" />
+                    <Label className="text-xs uppercase font-semibold text-muted-foreground">Location</Label>
+                    <p className="flex items-center mt-1 font-medium text-foreground">
+                      <MapPin className="w-4 h-4 mr-1 text-primary" />
                       {service.location}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-xs uppercase font-semibold text-gray-500">Response Time</Label>
+                    <Label className="text-xs uppercase font-semibold text-muted-foreground">Response Time</Label>
                     <p className="flex items-center mt-1 font-medium text-orange-700">
                       <Clock className="w-4 h-4 mr-1 text-orange-600" />
                       {service.responseTime}
@@ -299,21 +299,21 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
             </Card>
 
             {/* Provider Info Card */}
-            <Card className="rounded-xl overflow-hidden border border-gray-200 shadow">
-              <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 p-4">
-                <CardTitle className="flex items-center text-lg font-bold text-white">
+            <Card className="rounded-xl overflow-hidden border border-border shadow">
+              <CardHeader className="bg-success p-4">
+                <CardTitle className="flex items-center text-lg font-bold text-primary-foreground">
                   <User className="w-5 h-5 mr-2" />
                   Service Provider
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4 bg-white">
+              <CardContent className="p-6 space-y-4 bg-card">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                  <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
                     {service.provider.charAt(0)}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">{service.provider}</p>
-                    <div className="flex items-center text-sm text-gray-600 gap-2">
+                    <p className="font-semibold text-foreground">{service.provider}</p>
+                    <div className="flex items-center text-sm text-muted-foreground gap-2">
                       <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                       {service.rating}
                       <span>•</span>
@@ -321,7 +321,7 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center text-sm text-green-700 bg-green-50 border border-green-200 p-2 rounded-md font-semibold">
+                <div className="flex items-center text-sm text-success bg-success/10 border border-success/30 p-2 rounded-md font-semibold">
                   <CheckCircle className="w-4 h-4 mr-1" />
                   Verified Professional
                 </div>
@@ -329,12 +329,12 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
             </Card>
 
             {/* About This Service Card */}
-            <Card className="rounded-xl overflow-hidden border border-gray-200 shadow">
-              <CardHeader className="bg-gray-50 p-4">
-                <CardTitle className="text-lg font-semibold text-gray-900">About This Service</CardTitle>
+            <Card className="rounded-xl overflow-hidden border border-border shadow">
+              <CardHeader className="bg-muted p-4">
+                <CardTitle className="text-lg font-semibold text-foreground">About This Service</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 bg-white">
-                <p className="text-sm leading-relaxed text-gray-700">{service.description}</p>
+              <CardContent className="p-6 bg-card">
+                <p className="text-sm leading-relaxed text-muted-foreground">{service.description}</p>
               </CardContent>
             </Card>
           </div>
@@ -346,7 +346,7 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center text-xl">
-                    <User className="w-5 h-5 mr-2 text-blue-600" />
+                    <User className="w-5 h-5 mr-2 text-primary" />
                     Your Contact Information
                   </CardTitle>
                 </CardHeader>
@@ -406,7 +406,7 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center text-xl">
-                    <Target className="w-5 h-5 mr-2 text-green-600" />
+                    <Target className="w-5 h-5 mr-2 text-success" />
                     Project Requirements
                   </CardTitle>
                 </CardHeader>
@@ -495,7 +495,7 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
                   type="submit"
                   disabled={loading}
                   size="lg"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary"
                 >
                   {loading ? (
                     <>

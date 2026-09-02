@@ -196,7 +196,7 @@ const Settings = () => {
             </div>
             <Button onClick={handleSaveProfile} disabled={loading}>
               {loading ? (
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                <div className="animate-spin w-4 h-4 border-2 border-border/50 border-t-transparent rounded-full mr-2" />
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}

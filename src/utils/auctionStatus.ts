@@ -49,10 +49,10 @@ export const STATUS_LABEL: Record<DerivedAuctionStatus, string> = {
 };
 
 export const STATUS_CLASSES: Record<DerivedAuctionStatus, string> = {
-  upcoming: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  live: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  ending_soon: 'bg-orange-500/15 text-orange-400 border-orange-500/30 animate-pulse',
-  ended: 'bg-red-500/10 text-red-400 border-red-500/30',
-  sold: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  upcoming: 'bg-primary/10 text-primary border-primary/30',
+  live: 'bg-success/10 text-success border-success/30',
+  ending_soon: 'bg-warning/10 text-warning border-warning/30 animate-pulse',
+  ended: 'bg-destructive/10 text-destructive border-destructive/30',
+  sold: 'bg-primary/10 text-primary border-primary/30',
   cancelled: 'bg-muted text-muted-foreground border-border',
 };

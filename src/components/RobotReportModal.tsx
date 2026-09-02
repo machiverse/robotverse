@@ -166,7 +166,7 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
               <div className="space-y-6">
                 {/* Robot Overview Card */}
                 <Card className="border-2">
-                  <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+                  <CardHeader className="bg-primary/5">
                     <CardTitle className="flex items-center gap-2">
                       <Settings className="w-5 h-5 text-primary" />
                       Robot Overview
@@ -221,7 +221,7 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
                 {(robotData.payload_capacity || robotData.reach || robotData.repeatability || 
                   robotData.power_consumption || robotData.operating_environment || robotData.warranty_info) && (
                   <Card className="border-2">
-                    <CardHeader className="bg-gradient-to-r from-orange-500/5 to-orange-500/10">
+                    <CardHeader className="bg-warning/5">
                       <CardTitle className="flex items-center gap-2">
                         <Settings className="w-5 h-5 text-orange-600" />
                         Technical Specifications
@@ -273,9 +273,9 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
                 {/* Description Card */}
                 {robotData.description && (
                   <Card className="border-2">
-                    <CardHeader className="bg-gradient-to-r from-blue-500/5 to-blue-500/10">
+                    <CardHeader className="bg-primary/5">
                       <CardTitle className="flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                        <FileText className="w-5 h-5 text-primary" />
                         Description
                       </CardTitle>
                     </CardHeader>
@@ -289,7 +289,7 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
 
                 {/* AI Analysis Report Card */}
                 <Card className="border-2 border-primary/20 shadow-lg">
-                  <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
+                  <CardHeader className="bg-primary/5">
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Brain className="w-5 h-5 text-primary" />

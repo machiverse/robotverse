@@ -224,9 +224,9 @@ const AdminCredits = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Earned</p>
-                <p className="text-2xl font-bold text-emerald-600">{totalEarned.toLocaleString("en-IN")}</p>
+                <p className="text-2xl font-bold text-success">{totalEarned.toLocaleString("en-IN")}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-emerald-500/30" />
+              <TrendingUp className="h-8 w-8 text-success/30" />
             </div>
           </CardContent>
         </Card>
@@ -306,7 +306,7 @@ const AdminCredits = () => {
                     <TableCell className="text-right font-bold text-primary">
                       {uc.current_balance.toLocaleString("en-IN")}
                     </TableCell>
-                    <TableCell className="text-right text-emerald-600">
+                    <TableCell className="text-right text-success">
                       {uc.total_earned.toLocaleString("en-IN")}
                     </TableCell>
                     <TableCell className="text-right text-orange-600">
@@ -317,7 +317,7 @@ const AdminCredits = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                          className="text-success border-success/30 hover:bg-success/10 dark:hover:bg-success"
                           onClick={() => handleOpenModal(uc, "add")}
                         >
                           <Plus className="h-3 w-3 mr-1" />
@@ -348,7 +348,7 @@ const AdminCredits = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {actionType === "add" ? (
-                <Plus className="h-5 w-5 text-emerald-600" />
+                <Plus className="h-5 w-5 text-success" />
               ) : (
                 <Minus className="h-5 w-5 text-destructive" />
               )}
@@ -418,7 +418,7 @@ const AdminCredits = () => {
             <Button
               onClick={handleSubmitCredits}
               disabled={submitting || !creditAmount}
-              className={actionType === "add" ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+              className={actionType === "add" ? "bg-success hover:bg-success" : ""}
               variant={actionType === "deduct" ? "destructive" : "default"}
             >
               {submitting ? "Processing..." : `${actionType === "add" ? "Add" : "Deduct"} Credits`}

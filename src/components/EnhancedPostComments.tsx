@@ -411,7 +411,7 @@ const EnhancedPostComments = ({ postId, onCommentCountChange }: EnhancedPostComm
                 variant="ghost" 
                 size="sm"
                 onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
-                className="h-7 px-2 text-muted-foreground hover:text-blue-500"
+                className="h-7 px-2 text-muted-foreground hover:text-primary"
               >
                 <Reply className="h-3 w-3 mr-1" />
                 Reply

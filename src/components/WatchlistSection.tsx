@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { OemRail, OemDot } from '@/components/oem/OemAccents';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -170,11 +171,11 @@ const WatchlistSection = ({
   const getItemIcon = (itemType: string) => {
     switch (itemType) {
       case 'robot':
-        return <Bot className="w-4 h-4 text-blue-600" />;
+        return <Bot className="w-4 h-4 text-primary" />;
       case 'spare_part':
-        return <Package className="w-4 h-4 text-green-600" />;
+        return <Package className="w-4 h-4 text-success" />;
       case 'service':
-        return <Wrench className="w-4 h-4 text-purple-600" />;
+        return <Wrench className="w-4 h-4 text-primary" />;
       default:
         return <Heart className="w-4 h-4" />;
     }
@@ -200,9 +201,9 @@ const WatchlistSection = ({
       case 'medium':
         return 'bg-yellow-500';
       case 'low':
-        return 'bg-green-500';
+        return 'bg-success';
       default:
-        return 'bg-gray-500';
+        return 'bg-secondary';
     }
   };
 
@@ -274,9 +275,11 @@ const WatchlistSection = ({
               return (
                 <div 
                   key={item.id} 
-                  className={`flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors group cursor-pointer ${compact ? 'p-2' : ''}`}
+                  className={`relative overflow-hidden flex items-center space-x-3 p-3 pl-4 border border-border rounded-lg hover:border-muted-foreground/40 hover:bg-muted/50 transition-colors group cursor-pointer ${compact ? 'p-2 pl-3' : ''}`}
                   onClick={() => navigate(getItemUrl(item))}
                 >
+                  {item.item_type === 'robot' && <OemRail brand={data?.brand} />}
+
                   {/* Item Icon & Priority */}
                   <div className="flex items-center gap-2">
                     <div className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} bg-primary/20 rounded-full flex items-center justify-center`}>

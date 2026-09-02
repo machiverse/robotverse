@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,20 +11,18 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import industrialRobotHero from "@/assets/industrial-robot-hero.jpg";
+import HeroImageSlider, { HERO_SLIDES, useHeroSlides } from "@/components/hero/HeroImageSlider";
+import HeroWeldSparks from "@/components/hero/HeroWeldSparks";
+import HeroEmbers from "@/components/hero/HeroEmbers";
 
-interface HeroContent {
-  title: string;
-  subtitle: string;
-  image: string;
-}
+const HERO_TITLE = "Your Complete Robotics Solution";
+const HERO_SUBTITLE =
+  "Buy Industrial Robots with Spare Parts, Services, Logistics & Finance – All in One Platform";
 
-const heroContent: HeroContent = {
-  title: "Your Complete Robotics Solution",
-  subtitle:
-    "Buy Industrial Robots with Spare Parts, Services, Logistics & Finance – All in One Platform",
-  image: industrialRobotHero,
-};
+/** Fade + 8px rise, 60ms stagger, once on mount. */
+const enter = (index: number) => ({
+  animationDelay: `${index * 60}ms`,
+});
 
 const EnhancedHero = () => {
   const navigate = useNavigate();
@@ -35,6 +33,7 @@ const EnhancedHero = () => {
   const [categories, setCategories] = useState<string[]>(["All Categories"]);
   const [locations, setLocations] = useState<string[]>(["All Locations"]);
   const [loading, setLoading] = useState<boolean>(true);
+  const { index: slideIndex, setIndex: setSlideIndex, reducedMotion } = useHeroSlides();
 
   useEffect(() => {
     const fetchFilters = async () => {
@@ -126,126 +125,152 @@ const EnhancedHero = () => {
   };
 
   return (
-    <section className="relative min-h-[600px] md:min-h-screen flex items-center bg-gradient-hero overflow-hidden pt-24 pb-12 md:pt-32 md:pb-16">
-      {/* Background Image */}
-      <div className="absolute inset-0">
-        <img
-          src={heroContent.image}
-          alt={heroContent.title}
-          className="w-full h-full object-cover rounded-lg opacity-30"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent" />
-      </div>
+    <section className="relative isolate flex w-full items-center overflow-hidden min-h-[80vh] pt-20 pb-12 md:min-h-[88vh] md:pt-24 md:pb-20 lg:min-h-[92vh] lg:pt-28 lg:pb-24">
+      {/* Full-bleed photographic industrial robot slideshow */}
+      <HeroImageSlider index={slideIndex} reducedMotion={reducedMotion} />
 
-      {/* Content */}
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-5xl">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 leading-tight">
-            {heroContent.title}
+      {/* Readability overlays */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-black/75 via-black/60 to-black/80 lg:hidden"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-10 hidden bg-gradient-to-r from-black/80 via-black/40 to-black/5 lg:block"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-32 bg-gradient-to-t from-background to-transparent"
+      />
+
+      {/* Weld spatter overlay, active on the welding slide only */}
+      <HeroWeldSparks active={!reducedMotion && slideIndex === 0} />
+
+      {/* Screen-wide ambient ember drift (above overlays, below copy) */}
+      <HeroEmbers />
+
+      {/* Slide indicators — bottom-right, desktop only */}
+      {!reducedMotion && (
+        <div className="absolute bottom-8 right-24 z-20 hidden items-center gap-2 md:flex lg:right-28">
+          {HERO_SLIDES.map((slide, i) => (
+            <button
+              key={slide.src}
+              type="button"
+              aria-label={`Show slide ${i + 1}`}
+              aria-current={i === slideIndex}
+              onClick={() => setSlideIndex(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === slideIndex ? "w-7 bg-white/70" : "w-1.5 bg-white/30 hover:bg-white/50"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+
+
+      <div className="container relative z-20 mx-auto w-full px-4">
+        <div className="max-w-4xl">
+          <h1
+            className="rv-hero-enter text-3xl font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-5xl lg:text-7xl"
+            style={enter(0)}
+          >
+            {HERO_TITLE}
           </h1>
-
-          <p className="text-lg md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-3xl">
-            {heroContent.subtitle}
+          <p
+            className="rv-hero-enter mt-3 max-w-[58ch] text-base leading-[1.5] text-white/80 sm:mt-4 sm:text-lg lg:text-xl"
+            style={enter(1)}
+          >
+            {HERO_SUBTITLE}
           </p>
 
-          {/* Advanced Search */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSearch();
             }}
-            className="bg-card/80 backdrop-blur-sm border border-border rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 mb-6 md:mb-8 max-w-4xl"
+            className="mt-4 w-full min-w-0 rounded-2xl border border-white/20 bg-white/10 p-3.5 backdrop-blur-md sm:mt-6 sm:p-5"
           >
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
-              {/* Search Input */}
-              <div className="md:col-span-2 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+            <div className="grid grid-cols-1 gap-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                 <Input
                   aria-label="Search robots, parts, and services"
                   placeholder="Search robots, parts, services..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 md:pl-10 h-10 md:h-12 text-sm md:text-base bg-input border-border"
+                  className="h-11 rounded-xl border-white/25 bg-white/15 pl-9 text-sm text-white placeholder:text-white/60 focus-visible:ring-white/40"
                 />
               </div>
 
-              {/* Category Select */}
-              <Select
-                value={selectedCategory}
-                onValueChange={setSelectedCategory}
-                disabled={loading}
-              >
-                <SelectTrigger
-                  aria-label="Select category"
-                  className="h-10 md:h-12 bg-input border-border text-sm md:text-base"
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                  disabled={loading}
                 >
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <SelectTrigger
+                    aria-label="Select category"
+                    className="h-11 w-full min-w-0 rounded-xl border-white/25 bg-white/15 text-sm text-white disabled:opacity-60"
+                  >
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              {/* Location Select */}
-              <Select
-                value={selectedLocation}
-                onValueChange={setSelectedLocation}
-                disabled={loading}
-              >
-                <SelectTrigger
-                  aria-label="Select location"
-                  className="h-10 md:h-12 bg-input border-border text-sm md:text-base"
+                <Select
+                  value={selectedLocation}
+                  onValueChange={setSelectedLocation}
+                  disabled={loading}
                 >
-                  <SelectValue placeholder="All Locations" />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <SelectTrigger
+                    aria-label="Select location"
+                    className="h-11 w-full min-w-0 rounded-xl border-white/25 bg-white/15 text-sm text-white disabled:opacity-60"
+                  >
+                    <SelectValue placeholder="All Locations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations.map((location) => (
+                      <SelectItem key={location} value={location}>
+                        {location}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button type="submit" className="h-11 w-full rounded-xl text-sm" aria-label="Perform search">
+                <Search className="mr-2 h-4 w-4" /> Search
+              </Button>
             </div>
-
-            {/* Search Button */}
-            <Button
-              type="submit"
-              className="w-full mt-3 md:mt-4 h-10 md:h-12 text-sm md:text-base bg-primary hover:bg-primary-glow"
-              aria-label="Perform search"
-              disabled={loading}
-            >
-              <Search className="w-4 h-4 md:w-5 md:h-5 mr-2" /> Search
-            </Button>
           </form>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-8 md:mb-12">
+          <div className="mt-4 flex flex-col gap-2.5 sm:mt-6 sm:flex-row sm:items-center sm:gap-4">
             <Button
-              variant="hero"
               size="lg"
-              className="text-base md:text-lg px-6 md:px-8 py-3 md:py-4 h-auto"
+              className="h-auto bg-white px-6 py-3 text-base text-neutral-900 hover:bg-white/90"
               asChild
-              disabled={loading}
             >
               <Link to="/robots">Explore Robots</Link>
             </Button>
             <Button
               variant="outline"
               size="lg"
-              className="text-base md:text-lg px-6 md:px-8 py-3 md:py-4 h-auto"
+              className="h-auto border-white/40 bg-transparent px-6 py-3 text-base text-white hover:bg-white/10 hover:text-white"
               asChild
-              disabled={loading}
             >
               <Link to="/auth">Start Selling</Link>
             </Button>
           </div>
+
         </div>
       </div>
+
     </section>
   );
 };

@@ -335,32 +335,32 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       value: `${dashboardStats.profileCompletion}%`,
       icon: User,
       trend: 'Setup progress',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      color: 'text-primary',
+      bgColor: 'bg-primary/10'
     },
     {
       title: 'Logistics Views',
       value: viewStats.viewsByCategory.logistics_services || 0,
       icon: Eye,
       trend: 'Views on your logistics services',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
+      color: 'text-primary',
+      bgColor: 'bg-primary/10'
     },
     {
       title: 'Active Services',
       value: logisticsServices.filter(s => s.is_active).length,
       icon: Truck,
       trend: 'Service offerings',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
+      color: 'text-success',
+      bgColor: 'bg-success/10'
     },
     {
       title: 'Service Areas',
       value: serviceAreas.length + userCoverageAreas.length,
       icon: MapPin,
       trend: 'Coverage locations',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      color: 'text-primary',
+      bgColor: 'bg-primary/10'
     }
   ];
 
@@ -448,9 +448,9 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
   return (
     <div className="space-y-6">
       {/* Access Confirmed Banner */}
-      <Alert className="border-green-200 bg-green-50">
+      <Alert className="border-success/30 bg-success/10">
         <CheckCircle className="w-4 h-4" />
-        <AlertDescription className="text-green-700">
+        <AlertDescription className="text-success">
           <strong>✅ Logistics Provider Access Confirmed</strong> - Welcome to your logistics dashboard, {userProfile?.full_name || user?.email}!
         </AlertDescription>
       </Alert>
@@ -458,7 +458,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-warning">
             Logistics Provider Dashboard
           </h1>
           <p className="text-muted-foreground">
@@ -557,9 +557,9 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
               <CardContent>
                 {dashboardStats.profileCompletion < 100 ? (
                   <div className="space-y-4">
-                    <Alert className="border-blue-200 bg-blue-50">
+                    <Alert className="border-primary/30 bg-primary/10">
                       <AlertCircle className="w-4 h-4" />
-                      <AlertDescription className="text-blue-700">
+                      <AlertDescription className="text-primary">
                         Complete your profile to start receiving logistics requests
                       </AlertDescription>
                     </Alert>
@@ -580,7 +580,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                    <CheckCircle className="w-12 h-12 text-success mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">Profile Complete!</h3>
                     <p className="text-muted-foreground mb-4">
                       You're ready to receive logistics requests
@@ -617,7 +617,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                     {serviceCapabilities.map((capability, index) => (
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
-                          <Truck className="w-5 h-5 text-blue-600" />
+                          <Truck className="w-5 h-5 text-primary" />
                           <span className="font-medium">{capability}</span>
                         </div>
                         <Badge variant="outline">Active</Badge>
@@ -850,8 +850,8 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                             </div>
                             {service.is_international && (
                               <div className="flex items-center gap-2 mt-2">
-                                <Globe className="w-4 h-4 text-blue-600" />
-                                <span className="text-sm text-blue-600">International Service</span>
+                                <Globe className="w-4 h-4 text-primary" />
+                                <span className="text-sm text-primary">International Service</span>
                               </div>
                             )}
                           </div>
@@ -915,7 +915,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <MapPin className="w-5 h-5 text-blue-600" />
+                            <MapPin className="w-5 h-5 text-primary" />
                             <h3 className="font-semibold">{area.area_name}</h3>
                           </div>
                           <Badge variant={area.active ? "default" : "secondary"}>
@@ -996,19 +996,19 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span>Company Name:</span>
-                        <span className={userProfile?.company_name ? 'text-green-600' : 'text-red-600'}>
+                        <span className={userProfile?.company_name ? 'text-success' : 'text-red-600'}>
                           {userProfile?.company_name ? '✓' : '✗'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Contact Info:</span>
-                        <span className={userProfile?.phone && userProfile?.email ? 'text-green-600' : 'text-red-600'}>
+                        <span className={userProfile?.phone && userProfile?.email ? 'text-success' : 'text-red-600'}>
                           {userProfile?.phone && userProfile?.email ? '✓' : '✗'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Location:</span>
-                        <span className={userProfile?.location ? 'text-green-600' : 'text-red-600'}>
+                        <span className={userProfile?.location ? 'text-success' : 'text-red-600'}>
                           {userProfile?.location ? '✓' : '✗'}
                         </span>
                       </div>
@@ -1023,19 +1023,19 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span>Business Verified:</span>
-                        <span className={dashboardStats.businessVerified ? 'text-green-600' : 'text-red-600'}>
+                        <span className={dashboardStats.businessVerified ? 'text-success' : 'text-red-600'}>
                           {dashboardStats.businessVerified ? '✓' : '✗'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Service Areas:</span>
-                        <span className={serviceAreas.length > 0 ? 'text-green-600' : 'text-red-600'}>
+                        <span className={serviceAreas.length > 0 ? 'text-success' : 'text-red-600'}>
                           {serviceAreas.length > 0 ? '✓' : '✗'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Capabilities:</span>
-                        <span className={serviceCapabilities.length > 0 ? 'text-green-600' : 'text-red-600'}>
+                        <span className={serviceCapabilities.length > 0 ? 'text-success' : 'text-red-600'}>
                           {serviceCapabilities.length > 0 ? '✓' : '✗'}
                         </span>
                       </div>

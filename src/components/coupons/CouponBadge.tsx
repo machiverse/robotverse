@@ -31,7 +31,7 @@ export default function CouponBadge({ sellerId, robotId }: Props) {
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 text-xs"
       >
-        <Badge className="bg-emerald-600 hover:bg-emerald-700 gap-1">
+        <Badge className="bg-success hover:bg-success gap-1">
           <Tag className="w-3 h-3" />
           {coupons.length} Offer{coupons.length > 1 ? "s" : ""} available
         </Badge>
@@ -48,13 +48,13 @@ export default function CouponBadge({ sellerId, robotId }: Props) {
                 <div className="flex items-center justify-between">
                   <span className="font-mono font-bold text-primary">{c.code}</span>
                   <Button size="sm" variant="ghost" onClick={() => copy(c.code)}>
-                    {copied === c.code ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                    {copied === c.code ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
                 <p className="text-sm font-medium">{c.name}</p>
                 {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
                 <p className="text-xs">
-                  <span className="text-emerald-600 font-semibold">
+                  <span className="text-success font-semibold">
                     {c.discount_type === "percentage" ? `${c.discount_value}% off` : `₹${Number(c.discount_value).toLocaleString("en-IN")} off`}
                   </span>
                   {c.min_order_amount > 0 && <span className="text-muted-foreground"> · Min ₹{Number(c.min_order_amount).toLocaleString("en-IN")}</span>}

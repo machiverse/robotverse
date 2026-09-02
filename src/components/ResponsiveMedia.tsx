@@ -103,7 +103,7 @@ const ResponsiveMedia = ({
 
   return (
     <div 
-      className={cn("relative bg-black rounded-lg overflow-hidden group", className)}
+      className={cn("relative bg-foreground rounded-lg overflow-hidden group", className)}
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
     >
@@ -132,8 +132,8 @@ const ResponsiveMedia = ({
 
       {/* Custom Video Controls Overlay */}
       {!isPlaying && !loading && (
-        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-          <div className="bg-white/95 backdrop-blur-sm rounded-full p-4 shadow-lg group-hover:scale-110 transition-transform cursor-pointer">
+        <div className="absolute inset-0 bg-foreground/30 flex items-center justify-center">
+          <div className="bg-card/95 backdrop-blur-sm rounded-full p-4 shadow-lg group-hover:scale-110 transition-transform cursor-pointer">
             <Play className="h-8 w-8 text-primary fill-primary" />
           </div>
         </div>
@@ -141,7 +141,7 @@ const ResponsiveMedia = ({
 
       {/* Duration Badge */}
       {videoDuration && !loading && (
-        <div className="absolute bottom-3 right-3 bg-black/80 text-white text-sm px-3 py-1 rounded-md font-medium">
+        <div className="absolute bottom-3 right-3 bg-foreground/80 text-primary-foreground text-sm px-3 py-1 rounded-md font-medium">
           {formatDuration(videoDuration)}
         </div>
       )}
@@ -150,7 +150,7 @@ const ResponsiveMedia = ({
       {showControls && !loading && (
         <button
           onClick={() => setIsMuted(!isMuted)}
-          className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition-all"
+          className="absolute top-3 right-3 bg-foreground/60 hover:bg-foreground/80 text-primary-foreground p-2 rounded-full transition-all"
           title={isMuted ? 'Unmute' : 'Mute'}
         >
           {isMuted ? (
@@ -164,7 +164,7 @@ const ResponsiveMedia = ({
       {/* Video Info Overlay */}
       {title && showControls && !loading && (
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-          <div className="text-white font-medium text-sm">{title}</div>
+          <div className="text-primary-foreground font-medium text-sm">{title}</div>
         </div>
       )}
     </div>

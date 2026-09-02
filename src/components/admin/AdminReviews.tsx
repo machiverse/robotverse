@@ -25,7 +25,7 @@ export default function AdminReviews() {
   });
 
   const statusColors: Record<string, string> = {
-    published: 'bg-green-500/20 text-green-400',
+    published: 'bg-success/20 text-success',
     hidden: 'bg-yellow-500/20 text-yellow-400',
     flagged: 'bg-red-500/20 text-red-400',
     removed: 'bg-muted text-muted-foreground',
@@ -43,7 +43,7 @@ export default function AdminReviews() {
         </Card>
         <Card className="bg-card border-border">
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-green-400">{stats.published}</p>
+            <p className="text-2xl font-bold text-success">{stats.published}</p>
             <p className="text-xs text-muted-foreground">Published</p>
           </CardContent>
         </Card>
@@ -130,7 +130,7 @@ export default function AdminReviews() {
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {review.status !== 'published' && (
                         <Button size="icon" variant="ghost" title="Publish" onClick={() => updateReviewStatus(review.id, 'published')}>
-                          <Eye className="h-4 w-4 text-green-400" />
+                          <Eye className="h-4 w-4 text-success" />
                         </Button>
                       )}
                       {review.status !== 'hidden' && (

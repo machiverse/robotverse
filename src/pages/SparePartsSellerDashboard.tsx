@@ -322,7 +322,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             {isCommissionSeller ? (
-              <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+              <span className="text-warning">
                 Spare Parts Dashboard (Commission)
               </span>
             ) : (
@@ -407,10 +407,10 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">In Stock</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.inStock}</div>
+            <div className="text-2xl font-bold text-success">{stats.inStock}</div>
             <p className="text-xs text-muted-foreground">Available parts</p>
           </CardContent>
         </Card>
@@ -572,7 +572,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4 flex-1">
               <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search parts..."
                   value={searchQuery}
@@ -613,7 +613,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
           {filteredParts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Package className="w-12 h-12 text-gray-400 mb-4" />
+            <Package className="w-12 h-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No spare parts found</h3>
             <p className="text-muted-foreground mb-4">
               {searchQuery || filterStatus !== 'all' 

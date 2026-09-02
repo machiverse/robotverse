@@ -4,7 +4,7 @@ import industrialRobotHero from "@/assets/industrial-robot-hero.jpg";
 
 const Hero = () => {
   return (
-    <section className="relative min-h-screen flex items-center bg-gradient-hero overflow-hidden">
+    <section className="relative min-h-screen flex items-center bg-muted overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0">
         <img 
@@ -25,7 +25,7 @@ const Hero = () => {
 
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
             Welcome to{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">
+            <span className="text-primary">
               RobotVerse
             </span>
           </h1>
@@ -35,7 +35,7 @@ const Hero = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 mb-12">
-            <Button variant="hero" size="lg" className="text-lg px-8 py-6">
+            <Button variant="default" size="lg" className="text-lg px-8 py-6">
               <Bot className="w-5 h-5" />
               Join RobotVerse
             </Button>

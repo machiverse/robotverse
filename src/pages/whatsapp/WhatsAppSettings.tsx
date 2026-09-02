@@ -51,11 +51,11 @@ const WhatsAppSettings = () => {
   };
 
   if (loading) return <div className="h-72 animate-pulse rounded-xl bg-muted" />;
-  if (!settings) return <p className="rounded-xl border bg-white p-8 text-sm text-muted-foreground">Settings row not found.</p>;
+  if (!settings) return <p className="rounded-xl border bg-card p-8 text-sm text-muted-foreground">Settings row not found.</p>;
 
   return (
     <div className="space-y-4">
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <ShieldCheck className="h-4 w-4 text-[#128C7E]" /> Meta WhatsApp connection
@@ -89,7 +89,7 @@ const WhatsAppSettings = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">AI behaviour</CardTitle>
         </CardHeader>
@@ -163,7 +163,7 @@ const WhatsAppSettings = () => {
           </div>
           <label className="flex items-center gap-3 text-sm">
             <Switch checked={settings.auto_reply} onCheckedChange={(v) => patch({ auto_reply: v })} />
-            Auto-reply enabled {settings.auto_reply ? <Badge className="bg-emerald-100 text-emerald-800">on</Badge> : <Badge variant="secondary">off</Badge>}
+            Auto-reply enabled {settings.auto_reply ? <Badge className="bg-success/10 text-success">on</Badge> : <Badge variant="secondary">off</Badge>}
           </label>
 
           <Button onClick={save} disabled={saving} className="w-auto min-w-fit whitespace-normal bg-[#25D366] hover:bg-[#128C7E]">
@@ -173,7 +173,7 @@ const WhatsAppSettings = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Website widget embed code</CardTitle>
         </CardHeader>

@@ -44,7 +44,7 @@ const UserTypeSelector = ({ onSelect }: UserTypeSelectorProps) => {
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Choose Your Role in{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">RobotVerse</span>
+            <span className="text-primary">RobotVerse</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Select your user type to access tailored features and dashboard
@@ -57,7 +57,7 @@ const UserTypeSelector = ({ onSelect }: UserTypeSelectorProps) => {
             return (
               <Card 
                 key={type.id} 
-                className="bg-gradient-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-glow cursor-pointer group"
+                className="bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-md cursor-pointer group"
                 onClick={() => onSelect(type.id)}
               >
                 <CardHeader className="text-center">
@@ -79,7 +79,7 @@ const UserTypeSelector = ({ onSelect }: UserTypeSelectorProps) => {
                     ))}
                   </ul>
                   <Button 
-                    variant="neon" 
+                    variant="outline" 
                     className="w-full group-hover:bg-primary group-hover:text-primary-foreground"
                   >
                     Select Role

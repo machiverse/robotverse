@@ -255,7 +255,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
 
   function getUrgencyBadge(status: string) {
     const variants = {
-      low: "bg-green-100 text-green-800",
+      low: "bg-success/10 text-success",
       medium: "bg-yellow-100 text-yellow-800",
       high: "bg-red-100 text-red-800",
     };
@@ -277,7 +277,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
             <div>
               <h1 className="text-2xl font-bold">
                 {isCommissionSeller ? (
-                  <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                  <span className="text-warning">
                     Service Provider Dashboard (Commission)
                   </span>
                 ) : (
@@ -311,11 +311,11 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
 
           <div className={`grid grid-cols-1 md:grid-cols-3 ${isCommissionSeller ? 'lg:grid-cols-7' : 'lg:grid-cols-6'} gap-6`}>
             {[ 
-              { title: "Service Views", val: viewStats.viewsByCategory.services || 0, icon: Eye, variant: "secondary", color: "text-purple-600" },
-              { title: "Total Services", val: dashboardStats.totalServices, icon: Wrench, variant: "secondary", color: "text-blue-600" },
+              { title: "Service Views", val: viewStats.viewsByCategory.services || 0, icon: Eye, variant: "secondary", color: "text-primary" },
+              { title: "Total Services", val: dashboardStats.totalServices, icon: Wrench, variant: "secondary", color: "text-primary" },
               { title: "Active Requests", val: dashboardStats.activeRequests, icon: Clock, variant: "secondary", color: "text-orange-600" },
-              { title: "Completed Jobs", val: dashboardStats.completedJobs, icon: CheckCircle, variant: "outline", color: "text-green-600" },
-              { title: "Monthly Revenue", val: `₹${dashboardStats.monthlyRevenue.toLocaleString()}`, icon: DollarSign, variant: "secondary", color: "text-purple-600" },
+              { title: "Completed Jobs", val: dashboardStats.completedJobs, icon: CheckCircle, variant: "outline", color: "text-success" },
+              { title: "Monthly Revenue", val: `₹${dashboardStats.monthlyRevenue.toLocaleString()}`, icon: DollarSign, variant: "secondary", color: "text-primary" },
               { title: "Average Rating", val: dashboardStats.averageRating, icon: Star, variant: "secondary", color: "text-yellow-600" },
               ...(isCommissionSeller ? [{ title: "Commission", val: "6%", icon: Handshake, variant: "secondary", color: "text-amber-600" }] : []),
             ].map(({ title, val, icon: Icon, variant, color }, idx) => (
@@ -420,8 +420,8 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                   {serviceRequests.length === 0 ? (
                     <p className="text-center text-muted-foreground py-24 text-lg">No service requests</p>
                   ) : (
-                    <Table className="shadow-sm rounded-lg overflow-hidden border border-gray-200">
-                      <TableHeader className="bg-gray-50">
+                    <Table className="shadow-sm rounded-lg overflow-hidden border border-border">
+                      <TableHeader className="bg-muted">
                         <TableRow>
                           <TableHead>Client</TableHead>
                           <TableHead>Service Type</TableHead>
@@ -434,7 +434,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                       </TableHeader>
                       <TableBody>
                         {serviceRequests.map((req: any) => (
-                          <TableRow key={req.id} className="hover:bg-gray-100 cursor-pointer" tabIndex={0} role="button" aria-label={`Request from ${req.client_name}`}>
+                          <TableRow key={req.id} className="hover:bg-muted cursor-pointer" tabIndex={0} role="button" aria-label={`Request from ${req.client_name}`}>
                             <TableCell>{req.client_name || "N/A"}</TableCell>
                             <TableCell className="capitalize">{req.service_type || "N/A"}</TableCell>
                             <TableCell>{req.scheduled_date || "N/A"}</TableCell>
@@ -451,7 +451,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                             <TableCell className="space-x-2">
                               <Button 
                                 size="sm" 
-                                className="bg-green-600 text-white hover:bg-green-700"
+                                className="bg-success text-primary-foreground hover:bg-success"
                                 aria-label={`Accept request ${req.id}`}
                                 onClick={() => alert(`Accept request ${req.id}`)}>
                                 Accept
@@ -474,7 +474,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
             </TabsContent>
             {/* Services Tab */}
             <TabsContent value="services">
-              <Card className="mt-6 border border-gray-200 rounded-lg shadow-sm">
+              <Card className="mt-6 border border-border rounded-lg shadow-sm">
                 <CardHeader className="px-6 py-4">
                   <CardTitle className="text-2xl flex items-center gap-2">
                     <Wrench className="w-6 h-6 text-primary" aria-hidden="true" /> Your Services
@@ -497,7 +497,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                         return (
                           <Card
                             key={service.id}
-                            className="border border-gray-200 rounded-lg shadow-sm transition-shadow hover:shadow-lg"
+                            className="border border-border rounded-lg shadow-sm transition-shadow hover:shadow-lg"
                             aria-label={`Service: ${service.name}`}
                           >
                             <CardContent className="p-5">
@@ -507,7 +507,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                                   <Button
                                     size="sm" variant="ghost" aria-label={`Edit ${service.name}`}
                                     onClick={() => openEditModal(service)}
-                                    className="text-blue-600 hover:text-blue-800"
+                                    className="text-primary hover:text-primary"
                                   >
                                     <Edit className="w-5 h-5" />
                                   </Button>
@@ -520,7 +520,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                                   </Button>
                                 </div>
                               </div>
-                              <p className="mb-4 text-gray-600 text-sm min-h-[3rem]">{service.description}</p>
+                              <p className="mb-4 text-muted-foreground text-sm min-h-[3rem]">{service.description}</p>
                               <div className="mb-3 flex flex-wrap gap-2">
                                 {serviceTypes.map((type) => (
                                   <Badge key={type} variant="outline" className="text-xs font-medium">
@@ -541,7 +541,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                               </div>
                               <div className="flex justify-between items-center mt-6">
                                 <span className="font-semibold text-lg text-primary">{service.price_range}</span>
-                                <div className="flex items-center space-x-1 text-gray-500 text-sm">
+                                <div className="flex items-center space-x-1 text-muted-foreground text-sm">
                                   <MapPin className="w-4 h-4" aria-hidden="true" />
                                   <span>{service.location || "N/A"}</span>
                                 </div>

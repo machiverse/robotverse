@@ -64,8 +64,8 @@ const FollowUpReminders = ({ sellerId }: FollowUpRemindersProps) => {
         label: "Tomorrow",
       },
       upcoming: {
-        bg: "border-blue-200 bg-blue-50/60 dark:bg-blue-950/20",
-        badge: "bg-blue-100 text-blue-700",
+        bg: "border-primary/30 bg-primary/10 dark:bg-primary/20",
+        badge: "bg-primary/10 text-primary",
         icon: Calendar,
         label: "Upcoming",
       },
@@ -175,8 +175,8 @@ const FollowUpReminders = ({ sellerId }: FollowUpRemindersProps) => {
       {upcomingLeads.length > 0 && (
         <section>
           <div className="mb-3 flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-blue-600" />
-            <h3 className="text-sm font-semibold text-blue-600">Upcoming ({upcomingLeads.length})</h3>
+            <Calendar className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold text-primary">Upcoming ({upcomingLeads.length})</h3>
           </div>
           <div className="space-y-3">{upcomingLeads.map((lead) => renderLeadCard(lead, "upcoming"))}</div>
         </section>

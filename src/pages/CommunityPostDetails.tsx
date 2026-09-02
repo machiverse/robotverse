@@ -409,7 +409,7 @@ const CommunityPostDetails = () => {
               <div className="flex items-center gap-3 mb-6">
                 <Avatar className="h-12 w-12 ring-2 ring-background">
                   <AvatarImage src={post.profiles?.avatar_url} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20">
+                  <AvatarFallback className="bg-primary/5">
                     <User className="h-6 w-6 text-primary" />
                   </AvatarFallback>
                 </Avatar>
@@ -433,7 +433,7 @@ const CommunityPostDetails = () => {
 
               {/* Title */}
               {post.title && (
-                <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold mb-4 text-primary">
                   {post.title}
                 </h1>
               )}
@@ -462,7 +462,7 @@ const CommunityPostDetails = () => {
                         type="video"
                       />
                       {post.video_duration && (
-                        <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                        <div className="absolute bottom-2 right-2 bg-foreground/70 text-primary-foreground px-2 py-1 rounded text-xs flex items-center gap-1">
                           <Play className="h-3 w-3" />
                           {formatDuration(post.video_duration)}
                         </div>

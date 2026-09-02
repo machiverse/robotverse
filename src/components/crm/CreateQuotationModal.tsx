@@ -668,7 +668,7 @@ const CreateQuotationModal = ({
                     <span>₹{subtotal.toLocaleString()}</span>
                   </div>
                   {discountAmount > 0 && (
-                    <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
+                    <div className="flex justify-between text-sm text-success dark:text-success">
                       <span>Discount {discountType === "percentage" ? `(${discountValue}%)` : ""}</span>
                       <span>-₹{discountAmount.toLocaleString()}</span>
                     </div>

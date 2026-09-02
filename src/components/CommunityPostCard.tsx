@@ -123,15 +123,15 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
   const getPostTypeColor = () => {
     switch (post.post_type) {
       case 'blog':
-        return 'bg-blue-500';
+        return 'bg-primary';
       case 'video':
         return 'bg-red-500';
       case 'short_post':
-        return 'bg-green-500';
+        return 'bg-success';
       case 'media':
-        return 'bg-purple-500';
+        return 'bg-primary';
       default:
-        return 'bg-gray-500';
+        return 'bg-secondary';
     }
   };
 
@@ -271,7 +271,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 ring-2 ring-background">
             <AvatarImage src={post.profiles?.avatar_url} />
-            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20">
+            <AvatarFallback className="bg-primary/5">
               <User className="h-5 w-5 text-primary" />
             </AvatarFallback>
           </Avatar>
@@ -307,7 +307,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
             </Badge>
           )}
           {post.status === 'published' && (
-            <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+            <Badge variant="outline" className="border-success/30 bg-success/10 text-success dark:text-success">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               <span className="text-xs font-medium">Published</span>
             </Badge>
@@ -399,8 +399,8 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
             {/* Video overlay for better UX */}
             {(post.post_type === 'video' || post.media_type === 'video') && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="bg-black/50 rounded-full p-3">
-                  <Play className="h-8 w-8 text-white" />
+                <div className="bg-foreground/50 rounded-full p-3">
+                  <Play className="h-8 w-8 text-primary-foreground" />
                 </div>
               </div>
             )}

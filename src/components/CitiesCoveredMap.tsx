@@ -294,7 +294,7 @@ const CitiesCoveredMap = () => {
 
   if (loading) {
     return (
-      <section className="py-20 bg-muted/20">
+      <section className="py-10 md:py-14 bg-background">
         <div className="container mx-auto px-4 flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <span className="ml-3 text-muted-foreground font-medium">Loading coverage map...</span>
@@ -308,7 +308,7 @@ const CitiesCoveredMap = () => {
   const getCategoryLabel = (key: CategoryKey) => CATEGORIES.find((c) => c.key === key)?.label || key;
 
   return (
-    <section className="py-20 bg-muted/20 relative overflow-hidden">
+    <section className="py-10 md:py-14 bg-background relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
@@ -323,7 +323,7 @@ const CitiesCoveredMap = () => {
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground">
             Serving Industrial Hubs{" "}
-            <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <span className="text-primary">
               Across India
             </span>
           </h2>
@@ -376,7 +376,7 @@ const CitiesCoveredMap = () => {
         {/* Map + Table */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Map */}
-          <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-border shadow-xl bg-card" style={{ height: 500 }}>
+          <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-border shadow-lg bg-card" style={{ height: 500 }}>
             <MapContainer
               center={[22.5, 78.9]}
               zoom={5}
@@ -401,10 +401,10 @@ const CitiesCoveredMap = () => {
                     <div className="text-center px-2 py-1 min-w-[140px]">
                       <p className="font-bold text-sm text-foreground">{pin.city}</p>
                       <div
-                        className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold text-white"
+                        className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold text-primary-foreground"
                         style={{ backgroundColor: CATEGORIES.find((c) => c.key === pin.category)?.color }}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/60 inline-block" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-card/60 inline-block" />
                         {getCategoryLabel(pin.category)}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -421,7 +421,7 @@ const CitiesCoveredMap = () => {
           </div>
 
           {/* Table */}
-          <div className="lg:col-span-2 rounded-2xl border border-border shadow-xl bg-card overflow-hidden" style={{ height: 500 }}>
+          <div className="lg:col-span-2 rounded-2xl border border-border shadow-lg bg-card overflow-hidden" style={{ height: 500 }}>
             <div className="p-4 border-b border-border bg-primary/5">
               <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />
@@ -438,10 +438,10 @@ const CitiesCoveredMap = () => {
                       <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1" />RS
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wide text-center">
-                      <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1" />SP
+                      <span className="inline-block w-2 h-2 rounded-full bg-primary mr-1" />SP
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wide text-center">
-                      <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1" />IS
+                      <span className="inline-block w-2 h-2 rounded-full bg-success mr-1" />IS
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -461,12 +461,12 @@ const CitiesCoveredMap = () => {
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 text-sm font-semibold">
+                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-primary/10 text-primary text-sm font-semibold">
                           {city.spare_parts_eoat}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-sm font-semibold">
+                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-success/10 text-success text-sm font-semibold">
                           {city.integrator_service}
                         </span>
                       </TableCell>

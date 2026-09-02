@@ -71,7 +71,7 @@ const PreviewLinkCard = ({
   };
 
   return (
-    <Card className={`border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 ${className || ""}`}>
+    <Card className={`border-primary/20 bg-primary/5 ${className || ""}`}>
       <CardContent className="p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -83,10 +83,10 @@ const PreviewLinkCard = ({
               variant="outline"
               className={
                 isPublished
-                  ? "border-emerald-500/40 text-emerald-600"
+                  ? "border-success/30 text-success"
                   : status === "scheduled"
                   ? "border-amber-500/40 text-amber-600"
-                  : "border-blue-500/40 text-blue-600"
+                  : "border-primary/30 text-primary"
               }
             >
               {isPublished ? (
@@ -157,7 +157,7 @@ const PreviewLinkCard = ({
 
         {isPublished && liveUrl && (
           <div className="flex items-center gap-2 pt-2 border-t border-border/50">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
             <span className="text-xs text-muted-foreground shrink-0">Live URL:</span>
             <a
               href={liveUrl}

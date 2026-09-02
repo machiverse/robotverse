@@ -43,7 +43,7 @@ const AuctionBidsPanel: React.FC<Props> = ({ auctionId, sellerId, totalBids }) =
                 <div className="min-w-0">
                   <p className="font-medium text-foreground truncate">
                     {b.bidder_name || 'Bidder'}
-                    {i === 0 && <Badge className="ml-1.5 bg-emerald-500/20 text-emerald-500 border-emerald-500/30 text-[9px]">Highest</Badge>}
+                    {i === 0 && <Badge className="ml-1.5 bg-success/20 text-success border-success/30 text-[9px]">Highest</Badge>}
                   </p>
                   {b.bidder_company && <p className="text-muted-foreground truncate">{b.bidder_company}</p>}
                 </div>

@@ -143,7 +143,7 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
       <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
         <DialogHeader className="pb-6 border-b border-border">
           <DialogTitle className="flex items-center text-2xl font-bold">
-            <CreditCard className="w-6 h-6 mr-3 text-blue-600" />
+            <CreditCard className="w-6 h-6 mr-3 text-primary" />
             Equipment Financing Application
           </DialogTitle>
           <DialogDescription className="text-lg text-muted-foreground">
@@ -156,30 +156,30 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
           <div className="lg:col-span-1 space-y-6">
             {/* Robot Details Card */}
 {robotDetails && (
-  <Card className="bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900 border-0 drop-shadow-xl rounded-2xl">
+  <Card className="bg-primary border-0 shadow-lg rounded-2xl">
     <CardHeader className="flex items-center gap-2 pb-0">
-      <Bot className="w-6 h-6 text-blue-300" />
-      <CardTitle className="text-white text-xl font-bold tracking-wide">Equipment Details</CardTitle>
+      <Bot className="w-6 h-6 text-primary" />
+      <CardTitle className="text-primary-foreground text-xl font-bold tracking-wide">Equipment Details</CardTitle>
     </CardHeader>
-    <Separator className="bg-blue-500 opacity-30 my-3" />
-    <CardContent className="space-y-5 text-white">
+    <Separator className="bg-primary opacity-30 my-3" />
+    <CardContent className="space-y-5 text-primary-foreground">
       <div>
-        <Label className="uppercase text-xs text-blue-200 font-bold tracking-wide mb-1">Robot Name</Label>
-        <div className="font-extrabold text-2xl text-white">{robotDetails.name}</div>
+        <Label className="uppercase text-xs text-primary font-bold tracking-wide mb-1">Robot Name</Label>
+        <div className="font-extrabold text-2xl text-primary-foreground">{robotDetails.name}</div>
       </div>
       <div>
-        <Label className="uppercase text-xs text-blue-200 font-bold tracking-wide mb-1">Model</Label>
-        <div className="font-medium text-lg text-blue-100">{robotDetails.model}</div>
+        <Label className="uppercase text-xs text-primary font-bold tracking-wide mb-1">Model</Label>
+        <div className="font-medium text-lg text-primary">{robotDetails.model}</div>
       </div>
       <div>
-        <Label className="uppercase text-xs text-blue-200 font-bold tracking-wide mb-1">Type</Label>
-        <Badge className="bg-blue-600 text-white px-2 py-1 font-semibold text-sm">{robotDetails.type}</Badge>
+        <Label className="uppercase text-xs text-primary font-bold tracking-wide mb-1">Type</Label>
+        <Badge className="bg-primary text-primary-foreground px-2 py-1 font-semibold text-sm">{robotDetails.type}</Badge>
       </div>
       <div>
-        <Label className="uppercase text-xs text-blue-200 font-bold tracking-wide mb-1">Investment Amount</Label>
+        <Label className="uppercase text-xs text-primary font-bold tracking-wide mb-1">Investment Amount</Label>
         <div className="flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-green-300" />
-          <span className="font-bold text-2xl text-green-400 tracking-wide">
+          <DollarSign className="w-5 h-5 text-success" />
+          <span className="font-bold text-2xl text-success tracking-wide">
             {robotDetails.currency === 'USD' ? '$' : robotDetails.currency === 'EUR' ? '€' : '₹'}
             {robotDetails.price.toLocaleString()}
           </span>
@@ -191,31 +191,31 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
 
 {/* Finance Partner (Professional) */}
 {financeProvider && (
-  <Card className="bg-gradient-to-br from-green-800 via-green-700 to-green-900 border-0 drop-shadow-xl rounded-2xl mt-8">
+  <Card className="bg-success border-0 shadow-lg rounded-2xl mt-8">
     <CardHeader className="flex items-center gap-2 pb-0">
-      <Building2 className="w-6 h-6 text-green-300" />
-      <CardTitle className="text-white text-xl font-bold tracking-wide">Finance Partner</CardTitle>
+      <Building2 className="w-6 h-6 text-success" />
+      <CardTitle className="text-primary-foreground text-xl font-bold tracking-wide">Finance Partner</CardTitle>
     </CardHeader>
-    <Separator className="bg-green-500 opacity-30 my-3" />
+    <Separator className="bg-success opacity-30 my-3" />
     <CardContent>
-      <div className="font-bold text-lg text-white mb-1">
+      <div className="font-bold text-lg text-primary-foreground mb-1">
         {financeProvider.profiles?.company_name || financeProvider.profiles?.full_name}
       </div>
-      <div className="text-md text-green-200">Trusted financing solutions for growing businesses</div>
+      <div className="text-md text-success">Trusted financing solutions for growing businesses</div>
     </CardContent>
   </Card>
 )}
 
 {/* Quick EMI Estimate (Professional) */}
 {robotDetails && (
-  <Card className="bg-gradient-to-br from-orange-800 via-orange-700 to-orange-900 border-0 drop-shadow-xl rounded-2xl mt-8">
+  <Card className="bg-warning border-0 shadow-lg rounded-2xl mt-8">
     <CardHeader className="flex items-center gap-2 pb-0">
       <Calculator className="w-6 h-6 text-orange-300" />
-      <CardTitle className="text-white text-xl font-bold tracking-wide">Quick EMI Estimate</CardTitle>
+      <CardTitle className="text-primary-foreground text-xl font-bold tracking-wide">Quick EMI Estimate</CardTitle>
     </CardHeader>
     <Separator className="bg-orange-500 opacity-30 my-3" />
     <CardContent>
-      <div className="text-white font-medium mb-2">Estimated EMI <span className="text-orange-200 font-semibold">(60 months @ 12%)</span></div>
+      <div className="text-primary-foreground font-medium mb-2">Estimated EMI <span className="text-orange-200 font-semibold">(60 months @ 12%)</span></div>
       <div className="font-extrabold text-3xl text-orange-200 mb-2">
         ₹{Math.round((robotDetails.price * 0.12 * Math.pow(1.12, 5)) / (Math.pow(1.12, 5) - 1) / 12).toLocaleString()} / month
       </div>
@@ -233,7 +233,7 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center text-xl">
-                    <User className="w-5 h-5 mr-2 text-blue-600" />
+                    <User className="w-5 h-5 mr-2 text-primary" />
                     Personal Information
                   </CardTitle>
                 </CardHeader>
@@ -293,7 +293,7 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center text-xl">
-                    <Target className="w-5 h-5 mr-2 text-green-600" />
+                    <Target className="w-5 h-5 mr-2 text-success" />
                     Loan Requirements
                   </CardTitle>
                 </CardHeader>
@@ -343,7 +343,7 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center text-xl">
-                    <DollarSign className="w-5 h-5 mr-2 text-purple-600" />
+                    <DollarSign className="w-5 h-5 mr-2 text-primary" />
                     Financial Profile
                   </CardTitle>
                 </CardHeader>
@@ -413,7 +413,7 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
                   type="submit" 
                   disabled={loading}
                   size="lg"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary"
                 >
                   {loading ? (
                     <>

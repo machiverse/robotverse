@@ -165,7 +165,7 @@ const FormattedContent = ({ content, className }: FormattedContentProps) => {
         const checkText = trimmedLine.slice(2);
         elements.push(
           <div key={`check-${index}`} className="flex items-start gap-2 mb-2">
-            <span className="text-green-500 mt-1">✅</span>
+            <span className="text-success mt-1">✅</span>
             <span className="flex-1">{checkText}</span>
           </div>
         );

@@ -114,11 +114,11 @@ const JobWork = () => {
 
         <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
           <div className="flex items-center">
-            <DollarSign className="w-4 h-4 mr-1 text-green-500" />
+            <DollarSign className="w-4 h-4 mr-1 text-success" />
             <span>{job.budget}</span>
           </div>
           <div className="flex items-center">
-            <Clock className="w-4 h-4 mr-1 text-blue-500" />
+            <Clock className="w-4 h-4 mr-1 text-primary" />
             <span>{job.deadline}</span>
           </div>
           <div className="text-muted-foreground">

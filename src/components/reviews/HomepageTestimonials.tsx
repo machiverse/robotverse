@@ -26,7 +26,7 @@ export function HomepageTestimonials() {
   const visible = testimonials.slice(currentPage * perPage, (currentPage + 1) * perPage);
 
   return (
-    <section className="py-16 px-4 bg-gradient-to-b from-background to-card/50">
+    <section className="py-10 md:py-14 px-4 bg-muted/20">
       <div className="container mx-auto max-w-6xl">
         {/* Header */}
         <div className="text-center mb-12">

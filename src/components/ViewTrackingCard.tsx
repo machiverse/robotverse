@@ -36,7 +36,7 @@ export const ViewTrackingCard = ({ category, title, description }: ViewTrackingC
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-purple-600" />
+            <Eye className="w-5 h-5 text-primary" />
             {title}
           </div>
           <Badge variant="secondary">{categoryViews}</Badge>
@@ -49,20 +49,20 @@ export const ViewTrackingCard = ({ category, title, description }: ViewTrackingC
         <div className="space-y-4">
           {/* View Statistics */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{categoryViews}</div>
-              <div className="text-xs text-purple-600">Category Views</div>
+            <div className="text-center p-3 bg-primary/10 rounded-lg">
+              <div className="text-2xl font-bold text-primary">{categoryViews}</div>
+              <div className="text-xs text-primary">Category Views</div>
             </div>
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{totalViews}</div>
-              <div className="text-xs text-blue-600">Total Views</div>
+            <div className="text-center p-3 bg-primary/10 rounded-lg">
+              <div className="text-2xl font-bold text-primary">{totalViews}</div>
+              <div className="text-xs text-primary">Total Views</div>
             </div>
           </div>
 
           {/* Recent View Activity */}
           {loading ? (
             <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary/30 mx-auto"></div>
               <p className="text-xs text-muted-foreground mt-2">Loading views...</p>
             </div>
           ) : recentViews.length > 0 ? (
@@ -92,9 +92,9 @@ export const ViewTrackingCard = ({ category, title, description }: ViewTrackingC
 
           {/* Growth Indicator */}
           {categoryViews > 0 && (
-            <div className="flex items-center justify-center gap-2 p-2 bg-green-50 rounded-lg">
-              <TrendingUp className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-green-600 font-medium">
+            <div className="flex items-center justify-center gap-2 p-2 bg-success/10 rounded-lg">
+              <TrendingUp className="w-4 h-4 text-success" />
+              <span className="text-sm text-success font-medium">
                 {Math.round((categoryViews / Math.max(totalViews, 1)) * 100)}% of total views
               </span>
             </div>

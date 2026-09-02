@@ -488,14 +488,14 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
     if (!type) return null;
     
     const typeLabels: Record<string, { label: string; className: string }> = {
-      'robot': { label: 'Robot', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
-      'robots': { label: 'Robot', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
+      'robot': { label: 'Robot', className: 'bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary' },
+      'robots': { label: 'Robot', className: 'bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary' },
       'spare_part': { label: 'Spare Part', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
       'spare_parts': { label: 'Spare Part', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
-      'service': { label: 'Service', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-      'services': { label: 'Service', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-      'logistics': { label: 'Logistics', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
-      'logistics_services': { label: 'Logistics', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
+      'service': { label: 'Service', className: 'bg-success/10 text-success dark:bg-success/30 dark:text-success' },
+      'services': { label: 'Service', className: 'bg-success/10 text-success dark:bg-success/30 dark:text-success' },
+      'logistics': { label: 'Logistics', className: 'bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary' },
+      'logistics_services': { label: 'Logistics', className: 'bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary' },
       'finance': { label: 'Finance', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
       'loan_products': { label: 'Finance', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
     };
@@ -527,7 +527,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
 
   return (
     <Card className="border-0 shadow-lg bg-card overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+      <CardHeader className="bg-primary/5 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">

@@ -32,6 +32,8 @@ import {
 } from "lucide-react";
 
 import ViewCountDisplay from "@/components/ViewCountDisplay";
+import SparePartQuoteModal from "@/components/forms/SparePartQuoteModal";
+import { RequestQuoteButton, LeadTimeInfoBox, isPriceAvailable, isNewCondition } from "@/components/pricing/PriceElements";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
 import { ChatButton } from "@/components/chat/ChatButton";
@@ -91,6 +93,15 @@ const SparePartDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+
+  const handleRequestQuoteClick = () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    setShowQuoteModal(true);
+  };
   const { toast } = useToast();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
@@ -410,7 +421,7 @@ const SparePartDetails = () => {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <CardTitle className="text-2xl lg:text-3xl mb-2 font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                      <CardTitle className="text-2xl lg:text-3xl mb-2 font-bold text-primary">
                         {sparePart.name}
                       </CardTitle>
                       <div className="flex flex-wrap gap-2 mb-4">
@@ -427,7 +438,7 @@ const SparePartDetails = () => {
                           {sparePart.main_category}
                         </Badge>
                         {sparePart.is_international && (
-                          <Badge variant="default" className="text-lg px-4 py-2 bg-blue-500 hover:bg-blue-600">
+                          <Badge variant="default" className="text-lg px-4 py-2 bg-primary hover:bg-primary">
                             International
                           </Badge>
                         )}
@@ -437,14 +448,32 @@ const SparePartDetails = () => {
                   </div>
 
                   {/* Price - Same color as product name */}
-                  <div className="flex items-baseline gap-2 mt-4">
-                    <span className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent tracking-tight">
-                      {sparePart.currency} {sparePart.price?.toLocaleString()}
-                    </span>
-                    {sparePart.quantity > 1 && (
-                      <span className="text-sm text-muted-foreground">{sparePart.quantity} available</span>
-                    )}
-                  </div>
+                  {isPriceAvailable(sparePart.price) ? (
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl lg:text-5xl font-black text-primary tracking-tight">
+                          {sparePart.currency} {sparePart.price?.toLocaleString()}
+                        </span>
+                        {sparePart.quantity > 1 && (
+                          <span className="text-sm text-muted-foreground">{sparePart.quantity} available</span>
+                        )}
+                      </div>
+                      <LeadTimeInfoBox condition={sparePart.condition} />
+                      {isNewCondition(sparePart.condition) && (
+                        <RequestQuoteButton
+                          variant="outline"
+                          size="default"
+                          label="Request Custom Quote"
+                          onClick={handleRequestQuoteClick}
+                          className="sm:w-auto"
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-4 max-w-sm">
+                      <RequestQuoteButton onClick={handleRequestQuoteClick} />
+                    </div>
+                  )}
 
                   {/* Part Number */}
                   {sparePart.part_number && (
@@ -499,9 +528,9 @@ const SparePartDetails = () => {
                         </div>
                       )}
                       {sparePart.profiles?.completed_sales > 0 && (
-                        <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
-                          <Package className="h-4 w-4 text-emerald-400" />
-                          <span className="font-bold text-sm text-emerald-400">{sparePart.profiles.completed_sales} sales</span>
+                        <div className="flex items-center gap-1.5 bg-success/10 border border-success/30 px-3 py-1.5 rounded-full">
+                          <Package className="h-4 w-4 text-success" />
+                          <span className="font-bold text-sm text-success">{sparePart.profiles.completed_sales} sales</span>
                         </div>
                       )}
                     </div>
@@ -628,15 +657,15 @@ const SparePartDetails = () => {
 
                   {/* International Shipping section - commented out
                   {sparePart.is_international && (
-                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-8 rounded-2xl border border-blue-200 dark:border-blue-800 shadow-lg">
+                    <div className="bg-primary/5 p-8 rounded-2xl border border-primary/30 dark:border-primary/30 shadow-lg">
                       <h4 className="flex items-center gap-2 font-bold text-xl mb-6">
-                        <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <Truck className="w-5 h-5 text-primary dark:text-primary" />
                         International Shipping Available
                       </h4>
                       <div className="grid md:grid-cols-2 gap-6">
                         {sparePart.shipping_amount > 0 && (
                           <div className="flex items-center gap-3">
-                            <span className="w-2.5 h-2.5 bg-blue-600 rounded-full" />
+                            <span className="w-2.5 h-2.5 bg-primary rounded-full" />
                             <span className="font-semibold">Shipping Cost</span>
                             <span className="text-muted-foreground">
                               {sparePart.currency} {sparePart.shipping_amount.toLocaleString()}
@@ -645,7 +674,7 @@ const SparePartDetails = () => {
                         )}
                         {sparePart.duty_amount > 0 && (
                           <div className="flex items-center gap-3">
-                            <span className="w-2.5 h-2.5 bg-blue-600 rounded-full" />
+                            <span className="w-2.5 h-2.5 bg-primary rounded-full" />
                             <span className="font-semibold">Import Duty</span>
                             <span className="text-muted-foreground">
                               {sparePart.currency} {sparePart.duty_amount.toLocaleString()}
@@ -704,7 +733,9 @@ const SparePartDetails = () => {
                     <div className="flex justify-between border-b border-border/50 py-4 px-6 font-bold">
                       <span className="text-lg">Price</span>
                       <span className="text-muted-foreground text-lg">
-                        {sparePart.currency} {sparePart.price?.toLocaleString()}
+                        {isPriceAvailable(sparePart.price)
+                          ? `${sparePart.currency} ${sparePart.price?.toLocaleString()}`
+                          : "On request"}
                       </span>
                     </div>
                   </div>
@@ -753,7 +784,7 @@ const SparePartDetails = () => {
                             {compatibleRobots.map((robot) => (
                               <Card
                                 key={robot.id}
-                                className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-2 border-border/50 group"
+                                className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-2 border-border/50 group"
                                 onClick={() => navigate(`/robots/${robot.id}`)}
                               >
                                 <CardContent className="p-6">
@@ -899,6 +930,25 @@ const SparePartDetails = () => {
           />
         </div>
       </div>
+
+      <SparePartQuoteModal
+        isOpen={showQuoteModal}
+        onClose={() => setShowQuoteModal(false)}
+        part={{
+          id: sparePart.id,
+          name: sparePart.name,
+          partNumber: sparePart.part_number || "",
+          price: sparePart.price || 0,
+          sellerId: sparePart.seller_id,
+          seller: {
+            full_name: (sparePart as any).profiles?.full_name,
+            company_name: (sparePart as any).profiles?.company_name,
+            email: (sparePart as any).profiles?.email,
+          },
+        }}
+        userEmail={user?.email || ""}
+        userName={user?.user_metadata?.full_name || ""}
+      />
     </>
   );
 };

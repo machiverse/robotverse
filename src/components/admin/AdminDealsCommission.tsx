@@ -94,10 +94,10 @@ const AdminDealsCommission = () => {
   const pendingVerification = deals.filter(d => d.deal_status === "deal_won" && !d.admin_verified).length;
 
   const statusColors: Record<string, string> = {
-    lead_generated: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    lead_generated: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
     quote_sent: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-    negotiation: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-    deal_won: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    negotiation: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
+    deal_won: "bg-success/10 text-success dark:bg-success/30 dark:text-success",
     deal_lost: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   };
 
@@ -115,9 +115,9 @@ const AdminDealsCommission = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { title: "Total Platform Sales", value: `₹${totalPlatformSales.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-          { title: "Commission Earned", value: `₹${totalCommissionEarned.toLocaleString("en-IN")}`, icon: TrendingUp, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/30" },
-          { title: "Active Deals", value: activeDeals, icon: Handshake, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
+          { title: "Total Platform Sales", value: `₹${totalPlatformSales.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-success", bg: "bg-success/10 dark:bg-success/30" },
+          { title: "Commission Earned", value: `₹${totalCommissionEarned.toLocaleString("en-IN")}`, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10 dark:bg-primary/30" },
+          { title: "Active Deals", value: activeDeals, icon: Handshake, color: "text-primary", bg: "bg-primary/10 dark:bg-primary/30" },
           { title: "Pending Verification", value: pendingVerification, icon: ShieldCheck, color: pendingVerification > 0 ? "text-orange-600" : "text-muted-foreground", bg: pendingVerification > 0 ? "bg-orange-50 dark:bg-orange-950/30" : "bg-muted/30" },
         ].map((stat) => (
           <Card key={stat.title} className="border-muted/60 shadow-sm">
@@ -195,7 +195,7 @@ const AdminDealsCommission = () => {
                     </TableCell>
                     <TableCell>
                       {deal.admin_verified ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-success" />
                       ) : (
                         <Clock className="h-4 w-4 text-muted-foreground" />
                       )}

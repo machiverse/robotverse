@@ -221,9 +221,9 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
   const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-green-500"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>;
+        return <Badge className="bg-success"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>;
       case 'in_progress':
-        return <Badge className="bg-blue-500"><Clock className="w-3 h-3 mr-1" />In Progress</Badge>;
+        return <Badge className="bg-primary"><Clock className="w-3 h-3 mr-1" />In Progress</Badge>;
       case 'rejected':
         return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
       case 'pending':
@@ -237,11 +237,11 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
       case 'spare_part':
         return <Badge variant="secondary"><Package className="w-3 h-3 mr-1" />Spare Part</Badge>;
       case 'service':
-        return <Badge className="bg-purple-500">Service</Badge>;
+        return <Badge className="bg-primary">Service</Badge>;
       case 'logistics':
-        return <Badge className="bg-green-500">Logistics</Badge>;
+        return <Badge className="bg-success">Logistics</Badge>;
       case 'robot':
-        return <Badge className="bg-blue-500">Robot</Badge>;
+        return <Badge className="bg-primary">Robot</Badge>;
       default:
         return <Badge variant="outline">{type}</Badge>;
     }
@@ -460,11 +460,11 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">In Progress</p>
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-2xl font-bold text-primary">
                   {quoteRequests.filter(r => r.status === 'in_progress').length}
                 </p>
               </div>
-              <Clock className="w-8 h-8 text-blue-500/50" />
+              <Clock className="w-8 h-8 text-primary/50" />
             </div>
           </CardContent>
         </Card>
@@ -473,11 +473,11 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-success">
                   {quoteRequests.filter(r => r.status === 'completed').length}
                 </p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-500/50" />
+              <CheckCircle className="w-8 h-8 text-success/50" />
             </div>
           </CardContent>
         </Card>
@@ -614,7 +614,7 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
                   </h3>
                   
                   {isUnlocked ? (
-                    <div className="grid grid-cols-2 gap-4 bg-green-50/50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="grid grid-cols-2 gap-4 bg-success/10 dark:bg-success/20 p-4 rounded-lg border border-success/30 dark:border-success/30">
                       <div>
                         <p className="text-sm text-muted-foreground">Name</p>
                         <p className="font-medium">{selectedRequest.user_name}</p>

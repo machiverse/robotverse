@@ -50,7 +50,7 @@ const serviceCategories = [
     title: 'Robot Installation',
     description: 'Complete robot setup and deployment services',
     icon: Settings,
-    gradient: 'from-blue-500 to-cyan-600',
+    gradient: 'from-primary to-primary',
     difficulty: 'Advanced',
     avgPrice: '₹50,000 - ₹2,00,000',
     demand: 'High',
@@ -61,7 +61,7 @@ const serviceCategories = [
     title: 'Maintenance & Repair',
     description: 'Ongoing maintenance and repair services',
     icon: Wrench,
-    gradient: 'from-green-500 to-emerald-600',
+    gradient: 'from-success to-success',
     difficulty: 'Intermediate',
     avgPrice: '₹10,000 - ₹50,000',
     demand: 'Very High',
@@ -72,7 +72,7 @@ const serviceCategories = [
     title: 'Technical Support',
     description: '24/7 technical assistance and troubleshooting',
     icon: Headphones,
-    gradient: 'from-purple-500 to-violet-600',
+    gradient: 'from-primary to-primary',
     difficulty: 'Intermediate',
     avgPrice: '₹2,000 - ₹10,000/hour',
     demand: 'High',
@@ -94,7 +94,7 @@ const serviceCategories = [
     title: 'Consulting Services',
     description: 'Strategic consulting and optimization services',
     icon: Users,
-    gradient: 'from-indigo-500 to-blue-600',
+    gradient: 'from-primary to-primary',
     difficulty: 'Expert',
     avgPrice: '₹25,000 - ₹1,00,000',
     demand: 'Medium',
@@ -116,7 +116,7 @@ const serviceCategories = [
     title: 'Preventive Maintenance',
     description: 'Proactive maintenance to prevent breakdowns',
     icon: Shield,
-    gradient: 'from-teal-500 to-green-600',
+    gradient: 'from-success to-success',
     difficulty: 'Intermediate',
     avgPrice: '₹8,000 - ₹30,000',
     demand: 'High',
@@ -127,7 +127,7 @@ const serviceCategories = [
     title: 'Software & Firmware',
     description: 'Software maintenance and update services',
     icon: Download,
-    gradient: 'from-cyan-500 to-blue-600',
+    gradient: 'from-primary to-primary',
     difficulty: 'Advanced',
     avgPrice: '₹5,000 - ₹20,000',
     demand: 'Medium',
@@ -160,7 +160,7 @@ const serviceCategories = [
     title: 'Programming & Automation',
     description: 'Custom programming and automation solutions',
     icon: Code,
-    gradient: 'from-violet-500 to-purple-600',
+    gradient: 'from-primary to-primary',
     difficulty: 'Expert',
     avgPrice: '₹20,000 - ₹1,50,000',
     demand: 'Medium',
@@ -171,7 +171,7 @@ const serviceCategories = [
     title: 'Remote Monitoring',
     description: 'Real-time monitoring and diagnostics',
     icon: Globe,
-    gradient: 'from-emerald-500 to-teal-600',
+    gradient: 'from-success to-success',
     difficulty: 'Advanced',
     avgPrice: '₹5,000 - ₹25,000/month',
     demand: 'Growing',
@@ -182,7 +182,7 @@ const serviceCategories = [
     title: 'RoboVerse Platform',
     description: 'Comprehensive platform services and marketplace management',
     icon: Award,
-    gradient: 'from-indigo-500 to-purple-600',
+    gradient: 'from-primary to-primary',
     difficulty: 'Expert',
     avgPrice: '₹15,000 - ₹75,000',
     demand: 'High',
@@ -191,7 +191,7 @@ const serviceCategories = [
 ];
 
 const difficultyColors = {
-  'Beginner': 'text-green-600 bg-green-50',
+  'Beginner': 'text-success bg-success/10',
   'Intermediate': 'text-yellow-600 bg-yellow-50', 
   'Advanced': 'text-orange-600 bg-orange-50',
   'Expert': 'text-red-600 bg-red-50'
@@ -201,7 +201,7 @@ const demandColors = {
   'Very High': 'text-red-600 bg-red-50',
   'High': 'text-orange-600 bg-orange-50',
   'Medium': 'text-yellow-600 bg-yellow-50',
-  'Growing': 'text-green-600 bg-green-50'
+  'Growing': 'text-success bg-success/10'
 };
 
 const ServiceCategorySelector = ({ 
@@ -298,7 +298,7 @@ const ServiceCategorySelector = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <DialogTitle className="text-2xl text-primary">
             Select Your Service Categories
           </DialogTitle>
           <CardDescription className="text-base">
@@ -309,54 +309,54 @@ const ServiceCategorySelector = ({
         <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {/* Progress & Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+            <Card className="bg-primary/5 border-primary/30">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-blue-700">Selected Categories</p>
-                    <p className="text-2xl font-bold text-blue-800">{selectedCount}</p>
+                    <p className="text-sm font-medium text-primary">Selected Categories</p>
+                    <p className="text-2xl font-bold text-primary">{selectedCount}</p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-blue-600" />
+                  <CheckCircle className="w-8 h-8 text-primary" />
                 </div>
                 <Progress value={completionScore} className="mt-2 h-2" />
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-primary mt-1">
                   {completionScore >= 100 ? 'Excellent coverage!' : 'Select 3+ for optimal visibility'}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+            <Card className="bg-success/5 border-success/30">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-green-700">Revenue Potential</p>
-                    <p className="text-2xl font-bold text-green-800">₹{totalRevenuePotential.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-success">Revenue Potential</p>
+                    <p className="text-2xl font-bold text-success">₹{totalRevenuePotential.toLocaleString()}</p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-green-600" />
+                  <TrendingUp className="w-8 h-8 text-success" />
                 </div>
-                <p className="text-xs text-green-600 mt-1">Average monthly potential</p>
+                <p className="text-xs text-success mt-1">Average monthly potential</p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+            <Card className="bg-primary/5 border-primary/30">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-purple-700">Market Reach</p>
-                    <p className="text-2xl font-bold text-purple-800">{selectedCount * 1200}+</p>
+                    <p className="text-sm font-medium text-primary">Market Reach</p>
+                    <p className="text-2xl font-bold text-primary">{selectedCount * 1200}+</p>
                   </div>
-                  <Star className="w-8 h-8 text-purple-600" />
+                  <Star className="w-8 h-8 text-primary" />
                 </div>
-                <p className="text-xs text-purple-600 mt-1">Potential customers</p>
+                <p className="text-xs text-primary mt-1">Potential customers</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Recommendations Alert */}
           {recommendedCategories.length > 0 && (
-            <Alert className="border-blue-200 bg-blue-50">
+            <Alert className="border-primary/30 bg-primary/10">
               <Brain className="w-4 h-4" />
-              <AlertDescription className="text-blue-700">
+              <AlertDescription className="text-primary">
                 <div className="flex items-center justify-between">
                   <div>
                     <strong>AI Recommendations:</strong> Based on your profile, we recommend {recommendedCategories.length} categories for maximum success.
@@ -447,7 +447,7 @@ const ServiceCategorySelector = ({
                   {/* Recommended Badge */}
                   {isRecommended && (
                     <div className="absolute -top-2 -right-2 z-10">
-                      <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs">
+                      <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-primary-foreground text-xs">
                         <Zap className="w-3 h-3 mr-1" />
                         Recommended
                       </Badge>
@@ -457,7 +457,7 @@ const ServiceCategorySelector = ({
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${category.gradient} flex items-center justify-center shadow-lg`}>
-                        <Icon className="w-6 h-6 text-white" />
+                        <Icon className="w-6 h-6 text-primary-foreground" />
                       </div>
                       <Checkbox 
                         checked={isSelected}
@@ -482,7 +482,7 @@ const ServiceCategorySelector = ({
                       </Badge>
                     </div>
 
-                    <div className="text-xs font-medium text-green-600">
+                    <div className="text-xs font-medium text-success">
                       {category.avgPrice}
                     </div>
 
@@ -575,7 +575,7 @@ const ServiceCategorySelector = ({
             <Button 
               onClick={handleConfirm}
               disabled={tempSelectedCategories.length === 0}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
               Continue with {selectedCount} categor{selectedCount !== 1 ? 'ies' : 'y'}

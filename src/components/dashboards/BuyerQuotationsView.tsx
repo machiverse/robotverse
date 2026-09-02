@@ -56,9 +56,9 @@ interface ReceivedQuotation {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   draft: { label: "Draft", color: "bg-muted text-muted-foreground", icon: <FileText className="h-3 w-3" /> },
-  sent: { label: "Received", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", icon: <Clock className="h-3 w-3" /> },
-  viewed: { label: "Viewed", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400", icon: <Eye className="h-3 w-3" /> },
-  accepted: { label: "Accepted", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", icon: <CheckCircle className="h-3 w-3" /> },
+  sent: { label: "Received", color: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary", icon: <Clock className="h-3 w-3" /> },
+  viewed: { label: "Viewed", color: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary", icon: <Eye className="h-3 w-3" /> },
+  accepted: { label: "Accepted", color: "bg-success/10 text-success dark:bg-success/30 dark:text-success", icon: <CheckCircle className="h-3 w-3" /> },
   rejected: { label: "Rejected", color: "bg-destructive/10 text-destructive", icon: <XCircle className="h-3 w-3" /> },
   negotiation: { label: "Negotiation", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", icon: <MessageSquareMore className="h-3 w-3" /> },
   expired: { label: "Expired", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400", icon: <Calendar className="h-3 w-3" /> },
@@ -584,7 +584,7 @@ const BuyerQuotationsView = () => {
                       <span>₹{selectedQuotation.subtotal.toLocaleString()}</span>
                     </div>
                     {selectedQuotation.discount_amount > 0 && (
-                      <div className="flex justify-between text-sm text-emerald-600">
+                      <div className="flex justify-between text-sm text-success">
                         <span>Discount</span>
                         <span>-₹{selectedQuotation.discount_amount.toLocaleString()}</span>
                       </div>
@@ -663,7 +663,7 @@ const BuyerQuotationsView = () => {
                               </p>
                             )}
                             {entry.new_amount && (
-                              <p className="text-sm font-semibold text-emerald-600">
+                              <p className="text-sm font-semibold text-success">
                                 Updated to: ₹{Number(entry.new_amount).toLocaleString('en-IN')}
                               </p>
                             )}
@@ -752,7 +752,7 @@ const BuyerQuotationsView = () => {
             <Button 
               onClick={handleNegotiate}
               disabled={!negotiateMessage.trim() || negotiating}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className="bg-amber-600 hover:bg-amber-700 text-primary-foreground"
             >
               {negotiating ? "Sending..." : "Send Negotiation Request"}
             </Button>
@@ -792,7 +792,7 @@ const BuyerQuotationsView = () => {
                   </p>
                 )}
                 {entry.new_amount && (
-                  <p className="text-sm font-semibold text-emerald-600">
+                  <p className="text-sm font-semibold text-success">
                     Updated: ₹{Number(entry.new_amount).toLocaleString('en-IN')}
                   </p>
                 )}

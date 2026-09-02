@@ -156,7 +156,7 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'new': case 'pending': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-      case 'quoted': case 'responded': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      case 'quoted': case 'responded': return 'bg-success/20 text-success border-success/30';
       case 'closed': return 'bg-muted text-muted-foreground';
       default: return 'bg-primary/20 text-primary border-primary/30';
     }
@@ -205,12 +205,12 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: 'Robots', value: stats.availableRobots, icon: Bot, gradient: 'from-blue-500/20 to-blue-600/5', iconColor: 'text-blue-400', path: '/robots' },
-          { label: 'Spare Parts', value: stats.availableParts, icon: Package, gradient: 'from-emerald-500/20 to-emerald-600/5', iconColor: 'text-emerald-400', path: '/parts' },
-          { label: 'Services', value: stats.availableServices, icon: Wrench, gradient: 'from-violet-500/20 to-violet-600/5', iconColor: 'text-violet-400', path: '/services' },
+          { label: 'Robots', value: stats.availableRobots, icon: Bot, gradient: 'from-primary/20 to-primary/5', iconColor: 'text-primary', path: '/robots' },
+          { label: 'Spare Parts', value: stats.availableParts, icon: Package, gradient: 'from-success/20 to-success/5', iconColor: 'text-success', path: '/parts' },
+          { label: 'Services', value: stats.availableServices, icon: Wrench, gradient: 'from-primary/20 to-primary/5', iconColor: 'text-primary', path: '/services' },
           { label: 'Quote Requests', value: stats.totalQuoteRequests, icon: Send, gradient: 'from-amber-500/20 to-amber-600/5', iconColor: 'text-amber-400', path: '/dashboard/my-requests' },
           { label: 'Watchlist', value: stats.totalWatchlistItems, icon: Heart, gradient: 'from-rose-500/20 to-rose-600/5', iconColor: 'text-rose-400', path: '/dashboard/watchlist' },
-          { label: 'Profile', value: `${stats.profileCompletion}%`, icon: User, gradient: 'from-cyan-500/20 to-cyan-600/5', iconColor: 'text-cyan-400', path: '/profile-settings' },
+          { label: 'Profile', value: `${stats.profileCompletion}%`, icon: User, gradient: 'from-primary/20 to-primary/5', iconColor: 'text-primary', path: '/profile-settings' },
         ].map((metric) => {
           const Icon = metric.icon;
           return (
@@ -262,9 +262,9 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
                     <p className="text-2xl font-bold text-amber-400">{stats.pendingQuotes}</p>
                     <p className="text-xs text-amber-400/80">Pending</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
-                    <p className="text-2xl font-bold text-emerald-400">{stats.respondedQuotes}</p>
-                    <p className="text-xs text-emerald-400/80">Responded</p>
+                  <div className="p-3 rounded-lg bg-success/10 border border-success/30 text-center">
+                    <p className="text-2xl font-bold text-success">{stats.respondedQuotes}</p>
+                    <p className="text-xs text-success/80">Responded</p>
                   </div>
                   <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-center">
                     <p className="text-2xl font-bold text-primary">{stats.totalQuoteRequests}</p>
@@ -319,7 +319,7 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border">
                   <div className="flex items-center gap-2">
                     {stats.accountVerified 
-                      ? <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      ? <CheckCircle className="w-4 h-4 text-success" />
                       : <AlertCircle className="w-4 h-4 text-amber-400" />}
                     <span className="text-sm">Account Status</span>
                   </div>
@@ -371,12 +371,12 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
-                  { title: 'Robots', desc: `${stats.availableRobots} listed`, icon: Bot, path: '/robots', iconColor: 'text-blue-400', bg: 'bg-blue-500/10' },
-                  { title: 'Spare Parts', desc: `${stats.availableParts} in stock`, icon: Package, path: '/parts', iconColor: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-                  { title: 'Services', desc: `${stats.availableServices} providers`, icon: Wrench, path: '/services', iconColor: 'text-violet-400', bg: 'bg-violet-500/10' },
+                  { title: 'Robots', desc: `${stats.availableRobots} listed`, icon: Bot, path: '/robots', iconColor: 'text-primary', bg: 'bg-primary/10' },
+                  { title: 'Spare Parts', desc: `${stats.availableParts} in stock`, icon: Package, path: '/parts', iconColor: 'text-success', bg: 'bg-success/10' },
+                  { title: 'Services', desc: `${stats.availableServices} providers`, icon: Wrench, path: '/services', iconColor: 'text-primary', bg: 'bg-primary/10' },
                   { title: 'Financing', desc: 'Loan options', icon: CreditCard, path: '/finance', iconColor: 'text-amber-400', bg: 'bg-amber-500/10' },
                   { title: 'Logistics', desc: 'Shipping', icon: Truck, path: '/logistics', iconColor: 'text-rose-400', bg: 'bg-rose-500/10' },
-                  { title: 'RoboBook', desc: 'Knowledge base', icon: Globe, path: '/robobook', iconColor: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+                  { title: 'RoboBook', desc: 'Knowledge base', icon: Globe, path: '/robobook', iconColor: 'text-primary', bg: 'bg-primary/10' },
                 ].map((item) => {
                   const Icon = item.icon;
                   return (
@@ -435,7 +435,7 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2"><Bot className="w-5 h-5 text-blue-400" />Available Robots ({recentRobots.length})</CardTitle>
+                  <CardTitle className="flex items-center gap-2"><Bot className="w-5 h-5 text-primary" />Available Robots ({recentRobots.length})</CardTitle>
                   <CardDescription>Industrial and service robots from verified sellers</CardDescription>
                 </div>
                 <Button onClick={() => navigate('/robots')}>View All <ArrowRight className="w-3 h-3 ml-1" /></Button>
@@ -483,7 +483,7 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-emerald-400" />Available Parts ({recentParts.length})</CardTitle>
+                  <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-success" />Available Parts ({recentParts.length})</CardTitle>
                   <CardDescription>Spare parts and components in stock</CardDescription>
                 </div>
                 <Button onClick={() => navigate('/parts')}>View All <ArrowRight className="w-3 h-3 ml-1" /></Button>
@@ -498,8 +498,8 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
                     <Card key={part.id} className="group hover:border-primary/40 transition-all cursor-pointer" onClick={() => navigate(`/parts/${part.id}`)}>
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                            <Package className="w-6 h-6 text-emerald-400" />
+                          <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                            <Package className="w-6 h-6 text-success" />
                           </div>
                           <div className="flex-1 min-w-0 space-y-1">
                             <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{part.name}</h3>
@@ -525,7 +525,7 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5 text-violet-400" />Available Services ({recentServices.length})</CardTitle>
+                  <CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5 text-primary" />Available Services ({recentServices.length})</CardTitle>
                   <CardDescription>Professional services from certified providers</CardDescription>
                 </div>
                 <Button onClick={() => navigate('/services')}>View All <ArrowRight className="w-3 h-3 ml-1" /></Button>
@@ -540,8 +540,8 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
                     <Card key={service.id} className="group hover:border-primary/40 transition-all cursor-pointer" onClick={() => navigate(`/services/${service.id}`)}>
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                            <Wrench className="w-6 h-6 text-violet-400" />
+                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Wrench className="w-6 h-6 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0 space-y-1">
                             <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{service.name}</h3>

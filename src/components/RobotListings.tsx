@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { OemRail, OemDot } from '@/components/oem/OemAccents';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { formatPrice as formatCurrencyPrice, Currency, convertToINR } from "@/utils/currency";
+import { RequestQuotePill, CardLeadTimeNote, isPriceAvailable } from "@/components/pricing/PriceElements";
 import {
   Dialog,
   DialogContent,
@@ -384,20 +386,19 @@ const RobotListings = () => {
 
   // Format price helper
   const formatPrice = (price: number, currency: Currency) => {
-    if (!price) return "Price on request";
     return formatCurrencyPrice(price, currency);
   };
 
   // Color for condition badge
   const getConditionColor = (condition: string) => {
     const colors = {
-      new: "bg-green-100 text-green-800",
-      like_new: "bg-blue-100 text-blue-800",
+      new: "bg-success/10 text-success",
+      like_new: "bg-primary/10 text-primary",
       good: "bg-yellow-100 text-yellow-800",
       fair: "bg-orange-100 text-orange-800",
-      refurbished: "bg-purple-100 text-purple-800",
+      refurbished: "bg-primary/10 text-primary",
     };
-    return colors[condition as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return colors[condition as keyof typeof colors] || "bg-muted text-foreground";
   };
 
   // Unique filter options
@@ -548,41 +549,41 @@ const RobotListings = () => {
         <div className="container mx-auto px-4">
           {/* Title and Stats */}
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h2 className="text-4xl font-bold mb-4 text-primary">
               Robot Marketplace
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Discover cutting-edge industrial robots from verified sellers worldwide
             </p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto mt-8">
-              <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+              <Card className="bg-primary/5 border-primary/30">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-800">{marketStats.totalListings}</div>
-                  <div className="text-sm text-blue-600">Active Listings</div>
+                  <div className="text-2xl font-bold text-primary">{marketStats.totalListings}</div>
+                  <div className="text-sm text-primary">Active Listings</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+              <Card className="bg-success/5 border-success/30">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-green-800">₹{(marketStats.minPrice / 100000).toFixed(1)}L</div>
-                  <div className="text-sm text-green-600">Min Price</div>
+                  <div className="text-2xl font-bold text-success">₹{(marketStats.minPrice / 100000).toFixed(1)}L</div>
+                  <div className="text-sm text-success">Min Price</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
+              <Card className="bg-warning/5 border-yellow-200">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-yellow-800">₹{(marketStats.avgPrice / 100000).toFixed(1)}L</div>
                   <div className="text-sm text-yellow-600">Avg Price</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-red-50 to-rose-50 border-red-200">
+              <Card className="bg-destructive/5 border-red-200">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-red-800">₹{(marketStats.maxPrice / 100000).toFixed(1)}L</div>
                   <div className="text-sm text-red-600">Max Price</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+              <Card className="bg-primary/5 border-primary/30">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-purple-800">{marketStats.topBrands.length}</div>
-                  <div className="text-sm text-purple-600">Top Brands</div>
+                  <div className="text-2xl font-bold text-primary">{marketStats.topBrands.length}</div>
+                  <div className="text-sm text-primary">Top Brands</div>
                 </CardContent>
               </Card>
             </div>
@@ -814,15 +815,16 @@ const RobotListings = () => {
             {filteredRobots.slice(0, displayCount).map((robot) => (
               <Card
                 key={robot.id}
-                className={`group hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer ${
+                className={`group relative transition-colors duration-150 overflow-hidden cursor-pointer border border-border hover:border-muted-foreground/40 shadow-none ${
                   viewMode === "list" ? "flex" : ""
                 }`}
                 onClick={() => navigate(`/robots/${robot.id}`)}
               >
+                <OemRail brand={robot.brand} />
                 {/* Robot Image */}
                  <div
-                  className={`relative overflow-hidden rounded-lg ${
-                    viewMode === "list" ? "w-48" : ""
+                  className={`relative overflow-hidden bg-muted border-b border-border dark:shadow-[inset_0_0_0_1px_hsl(var(--border))] ${
+                    viewMode === "list" ? "w-48 border-b-0 border-r" : ""
                   }`}
                  >
                    {robot.images && robot.images.length > 0 ? (
@@ -836,12 +838,13 @@ const RobotListings = () => {
                        className="transition-transform duration-300 w-full h-full"
                      />
                    ) : (
-                     <div className={`w-full flex items-center justify-center bg-muted rounded-lg ${
+                     <div className={`w-full flex items-center justify-center bg-background ${
                        viewMode === "list" ? "aspect-square" : "aspect-[4/3]"
                      }`}>
                        <Bot className="w-16 h-16 text-muted-foreground" />
                      </div>
                    )}
+
                   {/* Condition Badge */}
                   <div className="absolute top-2 left-2">
                     <Badge className={getConditionColor(robot.condition || "used")}>
@@ -853,16 +856,16 @@ const RobotListings = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                      className="h-8 w-8 p-0 bg-card/80 hover:bg-card"
                       onClick={(e) => handleShare(robot, e)}
                     >
-                      <Share2 className="w-4 h-4 text-gray-600" />
+                      <Share2 className="w-4 h-4 text-muted-foreground" />
                     </Button>
                   </div>
                   {/* Training Badge */}
                   {robot.training_included && (
                     <div className="absolute bottom-2 left-2">
-                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                      <Badge variant="secondary" className="text-xs bg-success/10 text-success">
                         Training
                       </Badge>
                     </div>
@@ -877,7 +880,9 @@ const RobotListings = () => {
                         {robot.name}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <OemDot brand={robot.brand} />
                         <span className="font-medium">{robot.brand || "Unknown Brand"}</span>
+
                         {robot.model && (
                           <>
                             <span>•</span>
@@ -907,11 +912,27 @@ const RobotListings = () => {
                       </div>
                       {robot.state && <div className="text-xs text-muted-foreground">State: {robot.state}</div>}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center text-lg font-bold text-primary">
-                          {formatPrice(robot.price, robot.currency)}
-                        </div>
+                        {isPriceAvailable(robot.price) ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center text-lg font-bold text-primary tabular">
+                              {formatPrice(robot.price, robot.currency)}
+                            </div>
+                            <CardLeadTimeNote condition={robot.condition} leadTime={(robot as any).lead_time} />
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <RequestQuotePill
+                              label="Ask for Price"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/robots/${robot.id}`);
+                              }}
+                            />
+                            <CardLeadTimeNote condition={robot.condition} leadTime={(robot as any).lead_time} />
+                          </div>
+                        )}
                         {robot.payload_capacity && (
-                          <span className="text-xs text-muted-foreground">{robot.payload_capacity}kg payload</span>
+                          <span className="text-xs text-muted-foreground"><span className="tabular">{robot.payload_capacity}</span>kg payload</span>
                         )}
                       </div>
                     </div>
@@ -943,7 +964,7 @@ const RobotListings = () => {
                         </span>
                       </div>
                       <div className="flex items-center">
-                        <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
+                        <CheckCircle className="w-3 h-3 mr-1 text-success" />
                         <span>Verified</span>
                       </div>
                     </div>
@@ -1020,7 +1041,7 @@ const RobotListings = () => {
                       {aiAnalysisLoading && aiAnalysisRobotId === robot.id ? (
                         <span className="flex items-center justify-center space-x-1">
                           <svg
-                            className="animate-spin h-4 w-4 text-white"
+                            className="animate-spin h-4 w-4 text-primary-foreground"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -1051,7 +1072,7 @@ const RobotListings = () => {
 
                     {/* Show AI Analysis result below card if available */}
                     {aiAnalysisResult && aiAnalysisRobotId === robot.id && (
-                      <Card className="mt-3 p-4 bg-blue-50 rounded-md border border-blue-200">
+                      <Card className="mt-3 p-4 bg-primary/10 rounded-md border border-primary/30">
                         <h4 className="font-semibold mb-2">AI Analysis Summary</h4>
                         <p>{aiAnalysisResult.analysis.summary}</p>
                         {aiAnalysisResult.analysis.suitability && (
@@ -1094,7 +1115,7 @@ const RobotListings = () => {
             <Button
               size="lg"
               onClick={() => navigate("/robots")}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary"
             >
               View All {marketStats.totalListings} Robots
             </Button>
@@ -1104,14 +1125,14 @@ const RobotListings = () => {
     </section>
       {/* AI Analysis Result Dialog */}
       <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
-        <DialogContent className="bg-white text-gray-900 max-w-3xl max-h-[80vh] overflow-y-auto p-6">
+        <DialogContent className="bg-card text-foreground max-w-3xl max-h-[80vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle>Robot AI Analysis</DialogTitle>
             <DialogClose asChild>
-              <button className="absolute top-3 right-3 rounded p-1 hover:bg-gray-200">✕</button>
+              <button className="absolute top-3 right-3 rounded p-1 hover:bg-muted">✕</button>
             </DialogClose>
           </DialogHeader>
-          <DialogDescription className="mt-4 whitespace-pre-wrap text-gray-900">
+          <DialogDescription className="mt-4 whitespace-pre-wrap text-foreground">
             {aiDialogLoading && (
               <div className="flex items-center gap-2">
                 <Loader2 className="animate-spin w-6 h-6" /> Loading AI analysis...

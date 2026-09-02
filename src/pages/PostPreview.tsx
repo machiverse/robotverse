@@ -185,7 +185,7 @@ const PostPreview = () => {
               </div>
 
               {post.title && (
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-4 text-primary">
                   {post.title}
                 </h1>
               )}

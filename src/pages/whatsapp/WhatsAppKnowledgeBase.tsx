@@ -136,15 +136,15 @@ const WhatsAppKnowledgeBase = () => {
       {loading ? (
         <div className="grid gap-3 md:grid-cols-2">{[0, 1, 2, 3].map((i) => <div key={i} className="h-36 animate-pulse rounded-xl bg-muted" />)}</div>
       ) : filtered.length === 0 ? (
-        <p className="rounded-xl border bg-white p-8 text-center text-sm text-muted-foreground">No entries match your filters.</p>
+        <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">No entries match your filters.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((e) => (
-            <Card key={e.id} className="border-slate-200 shadow-sm">
+            <Card key={e.id} className="border-border shadow-sm">
               <CardContent className="space-y-3 p-5">
                 <div className="flex items-start gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-900">{e.title}</p>
+                    <p className="truncate font-semibold text-foreground">{e.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {e.category.replace("_", " ")} • updated {relativeTime(e.updated_at)}
                     </p>

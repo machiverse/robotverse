@@ -102,11 +102,11 @@ const AdminQuoteMonitoring = () => {
     const variants: Record<string, string> = {
       pending: 'bg-yellow-100 text-yellow-800',
       draft: 'bg-muted text-muted-foreground',
-      sent: 'bg-blue-100 text-blue-800',
-      viewed: 'bg-purple-100 text-purple-800',
-      accepted: 'bg-green-100 text-green-800',
+      sent: 'bg-primary/10 text-primary',
+      viewed: 'bg-primary/10 text-primary',
+      accepted: 'bg-success/10 text-success',
       rejected: 'bg-red-100 text-red-800',
-      responded: 'bg-green-100 text-green-800',
+      responded: 'bg-success/10 text-success',
       negotiation: 'bg-amber-100 text-amber-800',
     };
     return (
@@ -156,21 +156,21 @@ const AdminQuoteMonitoring = () => {
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
-            <CheckCircle className="h-5 w-5 mx-auto text-green-600 mb-1" />
+            <CheckCircle className="h-5 w-5 mx-auto text-success mb-1" />
             <p className="text-2xl font-bold">{respondedRequests}</p>
             <p className="text-xs text-muted-foreground">Responded</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
-            <FileText className="h-5 w-5 mx-auto text-blue-600 mb-1" />
+            <FileText className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-2xl font-bold">{totalQuotations}</p>
             <p className="text-xs text-muted-foreground">Quotations Sent</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
-            <CheckCircle className="h-5 w-5 mx-auto text-emerald-600 mb-1" />
+            <CheckCircle className="h-5 w-5 mx-auto text-success mb-1" />
             <p className="text-2xl font-bold">{acceptedQuotations}</p>
             <p className="text-xs text-muted-foreground">Accepted</p>
           </CardContent>
@@ -362,17 +362,17 @@ const AdminQuoteMonitoring = () => {
                           <TableCell>
                             <div className="space-y-0.5 text-xs">
                               {q.sent_at && (
-                                <div className="flex items-center gap-1 text-blue-600">
+                                <div className="flex items-center gap-1 text-primary">
                                   <Send className="h-3 w-3" /> Sent {format(new Date(q.sent_at), 'dd MMM')}
                                 </div>
                               )}
                               {q.viewed_at && (
-                                <div className="flex items-center gap-1 text-purple-600">
+                                <div className="flex items-center gap-1 text-primary">
                                   <Eye className="h-3 w-3" /> Viewed {format(new Date(q.viewed_at), 'dd MMM')}
                                 </div>
                               )}
                               {q.accepted_at && (
-                                <div className="flex items-center gap-1 text-green-600">
+                                <div className="flex items-center gap-1 text-success">
                                   <CheckCircle className="h-3 w-3" /> Accepted {format(new Date(q.accepted_at), 'dd MMM')}
                                 </div>
                               )}
@@ -576,12 +576,12 @@ const AdminQuoteMonitoring = () => {
                           <TableCell>
                             <div className="space-y-0.5 text-xs">
                               {q.sent_at && (
-                                <div className="flex items-center gap-1 text-blue-600">
+                                <div className="flex items-center gap-1 text-primary">
                                   <Send className="h-3 w-3" /> Sent {format(new Date(q.sent_at), 'dd MMM')}
                                 </div>
                               )}
                               {q.viewed_at && (
-                                <div className="flex items-center gap-1 text-purple-600">
+                                <div className="flex items-center gap-1 text-primary">
                                   <Eye className="h-3 w-3" /> Viewed {format(new Date(q.viewed_at), 'dd MMM')}
                                 </div>
                               )}
@@ -589,7 +589,7 @@ const AdminQuoteMonitoring = () => {
                           </TableCell>
                           <TableCell className="text-xs">
                             {q.accepted_at ? (
-                              <div className="flex items-center gap-1 text-green-600 font-medium">
+                              <div className="flex items-center gap-1 text-success font-medium">
                                 <CheckCircle className="h-3 w-3" />
                                 {format(new Date(q.accepted_at), 'dd MMM yyyy HH:mm')}
                               </div>

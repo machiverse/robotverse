@@ -182,8 +182,8 @@ const ServiceCategory = () => {
       </div>
 
       {/* Hero */}
-      <div className="relative bg-gradient-hero border-b border-border">
-        <div className="absolute inset-0 bg-gradient-primary opacity-10"></div>
+      <div className="relative bg-muted border-b border-border">
+        <div className="absolute inset-0 bg-primary opacity-10"></div>
         <div className="relative container mx-auto px-4 py-12">
           <div className="text-center max-w-4xl mx-auto">
             <div className="flex items-center justify-center mb-4">
@@ -251,7 +251,7 @@ const ServiceCategory = () => {
                       {service.providerProfile.avatar_url ? (
                         <AvatarImage src={service.providerProfile.avatar_url} alt={service.provider} />
                       ) : (
-                        <AvatarFallback className="bg-gradient-primary text-primary-foreground">{service.provider.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-primary-foreground">{service.provider.charAt(0)}</AvatarFallback>
                       )}
                     </Avatar>
                     <div className="flex-1">

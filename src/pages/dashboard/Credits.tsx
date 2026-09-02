@@ -58,10 +58,10 @@ const Credits = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border-green-500/20">
+          <Card className="bg-gradient-to-br from-success/10 via-success/5 to-transparent border-success/30">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-green-500/20">
-                <Shield className="h-6 w-6 text-green-600" />
+              <div className="p-3 rounded-xl bg-success/20">
+                <Shield className="h-6 w-6 text-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Verified Leads</p>
@@ -69,10 +69,10 @@ const Credits = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border-purple-500/20">
+          <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/30">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-purple-500/20">
-                <Sparkles className="h-6 w-6 text-purple-600" />
+              <div className="p-3 rounded-xl bg-primary/20">
+                <Sparkles className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Bonus Credits</p>
@@ -151,7 +151,7 @@ const Credits = () => {
             <TabsContent value="packs" className="mt-6">
               <div className="space-y-6">
                 <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-600 text-sm font-medium mb-4">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 text-success text-sm font-medium mb-4">
                     <Coins className="h-4 w-4" />
                     Credit Packs
                   </div>

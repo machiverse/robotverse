@@ -10,7 +10,7 @@ const ProfessionalCategories = () => {
       title: "Robot Sellers",
       description: "Sell industrial robots and automation equipment",
       features: ["Product listings", "Inventory management", "Sales analytics", "Customer management"],
-      gradient: "from-blue-500 to-cyan-600",
+      gradient: "from-primary to-primary",
       link: "/auth?role=robot_seller"
     },
     {
@@ -18,7 +18,7 @@ const ProfessionalCategories = () => {
       title: "Parts Sellers",
       description: "Supply spare parts and components",
       features: ["Parts catalog", "Compatibility matching", "Bulk pricing", "Quick delivery"],
-      gradient: "from-purple-500 to-violet-600",
+      gradient: "from-primary to-primary",
       link: "/auth?role=parts_seller"
     },
     {
@@ -34,7 +34,7 @@ const ProfessionalCategories = () => {
       title: "Logistics Partners",
       description: "Provide shipping and delivery solutions",
       features: ["Global shipping", "Specialized handling", "Real-time tracking", "Insurance coverage"],
-      gradient: "from-indigo-500 to-blue-600",
+      gradient: "from-primary to-primary",
       link: "/auth?role=logistics_provider"
     },
     {
@@ -42,7 +42,7 @@ const ProfessionalCategories = () => {
       title: "Finance Providers",
       description: "Offer loans and leasing options",
       features: ["Quick approvals", "Flexible terms", "Competitive rates", "Equipment financing"],
-      gradient: "from-green-500 to-emerald-600",
+      gradient: "from-success to-success",
       link: "/auth?role=finance_provider"
     },
     {
@@ -59,7 +59,7 @@ const ProfessionalCategories = () => {
     <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8 md:mb-12">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 text-primary">
             Professional Categories
           </h2>
           <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto px-4">
@@ -72,10 +72,10 @@ const ProfessionalCategories = () => {
             const Icon = category.icon;
             return (
               <Link key={index} to={category.link}>
-                <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-primary/50 h-full">
+                <Card className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/50 h-full">
                   <CardContent className="p-4 md:p-6">
                     <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-r ${category.gradient} flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                      <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                      <Icon className="w-6 h-6 md:w-8 md:h-8 text-primary-foreground" />
                     </div>
                     
                     <h3 className="text-base md:text-lg font-semibold mb-2 md:mb-3 text-foreground group-hover:text-primary transition-colors">
@@ -118,7 +118,7 @@ const ProfessionalCategories = () => {
               Join our growing community of robotics professionals
             </p>
             <Link to="/auth">
-              <Badge className="text-base px-6 py-2 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90">
+              <Badge className="text-base px-6 py-2 bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90">
                 Register Now
               </Badge>
             </Link>

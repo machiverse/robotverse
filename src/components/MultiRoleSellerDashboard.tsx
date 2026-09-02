@@ -393,7 +393,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         timestamp: robot.availability === 'sold' ? robot.updated_at : robot.created_at,
         status: robot.availability,
         icon: robot.availability === 'sold' ? DollarSign : Bot,
-        color: robot.availability === 'sold' ? 'text-green-600' : 'text-blue-600'
+        color: robot.availability === 'sold' ? 'text-success' : 'text-primary'
       });
     });
 
@@ -407,7 +407,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         timestamp: part.created_at,
         status: part.quantity > 0 ? 'in_stock' : 'out_of_stock',
         icon: Package,
-        color: part.quantity > 0 ? 'text-green-600' : 'text-red-600'
+        color: part.quantity > 0 ? 'text-success' : 'text-red-600'
       });
     });
 
@@ -421,7 +421,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         timestamp: service.created_at,
         status: 'active',
         icon: Wrench,
-        color: 'text-purple-600'
+        color: 'text-primary'
       });
     });
 
@@ -435,8 +435,8 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         timestamp: request.created_at,
         status: request.status,
         icon: MessageCircle,
-        color: request.status === 'completed' ? 'text-green-600' : 
-               request.status === 'in_progress' ? 'text-blue-600' : 'text-yellow-600'
+        color: request.status === 'completed' ? 'text-success' : 
+               request.status === 'in_progress' ? 'text-primary' : 'text-yellow-600'
       });
     });
 
@@ -448,12 +448,12 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: { variant: 'secondary' as const, label: 'Pending', color: 'text-yellow-600' },
-      in_progress: { variant: 'default' as const, label: 'In Progress', color: 'text-blue-600' },
-      completed: { variant: 'outline' as const, label: 'Completed', color: 'text-green-600' },
+      in_progress: { variant: 'default' as const, label: 'In Progress', color: 'text-primary' },
+      completed: { variant: 'outline' as const, label: 'Completed', color: 'text-success' },
       cancelled: { variant: 'destructive' as const, label: 'Cancelled', color: 'text-red-600' },
-      available: { variant: 'default' as const, label: 'Available', color: 'text-green-600' },
-      sold: { variant: 'secondary' as const, label: 'Sold', color: 'text-gray-600' },
-      active: { variant: 'default' as const, label: 'Active', color: 'text-blue-600' }
+      available: { variant: 'default' as const, label: 'Available', color: 'text-success' },
+      sold: { variant: 'secondary' as const, label: 'Sold', color: 'text-muted-foreground' },
+      active: { variant: 'default' as const, label: 'Active', color: 'text-primary' }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
@@ -483,7 +483,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
   if (!hasRobotSeller && !hasPartsSeller && !hasServiceProvider) {
     return (
       <div className="space-y-6">
-        <Card className="border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50">
+        <Card className="border-yellow-200 bg-warning/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-yellow-700">
               <AlertCircle className="w-6 h-6" />
@@ -531,9 +531,9 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
   return (
     <div className="space-y-6">
       {/* Real Data Confirmation */}
-      <Alert className="border-green-200 bg-green-50">
+      <Alert className="border-success/30 bg-success/10">
         <CheckCircle className="w-4 h-4" />
-        <AlertDescription className="text-green-700">
+        <AlertDescription className="text-success">
           <strong>✅ Real Data Dashboard</strong> - All statistics calculated from your actual listings and transactions.
           <br />
           <small>Active Roles: {activeRoles.length} • Last Updated: {new Date().toLocaleTimeString()}</small>
@@ -543,7 +543,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
       {/* Enhanced Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-primary">
             Multi-Role Seller Dashboard
           </h1>
           <p className="text-muted-foreground text-lg">
@@ -584,11 +584,11 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">Total Revenue</p>
-                <p className="text-3xl font-bold text-green-600">₹{stats.overallStats.totalRevenue.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-success">₹{stats.overallStats.totalRevenue.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">From all activities</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-success" />
               </div>
             </div>
           </CardContent>
@@ -599,11 +599,11 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">Total Listings</p>
-                <p className="text-3xl font-bold text-blue-600">{stats.overallStats.totalListings}</p>
+                <p className="text-3xl font-bold text-primary">{stats.overallStats.totalListings}</p>
                 <p className="text-xs text-muted-foreground mt-1">Across all categories</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
-                <Package className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Package className="w-6 h-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -614,11 +614,11 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">Service Completion</p>
-                <p className="text-3xl font-bold text-purple-600">{stats.serviceStats.completionRate.toFixed(1)}%</p>
+                <p className="text-3xl font-bold text-primary">{stats.serviceStats.completionRate.toFixed(1)}%</p>
                 <p className="text-xs text-muted-foreground mt-1">Success rate</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center">
-                <Award className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Award className="w-6 h-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -699,7 +699,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                       <div className="pt-2 border-t">
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Revenue</span>
-                          <span className="font-bold text-green-600">
+                          <span className="font-bold text-success">
                             ₹{stats.robotStats.revenue.toLocaleString()}
                           </span>
                         </div>
@@ -732,7 +732,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                       <div className="pt-2 border-t">
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Revenue</span>
-                          <span className="font-bold text-green-600">
+                          <span className="font-bold text-success">
                             ₹{stats.partsStats.revenue.toLocaleString()}
                           </span>
                         </div>
@@ -765,7 +765,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                       <div className="pt-2 border-t">
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Revenue</span>
-                          <span className="font-bold text-green-600">
+                          <span className="font-bold text-success">
                             ₹{stats.serviceStats.revenue.toLocaleString()}
                           </span>
                         </div>
@@ -851,7 +851,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <p className="text-sm text-muted-foreground">Active Robots</p>
                         <p className="text-2xl font-bold">{stats.robotStats.active}</p>
                       </div>
-                      <CheckCircle className="w-8 h-8 text-green-600" />
+                      <CheckCircle className="w-8 h-8 text-success" />
                     </div>
                   </CardContent>
                 </Card>
@@ -862,7 +862,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <p className="text-sm text-muted-foreground">Robots Sold</p>
                         <p className="text-2xl font-bold">{stats.robotStats.sold}</p>
                       </div>
-                      <DollarSign className="w-8 h-8 text-blue-600" />
+                      <DollarSign className="w-8 h-8 text-primary" />
                     </div>
                   </CardContent>
                 </Card>
@@ -873,7 +873,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <p className="text-sm text-muted-foreground">Avg Price</p>
                         <p className="text-2xl font-bold">₹{(stats.robotStats.avgPrice/100000).toFixed(1)}L</p>
                       </div>
-                      <TrendingUp className="w-8 h-8 text-purple-600" />
+                      <TrendingUp className="w-8 h-8 text-primary" />
                     </div>
                   </CardContent>
                 </Card>
@@ -921,7 +921,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <p className="text-sm text-muted-foreground">Total Parts</p>
                         <p className="text-2xl font-bold">{stats.partsStats.total}</p>
                       </div>
-                      <Package className="w-8 h-8 text-blue-600" />
+                      <Package className="w-8 h-8 text-primary" />
                     </div>
                   </CardContent>
                 </Card>
@@ -932,7 +932,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <p className="text-sm text-muted-foreground">In Stock</p>
                         <p className="text-2xl font-bold">{stats.partsStats.inStock}</p>
                       </div>
-                      <CheckCircle className="w-8 h-8 text-green-600" />
+                      <CheckCircle className="w-8 h-8 text-success" />
                     </div>
                   </CardContent>
                 </Card>
@@ -954,7 +954,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <p className="text-sm text-muted-foreground">Total Value</p>
                         <p className="text-2xl font-bold">₹{stats.partsStats.revenue.toLocaleString()}</p>
                       </div>
-                      <DollarSign className="w-8 h-8 text-purple-600" />
+                      <DollarSign className="w-8 h-8 text-primary" />
                     </div>
                   </CardContent>
                 </Card>
@@ -990,7 +990,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                       {/* Search and Filter */}
                       <div className="flex items-center gap-4">
                         <div className="relative flex-1 max-w-sm">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                           <Input
                             placeholder="Search parts..."
                             value={searchQuery}
@@ -1240,7 +1240,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <p className="text-sm text-muted-foreground">Completion Rate</p>
                         <p className="text-2xl font-bold">{stats.serviceStats.completionRate.toFixed(1)}%</p>
                       </div>
-                      <CheckCircle className="w-8 h-8 text-green-600" />
+                      <CheckCircle className="w-8 h-8 text-success" />
                     </div>
                   </CardContent>
                 </Card>
@@ -1262,7 +1262,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <p className="text-sm text-muted-foreground">Service Revenue</p>
                         <p className="text-2xl font-bold">₹{(stats.serviceStats.revenue/100000).toFixed(1)}L</p>
                       </div>
-                      <DollarSign className="w-8 h-8 text-purple-600" />
+                      <DollarSign className="w-8 h-8 text-primary" />
                     </div>
                   </CardContent>
                 </Card>

@@ -167,7 +167,7 @@ const AuctionDetail: React.FC = () => {
             </div>
 
             {/* Main Image Gallery */}
-            <div className="bg-white dark:bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-card dark:bg-card border border-border rounded-xl overflow-hidden shadow-sm">
               <div className="aspect-[4/3] md:aspect-[16/9] relative bg-muted flex items-center justify-center">
                 {img ? (
                   <img src={img} alt={auction.auction_title} className="w-full h-full object-contain p-4" />

@@ -1,5 +1,6 @@
 // src/pages/Robots.tsx
 import { useState, useEffect, useMemo } from "react";
+import { OemRail, OemDot } from '@/components/oem/OemAccents';
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -591,7 +592,7 @@ const Robots = () => {
 
       {/* Top title */}
       <div className="container mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold mb-2 text-primary">
           {selectedRobotType !== "all" ? `${selectedRobotType} - Industrial Robots` : "Industrial Robots Marketplace"}
         </h1>
         <p className="text-muted-foreground">
@@ -697,9 +698,13 @@ const Robots = () => {
                     <SelectContent>
                       {manufacturers.map((m) => (
                         <SelectItem key={m.value} value={m.value}>
-                          {m.label}
+                          <span className="flex items-center gap-2">
+                            {m.value !== "all" && <OemDot brand={m.label} />}
+                            {m.label}
+                          </span>
                         </SelectItem>
                       ))}
+
                     </SelectContent>
                   </Select>
                 </div>
@@ -779,7 +784,7 @@ const Robots = () => {
                     onClick={() => setOnlyWithOffers(!onlyWithOffers)}
                     className={`w-full flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
                       onlyWithOffers
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30"
+                        ? "border-success/30 bg-success/10 text-success dark:bg-success/30"
                         : "border-input hover:bg-muted/50"
                     }`}
                   >
@@ -937,14 +942,15 @@ const Robots = () => {
                       {robotsGroup.map((robot: any) => (
                         <Card
                           key={robot.id}
-                          className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                          className="relative overflow-hidden border border-border hover:border-muted-foreground/40 shadow-none transition-colors duration-150 cursor-pointer group"
                           onClick={async () => {
                             await trackItemView("robots", robot.id);
                             navigate(`/robots/${robot.id}`);
                           }}
                         >
+                          <OemRail brand={robot.brand} />
                           {/* Image */}
-                          <div className="relative overflow-hidden rounded-lg">
+                          <div className="relative overflow-hidden bg-muted border-b border-border dark:shadow-[inset_0_0_0_1px_hsl(var(--border))]">
                             {robot.images && robot.images.length > 0 ? (
                               <ResponsiveImage
                                 src={robot.images[0]}
@@ -954,7 +960,8 @@ const Robots = () => {
                                 containerClassName="w-full"
                               />
                             ) : (
-                              <div className="w-full aspect-[4/3] flex items-center justify-center bg-muted rounded-lg">
+                              <div className="w-full aspect-[4/3] flex items-center justify-center bg-background">
+
                                 <Bot className="w-12 h-12 text-muted-foreground" />
                               </div>
                             )}
@@ -974,7 +981,7 @@ const Robots = () => {
                             {/* Coupon available */}
                             {robotsWithOffers.has(robot.id) && (
                               <div className="absolute bottom-2 left-2">
-                                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] gap-1">
+                                <Badge className="bg-success hover:bg-success text-primary-foreground text-[10px] gap-1">
                                   <Tag className="w-3 h-3" />
                                   Coupon available
                                 </Badge>
@@ -987,7 +994,7 @@ const Robots = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                                className="h-8 w-8 p-0 bg-card/80 hover:bg-card"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const url = `${window.location.origin}/robots/${robot.id}`;
@@ -1009,7 +1016,7 @@ const Robots = () => {
                                   }
                                 }}
                               >
-                                <Share2 className="w-4 h-4 text-gray-600" />
+                                <Share2 className="w-4 h-4 text-muted-foreground" />
                               </Button>
                             </div>
                           </div>
@@ -1020,20 +1027,22 @@ const Robots = () => {
                               <h3 className="font-bold text-sm mb-1 line-clamp-2 group-hover:text-primary transition-colors">
                                 {robot.name}
                               </h3>
-                              <p className="text-xs text-muted-foreground line-clamp-1">
+                              <p className="flex items-center gap-1.5 text-xs text-muted-foreground line-clamp-1">
+                                <OemDot brand={robot.brand} />
                                 {robot.brand || "Unknown Brand"}
                                 {robot.model && <span> · {robot.model}</span>}
                               </p>
+
                             </div>
 
                             {/* Specs - Payload Capacity */}
                             <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                               <div>
-                                <p className="font-medium text-foreground">{robot.payload_capacity || "N/A"}</p>
+                                <p className="font-medium text-foreground tabular">{robot.payload_capacity || "N/A"}</p>
                                 <p>kg Payload</p>
                               </div>
                               <div>
-                                <p className="font-medium text-foreground">{robot.reach || "N/A"}</p>
+                                <p className="font-medium text-foreground tabular">{robot.reach || "N/A"}</p>
                                 <p>mm Reach</p>
                               </div>
                             </div>
@@ -1044,7 +1053,7 @@ const Robots = () => {
                                 <MapPin className="w-3 h-3 mr-1" />
                                 <span className="line-clamp-1">{robot.location || "Location not specified"}</span>
                               </div>
-                              <div className="text-sm font-bold text-primary">
+                              <div className="text-sm font-bold text-primary tabular">
                                 {formatPrice(robot.price, robot.currency)}
                               </div>
                             </div>
@@ -1052,7 +1061,7 @@ const Robots = () => {
                             {/* Availability */}
                             <div className="flex items-center justify-end text-xs text-muted-foreground border-t pt-2">
                               <div className="flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3 text-green-500" />
+                                <CheckCircle className="w-3 h-3 text-success" />
                                 <span>{robot.availability || "Available"}</span>
                               </div>
                             </div>
@@ -1128,13 +1137,14 @@ const Robots = () => {
                       {robotsGroup.map((robot: any) => (
                         <Card
                           key={robot.id}
-                          className="hover:shadow-md transition cursor-pointer flex"
+                          className="group relative overflow-hidden border border-border hover:border-muted-foreground/40 shadow-none transition-colors duration-150 cursor-pointer flex"
                           onClick={async () => {
                             await trackItemView("robots", robot.id);
                             navigate(`/robots/${robot.id}`);
                           }}
                         >
-                          <div className="w-40 flex-shrink-0">
+                          <OemRail brand={robot.brand} />
+                          <div className="w-40 flex-shrink-0 bg-background border-r border-border">
                             {robot.images && robot.images.length > 0 ? (
                               <ResponsiveImage
                                 src={robot.images[0]}
@@ -1145,7 +1155,7 @@ const Robots = () => {
                                 containerClassName="w-full"
                               />
                             ) : (
-                              <div className="w-full aspect-square flex items-center justify-center bg-muted rounded-l-lg">
+                              <div className="w-full aspect-square flex items-center justify-center bg-background">
                                 <Bot className="w-10 h-10 text-muted-foreground" />
                               </div>
                             )}
@@ -1154,10 +1164,12 @@ const Robots = () => {
                             <div className="flex justify-between gap-4">
                               <div className="space-y-1">
                                 <h3 className="font-semibold text-base line-clamp-2">{robot.name}</h3>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <OemDot brand={robot.brand} />
                                   {robot.brand || "Unknown Brand"}
                                   {robot.model && <span> · {robot.model}</span>}
                                 </p>
+
                                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
                                   <span>{robot.robot_type || "Robot"}</span>
                                   <span>· {robot.payload_capacity || "N/A"} kg</span>
@@ -1181,7 +1193,7 @@ const Robots = () => {
                                   </Badge>
                                 )}
                                 {robotsWithOffers.has(robot.id) && (
-                                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] gap-1">
+                                  <Badge className="bg-success hover:bg-success text-primary-foreground text-[10px] gap-1">
                                     <Tag className="w-3 h-3" />
                                     Coupon available
                                   </Badge>

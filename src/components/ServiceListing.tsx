@@ -455,7 +455,7 @@ const ServiceListing = ({ editingService, onSuccess }: ServiceListingProps = {})
   };
 
   const getCompletionColor = (completion: number) => {
-    if (completion >= 80) return 'text-green-600';
+    if (completion >= 80) return 'text-success';
     if (completion >= 60) return 'text-yellow-600';
     return 'text-red-600';
   };
@@ -463,12 +463,12 @@ const ServiceListing = ({ editingService, onSuccess }: ServiceListingProps = {})
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-purple-50">
+      <Card className="border-0 shadow-sm bg-primary/5">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
-                <Settings className="w-6 h-6 text-blue-600" />
+              <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
+                <Settings className="w-6 h-6 text-primary" />
                 Create Professional Service Listing
               </CardTitle>
               <p className="text-muted-foreground mt-1">
@@ -933,11 +933,11 @@ const ServiceListing = ({ editingService, onSuccess }: ServiceListingProps = {})
               <Button 
                 type="submit" 
                 disabled={loading || formCompletion < 40}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8"
+                className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary px-8"
               >
                 {loading ? (
                   <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-border/50"></div>
                     <span>Creating Listing...</span>
                   </div>
                 ) : (

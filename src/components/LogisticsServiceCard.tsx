@@ -179,7 +179,7 @@ const LogisticsServiceCard = ({ robotLocation, onRequestQuote, limit = 3 }: Logi
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-semibold">{service.service_name}</h4>
                         {service.is_international && (
-                          <Globe className="w-4 h-4 text-blue-600" />
+                          <Globe className="w-4 h-4 text-primary" />
                         )}
                       </div>
                       <Badge variant="outline" className="text-xs">
@@ -205,11 +205,11 @@ const LogisticsServiceCard = ({ robotLocation, onRequestQuote, limit = 3 }: Logi
 
                   <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
                     <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-blue-600" />
+                      <Clock className="w-4 h-4 text-primary" />
                       <span>{getDeliveryEstimate(service.delivery_time_hours)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-green-600" />
+                      <Package className="w-4 h-4 text-success" />
                       <span>Max {service.max_weight_kg}kg</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -218,7 +218,7 @@ const LogisticsServiceCard = ({ robotLocation, onRequestQuote, limit = 3 }: Logi
                     </div>
                     {service.price_per_km > 0 && (
                       <div className="flex items-center gap-2">
-                        <Truck className="w-4 h-4 text-purple-600" />
+                        <Truck className="w-4 h-4 text-primary" />
                         <span>₹{service.price_per_km}/km</span>
                       </div>
                     )}

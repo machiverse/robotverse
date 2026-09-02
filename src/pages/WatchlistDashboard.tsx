@@ -441,9 +441,9 @@ const WatchlistItemCard = ({
       case 'medium':
         return 'bg-yellow-500';
       case 'low':
-        return 'bg-green-500';
+        return 'bg-success';
       default:
-        return 'bg-gray-500';
+        return 'bg-secondary';
     }
   };
 

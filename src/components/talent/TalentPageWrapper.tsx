@@ -23,7 +23,7 @@ const TalentPageWrapper = ({ children, title, subtitle, showBackButton = true, m
       <EnhancedHeader />
 
       {/* Talent Module Banner - Dark theme */}
-      <div className="border-b border-border" style={{ background: 'var(--gradient-hero)' }}>
+      <div className="border-b border-border" style={{ background: 'hsl(var(--muted))' }}>
         <div className="container mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -38,7 +38,7 @@ const TalentPageWrapper = ({ children, title, subtitle, showBackButton = true, m
                 </Button>
               )}
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{title}</h1>
+                <h1 className="text-xl font-bold text-primary">{title}</h1>
                 {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
               </div>
             </div>

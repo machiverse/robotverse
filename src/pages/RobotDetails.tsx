@@ -69,6 +69,7 @@ import {
 } from "lucide-react";
 
 import ViewCountDisplay from "@/components/ViewCountDisplay";
+import { RequestQuoteButton, LeadTimeInfoBox, isPriceAvailable, isNewCondition } from "@/components/pricing/PriceElements";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ProfessionalRobotReportModal from "@/components/ProfessionalRobotReportModal";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
@@ -216,6 +217,14 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showRobotQuoteModal, setShowRobotQuoteModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  const handleRequestQuoteClick = () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    setShowRobotQuoteModal(true);
+  };
 
   const viewCountedRef = useRef<string | null>(null);
   const { seoElements, generateSEO } = useRobotSEO();
@@ -714,7 +723,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                   variant="outline"
                   className={`shrink-0 px-3 py-1.5 text-sm font-medium ${
                     robot.availability === "in_stock" || robot.availability === "available"
-                      ? "bg-green-500/10 text-green-600 border-green-500/30"
+                      ? "bg-success/10 text-success border-success/30"
                       : "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
                   }`}
                 >
@@ -723,14 +732,32 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               </div>
 
               {/* Price */}
-              <div className="space-y-1">
-                <p className="text-2xl lg:text-3xl font-bold text-primary">
-                  {robot.price ? formatPrice(robot.price, robot.currency) : "Price on Request"}
-                </p>
-                {outsideIndia && importDuty && (
-                  <p className="text-sm text-muted-foreground">
-                    + Est. Import Duty: {formatPrice(importDuty, robot.currency)}
-                  </p>
+              <div className="space-y-2">
+                {isPriceAvailable(robot.price) ? (
+                  <>
+                    <p className="text-2xl lg:text-3xl font-bold text-primary tabular">
+                      {formatPrice(robot.price, robot.currency)}
+                    </p>
+                    {outsideIndia && importDuty && (
+                      <p className="text-sm text-muted-foreground">
+                        + Est. Import Duty: {formatPrice(importDuty, robot.currency)}
+                      </p>
+                    )}
+                    <LeadTimeInfoBox condition={robot.condition} leadTime={(robot as any).lead_time} />
+                    {isNewCondition(robot.condition) && (
+                      <RequestQuoteButton
+                        variant="outline"
+                        size="default"
+                        label="Request Custom Quote"
+                        onClick={handleRequestQuoteClick}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <RequestQuoteButton onClick={handleRequestQuoteClick} />
+                    <LeadTimeInfoBox condition={robot.condition} leadTime={(robot as any).lead_time} />
+                  </>
                 )}
                 <div className="pt-1">
                   <CouponBadge sellerId={robot.seller_id} robotId={robot.id} />
@@ -952,7 +979,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                       <h4 className="font-semibold mb-3">Certifications</h4>
                       <div className="flex flex-wrap gap-2">
                         {robot.certification_standards.map((cert, index) => (
-                          <Badge key={index} variant="outline" className="border-green-500/30 text-green-600">
+                          <Badge key={index} variant="outline" className="border-success/30 text-success">
                             <Check className="w-3 h-3 mr-1" />
                             {cert}
                           </Badge>
@@ -967,7 +994,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                       <ul className="grid grid-cols-2 gap-2">
                         {robot.included_accessories.map((acc, index) => (
                           <li key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Check className="w-4 h-4 text-green-500" />
+                            <Check className="w-4 h-4 text-success" />
                             {acc}
                           </li>
                         ))}
@@ -976,10 +1003,10 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                   )}
 
                   {robot.warranty_info && (
-                    <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-lg">
+                    <div className="p-4 bg-success/5 border border-success/30 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
-                        <Shield className="w-5 h-5 text-green-600" />
-                        <h4 className="font-semibold text-green-600">Warranty</h4>
+                        <Shield className="w-5 h-5 text-success" />
+                        <h4 className="font-semibold text-success">Warranty</h4>
                       </div>
                       <p className="text-sm text-muted-foreground">{robot.warranty_info}</p>
                     </div>
@@ -1092,7 +1119,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                             )}
                             <h4 className="font-semibold mb-1">{part.name || part.part_name}</h4>
                             <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{part.description || "No description"}</p>
-                            {part.price && <p className="text-lg font-bold text-primary mb-3">{part.currency === "USD" ? "$" : "₹"}{part.price.toLocaleString()}</p>}
+                            {part.price && <p className="text-lg font-bold text-primary mb-3 tabular">{part.currency === "USD" ? "$" : "₹"}{part.price.toLocaleString()}</p>}
                             <Button variant="outline" className="w-full" size="sm" onClick={() => navigate(`/parts/${part.id}`)}><FileText className="w-3 h-3 mr-1" /> Get Quote</Button>
                           </CardContent>
                         </Card>
@@ -1346,11 +1373,11 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     </div>
                   )}
                   {robot.profiles?.completed_sales > 0 && (
-                    <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                      <Package className="w-5 h-5 text-emerald-400" />
+                    <div className="flex items-center gap-2 p-3 bg-success/10 border border-success/30 rounded-lg">
+                      <Package className="w-5 h-5 text-success" />
                       <div>
-                        <p className="font-bold text-emerald-400">{robot.profiles.completed_sales} completed sales</p>
-                        <p className="text-xs text-emerald-300/70">Verified transactions</p>
+                        <p className="font-bold text-success">{robot.profiles.completed_sales} completed sales</p>
+                        <p className="text-xs text-success/70">Verified transactions</p>
                       </div>
                     </div>
                   )}
@@ -1436,11 +1463,11 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
       {/* Fullscreen Image Modal */}
       <Dialog open={showFullscreen} onOpenChange={setShowFullscreen}>
         <DialogContent className="max-w-6xl w-full h-[90vh] p-0">
-          <div className="relative w-full h-full bg-black flex items-center justify-center">
+          <div className="relative w-full h-full bg-foreground flex items-center justify-center">
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-4 right-4 text-white hover:bg-white/20 z-10"
+              className="absolute top-4 right-4 text-primary-foreground hover:bg-card/20 z-10"
               onClick={() => setShowFullscreen(false)}
             >
               <X className="w-6 h-6" />
@@ -1457,7 +1484,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-foreground hover:bg-card/20"
                       onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? robot.images.length - 1 : prev - 1))}
                     >
                       <ChevronLeft className="w-8 h-8" />
@@ -1465,12 +1492,12 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-primary-foreground hover:bg-card/20"
                       onClick={() => setCurrentImageIndex((prev) => (prev + 1) % robot.images.length)}
                     >
                       <ChevronRight className="w-8 h-8" />
                     </Button>
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white bg-black/50 px-4 py-2 rounded-full">
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-primary-foreground bg-foreground/50 px-4 py-2 rounded-full">
                       {currentImageIndex + 1} / {robot.images.length}
                     </div>
                   </>
