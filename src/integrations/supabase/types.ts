@@ -517,6 +517,36 @@ export type Database = {
         }
         Relationships: []
       }
+      block_reasons: {
+        Row: {
+          category: string
+          code: string
+          description: string | null
+          label: string
+          requires_evidence: boolean | null
+          severity: string
+          sort_order: number | null
+        }
+        Insert: {
+          category: string
+          code: string
+          description?: string | null
+          label: string
+          requires_evidence?: boolean | null
+          severity: string
+          sort_order?: number | null
+        }
+        Update: {
+          category?: string
+          code?: string
+          description?: string | null
+          label?: string
+          requires_evidence?: boolean | null
+          severity?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       blog_comments: {
         Row: {
           blog_id: string
@@ -5530,6 +5560,95 @@ export type Database = {
         }
         Relationships: []
       }
+      user_moderation: {
+        Row: {
+          action: string
+          actioned_at: string
+          actioned_by: string
+          appeal_decided_at: string | null
+          appeal_decided_by: string | null
+          appeal_decision_notes: string | null
+          appeal_status: string | null
+          appeal_submitted_at: string | null
+          appeal_text: string | null
+          created_at: string | null
+          email_sent_at: string | null
+          evidence_urls: string[] | null
+          id: string
+          is_active: boolean | null
+          reason_code: string | null
+          reason_notes: string
+          related_listing_ids: string[] | null
+          related_ticket_ids: string[] | null
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          suspension_until: string | null
+          user_id: string
+          user_role: string | null
+        }
+        Insert: {
+          action: string
+          actioned_at?: string
+          actioned_by: string
+          appeal_decided_at?: string | null
+          appeal_decided_by?: string | null
+          appeal_decision_notes?: string | null
+          appeal_status?: string | null
+          appeal_submitted_at?: string | null
+          appeal_text?: string | null
+          created_at?: string | null
+          email_sent_at?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          reason_code?: string | null
+          reason_notes: string
+          related_listing_ids?: string[] | null
+          related_ticket_ids?: string[] | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          suspension_until?: string | null
+          user_id: string
+          user_role?: string | null
+        }
+        Update: {
+          action?: string
+          actioned_at?: string
+          actioned_by?: string
+          appeal_decided_at?: string | null
+          appeal_decided_by?: string | null
+          appeal_decision_notes?: string | null
+          appeal_status?: string | null
+          appeal_submitted_at?: string | null
+          appeal_text?: string | null
+          created_at?: string | null
+          email_sent_at?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          reason_code?: string | null
+          reason_notes?: string
+          related_listing_ids?: string[] | null
+          related_ticket_ids?: string[] | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          suspension_until?: string | null
+          user_id?: string
+          user_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_moderation_reason_code_fkey"
+            columns: ["reason_code"]
+            isOneToOne: false
+            referencedRelation: "block_reasons"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       user_product_requests: {
         Row: {
           admin_notes: string | null
@@ -5647,6 +5766,51 @@ export type Database = {
           urgency?: string | null
           user_id?: string
           user_name?: string
+        }
+        Relationships: []
+      }
+      user_trust: {
+        Row: {
+          avg_response_hours: number | null
+          company_verified: boolean | null
+          completed_transactions: number | null
+          disputes_raised: number | null
+          disputes_upheld: number | null
+          gst_verified: boolean | null
+          kyc_verified: boolean | null
+          listings_verified: number | null
+          member_since: string | null
+          trust_tier: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avg_response_hours?: number | null
+          company_verified?: boolean | null
+          completed_transactions?: number | null
+          disputes_raised?: number | null
+          disputes_upheld?: number | null
+          gst_verified?: boolean | null
+          kyc_verified?: boolean | null
+          listings_verified?: number | null
+          member_since?: string | null
+          trust_tier?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avg_response_hours?: number | null
+          company_verified?: boolean | null
+          completed_transactions?: number | null
+          disputes_raised?: number | null
+          disputes_upheld?: number | null
+          gst_verified?: boolean | null
+          kyc_verified?: boolean | null
+          listings_verified?: number | null
+          member_since?: string | null
+          trust_tier?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -5947,6 +6111,47 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "robot_models"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_moderation_status: {
+        Row: {
+          action: string | null
+          actioned_at: string | null
+          appeal_decided_at: string | null
+          appeal_status: string | null
+          appeal_submitted_at: string | null
+          case_id: string | null
+          reason_code: string | null
+          suspension_until: string | null
+        }
+        Insert: {
+          action?: string | null
+          actioned_at?: string | null
+          appeal_decided_at?: string | null
+          appeal_status?: string | null
+          appeal_submitted_at?: string | null
+          case_id?: string | null
+          reason_code?: string | null
+          suspension_until?: string | null
+        }
+        Update: {
+          action?: string | null
+          actioned_at?: string | null
+          appeal_decided_at?: string | null
+          appeal_status?: string | null
+          appeal_submitted_at?: string | null
+          case_id?: string | null
+          reason_code?: string | null
+          suspension_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_moderation_reason_code_fkey"
+            columns: ["reason_code"]
+            isOneToOne: false
+            referencedRelation: "block_reasons"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -6281,6 +6486,7 @@ export type Database = {
         Args: { p_item_id: string; p_item_type: string; p_user_id: string }
         Returns: boolean
       }
+      is_user_restricted: { Args: { _user_id: string }; Returns: boolean }
       place_auction_bid: {
         Args: {
           p_auction_id: string
@@ -6305,6 +6511,10 @@ export type Database = {
       }
       seo_hash: { Args: { p: string }; Returns: string }
       slugify: { Args: { input: string }; Returns: string }
+      submit_moderation_appeal: {
+        Args: { _appeal_text: string; _case_id: string }
+        Returns: undefined
+      }
       unlock_buyer_with_credits: {
         Args: { p_item_type: string; p_lead_id: string; p_seller_id: string }
         Returns: boolean

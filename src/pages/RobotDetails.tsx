@@ -20,6 +20,7 @@ import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import SupplierQuoteForm from "@/components/forms/SupplierQuoteForm";
 import RobotQuoteModal from "@/components/forms/RobotQuoteModal";
 import CouponBadge from "@/components/coupons/CouponBadge";
+import TrustBadges from "@/components/trust/TrustBadges";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
 import {
@@ -1357,6 +1358,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
             </Dialog>
 
             {/* Seller Stats Card */}
+            <TrustBadges userId={robot.seller_id} className="mb-2" />
             {(robot.profiles?.completed_sales > 0 || robot.profiles?.total_reviews > 0) && (
               <Card className="border shadow-sm">
                 <CardHeader className="pb-3">

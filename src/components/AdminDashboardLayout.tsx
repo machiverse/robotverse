@@ -25,6 +25,7 @@ import AdminApiKeys from "./admin/AdminApiKeys";
 import AdminAuctionWinners from "./admin/AdminAuctionWinners";
 import AdminAllBids from "./admin/AdminAllBids";
 import AdminSourcingSignals from "./admin/AdminSourcingSignals";
+import AdminModeration from "./admin/AdminModeration";
 
 interface AdminDashboardLayoutProps {
   userProfile: any;
@@ -75,6 +76,8 @@ const AdminDashboardLayout = React.memo(({
         return <AdminActivityCenter />;
       case "users":
         return <AdminUsers key={`users-${users.length}`} users={users} onRefresh={onRefresh} />;
+      case "moderation":
+        return <AdminModeration />;
       case "equipment":
         return <AdminEquipment robots={robots} services={services} spareParts={spareParts} onRefresh={onRefresh} />;
       case "buyer-access":
