@@ -24,6 +24,7 @@ import AdminUserRequests from "./admin/AdminUserRequests";
 import AdminApiKeys from "./admin/AdminApiKeys";
 import AdminAuctionWinners from "./admin/AdminAuctionWinners";
 import AdminAllBids from "./admin/AdminAllBids";
+import AdminSourcingSignals from "./admin/AdminSourcingSignals";
 
 interface AdminDashboardLayoutProps {
   userProfile: any;
@@ -108,6 +109,8 @@ const AdminDashboardLayout = React.memo(({
         return <AdminAuctionWinners />;
       case "auction-bids":
         return <AdminAllBids />;
+      case "sourcing-signals":
+        return <AdminSourcingSignals />;
       default:
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
     }
