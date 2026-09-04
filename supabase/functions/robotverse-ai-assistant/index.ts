@@ -540,6 +540,39 @@ CRITICAL RULES:
 
 DATABASE RESULTS:${dbContext}`;
 
+    let finalSystemPrompt = systemPrompt;
+    if (matchResult) {
+      const tierNote = matchResult.tier === 0
+        ? `\nTIER 0 — NO MATCH. You MUST tell the buyer plainly: "No matching robot found in our current stock or partner network." State that their requirement has been logged and that the RobotVerse sourcing team will respond within 48 hours. Do not invent alternatives. Still list what specification was understood so they can correct it.`
+        : matchResult.tier === 1
+          ? `\nTIER 1 — Matches exist in RobotVerse's own live listings (the "own" array). Link each with [View Details →](/robots/ID) using the exact id.`
+          : matchResult.tier === 2
+            ? `\nTIER 2 — No own stock, but the partner dealer network can source these models. Quote only the aggregate: dealer count, countries and typical lead-days. Never name a dealer.`
+            : `\nTIER 3 — Only third-party external listings exist. These are NOT RobotVerse stock.`;
+
+      finalSystemPrompt += `
+
+PROCUREMENT MODE. Structured matching has already been performed. Use ONLY the specifications, prices and dates in PROCUREMENT_DATA below. Never estimate or recall a payload, reach, price, year or serial number that is not present there. If a field is missing write 'Not specified'.
+Always surface the caveats a seller would skip: obsolete controllers, high spares risk, missing mastering data, non-transferable software licences, and supply voltage mismatch where supply_voltage is not 50Hz (an Indian buyer will need a transformer).
+External listings are third-party asking prices, not our stock, and may be stale — always state the source platform and the verified_on date next to any external price.
+Recommend at most 3 options, ranked by total landed cost in INR, not by sticker price.
+If assumedGripper is true, state clearly that you assumed the gripper weighs 25% of the part and ask the buyer to confirm.
+Structure the answer as: Recommendation / Alternatives / Risks and caveats / Next step. Be blunt and specific. The reader is an engineer and bounces off marketing adjectives.
+In PROCUREMENT MODE the section templates above are superseded by this four-part structure; landed-cost figures are PROVISIONAL and must be labelled as such.${tierNote}
+
+PROCUREMENT_DATA:
+${JSON.stringify({
+  requiredPayload: matchResult.requiredPayload,
+  assumedGripper: matchResult.assumedGripper,
+  tier: matchResult.tier,
+  requirement: matchResult.requirement,
+  models: matchResult.models,
+  own: matchResult.own,
+  dealerSummary: matchResult.dealerSummary,
+  external: matchResult.external,
+})}`;
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
