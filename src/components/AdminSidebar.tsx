@@ -20,6 +20,7 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
     { id: "control-center", label: "Control Center", icon: Globe },
     { id: "activity-center", label: "Activity Center", icon: Eye },
     { id: "users", label: "Users", icon: Users },
+    { id: "moderation", label: "Moderation & Trust", icon: ShieldAlert },
     { id: "equipment", label: "Equipment", icon: Bot },
     { id: "buyer-access", label: "Buyer Access", icon: Shield },
     { id: "chat-monitoring", label: "Chat Monitoring", icon: MessageSquare },
