@@ -38,7 +38,7 @@ import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { formatPrice as formatCurrencyPrice, Currency, convertToINR } from "@/utils/currency";
 import { RequestQuotePill, CardLeadTimeNote, isPriceAvailable } from "@/components/pricing/PriceElements";
-import { TrustBadges } from "@/components/trust/TrustBadges";
+import TrustBadges from "@/components/trust/TrustBadges";
 import {
   Dialog,
   DialogContent,
