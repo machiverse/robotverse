@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { TrustBadges } from "@/components/trust/TrustBadges";
 import { Button } from '@/components/ui/button';
 import { Loader2, Bot, MapPin, ArrowLeft, Building, User, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -177,6 +178,7 @@ const SellerRobots: React.FC = () => {
                 <p className="text-muted-foreground">
                   {robots.length} robot{robots.length !== 1 ? 's' : ''} available
                 </p>
+                {sellerId && <TrustBadges userId={sellerId} className="mt-2" />}
               </div>
             </div>
             

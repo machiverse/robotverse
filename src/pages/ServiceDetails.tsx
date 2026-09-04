@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TrustBadges } from "@/components/trust/TrustBadges";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import Footer from "@/components/Footer";
@@ -369,6 +370,7 @@ const ServiceDetails = () => {
                         </div>
                       </div>
                     </div>
+                    <TrustBadges userId={service.providerId} />
 
                     {/* Location */}
                     <div className="flex items-center gap-2 text-sm text-muted-foreground py-3 border-t border-b">

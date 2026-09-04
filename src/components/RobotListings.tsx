@@ -38,6 +38,7 @@ import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { formatPrice as formatCurrencyPrice, Currency, convertToINR } from "@/utils/currency";
 import { RequestQuotePill, CardLeadTimeNote, isPriceAvailable } from "@/components/pricing/PriceElements";
+import { TrustBadges } from "@/components/trust/TrustBadges";
 import {
   Dialog,
   DialogContent,
@@ -968,6 +969,7 @@ const RobotListings = () => {
                         <span>Verified</span>
                       </div>
                     </div>
+                    <TrustBadges userId={robot.seller_id} compact className="mt-1" />
 
                     {/* Action Buttons */}
                     <div className="grid grid-cols-2 gap-2 pt-2">
