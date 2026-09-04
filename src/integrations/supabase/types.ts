@@ -2216,6 +2216,51 @@ export type Database = {
           },
         ]
       }
+      dealer_network: {
+        Row: {
+          company_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          country: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          oem_specialties: string[] | null
+          payload_focus: string | null
+          region: string | null
+          relationship: string | null
+          typical_lead_days: number | null
+        }
+        Insert: {
+          company_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          oem_specialties?: string[] | null
+          payload_focus?: string | null
+          region?: string | null
+          relationship?: string | null
+          typical_lead_days?: number | null
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          oem_specialties?: string[] | null
+          payload_focus?: string | null
+          region?: string | null
+          relationship?: string | null
+          typical_lead_days?: number | null
+        }
+        Relationships: []
+      }
       deals: {
         Row: {
           admin_notes: string | null
@@ -2335,6 +2380,62 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      external_listings: {
+        Row: {
+          asking_price: number | null
+          condition_grade: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          location_country: string | null
+          model_id: string | null
+          raw_model_text: string
+          seller_name: string | null
+          source_platform: string
+          source_url: string
+          verified_on: string
+          year: number | null
+        }
+        Insert: {
+          asking_price?: number | null
+          condition_grade?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          location_country?: string | null
+          model_id?: string | null
+          raw_model_text: string
+          seller_name?: string | null
+          source_platform: string
+          source_url: string
+          verified_on?: string
+          year?: number | null
+        }
+        Update: {
+          asking_price?: number | null
+          condition_grade?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          location_country?: string | null
+          model_id?: string | null
+          raw_model_text?: string
+          seller_name?: string | null
+          source_platform?: string
+          source_url?: string
+          verified_on?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_listings_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "robot_models"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3570,6 +3671,78 @@ export type Database = {
           },
         ]
       }
+      robot_models: {
+        Row: {
+          applications: string[] | null
+          axes: number | null
+          controller_gen: string[] | null
+          created_at: string | null
+          datasheet_url: string | null
+          id: string
+          ip_rating: string | null
+          lifecycle_status: string | null
+          model: string
+          mounting: string[] | null
+          oem: string
+          payload_kg: number
+          power_kva: number | null
+          reach_mm: number
+          repeatability_mm: number | null
+          robot_weight_kg: number | null
+          series: string | null
+          spares_risk: string | null
+          successor_model: string | null
+          supply_voltage: string | null
+          verified_on: string
+        }
+        Insert: {
+          applications?: string[] | null
+          axes?: number | null
+          controller_gen?: string[] | null
+          created_at?: string | null
+          datasheet_url?: string | null
+          id?: string
+          ip_rating?: string | null
+          lifecycle_status?: string | null
+          model: string
+          mounting?: string[] | null
+          oem: string
+          payload_kg: number
+          power_kva?: number | null
+          reach_mm: number
+          repeatability_mm?: number | null
+          robot_weight_kg?: number | null
+          series?: string | null
+          spares_risk?: string | null
+          successor_model?: string | null
+          supply_voltage?: string | null
+          verified_on?: string
+        }
+        Update: {
+          applications?: string[] | null
+          axes?: number | null
+          controller_gen?: string[] | null
+          created_at?: string | null
+          datasheet_url?: string | null
+          id?: string
+          ip_rating?: string | null
+          lifecycle_status?: string | null
+          model?: string
+          mounting?: string[] | null
+          oem?: string
+          payload_kg?: number
+          power_kva?: number | null
+          reach_mm?: number
+          repeatability_mm?: number | null
+          robot_weight_kg?: number | null
+          series?: string | null
+          spares_risk?: string | null
+          successor_model?: string | null
+          supply_voltage?: string | null
+          verified_on?: string
+        }
+        Relationships: []
+      }
       robot_reports: {
         Row: {
           created_at: string
@@ -4764,6 +4937,60 @@ export type Database = {
         }
         Relationships: []
       }
+      sourcing_signals: {
+        Row: {
+          application: string | null
+          budget_max: number | null
+          budget_min: number | null
+          buyer_location: string | null
+          created_at: string | null
+          id: string
+          matched_tier: number | null
+          requested_model: string | null
+          requested_oem: string | null
+          required_payload_kg: number | null
+          required_reach_mm: number | null
+          result_count: number | null
+          source_channel: string | null
+          timeline: string | null
+          user_id: string | null
+        }
+        Insert: {
+          application?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          buyer_location?: string | null
+          created_at?: string | null
+          id?: string
+          matched_tier?: number | null
+          requested_model?: string | null
+          requested_oem?: string | null
+          required_payload_kg?: number | null
+          required_reach_mm?: number | null
+          result_count?: number | null
+          source_channel?: string | null
+          timeline?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          application?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          buyer_location?: string | null
+          created_at?: string | null
+          id?: string
+          matched_tier?: number | null
+          requested_model?: string | null
+          requested_oem?: string | null
+          required_payload_kg?: number | null
+          required_reach_mm?: number | null
+          result_count?: number | null
+          source_channel?: string | null
+          timeline?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       spare_parts: {
         Row: {
           brand: string | null
@@ -5661,7 +5888,68 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      external_listings_view: {
+        Row: {
+          asking_price: number | null
+          condition_grade: string | null
+          created_at: string | null
+          currency: string | null
+          days_old: number | null
+          id: string | null
+          is_stale: boolean | null
+          location_country: string | null
+          model_id: string | null
+          raw_model_text: string | null
+          seller_name: string | null
+          source_platform: string | null
+          source_url: string | null
+          verified_on: string | null
+          year: number | null
+        }
+        Insert: {
+          asking_price?: number | null
+          condition_grade?: string | null
+          created_at?: string | null
+          currency?: string | null
+          days_old?: never
+          id?: string | null
+          is_stale?: never
+          location_country?: string | null
+          model_id?: string | null
+          raw_model_text?: string | null
+          seller_name?: string | null
+          source_platform?: string | null
+          source_url?: string | null
+          verified_on?: string | null
+          year?: number | null
+        }
+        Update: {
+          asking_price?: number | null
+          condition_grade?: string | null
+          created_at?: string | null
+          currency?: string | null
+          days_old?: never
+          id?: string | null
+          is_stale?: never
+          location_country?: string | null
+          model_id?: string | null
+          raw_model_text?: string | null
+          seller_name?: string | null
+          source_platform?: string | null
+          source_url?: string | null
+          verified_on?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_listings_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "robot_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_end_auction: { Args: { p_auction_id: string }; Returns: Json }
