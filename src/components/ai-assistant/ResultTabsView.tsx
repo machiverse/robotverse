@@ -3,9 +3,12 @@ import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Cpu, Wrench, Factory, Truck, Banknote, Lightbulb, LayoutList, AlignJustify, ExternalLink } from "lucide-react";
+import { Bot, Cpu, Wrench, Factory, Truck, Banknote, Lightbulb, LayoutList, AlignJustify, ExternalLink, Globe, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { ResultCounts } from "@/contexts/AIAssistantContext";
+import { ResultCounts, ExternalListing } from "@/contexts/AIAssistantContext";
+import { OemRail, OemDot } from "@/components/oem/OemAccents";
 
 // Category images
 import robotsImg from "@/assets/ai-category-robots.jpg";
@@ -21,6 +24,8 @@ interface ResultTabsViewProps {
   resultCounts: ResultCounts | null;
   visibleTabs?: string[];
   className?: string;
+  /** Procurement mode only — third-party listings for the "External Listings" tab. */
+  externalListings?: ExternalListing[];
 }
 
 interface ParsedSection {
@@ -208,7 +213,114 @@ const SectionCard: React.FC<{ section: ParsedSection }> = ({ section }) => (
   </div>
 );
 
-const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, visibleTabs = [], className }) => {
+const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+const fmtPrice = (price: number | null, currency: string | null) =>
+  price == null ? "Ask seller" : `${currency || "EUR"} ${Number(price).toLocaleString("en-IN")}`;
+
+const ExternalListingCard: React.FC<{ item: ExternalListing }> = ({ item }) => {
+  const [open, setOpen] = useState(false);
+  const lc = item.landedCost;
+  const rows: [string, number][] = lc
+    ? [
+        ["Goods", lc.goodsInr],
+        ["Freight", lc.freightInr],
+        ["BCD (7.5%)", lc.bcdInr],
+        ["Social Welfare Surcharge", lc.socialWelfareSurchargeInr],
+        ["IGST (18%)", lc.igstInr],
+        ["Spares reserve", lc.sparesReserveInr],
+        ["Installation", lc.installationInr],
+      ]
+    : [];
+
+  return (
+    <div className="group relative overflow-hidden rounded-lg border border-border bg-card">
+      <OemRail brand={item.oem} />
+      <div className="p-3.5 pl-4 space-y-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <OemDot brand={item.oem} />
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{item.oem || "OEM"}</span>
+            </div>
+            <h4 className="font-semibold text-sm text-foreground truncate">{item.model || item.raw_model_text}</h4>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="font-semibold text-sm text-foreground tabular">{fmtPrice(item.asking_price, item.currency)}</div>
+            {lc && <div className="text-[11px] text-muted-foreground tabular">≈ {inr(lc.totalInr)} landed</div>}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 text-[11px]">
+          <Badge variant="secondary" className="h-5 px-1.5 rounded-full font-normal">Year: {item.year ?? "Not specified"}</Badge>
+          {item.condition_grade && <Badge variant="secondary" className="h-5 px-1.5 rounded-full font-normal">{item.condition_grade}</Badge>}
+          <Badge variant="secondary" className="h-5 px-1.5 rounded-full font-normal">{item.location_country || "Country not specified"}</Badge>
+          <Badge variant="outline" className="h-5 px-1.5 rounded-full font-normal">{item.source_platform}</Badge>
+          {item.is_stale && <Badge variant="destructive" className="h-5 px-1.5 rounded-full">Stale</Badge>}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild size="sm" variant="outline" className="h-7 text-[11px] whitespace-normal min-w-fit w-auto">
+            <a href={item.source_url} target="_blank" rel="noopener noreferrer">
+              View on {item.source_platform}
+              <ExternalLink className="w-3 h-3 ml-1" />
+            </a>
+          </Button>
+          {lc && (
+            <Collapsible open={open} onOpenChange={setOpen} className="flex-1 min-w-0">
+              <CollapsibleTrigger className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline">
+                Landed-cost breakdown
+                <ChevronDown className={cn("w-3 h-3 transition-transform", open && "rotate-180")} />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <dl className="rounded-md bg-muted/40 p-2.5 text-[11.5px] space-y-1">
+                  {rows.map(([k, v]) => (
+                    <div key={k} className="flex justify-between gap-3">
+                      <dt className="text-muted-foreground">{k}</dt>
+                      <dd className="tabular text-foreground">{inr(v)}</dd>
+                    </div>
+                  ))}
+                  <div className="flex justify-between gap-3 border-t border-border pt-1 mt-1 font-semibold">
+                    <dt className="text-foreground">Total landed (INR)</dt>
+                    <dd className="tabular text-foreground">{inr(lc.totalInr)}</dd>
+                  </div>
+                  <p className="text-[10.5px] text-muted-foreground pt-1">
+                    Provisional. Duty for HS 8479.50 and FX vary — confirm with a licensed customs broker.
+                  </p>
+                </dl>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </div>
+
+        <p className="text-[11px] text-muted-foreground">
+          Price as of {item.verified_on} — third-party listing, verify with seller
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const ExternalListingsSection: React.FC<{ items: ExternalListing[] }> = ({ items }) => (
+  <div className="w-full overflow-hidden rounded-xl border border-border bg-card">
+    <div className="p-4 space-y-3">
+      <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+        <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
+          <Globe className="w-3.5 h-3.5" />
+        </div>
+        <span className="font-bold text-sm text-foreground">External Listings</span>
+        <Badge variant="secondary" className="h-5 text-[10px] px-1.5 rounded-full">{items.length} found</Badge>
+      </div>
+      <p className="text-[11.5px] text-muted-foreground">
+        Third-party marketplace listings, not RobotVerse stock. Ranked by estimated total landed cost in India.
+      </p>
+      <div className="space-y-2.5">
+        {items.map((item) => <ExternalListingCard key={item.id} item={item} />)}
+      </div>
+    </div>
+  </div>
+);
+
+const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, visibleTabs = [], className, externalListings }) => {
   const [viewMode, setViewMode] = useState<"tabs" | "full">("tabs");
   const { summary, sections: allSections } = useMemo(() => parseSections(content, resultCounts), [content, resultCounts]);
 
@@ -217,7 +329,10 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
     return allSections.filter(s => visibleTabs.includes(s.key));
   }, [allSections, visibleTabs]);
 
-  if (sections.length === 0) {
+  const showExternal = visibleTabs.includes("external") && !!externalListings && externalListings.length > 0;
+  const totalTabs = sections.length + (showExternal ? 1 : 0);
+
+  if (sections.length === 0 && !showExternal) {
     return (
       <div className={cn(markdownClasses, "w-full overflow-x-auto", className)}>
         <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
@@ -225,7 +340,7 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
     );
   }
 
-  const defaultTab = sections[0]?.key || "robots";
+  const defaultTab = sections[0]?.key || (showExternal ? "external" : "robots");
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -239,7 +354,7 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
       {/* View toggle */}
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-          Results ({sections.length} categories)
+          Results ({totalTabs} categories)
         </span>
         <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
           <button
@@ -284,6 +399,19 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
                 )}
               </TabsTrigger>
             ))}
+            {showExternal && (
+              <TabsTrigger
+                value="external"
+                className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm whitespace-nowrap"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">External Listings</span>
+                <span className="sm:hidden">External</span>
+                <Badge variant="secondary" className="h-4 min-w-[18px] text-[9px] px-1 rounded-full">
+                  {externalListings!.length}
+                </Badge>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {sections.map((section) => (
@@ -291,12 +419,18 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
               <SectionCard section={section} />
             </TabsContent>
           ))}
+          {showExternal && (
+            <TabsContent value="external" className="mt-3 animate-in fade-in duration-200">
+              <ExternalListingsSection items={externalListings!} />
+            </TabsContent>
+          )}
         </Tabs>
       ) : (
         <div className="space-y-3">
           {sections.map((section) => (
             <SectionCard key={section.key} section={section} />
           ))}
+          {showExternal && <ExternalListingsSection items={externalListings!} />}
         </div>
       )}
     </div>
