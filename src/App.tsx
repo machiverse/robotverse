@@ -141,10 +141,12 @@ const App = () => (
             <AIAssistantProvider>
               <GlobalEmailVerificationHandler />
               <AutoSignInPopup />
+              <ModerationGate />
               <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/account-status" element={<AccountStatus />} />
               <Route path="/robots" element={<Robots />} />
               <Route path="/robots/compare" element={<RobotComparison />} />
               {/* Programmatic SEO landing pages (must precede dynamic /robots/:id) */}
