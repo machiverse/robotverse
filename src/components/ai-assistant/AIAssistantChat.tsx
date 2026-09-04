@@ -66,6 +66,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
     lastResultCounts,
     lastUserQuery,
     visibleTabs,
+    lastProcurement,
   } = useAIAssistantContext();
 
   const [input, setInput] = useState("");
@@ -519,7 +520,7 @@ const MessageBubble: React.FC<{
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
         ) : isLastAssistant && resultCounts ? (
-          <ResultTabsView content={message.content} resultCounts={resultCounts} visibleTabs={visibleTabs} />
+          <ResultTabsView content={message.content} resultCounts={resultCounts} visibleTabs={visibleTabs} externalListings={lastProcurement?.external} />
         ) : (
           <div
             className="prose prose-sm dark:prose-invert max-w-none

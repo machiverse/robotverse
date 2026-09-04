@@ -130,6 +130,8 @@ interface AIAssistantContextType {
   lastResultCounts: ResultCounts | null;
   lastUserQuery: string;
   visibleTabs: string[];
+  /** Optional — present only after a procurement-mode reply. */
+  lastProcurement: ProcurementResult | null;
   // Chat history
   sessions: ChatSession[];
   activeSessionId: string | null;
@@ -149,6 +151,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [lastResultCounts, setLastResultCounts] = useState<ResultCounts | null>(null);
   const [lastUserQuery, setLastUserQuery] = useState('');
   const [visibleTabs, setVisibleTabs] = useState<string[]>([]);
+  const [lastProcurement, setLastProcurement] = useState<ProcurementResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const queriesUsed = getQueryCount();
@@ -243,6 +246,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setError(null);
     setLastUserQuery(input);
     setLastResultCounts(null);
+    setLastProcurement(null);
     if (!user) incrementQueryCount();
 
     try {
@@ -279,6 +283,17 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
       if (data.visibleTabs) {
         setVisibleTabs(data.visibleTabs);
+      }
+      if (data.procurementMode) {
+        setLastProcurement({
+          procurementMode: true,
+          requiredPayload: data.requiredPayload ?? null,
+          assumedGripper: !!data.assumedGripper,
+          tier: data.tier ?? 0,
+          externalCount: data.externalCount ?? 0,
+          landedCostSummary: data.landedCostSummary ?? null,
+          external: Array.isArray(data.procurement?.external) ? data.procurement.external : [],
+        });
       }
 
       updateSession(currentSessionId, s => ({
@@ -322,6 +337,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       lastResultCounts,
       lastUserQuery,
       visibleTabs,
+      lastProcurement,
       sessions,
       activeSessionId,
       startNewChat,
@@ -350,6 +366,7 @@ export function useAIAssistantContext() {
       lastResultCounts: null,
       lastUserQuery: '',
       visibleTabs: [] as string[],
+      lastProcurement: null,
       sessions: [] as ChatSession[],
       activeSessionId: null,
       startNewChat: () => {},
