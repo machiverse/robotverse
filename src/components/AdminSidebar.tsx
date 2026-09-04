@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { Users, Bot, Database, Activity, PieChart, MousePointer, LogOut, ChevronLeft, ChevronRight, Eye, Heart, MessageSquare, Shield, Globe, Star, Coins, Handshake, FileQuestion, FileText, Ticket, Key, Gavel } from "lucide-react";
+import { Users, Bot, Database, Activity, PieChart, MousePointer, LogOut, ChevronLeft, ChevronRight, Eye, Heart, MessageSquare, Shield, Globe, Star, Coins, Handshake, FileQuestion, FileText, Ticket, Key, Gavel, Radar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
     { id: "deals", label: "Deals & Commission", icon: Handshake },
     { id: "quotes", label: "Quotes & Quotations", icon: FileText },
     { id: "user-requests", label: "User Requests", icon: FileQuestion },
+    { id: "sourcing-signals", label: "Sourcing Signals", icon: Radar },
     { id: "coupons", label: "Coupons", icon: Ticket },
     { id: "api-keys", label: "API Key Requests", icon: Key },
     { id: "auction-winners", label: "Auction Winners", icon: Gavel },

@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { extractRequirement, isProcurementQuery, matchRobots, type MatchResult } from '../_shared/procurementMatch.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -312,6 +313,7 @@ serve(async (req) => {
   const authHeader = req.headers.get('Authorization');
   const bearer = authHeader?.replace('Bearer ', '').trim() ?? '';
   const isInternal = bearer.length > 0 && bearer === (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '__none__');
+  let callerUserId: string | null = null;
   if (!isInternal && bearer) {
     try {
       const _authClient = createClient(
@@ -321,6 +323,7 @@ serve(async (req) => {
       );
       const { data: _userData } = await _authClient.auth.getUser();
       if (!_userData?.user) console.log('Assistant called as guest (no user session)');
+      else callerUserId = _userData.user.id;
     } catch (_e) {
       console.log('Assistant guest fallback');
     }
@@ -334,6 +337,24 @@ serve(async (req) => {
 
     const latestQuery = userQuery || messages[messages.length - 1]?.content || '';
     const { intents, location } = identifyIntent(latestQuery);
+
+    // ---------------------------------------------------------------------
+    // PROCUREMENT MODE (additive). Deterministic extraction + matching only;
+    // the LLM never decides which robots match. Non-procurement queries fall
+    // through to the existing pipeline completely unchanged.
+    // ---------------------------------------------------------------------
+    const requirement = extractRequirement(latestQuery);
+    const procurementMode = isProcurementQuery(requirement, latestQuery);
+    let matchResult: MatchResult | null = null;
+    if (procurementMode) {
+      try {
+        matchResult = await matchRobots(supabaseAdmin, requirement);
+        console.log('Procurement match:', JSON.stringify({ requiredPayload: matchResult.requiredPayload, tier: matchResult.tier, models: matchResult.models.length, own: matchResult.own.length, external: matchResult.external.length }));
+      } catch (e) {
+        console.error('Procurement matcher failed, falling back to generic pipeline:', e);
+        matchResult = null;
+      }
+    }
 
     // Determine if this is a robot-focused query (no spare/service/maintenance intent)
     const isRobotOnly = (intents.includes('robot') || intents.some(i => ['welding', 'palletizing', 'pick and place', 'painting', 'assembly', 'machine tending', 'inspection', 'packaging', 'grinding'].includes(i)))
@@ -521,11 +542,44 @@ CRITICAL RULES:
 
 DATABASE RESULTS:${dbContext}`;
 
+    let finalSystemPrompt = systemPrompt;
+    if (matchResult) {
+      const tierNote = matchResult.tier === 0
+        ? `\nTIER 0 — NO MATCH. You MUST tell the buyer plainly: "No matching robot found in our current stock or partner network." State that their requirement has been logged and that the RobotVerse sourcing team will respond within 48 hours. Do not invent alternatives. Still list what specification was understood so they can correct it.`
+        : matchResult.tier === 1
+          ? `\nTIER 1 — Matches exist in RobotVerse's own live listings (the "own" array). Link each with [View Details →](/robots/ID) using the exact id.`
+          : matchResult.tier === 2
+            ? `\nTIER 2 — No own stock, but the partner dealer network can source these models. Quote only the aggregate: dealer count, countries and typical lead-days. Never name a dealer.`
+            : `\nTIER 3 — Only third-party external listings exist. These are NOT RobotVerse stock.`;
+
+      finalSystemPrompt += `
+
+PROCUREMENT MODE. Structured matching has already been performed. Use ONLY the specifications, prices and dates in PROCUREMENT_DATA below. Never estimate or recall a payload, reach, price, year or serial number that is not present there. If a field is missing write 'Not specified'.
+Always surface the caveats a seller would skip: obsolete controllers, high spares risk, missing mastering data, non-transferable software licences, and supply voltage mismatch where supply_voltage is not 50Hz (an Indian buyer will need a transformer).
+External listings are third-party asking prices, not our stock, and may be stale — always state the source platform and the verified_on date next to any external price.
+Recommend at most 3 options, ranked by total landed cost in INR, not by sticker price.
+If assumedGripper is true, state clearly that you assumed the gripper weighs 25% of the part and ask the buyer to confirm.
+Structure the answer as: Recommendation / Alternatives / Risks and caveats / Next step. Be blunt and specific. The reader is an engineer and bounces off marketing adjectives.
+In PROCUREMENT MODE the section templates above are superseded by this four-part structure; landed-cost figures are PROVISIONAL and must be labelled as such.${tierNote}
+
+PROCUREMENT_DATA:
+${JSON.stringify({
+  requiredPayload: matchResult.requiredPayload,
+  assumedGripper: matchResult.assumedGripper,
+  tier: matchResult.tier,
+  requirement: matchResult.requirement,
+  models: matchResult.models,
+  own: matchResult.own,
+  dealerSummary: matchResult.dealerSummary,
+  external: matchResult.external,
+})}`;
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
     const aiMessages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: finalSystemPrompt },
       ...messages.slice(-8).map((msg: any) => ({
         role: msg.role === 'user' ? 'user' : 'assistant',
         content: msg.content,
@@ -568,6 +622,57 @@ DATABASE RESULTS:${dbContext}`;
     const textContent = data.choices?.[0]?.message?.content;
     if (!textContent) throw new Error('No response generated from AI');
 
+    // --- Procurement-only additive fields --------------------------------
+    // deno-lint-ignore no-explicit-any
+    const procurementExtras: Record<string, any> = {};
+    if (matchResult) {
+      const resultCount = matchResult.own.length + matchResult.external.length + (matchResult.dealerSummary?.dealerCount ?? 0);
+      try {
+        await supabaseAdmin.from('sourcing_signals').insert({
+          user_id: callerUserId,
+          requested_oem: requirement.oem ?? null,
+          requested_model: requirement.model ?? null,
+          required_payload_kg: matchResult.requiredPayload,
+          required_reach_mm: requirement.requiredReachMm ?? null,
+          application: requirement.application ?? null,
+          budget_min: null,
+          budget_max: requirement.budgetMax ?? null,
+          buyer_location: location ?? null,
+          timeline: null,
+          matched_tier: matchResult.tier,
+          result_count: resultCount,
+          source_channel: 'site_ai',
+        });
+      } catch (e) {
+        console.error('sourcing_signals insert failed (non-fatal):', e);
+      }
+
+      if (matchResult.tier === 3 && !visibleTabs.includes('external')) visibleTabs = [...visibleTabs, 'external'];
+
+      const priced = matchResult.external.filter((e) => e.landedCost);
+      procurementExtras.procurementMode = true;
+      procurementExtras.requiredPayload = matchResult.requiredPayload;
+      procurementExtras.assumedGripper = matchResult.assumedGripper;
+      procurementExtras.tier = matchResult.tier;
+      procurementExtras.externalCount = matchResult.external.length;
+      procurementExtras.landedCostSummary = priced.length
+        ? {
+            minTotalInr: Math.min(...priced.map((e) => e.landedCost!.totalInr)),
+            maxTotalInr: Math.max(...priced.map((e) => e.landedCost!.totalInr)),
+            count: priced.length,
+            provisional: true,
+          }
+        : null;
+      // Client-safe payload: models + own + external + dealer AGGREGATES only.
+      procurementExtras.procurement = {
+        requirement,
+        models: matchResult.models,
+        own: matchResult.own,
+        dealerSummary: matchResult.dealerSummary,
+        external: matchResult.external,
+      };
+    }
+
     return new Response(JSON.stringify({
       content: textContent,
       intents,
@@ -583,6 +688,7 @@ DATABASE RESULTS:${dbContext}`;
         sellers: 0,
         blogs: blogs.length,
       },
+      ...procurementExtras,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

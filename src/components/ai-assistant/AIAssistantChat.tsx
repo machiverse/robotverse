@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAIAssistantContext, AIMessage, ResultCounts } from "@/contexts/AIAssistantContext";
+import { useAIAssistantContext, AIMessage, ResultCounts, ExternalListing } from "@/contexts/AIAssistantContext";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
@@ -66,6 +66,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
     lastResultCounts,
     lastUserQuery,
     visibleTabs,
+    lastProcurement,
   } = useAIAssistantContext();
 
   const [input, setInput] = useState("");
@@ -231,6 +232,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
                     resultCounts={isLastAssistant ? lastResultCounts : null}
                     isLastAssistant={isLastAssistant}
                     visibleTabs={isLastAssistant ? visibleTabs : []}
+                    externalListings={isLastAssistant ? lastProcurement?.external : undefined}
                   />
                 );
               })}
@@ -436,7 +438,8 @@ const MessageBubble: React.FC<{
   resultCounts?: ResultCounts | null;
   isLastAssistant?: boolean;
   visibleTabs?: string[];
-}> = ({ message, resultCounts, isLastAssistant, visibleTabs = [] }) => {
+  externalListings?: ExternalListing[];
+}> = ({ message, resultCounts, isLastAssistant, visibleTabs = [], externalListings }) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
@@ -519,7 +522,7 @@ const MessageBubble: React.FC<{
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
         ) : isLastAssistant && resultCounts ? (
-          <ResultTabsView content={message.content} resultCounts={resultCounts} visibleTabs={visibleTabs} />
+          <ResultTabsView content={message.content} resultCounts={resultCounts} visibleTabs={visibleTabs} externalListings={externalListings} />
         ) : (
           <div
             className="prose prose-sm dark:prose-invert max-w-none
