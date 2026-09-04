@@ -336,6 +336,24 @@ serve(async (req) => {
     const latestQuery = userQuery || messages[messages.length - 1]?.content || '';
     const { intents, location } = identifyIntent(latestQuery);
 
+    // ---------------------------------------------------------------------
+    // PROCUREMENT MODE (additive). Deterministic extraction + matching only;
+    // the LLM never decides which robots match. Non-procurement queries fall
+    // through to the existing pipeline completely unchanged.
+    // ---------------------------------------------------------------------
+    const requirement = extractRequirement(latestQuery);
+    const procurementMode = isProcurementQuery(requirement, latestQuery);
+    let matchResult: MatchResult | null = null;
+    if (procurementMode) {
+      try {
+        matchResult = await matchRobots(supabaseAdmin, requirement);
+        console.log('Procurement match:', JSON.stringify({ requiredPayload: matchResult.requiredPayload, tier: matchResult.tier, models: matchResult.models.length, own: matchResult.own.length, external: matchResult.external.length }));
+      } catch (e) {
+        console.error('Procurement matcher failed, falling back to generic pipeline:', e);
+        matchResult = null;
+      }
+    }
+
     // Determine if this is a robot-focused query (no spare/service/maintenance intent)
     const isRobotOnly = (intents.includes('robot') || intents.some(i => ['welding', 'palletizing', 'pick and place', 'painting', 'assembly', 'machine tending', 'inspection', 'packaging', 'grinding'].includes(i)))
       && !intents.includes('spare') && !intents.includes('maintenance') && !intents.includes('general');
