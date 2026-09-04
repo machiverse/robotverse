@@ -232,6 +232,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
                     resultCounts={isLastAssistant ? lastResultCounts : null}
                     isLastAssistant={isLastAssistant}
                     visibleTabs={isLastAssistant ? visibleTabs : []}
+                    externalListings={isLastAssistant ? lastProcurement?.external : undefined}
                   />
                 );
               })}
@@ -437,7 +438,8 @@ const MessageBubble: React.FC<{
   resultCounts?: ResultCounts | null;
   isLastAssistant?: boolean;
   visibleTabs?: string[];
-}> = ({ message, resultCounts, isLastAssistant, visibleTabs = [] }) => {
+  externalListings?: ExternalListing[];
+}> = ({ message, resultCounts, isLastAssistant, visibleTabs = [], externalListings }) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
@@ -520,7 +522,7 @@ const MessageBubble: React.FC<{
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
         ) : isLastAssistant && resultCounts ? (
-          <ResultTabsView content={message.content} resultCounts={resultCounts} visibleTabs={visibleTabs} externalListings={lastProcurement?.external} />
+          <ResultTabsView content={message.content} resultCounts={resultCounts} visibleTabs={visibleTabs} externalListings={externalListings} />
         ) : (
           <div
             className="prose prose-sm dark:prose-invert max-w-none
