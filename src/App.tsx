@@ -9,6 +9,8 @@ import { useChatNotifications } from "@/hooks/useChatNotifications";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import AccountStatus from "./pages/AccountStatus";
+import ModerationGate from "./components/moderation/ModerationGate";
 import RobotComparison from "./pages/RobotComparison";
 import Robots from "./pages/Robots";
 import RobotDetails from "./pages/RobotDetails";
