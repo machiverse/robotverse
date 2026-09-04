@@ -25,6 +25,7 @@ import AdminApiKeys from "./admin/AdminApiKeys";
 import AdminAuctionWinners from "./admin/AdminAuctionWinners";
 import AdminAllBids from "./admin/AdminAllBids";
 import AdminSourcingSignals from "./admin/AdminSourcingSignals";
+import AdminModeration from "./admin/AdminModeration";
 
 interface AdminDashboardLayoutProps {
   userProfile: any;
