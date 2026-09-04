@@ -313,6 +313,7 @@ serve(async (req) => {
   const authHeader = req.headers.get('Authorization');
   const bearer = authHeader?.replace('Bearer ', '').trim() ?? '';
   const isInternal = bearer.length > 0 && bearer === (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '__none__');
+  let callerUserId: string | null = null;
   if (!isInternal && bearer) {
     try {
       const _authClient = createClient(
@@ -322,6 +323,7 @@ serve(async (req) => {
       );
       const { data: _userData } = await _authClient.auth.getUser();
       if (!_userData?.user) console.log('Assistant called as guest (no user session)');
+      else callerUserId = _userData.user.id;
     } catch (_e) {
       console.log('Assistant guest fallback');
     }
@@ -577,7 +579,7 @@ ${JSON.stringify({
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
     const aiMessages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: finalSystemPrompt },
       ...messages.slice(-8).map((msg: any) => ({
         role: msg.role === 'user' ? 'user' : 'assistant',
         content: msg.content,
