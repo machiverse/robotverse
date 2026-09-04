@@ -183,7 +183,7 @@ export function extractRequirement(text: string): Requirement {
   return req;
 }
 
-const BUY_INTENT = /\b(need|buy|purchase|procure|procurement|source|sourcing|looking for|want|require|requirement|quote|quotation|budget|price for|cost of)\b/i;
+const BUY_INTENT = /\b(need|buy|purchase|procure|procurement|source|sourcing|looking for|want|require|requirement|quote|quotation|budget|price|cost|pricing)\b/i;
 
 export function isProcurementQuery(requirement: Requirement, rawText: string): boolean {
   const hasFigure =
