@@ -587,6 +587,57 @@ DATABASE RESULTS:${dbContext}`;
     const textContent = data.choices?.[0]?.message?.content;
     if (!textContent) throw new Error('No response generated from AI');
 
+    // --- Procurement-only additive fields --------------------------------
+    // deno-lint-ignore no-explicit-any
+    const procurementExtras: Record<string, any> = {};
+    if (matchResult) {
+      const resultCount = matchResult.own.length + matchResult.external.length + (matchResult.dealerSummary?.dealerCount ?? 0);
+      try {
+        await supabaseAdmin.from('sourcing_signals').insert({
+          user_id: callerUserId,
+          requested_oem: requirement.oem ?? null,
+          requested_model: requirement.model ?? null,
+          required_payload_kg: matchResult.requiredPayload,
+          required_reach_mm: requirement.requiredReachMm ?? null,
+          application: requirement.application ?? null,
+          budget_min: null,
+          budget_max: requirement.budgetMax ?? null,
+          buyer_location: location ?? null,
+          timeline: null,
+          matched_tier: matchResult.tier,
+          result_count: resultCount,
+          source_channel: 'site_ai',
+        });
+      } catch (e) {
+        console.error('sourcing_signals insert failed (non-fatal):', e);
+      }
+
+      if (matchResult.tier === 3 && !visibleTabs.includes('external')) visibleTabs = [...visibleTabs, 'external'];
+
+      const priced = matchResult.external.filter((e) => e.landedCost);
+      procurementExtras.procurementMode = true;
+      procurementExtras.requiredPayload = matchResult.requiredPayload;
+      procurementExtras.assumedGripper = matchResult.assumedGripper;
+      procurementExtras.tier = matchResult.tier;
+      procurementExtras.externalCount = matchResult.external.length;
+      procurementExtras.landedCostSummary = priced.length
+        ? {
+            minTotalInr: Math.min(...priced.map((e) => e.landedCost!.totalInr)),
+            maxTotalInr: Math.max(...priced.map((e) => e.landedCost!.totalInr)),
+            count: priced.length,
+            provisional: true,
+          }
+        : null;
+      // Client-safe payload: models + own + external + dealer AGGREGATES only.
+      procurementExtras.procurement = {
+        requirement,
+        models: matchResult.models,
+        own: matchResult.own,
+        dealerSummary: matchResult.dealerSummary,
+        external: matchResult.external,
+      };
+    }
+
     return new Response(JSON.stringify({
       content: textContent,
       intents,
@@ -602,6 +653,7 @@ DATABASE RESULTS:${dbContext}`;
         sellers: 0,
         blogs: blogs.length,
       },
+      ...procurementExtras,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
