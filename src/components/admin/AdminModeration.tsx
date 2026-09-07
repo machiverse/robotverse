@@ -214,7 +214,7 @@ const UserDetailPanel: React.FC<{
 }> = ({ profile, reasons, active, adminId, onChanged }) => {
   const { toast } = useToast();
   const [trust, setTrust] = useState<TrustRow | null>(null);
-  const [counts, setCounts] = useState({ robots: 0, parts: 0, services: 0 });
+  const [counts, setCounts] = useState({ robots: 0, parts: 0, services: 0, blogs: 0, posts: 0, auctions: 0, jobs: 0 });
   const [deals, setDeals] = useState<any[]>([]);
   const [history, setHistory] = useState<ModerationRecord[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
@@ -224,7 +224,7 @@ const UserDetailPanel: React.FC<{
 
   const uid = profile.user_id;
   const loadDetail = async () => {
-    const [t, r, sp, sv, d, h, tk] = await Promise.all([
+    const [t, r, sp, sv, d, h, tk, bl, cp, au, tj] = await Promise.all([
       (supabase as any).from("user_trust").select("*").eq("user_id", uid).maybeSingle(),
       (supabase as any).from("robots").select("id", { count: "exact", head: true }).eq("seller_id", uid),
       (supabase as any).from("spare_parts").select("id", { count: "exact", head: true }).eq("seller_id", uid),
@@ -232,9 +232,16 @@ const UserDetailPanel: React.FC<{
       (supabase as any).from("deals").select("id, status, created_at, seller_id, buyer_id, deal_value, final_amount, amount").or(`seller_id.eq.${uid},buyer_id.eq.${uid}`).order("created_at", { ascending: false }).limit(10),
       (supabase as any).from("user_moderation").select("*").eq("user_id", uid).order("actioned_at", { ascending: false }),
       (supabase as any).from("support_tickets").select("id, ticket_id, subject, status, created_at").eq("user_id", uid).neq("status", "closed").neq("status", "resolved").order("created_at", { ascending: false }).limit(10),
+      (supabase as any).from("blogs").select("id", { count: "exact", head: true }).eq("author_id", uid).eq("status", "published"),
+      (supabase as any).from("community_posts").select("id", { count: "exact", head: true }).eq("author_id", uid).eq("status", "published"),
+      (supabase as any).from("auctions").select("id", { count: "exact", head: true }).eq("seller_id", uid),
+      (supabase as any).from("talent_jobs").select("id", { count: "exact", head: true }).eq("employer_id", uid),
     ]);
     setTrust(t.data ?? null);
-    setCounts({ robots: r.count ?? 0, parts: sp.count ?? 0, services: sv.count ?? 0 });
+    setCounts({
+      robots: r.count ?? 0, parts: sp.count ?? 0, services: sv.count ?? 0,
+      blogs: bl.count ?? 0, posts: cp.count ?? 0, auctions: au.count ?? 0, jobs: tj.count ?? 0,
+    });
     setDeals(d.data ?? []);
     setHistory(h.data ?? []);
     setTickets(tk.data ?? []);
@@ -272,6 +279,8 @@ const UserDetailPanel: React.FC<{
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
           <Stat label="Robots" value={counts.robots} /><Stat label="Parts" value={counts.parts} /><Stat label="Services" value={counts.services} /><Stat label="Member since" value={fmt(profile.created_at)} />
         </div>
+
+        <ContentImpact counts={counts} suppressed={restricted} />
 
         {/* Trust signals (public-facing, positive only) */}
         <section>
@@ -349,13 +358,43 @@ const UserDetailPanel: React.FC<{
         </div>
       </CardContent>
 
-      <ActionDialog open={blockOpen} onOpenChange={setBlockOpen} profile={profile} reasons={reasons} adminId={adminId}
+      <ActionDialog open={blockOpen} onOpenChange={setBlockOpen} profile={profile} reasons={reasons} adminId={adminId} counts={counts}
         onDone={() => { setBlockOpen(false); loadDetail(); onChanged(); }} />
       {active && (
         <ReverseDialog open={reverseOpen} onOpenChange={setReverseOpen} record={active} adminId={adminId}
           onDone={() => { setReverseOpen(false); loadDetail(); onChanged(); }} />
       )}
     </Card>
+  );
+};
+
+export interface ContentCounts { robots: number; parts: number; services: number; blogs: number; posts: number; auctions: number; jobs: number }
+
+// Content impact — what a suspension/block will hide from the public site.
+// Suppression is a filter enforced by RLS via public.is_user_active(); nothing is deleted
+// and no business field (e.g. robots.availability) is touched.
+const ContentImpact: React.FC<{ counts: ContentCounts; suppressed?: boolean }> = ({ counts, suppressed }) => {
+  const rows: [string, number][] = [
+    ["Robot listings", counts.robots], ["Spare parts", counts.parts], ["Services", counts.services],
+    ["Published articles", counts.blogs], ["RoboBook posts", counts.posts], ["Auctions", counts.auctions], ["Talent jobs", counts.jobs],
+  ];
+  const total = rows.reduce((s, [, n]) => s + n, 0);
+  return (
+    <section className="rounded-md border p-3">
+      <h3 className="text-sm font-semibold mb-2">Content impact</h3>
+      <p className="text-xs text-muted-foreground mb-2">
+        {suppressed
+          ? `${total} item(s) are currently hidden from the public site. Reinstating restores them automatically.`
+          : `${total} item(s) would be hidden from the public site by a suspension or block. Nothing is deleted and stock availability is not changed.`}
+      </p>
+      <ul className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+        {rows.filter(([, n]) => n > 0).map(([label, n]) => (
+          <li key={label} className="rounded border px-2 py-1.5 flex justify-between gap-2"><span className="truncate">{label}</span><span className="font-semibold tabular-nums">{n}</span></li>
+        ))}
+      </ul>
+      {total === 0 && <p className="text-xs text-muted-foreground">No public content on this account.</p>}
+      <p className="text-xs text-muted-foreground mt-2">The seller profile page is also hidden while suppressed.</p>
+    </section>
   );
 };
 
@@ -373,8 +412,8 @@ const TrustToggle: React.FC<{ icon: React.ReactNode; label: string; checked: boo
 // Take-action dialog — confirm stays disabled until all gates pass
 // ============================================================
 const ActionDialog: React.FC<{
-  open: boolean; onOpenChange: (v: boolean) => void; profile: ProfileRow; reasons: BlockReason[]; adminId: string; onDone: () => void;
-}> = ({ open, onOpenChange, profile, reasons, adminId, onDone }) => {
+  open: boolean; onOpenChange: (v: boolean) => void; profile: ProfileRow; reasons: BlockReason[]; adminId: string; counts: ContentCounts; onDone: () => void;
+}> = ({ open, onOpenChange, profile, reasons, adminId, counts, onDone }) => {
   const { toast } = useToast();
   const [reasonCode, setReasonCode] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -504,6 +543,8 @@ const ActionDialog: React.FC<{
               <Input value={emailConfirm} onChange={(e) => setEmailConfirm(e.target.value)} placeholder={profile.email ?? ""} autoComplete="off" />
             </Field>
           )}
+
+          {(action === "suspension" || action === "permanent_block") && <ContentImpact counts={counts} />}
         </div>
 
         <DialogFooter>

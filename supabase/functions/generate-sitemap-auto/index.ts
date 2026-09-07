@@ -1,3 +1,4 @@
+import { getSuppressedUserIds } from '../_shared/suppressed.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 const corsHeaders = {
@@ -49,10 +50,14 @@ Deno.serve(async (req) => {
       })
     })
 
+    // Moderation: never list content owned by a suppressed account.
+    const suppressed = await getSuppressedUserIds(supabase)
+
     // Robots
     const { data: robots, error: robotsError } = await supabase
       .from('robots')
       .select('id, updated_at')
+      .not('seller_id', 'in', `(${suppressed.join(",") || "00000000-0000-0000-0000-000000000000"})`)
       .order('updated_at', { ascending: false })
 
     if (robotsError) {
@@ -73,6 +78,7 @@ Deno.serve(async (req) => {
     const { data: parts, error: partsError } = await supabase
       .from('spare_parts')
       .select('id, updated_at')
+      .not('seller_id', 'in', `(${suppressed.join(",") || "00000000-0000-0000-0000-000000000000"})`)
       .order('updated_at', { ascending: false })
 
     if (partsError) {
@@ -93,6 +99,7 @@ Deno.serve(async (req) => {
     const { data: services, error: servicesError } = await supabase
       .from('services')
       .select('id, updated_at')
+      .not('provider_id', 'in', `(${suppressed.join(",") || "00000000-0000-0000-0000-000000000000"})`)
       .order('updated_at', { ascending: false })
 
     if (servicesError) {
@@ -113,6 +120,7 @@ Deno.serve(async (req) => {
     const { data: posts, error: postsError } = await supabase
       .from('community_posts')
       .select('id, updated_at')
+      .not('author_id', 'in', `(${suppressed.join(",") || "00000000-0000-0000-0000-000000000000"})`)
       .eq('status', 'published')
       .order('updated_at', { ascending: false })
 

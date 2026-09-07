@@ -122,37 +122,36 @@ const wrap = (inner: string) => `
 </div>`;
 
 // ---- Enforcement helpers (service role) ----
+// Suppression is a MODERATION state held on profiles.account_status and enforced
+// at the data layer by RLS via public.is_user_active(). It is fully reversible and
+// never touches business fields — in particular robots.availability is left alone,
+// because that is legitimate stock data, not a suppression flag.
 async function enforce(admin: any, rec: any) {
   const uid = rec.user_id as string;
-  const disabled: string[] = [];
 
   if (rec.action === "suspension" || rec.action === "permanent_block") {
-    // Disable listings: robots -> availability 'unavailable' (remember ids for reversal)
-    const { data: robots } = await admin.from("robots").select("id").eq("seller_id", uid).eq("availability", "available");
-    const ids = (robots || []).map((r: any) => r.id);
-    if (ids.length) {
-      await admin.from("robots").update({ availability: "unavailable" }).in("id", ids);
-      disabled.push(...ids);
-    }
+    await admin.from("profiles").update({
+      account_status: rec.action === "permanent_block" ? "blocked" : "suspended",
+      content_suppressed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq("user_id", uid);
+
     // Close active enquiries / leads
     await admin.from("user_requests").update({ status: "closed" }).eq("user_id", uid).in("status", ["pending", "responded", "unlocked"]);
     await admin.from("user_requests").update({ status: "closed" }).eq("seller_id", uid).in("status", ["pending", "responded", "unlocked"]);
     await admin.from("seller_leads").update({ status: "closed_lost" }).eq("seller_id", uid).in("status", ["new", "contacted", "quoted", "negotiating"]);
+  }
 
-    if (disabled.length) {
-      const merged = Array.from(new Set([...(rec.related_listing_ids || []), ...disabled]));
-      await admin.from("user_moderation").update({ related_listing_ids: merged }).eq("id", rec.id);
-    }
+  if (rec.action === "warning") {
+    // A warning applies no restriction.
+    await admin.from("profiles").update({ account_status: "active", content_suppressed_at: null, updated_at: new Date().toISOString() }).eq("user_id", uid);
   }
 
   if (rec.action === "reinstated") {
-    // Restore listings that were paused by the original (now inactive) record(s)
-    const { data: prior } = await admin.from("user_moderation").select("related_listing_ids")
-      .eq("user_id", uid).eq("is_active", false).in("action", ["suspension", "permanent_block"]);
-    const ids = Array.from(new Set((prior || []).flatMap((p: any) => p.related_listing_ids || [])));
-    if (ids.length) await admin.from("robots").update({ availability: "available" }).in("id", ids).eq("seller_id", uid);
+    // Content reappears automatically through RLS — no per-row restore logic.
+    await admin.from("profiles").update({ account_status: "active", content_suppressed_at: null, updated_at: new Date().toISOString() }).eq("user_id", uid);
   }
-  return disabled.length;
+  return 0;
 }
 
 serve(async (req) => {

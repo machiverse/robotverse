@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getSuppressedUserIds, excludeSuppressed } from "../_shared/suppressed.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -17,6 +18,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    // Moderation: never list content owned by a suppressed account.
+    const suppressed = await getSuppressedUserIds(supabase);
 
     // Get the base URL from request
     const baseUrl = new URL(req.url).origin.replace(/functions\/.*/, "").replace(/\/$/, "");
@@ -25,6 +28,7 @@ serve(async (req) => {
     const { data: robots, error: robotsError } = await supabase
       .from("robots")
       .select("id, updated_at, brand, model")
+      .not("seller_id", "in", `(${suppressed.join(",") || "00000000-0000-0000-0000-000000000000"})`)
       .order("updated_at", { ascending: false });
 
     if (robotsError) throw robotsError;
@@ -33,6 +37,7 @@ serve(async (req) => {
     const { data: blogs, error: blogsError } = await supabase
       .from("blogs")
       .select("id, updated_at")
+      .not("author_id", "in", `(${suppressed.join(",") || "00000000-0000-0000-0000-000000000000"})`)
       .eq("status", "published")
       .order("updated_at", { ascending: false });
 
@@ -42,6 +47,7 @@ serve(async (req) => {
     const { data: posts, error: postsError } = await supabase
       .from("community_posts")
       .select("id, updated_at")
+      .not("author_id", "in", `(${suppressed.join(",") || "00000000-0000-0000-0000-000000000000"})`)
       .eq("status", "published")
       .order("updated_at", { ascending: false });
 
@@ -51,6 +57,7 @@ serve(async (req) => {
     const { data: parts, error: partsError } = await supabase
       .from("spare_parts")
       .select("id, updated_at")
+      .not("seller_id", "in", `(${suppressed.join(",") || "00000000-0000-0000-0000-000000000000"})`)
       .order("updated_at", { ascending: false });
 
     if (partsError) throw partsError;
@@ -59,6 +66,7 @@ serve(async (req) => {
     const { data: services, error: servicesError } = await supabase
       .from("services")
       .select("id, updated_at")
+      .not("provider_id", "in", `(${suppressed.join(",") || "00000000-0000-0000-0000-000000000000"})`)
       .order("updated_at", { ascending: false });
 
     if (servicesError) throw servicesError;

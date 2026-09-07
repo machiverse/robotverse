@@ -302,9 +302,33 @@ async function buildPage(supabase: any, path: string): Promise<Page> {
   return { ...homePage(), canonical: clean };
 }
 
+// Moderation: this function uses the service role and bypasses RLS, so it must
+// apply the same suppression the database applies to browsers. Content owned by
+// an account whose profiles.account_status is not 'active' is served as
+// not-found / excluded from lists. Suppression is reversible; nothing is deleted.
+let _supCache: { at: number; list: string[] } | null = null;
+async function suppressedIds(supabase: any): Promise<string[]> {
+  if (_supCache && Date.now() - _supCache.at < 60_000) return _supCache.list;
+  try {
+    const { data } = await supabase.from("profiles").select("user_id").neq("account_status", "active");
+    const list = (data ?? []).map((r: any) => r.user_id).filter(Boolean);
+    _supCache = { at: Date.now(), list };
+    return list;
+  } catch (_e) {
+    return [];
+  }
+}
+function supFilter(list: string[]): string {
+  return `(${list.join(",") || "00000000-0000-0000-0000-000000000000"})`;
+}
+async function isSuppressed(supabase: any, ownerId: string | null | undefined): Promise<boolean> {
+  if (!ownerId) return false;
+  return (await suppressedIds(supabase)).includes(ownerId);
+}
+
 async function robotDetail(supabase: any, id: string): Promise<Page> {
   const { data: r } = await supabase.from("robots").select("*").eq("id", id).maybeSingle();
-  if (!r) {
+  if (!r || await isSuppressed(supabase, r.seller_id)) {
     console.log(`prerender: robot ${id} not found`);
     return { ...homePage(), canonical: `/robots/${id}`, noIndex: true };
   }
@@ -427,6 +451,7 @@ async function brandRobots(supabase: any, brand: string, canonical: string, used
     .from("robots")
     .select("id, brand, model, name, year_manufactured, price, currency, location, images")
     .ilike("brand", label)
+    .not("seller_id", "in", supFilter(await suppressedIds(supabase)))
     .order("updated_at", { ascending: false })
     .limit(60);
   if (usedOnly) q = q.neq("condition", "new");
@@ -460,6 +485,7 @@ async function cityRobots(supabase: any, city: string): Promise<Page> {
     .from("robots")
     .select("id, brand, model, name, year_manufactured, price, currency, location, images")
     .ilike("location", `%${label}%`)
+    .not("seller_id", "in", supFilter(await suppressedIds(supabase)))
     .order("updated_at", { ascending: false })
     .limit(60);
   const rows = data ?? [];
@@ -485,6 +511,7 @@ async function applicationRobots(supabase: any, app: string): Promise<Page> {
     .from("robots")
     .select("id, brand, model, name, year_manufactured, price, currency, location, images, applications, robot_type")
     .or(`robot_type.ilike.%${label}%,applications.cs.{${label}}`)
+    .not("seller_id", "in", supFilter(await suppressedIds(supabase)))
     .order("updated_at", { ascending: false })
     .limit(60);
   const rows = data ?? [];
@@ -510,6 +537,7 @@ async function partsList(supabase: any, field: "brand" | "category", value: stri
     .from("spare_parts")
     .select("id, name, brand, model, part_number, price, currency, location, images, category, main_category")
     .or(field === "brand" ? `brand.ilike.%${label}%` : `category.ilike.%${label}%,main_category.ilike.%${label}%`)
+    .not("seller_id", "in", supFilter(await suppressedIds(supabase)))
     .order("updated_at", { ascending: false })
     .limit(60);
   const rows = data ?? [];
@@ -546,7 +574,7 @@ async function partsList(supabase: any, field: "brand" | "category", value: stri
 
 async function partDetail(supabase: any, id: string): Promise<Page> {
   const { data: p } = await supabase.from("spare_parts").select("*").eq("id", id).maybeSingle();
-  if (!p) {
+  if (!p || await isSuppressed(supabase, p.seller_id)) {
     console.log(`prerender: spare part ${id} not found`);
     return { ...homePage(), canonical: `/parts/${id}`, noIndex: true };
   }
@@ -625,7 +653,7 @@ async function partDetail(supabase: any, id: string): Promise<Page> {
 
 async function serviceDetail(supabase: any, id: string): Promise<Page> {
   const { data: s } = await supabase.from("services").select("*").eq("id", id).maybeSingle();
-  if (!s) {
+  if (!s || await isSuppressed(supabase, s.provider_id)) {
     console.log(`prerender: service ${id} not found`);
     return { ...homePage(), canonical: `/services/${id}`, noIndex: true };
   }

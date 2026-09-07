@@ -118,6 +118,31 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
       meta = data;
+
+      // Moderation: service-role client bypasses RLS, so suppress content owned by
+      // an account whose profiles.account_status is not 'active' (reversible filter).
+      if (meta) {
+        const OWNER: Record<string, [string, string]> = {
+          robot: ["robots", "seller_id"],
+          spare_part: ["spare_parts", "seller_id"],
+          service: ["services", "provider_id"],
+          blog: ["blogs", "author_id"],
+          community_post: ["community_posts", "author_id"],
+        };
+        const owner = OWNER[lookup.content_type];
+        if (owner) {
+          const [table, col] = owner;
+          const { data: rec } = await supabase.from(table).select(col).eq("id", meta.content_id).maybeSingle();
+          const ownerId = (rec as any)?.[col] ?? null;
+          if (ownerId) {
+            const { data: prof } = await supabase.from("profiles").select("account_status").eq("user_id", ownerId).maybeSingle();
+            if (prof && (prof as any).account_status !== "active") meta = null;
+          }
+        } else if (lookup.content_type === "profile") {
+          const { data: prof } = await supabase.from("profiles").select("account_status").eq("user_id", meta.content_id).maybeSingle();
+          if (prof && (prof as any).account_status !== "active") meta = null;
+        }
+      }
     }
 
     if (!meta) {
