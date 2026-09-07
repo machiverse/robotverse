@@ -3274,6 +3274,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string
           account_type: string | null
           avatar_url: string | null
           average_rating: number | null
@@ -3282,6 +3283,7 @@ export type Database = {
           company_logo_url: string | null
           company_name: string | null
           completed_sales: number | null
+          content_suppressed_at: string | null
           country: string | null
           created_at: string
           credits_balance: number | null
@@ -3323,6 +3325,7 @@ export type Database = {
           warehouse_storage: boolean | null
         }
         Insert: {
+          account_status?: string
           account_type?: string | null
           avatar_url?: string | null
           average_rating?: number | null
@@ -3331,6 +3334,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           completed_sales?: number | null
+          content_suppressed_at?: string | null
           country?: string | null
           created_at?: string
           credits_balance?: number | null
@@ -3372,6 +3376,7 @@ export type Database = {
           warehouse_storage?: boolean | null
         }
         Update: {
+          account_status?: string
           account_type?: string | null
           avatar_url?: string | null
           average_rating?: number | null
@@ -3380,6 +3385,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           completed_sales?: number | null
+          content_suppressed_at?: string | null
           country?: string | null
           created_at?: string
           credits_balance?: number | null
@@ -6486,6 +6492,7 @@ export type Database = {
         Args: { p_item_id: string; p_item_type: string; p_user_id: string }
         Returns: boolean
       }
+      is_user_active: { Args: { check_user_id: string }; Returns: boolean }
       is_user_restricted: { Args: { _user_id: string }; Returns: boolean }
       place_auction_bid: {
         Args: {

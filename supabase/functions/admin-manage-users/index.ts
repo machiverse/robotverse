@@ -115,8 +115,10 @@ Deno.serve(async (req) => {
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
-      // Mark profile
-      await adminClient.from('profiles').update({ registration_complete: false, updated_at: new Date().toISOString() }).eq('user_id', user_id)
+      // Mark profile. account_status is the moderation state enforced by RLS via
+      // public.is_user_active(), so deactivating also hides the user's public content.
+      // Reversible: activating restores it. Business fields are left untouched.
+      await adminClient.from('profiles').update({ registration_complete: false, account_status: 'suspended', content_suppressed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('user_id', user_id)
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
@@ -126,7 +128,7 @@ Deno.serve(async (req) => {
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
-      await adminClient.from('profiles').update({ registration_complete: true, updated_at: new Date().toISOString() }).eq('user_id', user_id)
+      await adminClient.from('profiles').update({ registration_complete: true, account_status: 'active', content_suppressed_at: null, updated_at: new Date().toISOString() }).eq('user_id', user_id)
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
