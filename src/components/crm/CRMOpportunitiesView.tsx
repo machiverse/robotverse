@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +10,7 @@ import {
   Search,
   Plus,
   Target,
-  DollarSign,
-  Calendar,
   MoreHorizontal,
-  Edit,
-  Trash,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -89,12 +84,7 @@ const CRMOpportunitiesView = ({ crmData }: CRMOpportunitiesViewProps) => {
     });
   };
 
-  // Group by stage for Kanban view
   const stages = Object.keys(STAGE_CONFIG);
-  const oppsByStage = stages.reduce((acc, stage) => {
-    acc[stage] = filteredOpportunities.filter(o => o.stage === stage);
-    return acc;
-  }, {} as Record<string, CRMOpportunity[]>);
 
   return (
     <div className="space-y-6">

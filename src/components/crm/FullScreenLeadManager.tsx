@@ -383,9 +383,9 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
   const unlockedLeadsCount = categoryFilteredLeads.filter((l) => l.is_unlocked).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+    <div className="flex min-h-[calc(100vh-148px)] flex-col overflow-hidden rounded-lg border border-foreground/10 bg-background">
       {/* Header */}
-      <header className="flex h-16 items-center justify-between border-b bg-background px-6">
+      <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-foreground/10 bg-background px-4">
         <div className="space-y-0.5">
           <h1 className="text-lg font-semibold tracking-tight">Lead Manager</h1>
           <p className="text-xs text-muted-foreground">CRM workspace for managing leads and buyer inquiries</p>

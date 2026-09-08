@@ -19,7 +19,6 @@ interface DashboardNavigationProps {
   showCollapseToggle?: boolean;
   onItemSelect: (id: string) => void;
   onCollapseToggle?: () => void;
-  onProfileEdit: () => void;
   onSignOut: () => void;
 }
 
@@ -45,7 +44,6 @@ const DashboardNavigation = ({
   showCollapseToggle = false,
   onItemSelect,
   onCollapseToggle,
-  onProfileEdit,
   onSignOut,
 }: DashboardNavigationProps) => {
   const renderItem = (item: DashboardNavItem, onSelect: () => void) => {

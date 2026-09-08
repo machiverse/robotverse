@@ -215,7 +215,6 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
     pipelineItems,
     activeItem: activeTab,
     onItemSelect: handleNavSelect,
-    onProfileEdit: handleProfileEdit,
     onSignOut: handleSignOut,
   };
 
