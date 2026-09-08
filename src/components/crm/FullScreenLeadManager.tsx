@@ -599,7 +599,12 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="overflow-x-auto rounded-lg border border-foreground/10 bg-card">
+                    <table className="w-full min-w-[980px] border-collapse text-[13px] leading-[1.4]">
+                      <thead className="sticky top-0 z-10 bg-card text-left text-[11px] font-normal uppercase tracking-[0.06em] text-foreground/45">
+                        <tr className="h-10 border-b border-foreground/10"><th className="px-4 font-normal">Buyer</th><th className="px-4 font-normal">Item</th><th className="px-4 font-normal">Status</th><th className="px-4 font-normal">Priority</th><th className="px-4 text-right font-normal">Created</th><th className="px-4 text-right font-normal">Actions</th></tr>
+                      </thead>
+                      <tbody>
                     {filteredLeads.map((lead) => {
                       const statusConfig = STATUS_CONFIG[lead.status];
                       const priorityConfig = PRIORITY_CONFIG[lead.priority];
@@ -607,12 +612,12 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                       const canUnlock = creditsBalance >= creditsNeeded;
 
                       return (
-                        <Card
+                        <tr
                           key={lead.id}
                           role="button"
                           tabIndex={0}
                           aria-label={`Open lead details for ${lead.buyer_name ?? "buyer"}`}
-                          className="group cursor-pointer overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:border-primary/20 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                          className="h-11 cursor-pointer border-b border-foreground/[0.06] text-foreground/65 transition-[background-color,color] duration-150 ease-out last:border-b-0 hover:bg-foreground/[0.03] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                           onClick={() => openLeadDetails(lead)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
@@ -621,153 +626,12 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                             }
                           }}
                         >
-                          <div className="flex items-stretch">
-                            <div className={`w-1 shrink-0 ${getStatusAccentColor(lead.status)}`} />
-                            <div className="flex-1 p-4">
-                              {/* Top row */}
-                              <div className="mb-3 flex items-start justify-between gap-4">
-                                <div className="flex items-center gap-3">
-                                  <div
-                                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-                                      lead.is_unlocked ? "bg-success/10 dark:bg-success/40" : "bg-muted"
-                                    }`}
-                                  >
-                                    {lead.is_unlocked ? (
-                                      <span className="text-base font-semibold text-success">
-                                        {(lead.buyer_name || "L").charAt(0).toUpperCase()}
-                                      </span>
-                                    ) : (
-                                      <Lock className="h-5 w-5 text-muted-foreground" />
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 space-y-0.5">
-                                    <div className="flex items-center gap-2">
-                                      <h4 className="max-w-[200px] truncate text-sm font-semibold text-foreground">
-                                        {getMaskedValue(lead.buyer_name, lead.is_unlocked)}
-                                      </h4>
-                                      {!lead.is_unlocked && (
-                                        <Badge variant="secondary" className="shrink-0 text-[10px]">
-                                          <Lock className="mr-1 h-3 w-3" />
-                                          Locked
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                      <Building2 className="h-3.5 w-3.5" />
-                                      <span className="truncate">
-                                        {getMaskedValue(lead.buyer_company, lead.is_unlocked)}
-                                      </span>
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="flex shrink-0 items-center gap-2">
-                                  <Badge
-                                    className={`${statusConfig.bg} ${statusConfig.color} border-0 text-xs font-medium`}
-                                  >
-                                    {statusConfig.label}
-                                  </Badge>
-                                  <Badge variant="outline" className={`${priorityConfig.color} text-xs font-medium`}>
-                                    {priorityConfig.label}
-                                  </Badge>
-                                </div>
-                              </div>
-
-                              {/* Contact info */}
-                              <div className="mb-3 flex flex-wrap items-center gap-4 text-sm">
-                                {isCommissionSeller ? (
-                                  <div className="flex gap-4 text-xs text-muted-foreground">
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <Phone className="h-3.5 w-3.5" />
-                                      Hidden — Use Platform
-                                    </span>
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <Mail className="h-3.5 w-3.5" />
-                                      Hidden — Use Platform
-                                    </span>
-                                  </div>
-                                ) : lead.is_unlocked ? (
-                                  <Fragment>
-                                    {lead.buyer_phone && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleCall(lead);
-                                        }}
-                                        className="inline-flex items-center gap-1.5 text-primary hover:underline"
-                                        aria-label={`Call ${lead.buyer_name ?? "buyer"}`}
-                                      >
-                                        <Phone className="h-3.5 w-3.5" />
-                                        {lead.buyer_phone}
-                                      </button>
-                                    )}
-                                    {lead.buyer_email && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEmail(lead);
-                                        }}
-                                        className="inline-flex items-center gap-1.5 text-primary hover:underline"
-                                        aria-label={`Email ${lead.buyer_name ?? "buyer"}`}
-                                      >
-                                        <Mail className="h-3.5 w-3.5" />
-                                        {lead.buyer_email}
-                                      </button>
-                                    )}
-                                  </Fragment>
-                                ) : (
-                                  <div className="flex gap-4 text-xs text-muted-foreground/60">
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <Phone className="h-3.5 w-3.5" />
-                                      ••••••••••
-                                    </span>
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <Mail className="h-3.5 w-3.5" />
-                                      ••••••••••
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Product info */}
-                              <div className="mb-3 flex items-center gap-3">
-                                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
-                                  {lead.item_image ? (
-                                    <img
-                                      src={lead.item_image}
-                                      alt={lead.item_name || "Product"}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="flex h-full w-full items-center justify-center">
-                                      <Package className="h-5 w-5 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="max-w-[220px] truncate text-sm font-medium">
-                                      {lead.item_name || "Unknown product"}
-                                    </span>
-                                    <Badge className="text-[11px] capitalize" variant="outline">
-                                      {lead.item_type}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Bottom row */}
-                              <div className="flex items-center justify-between gap-4 border-t border-border/50 pt-2">
-                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                  <span className="inline-flex items-center gap-1.5">
-                                    <Clock className="h-3.5 w-3.5" />
-                                    {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
-                                  </span>
-                                </div>
-
-                                <div className="flex items-center gap-2">
+                          <td className="px-4"><p className="max-w-[180px] truncate font-semibold text-foreground">{getMaskedValue(lead.buyer_name, lead.is_unlocked)}</p><p className="max-w-[180px] truncate text-[11px] text-foreground/45">{getMaskedValue(lead.buyer_company, lead.is_unlocked)}</p></td>
+                          <td className="px-4"><p className="max-w-[220px] truncate text-foreground">{lead.item_name || "Unknown item"}</p><p className="text-[11px] capitalize text-foreground/45">{lead.item_type.replace('_', ' ')}</p></td>
+                          <td className="px-4"><span className={`mr-2 inline-block h-1.5 w-1.5 rounded-full ${getStatusAccentColor(lead.status)}`} />{statusConfig.label}</td>
+                          <td className={`px-4 capitalize ${priorityConfig.color}`}>{priorityConfig.label}</td>
+                          <td className="px-4 text-right tabular-nums">{formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}</td>
+                          <td className="px-4"><div className="flex items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
                                   {!lead.is_unlocked ? (
                                     <Button
                                       size="sm"
@@ -779,7 +643,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                         handleUnlock(lead);
                                       }}
                                       disabled={(!isCommissionSeller && !canUnlock) || unlocking === lead.id}
-                                      className={`h-8 px-3 text-xs font-medium shadow-sm ${isCommissionSeller ? 'bg-success hover:bg-success' : ''}`}
+                                      className="h-8 px-3 text-xs font-semibold"
                                     >
                                       {unlocking === lead.id ? (
                                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -789,7 +653,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                       {isCommissionSeller ? 'Unlock (Free)' : `Unlock (${creditsNeeded} cr)`}
                                     </Button>
                                   ) : isCommissionSeller ? (
-                                    <div className="flex items-center gap-1.5">
+                                    <Fragment>
                                       <Button
                                         size="sm"
                                         variant="outline"
@@ -811,7 +675,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                           e.stopPropagation();
                                           handleWhatsApp(lead);
                                         }}
-                                        className="h-8 px-3 text-xs font-medium border-success/30 bg-success/10 text-success hover:bg-success/10"
+                                        className="h-8 px-3 text-xs font-semibold"
                                       >
                                         <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
                                         WhatsApp Platform
@@ -829,9 +693,9 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                         <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
                                         Quote
                                       </Button>
-                                    </div>
+                                    </Fragment>
                                   ) : (
-                                    <div className="flex items-center gap-1.5">
+                                    <Fragment>
                                       <Button
                                         size="sm"
                                         type="button"
@@ -852,7 +716,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                           e.stopPropagation();
                                           handleWhatsApp(lead);
                                         }}
-                                        className="h-8 px-3 text-xs font-medium border-success/30 bg-success/10 text-success hover:bg-success/10"
+                                        className="h-8 px-3 text-xs font-semibold"
                                       >
                                         <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
                                         WhatsApp
@@ -870,15 +734,14 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                         <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
                                         Quote
                                       </Button>
-                                    </div>
+                                    </Fragment>
                                   )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
+                          </div></td>
+                        </tr>
                       );
                     })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </TabsContent>
