@@ -20,6 +20,7 @@ import {
   Truck,
   CreditCard,
   User,
+  Building2,
   LogOut,
   Edit,
   ChevronDown,
