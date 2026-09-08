@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +20,14 @@ import {
   Truck,
   CreditCard,
   User,
-  Building2,
   LogOut,
   Edit,
   ChevronDown,
+  Menu,
+  LayoutDashboard,
+  Users,
+  Target,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +42,8 @@ import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDas
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
 import AdminDashboard from "@/components/dashboards/AdminDashboard";
+import DashboardNavigation, { type DashboardNavItem } from "@/components/dashboard/DashboardNavigation";
+import PipelineWorkspace from "@/components/dashboard/PipelineWorkspace";
 
 interface UnifiedDashboardProps {
   userProfile: any;
@@ -47,6 +53,12 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("");
+  const [isMobileLayout, setIsMobileLayout] = useState(() => typeof window !== "undefined" && window.innerWidth < 1024);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("robotverse-dashboard-sidebar-collapsed") === "true";
+  });
 
   // Get user roles - prioritize user_roles array, fallback to legacy fields
   const userRoles = userProfile?.user_roles?.length > 0 
@@ -66,6 +78,18 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
       setActiveTab(finalRoles[0]);
     }
   }, [finalRoles, activeTab]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1023px)");
+    const handleChange = () => setIsMobileLayout(mediaQuery.matches);
+    handleChange();
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("robotverse-dashboard-sidebar-collapsed", String(collapsed));
+  }, [collapsed]);
 
   const roleConfigs = {
     admin: {
@@ -156,31 +180,105 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
   const userName = userProfile?.full_name || userProfile?.display_name || user?.email || 'User';
   const companyName = userProfile?.company_name || 'RobotVerse';
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header with Company Name and User Menu */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Building2 className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-xl font-bold">{companyName}</h1>
-              <p className="text-sm text-muted-foreground">Industrial Robotics Platform</p>
-            </div>
-          </div>
+  const workspaceItems: DashboardNavItem[] = finalRoles.flatMap((role: string) => {
+    const config = roleConfigs[role];
+    return config ? [{ id: role, label: config.label, icon: config.icon }] : [];
+  });
 
-          {/* User Menu */}
+  const sellingRoles = ['seller', 'robot_seller', 'spare_parts_seller', 'service_provider', 'logistics_provider', 'finance_provider'];
+  const showPipeline = isAdmin || userRoles.some((role: string) => sellingRoles.includes(role));
+  const pipelineItems: DashboardNavItem[] = showPipeline ? [
+    { id: 'pipeline-overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'pipeline-leads', label: 'Leads', icon: Users },
+    { id: 'pipeline-opportunities', label: 'Opportunities', icon: Target },
+    { id: 'pipeline-accounts', label: 'Accounts', icon: Building2 },
+    { id: 'pipeline-activity', label: 'Activity', icon: Activity },
+    { id: 'pipeline-buy-leads', label: 'Buy Leads', icon: ShoppingCart },
+  ] : [];
+
+  const activeLabel = [...workspaceItems, ...pipelineItems].find((item) => item.id === activeTab)?.label || 'Dashboard';
+  const isPipelineActive = activeTab.startsWith('pipeline-');
+
+  const handleNavSelect = (itemId: string) => {
+    if (itemId === 'account-profile' || itemId === 'account-settings') {
+      handleProfileEdit();
+    } else {
+      setActiveTab(itemId);
+    }
+    setMobileOpen(false);
+  };
+
+  const navigationProps = {
+    companyName,
+    workspaceItems,
+    pipelineItems,
+    activeItem: activeTab,
+    onItemSelect: handleNavSelect,
+    onProfileEdit: handleProfileEdit,
+    onSignOut: handleSignOut,
+  };
+
+  return (
+    <TooltipProvider delayDuration={150}>
+      <div className="flex h-screen w-full overflow-hidden bg-muted/40">
+        {!isMobileLayout && (
+          <aside className={`h-screen shrink-0 overflow-hidden border-r border-foreground/10 transition-[width] duration-200 ease-out ${collapsed ? 'w-14' : 'w-60'}`}>
+            <DashboardNavigation
+              {...navigationProps}
+              collapsed={collapsed}
+              showCollapseToggle
+              onCollapseToggle={() => setCollapsed((current) => !current)}
+            />
+          </aside>
+        )}
+
+        {isMobileLayout && (
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetContent side="left" className="w-60 border-r border-foreground/10 p-0 transition duration-200 ease-out [&>button]:hidden">
+              <DashboardNavigation {...navigationProps} />
+            </SheetContent>
+          </Sheet>
+        )}
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-foreground/10 bg-background px-4">
+            <div className="flex min-w-0 items-center gap-3">
+              {isMobileLayout ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  onClick={() => setMobileOpen(true)}
+                  aria-label="Open dashboard navigation"
+                >
+                  <Menu className="h-4 w-4" strokeWidth={1.5} />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  onClick={() => setCollapsed((current) => !current)}
+                  aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                >
+                  <Menu className="h-4 w-4" strokeWidth={1.5} />
+                </Button>
+              )}
+              <span className="truncate text-[13px] font-normal leading-[1.4] text-foreground/65">Dashboard</span>
+              <span className="text-[13px] text-foreground/45">/</span>
+              <span className="truncate text-[13px] font-semibold leading-[1.4] text-foreground">{activeLabel}</span>
+            </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2 h-auto p-2">
+              <Button variant="ghost" className="flex h-9 items-center gap-2 rounded-md p-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={userProfile?.avatar_url} />
                   <AvatarFallback>{getInitials(userName)}</AvatarFallback>
                 </Avatar>
-                <div className="text-left hidden md:block">
-                  <p className="text-sm font-medium">{userName}</p>
-                                  </div>
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4" strokeWidth={1.5} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 bg-popover">
@@ -220,49 +318,32 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
                 Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+          </header>
+
+          <main className="min-h-0 flex-1 overflow-auto bg-muted/40">
+            <div className="mx-auto w-full max-w-[1400px] p-6">
+              {isPipelineActive ? (
+                <PipelineWorkspace activeView={activeTab} isCommissionSeller={isCommissionSeller} />
+              ) : (
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  {finalRoles.map((role: string) => {
+                    const config = roleConfigs[role];
+                    if (!config) return null;
+                    const DashboardComponent = config.component;
+                    return (
+                      <TabsContent key={role} value={role} className="m-0 space-y-6">
+                        <DashboardComponent userProfile={userProfile} isCommissionSeller={isCommissionSeller} />
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              )}
+            </div>
+          </main>
         </div>
-      </header>
-
-      {/* Main Dashboard Content */}
-      <div className="container mx-auto px-4 py-6">
-        {/* Real Data Notification */}
-        {/*<div className="mb-4 p-3 bg-success/10 border border-success/30 rounded-lg text-success text-sm">
-          ✅ All dashboard data is now live from your Supabase database - showing real robots, parts, services, and analytics.
-        </div>*/}
-        {/* Always show Tab Navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(finalRoles.length, 5)}, 1fr)` }}>
-            {finalRoles.slice(0, 5).map((role: string) => {
-              const config = roleConfigs[role];
-              if (!config) return null;
-              
-              return (
-                <TabsTrigger 
-                  key={role} 
-                  value={role}
-                  className="flex items-center justify-center py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <span className="text-sm font-medium">{config.label}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-
-          {finalRoles.map((role: string) => {
-            const config = roleConfigs[role];
-            if (!config) return null;
-            
-            const DashboardComponent = config.component;
-            return (
-              <TabsContent key={role} value={role} className="space-y-6">
-                <DashboardComponent userProfile={userProfile} isCommissionSeller={isCommissionSeller} />
-              </TabsContent>
-            );
-          })}
-        </Tabs>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
 
