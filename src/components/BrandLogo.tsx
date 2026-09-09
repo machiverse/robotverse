@@ -1,5 +1,4 @@
-import logoDark from "@/assets/logo-dark.png";
-import logoLight from "@/assets/logo-transparent.png";
+import logo from "@/assets/robotverse-logo.png";
 import { cn } from "@/lib/utils";
 
 type BrandLogoProps = {
@@ -25,29 +24,21 @@ const BrandLogo = ({ size = "md", variant = "full", className }: BrandLogoProps)
 
   return (
     <span className={cn("inline-flex shrink-0 items-center gap-2.5", className)}>
-      <span className={cn("relative block shrink-0", sizeClasses[size])}>
-        <img
-          src={logoLight}
-          alt="RobotVerse"
-          width={dimension}
-          height={dimension}
-          loading="eager"
-          decoding="async"
-          className="block h-full w-full object-contain dark:hidden"
-        />
-        <img
-          src={logoDark}
-          alt="RobotVerse"
-          width={dimension}
-          height={dimension}
-          loading="eager"
-          decoding="async"
-          className="hidden h-full w-full object-contain dark:block"
-        />
-      </span>
+      <img
+        src={logo}
+        alt="RobotVerse"
+        width={dimension}
+        height={dimension}
+        loading="eager"
+        decoding="async"
+        className={cn("block shrink-0 object-contain", sizeClasses[size])}
+      />
       {variant === "full" && (
-        <span className="relative top-px hidden whitespace-nowrap text-base font-semibold tracking-[-0.01em] text-foreground min-[400px]:inline">
-          RobotVerse
+        <span className="relative top-px hidden min-[400px]:flex flex-col whitespace-nowrap">
+          <span className="text-base font-semibold tracking-[-0.01em] text-foreground">RobotVerse</span>
+          <span className="text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            Industrial Robotics Marketplace
+          </span>
         </span>
       )}
     </span>

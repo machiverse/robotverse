@@ -12,7 +12,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
-            <BrandLogo size="lg" variant="mark" />
+            <BrandLogo size="lg" variant="full" />
 
             <p className="text-muted-foreground text-sm leading-relaxed">
               The ultimate marketplace for industrial robots, spare parts, and professional services. Connecting buyers,
