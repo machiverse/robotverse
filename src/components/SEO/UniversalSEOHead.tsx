@@ -16,7 +16,7 @@ import {
 } from '@/utils/seo/masterSEO';
 
 const BASE_URL = 'https://www.robotverse.in';
-const DEFAULT_OG_IMAGE = `${BASE_URL}/robotverse-logo.jpg`;
+const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.jpg`;
 const LOGO_URL = `${BASE_URL}/robotverse-logo.jpg`;
 
 interface UniversalSEOHeadProps {
