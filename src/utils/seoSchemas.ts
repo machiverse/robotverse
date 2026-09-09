@@ -203,7 +203,7 @@ export const generateArticleSchema = (article: {
   },
   "datePublished": article.datePublished,
   "dateModified": article.dateModified || article.datePublished,
-  "image": article.image || `${window.location.origin}/robotverse-logo.jpg`,
+  "image": article.image || `${window.location.origin}/og-image.jpg`,
   "publisher": {
     "@type": "Organization",
     "name": "RobotVerse",
