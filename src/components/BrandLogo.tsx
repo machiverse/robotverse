@@ -1,4 +1,4 @@
-import logo from "@/assets/robotverse-logo.png.asset.json";
+import logo from "@/assets/robotverse-logo.png";
 import { cn } from "@/lib/utils";
 
 type BrandLogoProps = {
@@ -25,7 +25,7 @@ const BrandLogo = ({ size = "md", variant = "full", className }: BrandLogoProps)
   return (
     <span className={cn("inline-flex shrink-0 items-center gap-2.5", className)}>
       <img
-        src={logo.url}
+        src={logo}
         alt="RobotVerse"
         width={dimension}
         height={dimension}
