@@ -639,7 +639,7 @@ export const generateHomeSEO = (): SEOMetadata => {
     keywords,
     ogTitle: title,
     ogDescription: description,
-    ogImage: '/robotverse-logo.jpg',
+    ogImage: '/og-image.jpg',
     twitterCard: 'summary_large_image',
     canonicalUrl: 'https://www.robotverse.in',
     slug: '',

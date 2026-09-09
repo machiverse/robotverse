@@ -32,7 +32,7 @@ export const AutoSEOHead = ({
   const fullTitle = title.includes('RobotVerse') ? title : `${title} | RobotVerse`;
   const fullDescription = description || 'India\'s leading marketplace for used industrial robots, spare parts, and automation services.';
   const keywordString = keywords.join(', ');
-  const defaultOgImage = ogImage || 'https://www.robotverse.in/robotverse-logo.jpg';
+  const defaultOgImage = ogImage || 'https://www.robotverse.in/og-image.jpg';
   
   useEffect(() => {
     // Update document title

@@ -5,7 +5,7 @@
 
 const BASE_URL = "https://www.robotverse.in";
 const LOGO_URL = `${BASE_URL}/robotverse-logo.jpg`;
-const OG_IMAGE_URL = `${BASE_URL}/robotverse-logo.jpg`;
+const OG_IMAGE_URL = `${BASE_URL}/og-image.jpg`;
 
 const absoluteUrl = (url?: string) => {
   if (!url) return BASE_URL;
