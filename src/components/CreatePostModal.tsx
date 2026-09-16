@@ -175,11 +175,11 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       errors.push('Title is required for blog articles and videos');
     }
 
-    if (!content.trim() && !mediaFile && !mediaUrl) {
+    if (!content.trim() && mediaFiles.length === 0 && !mediaUrl) {
       errors.push('Please add some content, upload a file, or provide a media URL');
     }
 
-    if (mediaFile && validationErrors.length > 0) {
+    if (mediaFiles.length > 0 && validationErrors.length > 0) {
       errors.push(...validationErrors);
     }
 
@@ -217,16 +217,15 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
 
     try {
       setIsSubmitting(true);
-      let uploadedMediaUrl = mediaUrl;
-      let mediaType = '';
+      const uploadedItems = await uploadAllFiles();
 
-      if (mediaFile) {
-        uploadedMediaUrl = await handleFileUpload(mediaFile);
-        mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
-      } else if (mediaUrl) {
+      if (mediaUrl) {
         const isVideo = /\.(mp4|webm|mov|avi)$/i.test(mediaUrl) || mediaUrl.includes('youtube') || mediaUrl.includes('vimeo');
-        mediaType = isVideo ? 'video' : 'image';
+        uploadedItems.push({ url: mediaUrl, type: isVideo ? 'video' : 'image' });
       }
+
+      const primary =
+        uploadedItems.find((i) => i.type === 'image' || i.type === 'video') || uploadedItems[0];
 
       const plain = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
       const excerpt = plain.length > 200 ? plain.substring(0, 200) + '...' : plain;
@@ -238,8 +237,9 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
         title: title.trim() || null,
         content: content.trim(),
         excerpt: excerpt,
-        media_url: uploadedMediaUrl || null,
-        media_type: mediaType || null,
+        media_url: primary?.url || null,
+        media_type: primary?.type || null,
+        media_items: uploadedItems,
         tags: tags,
         status,
         is_draft: mode === 'draft',
@@ -264,7 +264,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       setContent('');
       setTags([]);
       setTagInput('');
-      setMediaFile(null);
+      setMediaFiles([]);
       setMediaUrl('');
       setPostType('short_post');
       setValidationErrors([]);
