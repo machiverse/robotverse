@@ -155,95 +155,12 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const validateFile = (file: File): string[] => {
-    const errors: string[] = [];
-    
-    // Check file size
-    if (file.size > maxFileSize) {
-      errors.push(`File size must be less than 50MB. Current size: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+  const uploadAllFiles = async (): Promise<MediaItem[]> => {
+    const uploaded: MediaItem[] = [];
+    for (const file of mediaFiles) {
+      uploaded.push(await uploadPostFile(file));
     }
-    
-    // Check file type
-    const allAllowedTypes = [
-      ...allowedFileTypes.image,
-      ...allowedFileTypes.video,
-      ...allowedFileTypes.document
-    ];
-    
-    if (!allAllowedTypes.includes(file.type)) {
-      errors.push(`File type "${file.type}" is not supported. Allowed: JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI, PDF, DOC, DOCX`);
-    }
-    
-    return errors;
-  };
-
-  const handleFileSelect = (file: File | null) => {
-    if (!file) {
-      setMediaFile(null);
-      setValidationErrors([]);
-      return;
-    }
-    
-    const errors = validateFile(file);
-    setValidationErrors(errors);
-    
-    if (errors.length === 0) {
-      setMediaFile(file);
-      setMediaUrl(''); // Clear URL if file is selected
-    } else {
-      setMediaFile(null);
-    }
-  };
-
-  const handleFileButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    handleFileSelect(file);
-  };
-
-  const handleFileUpload = async (file: File) => {
-    try {
-      console.log('Starting file upload:', file.name, file.size, file.type);
-      
-      // Validate file before upload
-      const errors = validateFile(file);
-      if (errors.length > 0) {
-        throw new Error(errors.join(', '));
-      }
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `community-media/${fileName}`;
-      
-      console.log('Uploading to path:', filePath);
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('robot-images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
-
-      console.log('Upload successful:', uploadData);
-
-      const { data } = supabase.storage
-        .from('robot-images')
-        .getPublicUrl(filePath);
-
-      console.log('Public URL generated:', data.publicUrl);
-      return data.publicUrl;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
-    }
+    return uploaded;
   };
 
   const validateForm = (): string[] => {
