@@ -454,88 +454,33 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
             </div>
           </div>
 
-          {/* Enhanced Media Upload */}
+          {/* Media Upload (multiple images + documents) */}
           <div className="space-y-4">
-            <Label className="text-base font-semibold">Media Upload</Label>
-            
-            {/* Validation Errors */}
-            {validationErrors.length > 0 && (
-              <div className="border border-destructive rounded-lg p-3 bg-destructive/5">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm font-medium text-destructive">Upload Issues</span>
-                </div>
-                <ul className="text-xs text-destructive space-y-1">
-                  {validationErrors.map((error, index) => (
-                    <li key={index}>• {error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            <div className="space-y-4">
-              {/* File Upload with Preview */}
-              {!mediaFile ? (
-                <div className="border-2 border-dashed border-primary/25 rounded-xl p-8 bg-gradient-to-br from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-all">
-                  <div className="text-center">
-                    <div className="bg-primary/5 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                      <Upload className="h-8 w-8 text-primary" />
-                    </div>
-                    <h4 className="font-semibold text-foreground mb-2">Upload High-Quality Media</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Supported: JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI, PDF, DOC, DOCX (max 50MB)
-                    </p>
-                    
-                    {/* Hidden file input */}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    
-                    {/* Custom file upload button */}
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="rounded-full px-6"
-                      onClick={handleFileButtonClick}
-                      type="button"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Choose File
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <MediaPreview 
-                  file={mediaFile} 
-                  onRemove={() => handleFileSelect(null)} 
-                />
-              )}
+            <PostMediaPicker
+              files={mediaFiles}
+              onFilesChange={setMediaFiles}
+              errors={validationErrors}
+              onErrorsChange={setValidationErrors}
+            />
 
-              {/* URL Input */}
-              {!mediaFile && (
-                <div className="relative">
-                  <Label htmlFor="media-url" className="text-sm font-medium text-muted-foreground">
-                    Or embed from URL
-                  </Label>
-                  <Input
-                    id="media-url"
-                    value={mediaUrl}
-                    onChange={(e) => {
-                      setMediaUrl(e.target.value);
-                      if (e.target.value) setValidationErrors([]);
-                    }}
-                    placeholder="YouTube, Vimeo, or direct media URL"
-                    className="mt-2 h-12 text-base"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Supports YouTube, Vimeo, and direct image/video links
-                  </p>
-                </div>
-              )}
+            {/* URL Input */}
+            <div className="relative">
+              <Label htmlFor="media-url" className="text-sm font-medium text-muted-foreground">
+                Or embed from URL
+              </Label>
+              <Input
+                id="media-url"
+                value={mediaUrl}
+                onChange={(e) => {
+                  setMediaUrl(e.target.value);
+                  if (e.target.value) setValidationErrors([]);
+                }}
+                placeholder="YouTube, Vimeo, or direct media URL"
+                className="mt-2 h-12 text-base"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Supports YouTube, Vimeo, and direct image/video links
+              </p>
             </div>
           </div>
 
