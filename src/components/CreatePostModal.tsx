@@ -34,7 +34,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
-import MediaPreview from "@/components/MediaPreview";
+import PostMediaPicker from "@/components/community/PostMediaPicker";
+import { uploadPostFile, MediaItem } from "@/lib/postMedia";
 import RichTextEditor from "@/components/RichTextEditor";
 import { useNavigate } from "react-router-dom";
 
@@ -54,7 +55,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [mediaUrl, setMediaUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
