@@ -12,6 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import FormattedContent from "@/components/FormattedContent";
 import ResponsiveMedia from "@/components/ResponsiveMedia";
+import PostMediaGallery from "@/components/post/PostMediaGallery";
+import { normalizePostMedia } from "@/components/post/postMedia";
 import BlogSocialPreview from "@/components/blog/BlogSocialPreview";
 import PreviewLinkCard from "@/components/blog/PreviewLinkCard";
 import { buildRoboBookPostUrl, SITE_URL } from "@/utils/blogSeo";
