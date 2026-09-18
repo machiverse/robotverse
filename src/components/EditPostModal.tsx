@@ -25,8 +25,7 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import PostMediaPicker from "@/components/community/PostMediaPicker";
-import { MediaItem, readMediaItems, uploadPostFile } from "@/lib/postMedia";
+import MediaPreview from "@/components/MediaPreview";
 import RichTextEditor from "@/components/RichTextEditor";
 
 interface CommunityPost {
@@ -62,9 +61,8 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
   const [content, setContent] = useState(post.content || '');
   const [tags, setTags] = useState<string[]>(post.tags || []);
   const [tagInput, setTagInput] = useState('');
-  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const [existingItems, setExistingItems] = useState<MediaItem[]>(readMediaItems(post));
-  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaUrl, setMediaUrl] = useState(post.media_url || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [scheduledAt, setScheduledAt] = useState<string>('');
@@ -125,12 +123,82 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const uploadAllFiles = async (): Promise<MediaItem[]> => {
-    const uploaded: MediaItem[] = [];
-    for (const file of mediaFiles) {
-      uploaded.push(await uploadPostFile(file));
+  const validateFile = (file: File): string[] => {
+    const errors: string[] = [];
+    
+    if (file.size > maxFileSize) {
+      errors.push(`File size must be less than 50MB. Current size: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
     }
-    return uploaded;
+    
+    const allAllowedTypes = [
+      ...allowedFileTypes.image,
+      ...allowedFileTypes.video,
+      ...allowedFileTypes.document
+    ];
+    
+    if (!allAllowedTypes.includes(file.type)) {
+      errors.push(`File type "${file.type}" is not supported. Allowed: JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI, PDF, DOC, DOCX`);
+    }
+    
+    return errors;
+  };
+
+  const handleFileSelect = (file: File | null) => {
+    if (!file) {
+      setMediaFile(null);
+      setValidationErrors([]);
+      return;
+    }
+    
+    const errors = validateFile(file);
+    setValidationErrors(errors);
+    
+    if (errors.length === 0) {
+      setMediaFile(file);
+      setMediaUrl(''); // Clear URL if file is selected
+    } else {
+      setMediaFile(null);
+    }
+  };
+
+  const handleFileButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    handleFileSelect(file);
+  };
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      const errors = validateFile(file);
+      if (errors.length > 0) {
+        throw new Error(errors.join(', '));
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `community-media/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('robot-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('robot-images')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
   };
 
   const validateForm = (): string[] => {
