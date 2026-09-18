@@ -1236,6 +1236,7 @@ export type Database = {
           id: string
           is_draft: boolean
           like_count: number | null
+          media_items: Json
           media_type: string | null
           media_url: string | null
           meta_description: string | null
@@ -1275,6 +1276,7 @@ export type Database = {
           id?: string
           is_draft?: boolean
           like_count?: number | null
+          media_items?: Json
           media_type?: string | null
           media_url?: string | null
           meta_description?: string | null
@@ -1314,6 +1316,7 @@ export type Database = {
           id?: string
           is_draft?: boolean
           like_count?: number | null
+          media_items?: Json
           media_type?: string | null
           media_url?: string | null
           meta_description?: string | null
