@@ -88,3 +88,6 @@ verify_jwt = false
 
 [functions.prerender]
 verify_jwt = false
+
+[functions.send-moderation-email]
+verify_jwt = false

@@ -31,8 +31,6 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
 import { useRobotComparison } from "@/contexts/RobotComparisonContext";
-import robotverseLogo from "@/assets/robotverse-r-logo.png";
-import robotverseLogoLight from "@/assets/robotverse-r-logo-light.png";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { NAVIGATION_CONFIG } from "@/constants/navigationMenus";
 import { cn } from "@/lib/utils";
@@ -40,6 +38,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandLogo from "@/components/BrandLogo";
 
 const menuIcons: Record<string, React.ElementType> = {
   "Robot Parts": Cpu,
@@ -323,15 +322,12 @@ const EnhancedHeader = () => {
         {/* Top Header - Logo, Search, Icons */}
         <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-6">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 flex-shrink-0 group">
-            <img src={robotverseLogo} alt="RobotVerse Logo" className="h-11 w-11 object-contain dark:hidden" />
-            <img src={robotverseLogoLight} alt="" aria-hidden="true" className="h-11 w-11 object-contain hidden dark:block" />
-            <div className="hidden sm:block">
-              <span className="text-xl font-bold text-foreground tracking-tight">RobotVerse</span>
-              <p className="text-[10px] text-muted-foreground font-medium -mt-0.5 tracking-[0.06em]">
-                INDUSTRIAL ROBOTICS MARKETPLACE
-              </p>
-            </div>
+          <Link
+            to="/"
+            aria-label="RobotVerse home"
+            className="inline-flex shrink-0 rounded-sm transition-[opacity,transform] duration-150 ease-out hover:opacity-[0.85] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <BrandLogo />
           </Link>
 
           {/* Centered Search Bar */}

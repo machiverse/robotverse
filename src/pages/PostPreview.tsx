@@ -12,6 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import FormattedContent from "@/components/FormattedContent";
 import ResponsiveMedia from "@/components/ResponsiveMedia";
+import PostMediaGallery from "@/components/post/PostMediaGallery";
+import { normalizePostMedia } from "@/components/post/postMedia";
 import BlogSocialPreview from "@/components/blog/BlogSocialPreview";
 import PreviewLinkCard from "@/components/blog/PreviewLinkCard";
 import { buildRoboBookPostUrl, SITE_URL } from "@/utils/blogSeo";
@@ -113,6 +115,7 @@ const PostPreview = () => {
   const previewUrl = `${SITE_URL}/preview/${token}`;
   const statusLabel = post.status === "scheduled" ? "Scheduled" : "Draft";
   const isVideo = post.post_type === "video";
+  const previewMedia = normalizePostMedia(post.media_items, post.media_url, post.media_type);
 
   return (
     <div className="min-h-screen bg-background">
@@ -201,7 +204,11 @@ const PostPreview = () => {
               )}
             </div>
 
-            {featuredImage && (
+            {previewMedia.length > 0 ? (
+              <div className="px-5 sm:px-6 pb-5">
+                <PostMediaGallery items={previewMedia} title={post.title} />
+              </div>
+            ) : featuredImage ? (
               <div className="px-5 sm:px-6 pb-5">
                 <div className="rounded-lg overflow-hidden bg-muted/30">
                   <ResponsiveMedia
@@ -211,7 +218,7 @@ const PostPreview = () => {
                   />
                 </div>
               </div>
-            )}
+            ) : null}
 
             {post.content && (
               <div className="px-5 sm:px-6 pb-6">

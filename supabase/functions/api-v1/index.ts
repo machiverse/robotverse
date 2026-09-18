@@ -106,6 +106,22 @@ function paginate(url: URL) {
   return { limit, offset };
 }
 
+
+// Moderation: the API uses the service role and bypasses RLS, so it applies the
+// same suppression the database applies to browsers — content owned by an account
+// whose profiles.account_status is not 'active' is treated as not found / excluded.
+let _supCache: { at: number; list: string[] } | null = null;
+async function suppressedIds(admin: any): Promise<string[]> {
+  if (_supCache && Date.now() - _supCache.at < 60_000) return _supCache.list;
+  try {
+    const { data } = await admin.from('profiles').select('user_id').neq('account_status', 'active');
+    const list = (data ?? []).map((r: any) => r.user_id).filter(Boolean);
+    _supCache = { at: Date.now(), list };
+    return list;
+  } catch (_e) { return []; }
+}
+const supFilter = (list: string[]) => `(${list.join(',') || '00000000-0000-0000-0000-000000000000'})`;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -152,11 +168,11 @@ Deno.serve(async (req) => {
       if (id) {
         const { data, error } = await admin.from('robots').select('*').eq('id', id).maybeSingle();
         if (error) return json({ error: error.message }, 400);
-        if (!data) return json({ error: 'Not found' }, 404);
+        if (!data || (await suppressedIds(admin)).includes(data.seller_id)) return json({ error: 'Not found' }, 404);
         return json({ data: stripContact(data) });
       }
       const { limit, offset } = paginate(url);
-      let q = admin.from('robots').select('*', { count: 'exact' });
+      let q = admin.from('robots').select('*', { count: 'exact' }).not('seller_id', 'in', supFilter(await suppressedIds(admin)));
       const brand = url.searchParams.get('brand');
       const type = url.searchParams.get('type') || url.searchParams.get('robot_type');
       const search = url.searchParams.get('search');
@@ -176,11 +192,11 @@ Deno.serve(async (req) => {
       if (id) {
         const { data, error } = await admin.from('spare_parts').select('*').eq('id', id).maybeSingle();
         if (error) return json({ error: error.message }, 400);
-        if (!data) return json({ error: 'Not found' }, 404);
+        if (!data || (await suppressedIds(admin)).includes(data.seller_id)) return json({ error: 'Not found' }, 404);
         return json({ data: stripContact(data) });
       }
       const { limit, offset } = paginate(url);
-      let q = admin.from('spare_parts').select('*', { count: 'exact' });
+      let q = admin.from('spare_parts').select('*', { count: 'exact' }).not('seller_id', 'in', supFilter(await suppressedIds(admin)));
       const brand = url.searchParams.get('brand');
       const category = url.searchParams.get('category');
       const search = url.searchParams.get('search');
@@ -198,11 +214,11 @@ Deno.serve(async (req) => {
       if (id) {
         const { data, error } = await admin.from('services').select('*').eq('id', id).maybeSingle();
         if (error) return json({ error: error.message }, 400);
-        if (!data) return json({ error: 'Not found' }, 404);
+        if (!data || (await suppressedIds(admin)).includes(data.provider_id)) return json({ error: 'Not found' }, 404);
         return json({ data: stripContact(data) });
       }
       const { limit, offset } = paginate(url);
-      let q = admin.from('services').select('*', { count: 'exact' });
+      let q = admin.from('services').select('*', { count: 'exact' }).not('provider_id', 'in', supFilter(await suppressedIds(admin)));
       const category = url.searchParams.get('category');
       const location = url.searchParams.get('location');
       if (category) q = q.ilike('category', `%${category}%`);
@@ -263,15 +279,15 @@ Deno.serve(async (req) => {
       const results: Record<string, unknown[]> = {};
       const like = `%${q}%`;
       if (type === 'all' || type === 'robots') {
-        const { data } = await admin.from('robots').select('id,name,brand,model,price,currency,robot_type,images,location').or(`name.ilike.${like},brand.ilike.${like},model.ilike.${like}`).limit(limit);
+        const { data } = await admin.from('robots').select('id,name,brand,model,price,currency,robot_type,images,location').not('seller_id', 'in', supFilter(await suppressedIds(admin))).or(`name.ilike.${like},brand.ilike.${like},model.ilike.${like}`).limit(limit);
         results.robots = stripContactList(data ?? []);
       }
       if (type === 'all' || type === 'parts') {
-        const { data } = await admin.from('spare_parts').select('id,name,brand,category,price,part_number,images').or(`name.ilike.${like},brand.ilike.${like},part_number.ilike.${like}`).limit(limit);
+        const { data } = await admin.from('spare_parts').select('id,name,brand,category,price,part_number,images').not('seller_id', 'in', supFilter(await suppressedIds(admin))).or(`name.ilike.${like},brand.ilike.${like},part_number.ilike.${like}`).limit(limit);
         results.parts = stripContactList(data ?? []);
       }
       if (type === 'all' || type === 'services') {
-        const { data } = await admin.from('services').select('id,name,category,description,location,price').or(`name.ilike.${like},description.ilike.${like}`).limit(limit);
+        const { data } = await admin.from('services').select('id,name,category,description,location,price').not('provider_id', 'in', supFilter(await suppressedIds(admin))).or(`name.ilike.${like},description.ilike.${like}`).limit(limit);
         results.services = stripContactList(data ?? []);
       }
       return json({ data: results });
@@ -304,7 +320,7 @@ Deno.serve(async (req) => {
       if (!ok) return json({ error: 'Insufficient credits' }, 402);
 
       // Fetch seller contact
-      const { data: seller } = await admin.from('profiles').select('user_id, full_name, company_name, email, mobile_number, phone, location').eq('user_id', sellerId).maybeSingle();
+      const { data: seller } = await admin.from('profiles').select('user_id, full_name, company_name, email, mobile_number, phone, location').eq('user_id', sellerId).neq('account_status', 'blocked').maybeSingle();
       // Record in unlocked_contacts
       await admin.from('unlocked_contacts').insert({
         user_id: key.user_id,

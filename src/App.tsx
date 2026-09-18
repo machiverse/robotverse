@@ -9,6 +9,8 @@ import { useChatNotifications } from "@/hooks/useChatNotifications";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import AccountStatus from "./pages/AccountStatus";
+import ModerationGate from "./components/moderation/ModerationGate";
 import RobotComparison from "./pages/RobotComparison";
 import Robots from "./pages/Robots";
 import RobotDetails from "./pages/RobotDetails";
@@ -141,10 +143,12 @@ const App = () => (
             <AIAssistantProvider>
               <GlobalEmailVerificationHandler />
               <AutoSignInPopup />
+              <ModerationGate />
               <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/account-status" element={<AccountStatus />} />
               <Route path="/robots" element={<Robots />} />
               <Route path="/robots/compare" element={<RobotComparison />} />
               {/* Programmatic SEO landing pages (must precede dynamic /robots/:id) */}

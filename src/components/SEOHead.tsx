@@ -22,7 +22,7 @@ const DEFAULT_SEO: SEOProps = {
   title: 'RobotVerse | Buy & Sell Used Industrial Robots in India - FANUC, ABB, KUKA, Yaskawa',
   description: 'India\'s marketplace for new, used, and refurbished industrial robots, spare parts, financing, logistics, and automation services. Browse verified FANUC, ABB, KUKA, and Yaskawa robots by brand, payload, reach, and application.',
   keywords: 'industrial robots, automation equipment, robot marketplace, FANUC robots, ABB robots, KUKA robots, Yaskawa robots, robot spare parts, automation services, robot financing, robot logistics',
-  ogImage: '/robotverse-logo.jpg',
+  ogImage: '/og-image.jpg',
   ogType: 'website',
   twitterCard: 'summary_large_image',
 };

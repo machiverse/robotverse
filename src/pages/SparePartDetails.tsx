@@ -320,7 +320,7 @@ const SparePartDetails = () => {
           description={seoElements.metaDescription}
           keywords={`${sparePart.name}, ${sparePart.brand}, ${sparePart.model}, ${sparePart.part_number}, ${sparePart.main_category}, spare parts, robot parts, industrial parts, genuine parts`}
           canonical={`https://robotverse.in/parts/${id}`}
-          ogImage={currentImage || "/robotverse-logo.jpg"}
+          ogImage={currentImage || "/og-image.jpg"}
           jsonLd={seoElements.structuredData}
         />
       )}

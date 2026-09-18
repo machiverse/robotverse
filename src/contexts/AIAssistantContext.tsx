@@ -22,6 +22,52 @@ export type ChatSession = {
   updatedAt: number;
 };
 
+// --- Procurement Intelligence (additive, optional) ---
+export type LandedCostBreakdown = {
+  currency: string;
+  fxToInr: number;
+  region: string;
+  goodsInr: number;
+  freightInr: number;
+  assessableInr: number;
+  bcdInr: number;
+  socialWelfareSurchargeInr: number;
+  igstInr: number;
+  sparesReserveInr: number;
+  installationInr: number;
+  totalInr: number;
+  provisional: true;
+};
+
+export type ExternalListing = {
+  id: string;
+  model_id: string | null;
+  model: string | null;
+  oem: string | null;
+  raw_model_text: string;
+  year: number | null;
+  condition_grade: string | null;
+  asking_price: number | null;
+  currency: string | null;
+  location_country: string | null;
+  source_platform: string;
+  source_url: string;
+  verified_on: string;
+  is_stale: boolean;
+  days_old: number;
+  landedCost: LandedCostBreakdown | null;
+};
+
+export type ProcurementResult = {
+  procurementMode: true;
+  requiredPayload: number | null;
+  assumedGripper: boolean;
+  tier: 0 | 1 | 2 | 3;
+  externalCount: number;
+  landedCostSummary: { minTotalInr: number; maxTotalInr: number; count: number; provisional: true } | null;
+  external: ExternalListing[];
+};
+
 const FREE_QUERY_LIMIT = 3;
 const STORAGE_KEY = 'robotverse_ai_queries';
 const SESSIONS_KEY = 'robotverse_ai_sessions';
@@ -84,6 +130,8 @@ interface AIAssistantContextType {
   lastResultCounts: ResultCounts | null;
   lastUserQuery: string;
   visibleTabs: string[];
+  /** Optional — present only after a procurement-mode reply. */
+  lastProcurement: ProcurementResult | null;
   // Chat history
   sessions: ChatSession[];
   activeSessionId: string | null;
@@ -103,6 +151,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [lastResultCounts, setLastResultCounts] = useState<ResultCounts | null>(null);
   const [lastUserQuery, setLastUserQuery] = useState('');
   const [visibleTabs, setVisibleTabs] = useState<string[]>([]);
+  const [lastProcurement, setLastProcurement] = useState<ProcurementResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const queriesUsed = getQueryCount();
@@ -197,6 +246,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setError(null);
     setLastUserQuery(input);
     setLastResultCounts(null);
+    setLastProcurement(null);
     if (!user) incrementQueryCount();
 
     try {
@@ -233,6 +283,17 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
       if (data.visibleTabs) {
         setVisibleTabs(data.visibleTabs);
+      }
+      if (data.procurementMode) {
+        setLastProcurement({
+          procurementMode: true,
+          requiredPayload: data.requiredPayload ?? null,
+          assumedGripper: !!data.assumedGripper,
+          tier: data.tier ?? 0,
+          externalCount: data.externalCount ?? 0,
+          landedCostSummary: data.landedCostSummary ?? null,
+          external: Array.isArray(data.procurement?.external) ? data.procurement.external : [],
+        });
       }
 
       updateSession(currentSessionId, s => ({
@@ -276,6 +337,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       lastResultCounts,
       lastUserQuery,
       visibleTabs,
+      lastProcurement,
       sessions,
       activeSessionId,
       startNewChat,
@@ -304,6 +366,7 @@ export function useAIAssistantContext() {
       lastResultCounts: null,
       lastUserQuery: '',
       visibleTabs: [] as string[],
+      lastProcurement: null,
       sessions: [] as ChatSession[],
       activeSessionId: null,
       startNewChat: () => {},

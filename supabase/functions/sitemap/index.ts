@@ -56,6 +56,35 @@ async function fetchAll(supabase: ReturnType<typeof createClient>, query: () => 
   return all;
 }
 
+// Moderation: this function uses the service role and therefore bypasses RLS,
+// so it must apply the same suppression filter the database applies to browsers.
+// Content owned by an account whose profiles.account_status is not 'active' is
+// excluded. Suppression is reversible — nothing is deleted.
+async function getSuppressed(supabase: ReturnType<typeof createClient>) {
+  const users = new Set<string>();
+  const ids = new Set<string>();
+  try {
+    const { data: sup } = await supabase.from("profiles").select("user_id").neq("account_status", "active");
+    (sup ?? []).forEach((r: any) => r.user_id && users.add(r.user_id));
+    if (users.size === 0) return { users, ids };
+    const list = Array.from(users);
+    const owned: Array<[string, string]> = [
+      ["robots", "seller_id"],
+      ["spare_parts", "seller_id"],
+      ["services", "provider_id"],
+      ["blogs", "author_id"],
+      ["community_posts", "author_id"],
+    ];
+    for (const [table, col] of owned) {
+      const { data } = await supabase.from(table).select("id").in(col, list);
+      (data ?? []).forEach((r: any) => r.id && ids.add(r.id));
+    }
+  } catch (e) {
+    console.error("suppression lookup failed:", e);
+  }
+  return { users, ids };
+}
+
 async function buildIndex(): Promise<string> {
   const now = new Date().toISOString();
   const children = ["urls", "images", "news"]
@@ -68,6 +97,8 @@ ${children}
 }
 
 async function buildUrls(supabase: ReturnType<typeof createClient>): Promise<string> {
+  const { users: supUsers, ids: supIds } = await getSuppressed(supabase);
+  const notSup = (list: string[]) => `(${list.join(",") || "00000000-0000-0000-0000-000000000000"})`;
   const rows = await fetchAll(supabase, () =>
     supabase
       .from("seo_metadata")
@@ -95,9 +126,9 @@ async function buildUrls(supabase: ReturnType<typeof createClient>): Promise<str
   const landing: string[] = [];
 
   const [{ data: robotsRows }, { data: partsRows }, { data: servicesRows }] = await Promise.all([
-    supabase.from("robots").select("brand, location").limit(2000),
-    supabase.from("spare_parts").select("brand, category").limit(2000),
-    supabase.from("services").select("service_type, location").limit(2000),
+    supabase.from("robots").select("brand, location").not("seller_id", "in", notSup(Array.from(supUsers))).limit(2000),
+    supabase.from("spare_parts").select("brand, category").not("seller_id", "in", notSup(Array.from(supUsers))).limit(2000),
+    supabase.from("services").select("service_type, location").not("provider_id", "in", notSup(Array.from(supUsers))).limit(2000),
   ]);
 
   const robotBrands = new Set<string>();
@@ -138,6 +169,7 @@ async function buildUrls(supabase: ReturnType<typeof createClient>): Promise<str
     .join("\n");
 
   const dynXml = rows
+    .filter((r: any) => !supIds.has(r.content_id) && !(r.content_type === "profile" && supUsers.has(r.content_id)))
     .map((r: any) => {
       const path = r.canonical_url
         ? null
@@ -161,6 +193,7 @@ ${dynXml}
 }
 
 async function buildImages(supabase: ReturnType<typeof createClient>): Promise<string> {
+  const { users: supUsers, ids: supIds } = await getSuppressed(supabase);
   const rows = await fetchAll(supabase, () =>
     supabase
       .from("seo_metadata")
@@ -170,6 +203,7 @@ async function buildImages(supabase: ReturnType<typeof createClient>): Promise<s
   );
 
   const entries = rows
+    .filter((r: any) => !supIds.has(r.content_id) && !(r.content_type === "profile" && supUsers.has(r.content_id)))
     .map((r: any) => {
       const img = r.og_image || r.twitter_image;
       if (!img) return null;
@@ -196,6 +230,7 @@ ${entries}
 }
 
 async function buildNews(supabase: ReturnType<typeof createClient>): Promise<string> {
+  const { users: supUsers, ids: supIds } = await getSuppressed(supabase);
   // News sitemap should only contain articles from the last 48 hours.
   const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
   const rows = await fetchAll(supabase, () =>
@@ -209,6 +244,7 @@ async function buildNews(supabase: ReturnType<typeof createClient>): Promise<str
   );
 
   const entries = rows
+    .filter((r: any) => !supIds.has(r.content_id) && !(r.content_type === "profile" && supUsers.has(r.content_id)))
     .map((r: any) => {
       const path = r.canonical_url ?? pathFor(r.content_type, r.slug || r.content_id);
       if (!path) return null;

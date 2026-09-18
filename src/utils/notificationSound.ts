@@ -78,8 +78,8 @@ export const showNotificationWithSound = (title: string, body: string, icon?: st
     try {
       const notificationOptions: NotificationOptions = {
         body,
-        icon: icon || '/robotverse-logo.jpg',
-        badge: '/robotverse-r-logo.png',
+        icon: icon || '/favicon.png',
+        badge: '/favicon.png',
         tag: 'chat-message', // Prevents multiple notifications stacking
         requireInteraction: false,
       };

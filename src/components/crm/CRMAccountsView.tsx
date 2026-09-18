@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Search, Phone, Mail, MapPin } from "lucide-react";
+import { Building2, Plus, Search } from "lucide-react";
 import type { useCRM } from "@/hooks/useCRM";
 
 interface CRMAccountsViewProps {
@@ -31,29 +29,24 @@ const CRMAccountsView = ({ crmData }: CRMAccountsViewProps) => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredAccounts.map((account) => (
-          <Card key={account.id} className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="rounded-full bg-primary/10 p-2"><Building2 className="h-5 w-5 text-primary" /></div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{account.account_name}</p>
-                  <Badge variant="outline" className="mt-1 capitalize">{account.account_type}</Badge>
-                  <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                    {account.phone && <div className="flex items-center gap-1"><Phone className="h-3 w-3" />{account.phone}</div>}
-                    {account.email && <div className="flex items-center gap-1"><Mail className="h-3 w-3" />{account.email}</div>}
-                    {account.city && <div className="flex items-center gap-1"><MapPin className="h-3 w-3" />{account.city}, {account.state}</div>}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="overflow-x-auto rounded-lg border border-foreground/10 bg-card">
+        <table className="w-full min-w-[720px] border-collapse text-[13px] leading-[1.4]">
+          <thead className="sticky top-0 z-10 bg-card text-left text-[11px] font-normal uppercase tracking-[0.06em] text-foreground/45">
+            <tr className="h-10 border-b border-foreground/10">
+              <th className="px-4 font-normal">Account</th><th className="px-4 font-normal">Type</th><th className="px-4 font-normal">Email</th><th className="px-4 font-normal">Phone</th><th className="px-4 font-normal">Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredAccounts.map((account) => (
+              <tr key={account.id} tabIndex={0} className="h-11 border-b border-foreground/[0.06] text-foreground/65 transition-[background-color,color] duration-150 ease-out last:border-b-0 hover:bg-foreground/[0.03] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <td className="px-4 font-semibold text-foreground">{account.account_name}</td><td className="px-4 capitalize">{account.account_type}</td><td className="px-4">{account.email || '—'}</td><td className="px-4 tabular-nums">{account.phone || '—'}</td><td className="px-4">{account.city ? `${account.city}, ${account.state || ''}` : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         {filteredAccounts.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <Building2 className="h-12 w-12 mb-2 opacity-50" />
-            <p>No accounts found</p>
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center text-[13px] text-foreground/65">
+            <Building2 className="h-4 w-4" strokeWidth={1.5} /><p>Customer accounts you add will appear here.</p><Button size="sm"><Plus className="mr-2 h-4 w-4" strokeWidth={1.5} />Add Account</Button>
           </div>
         )}
       </div>

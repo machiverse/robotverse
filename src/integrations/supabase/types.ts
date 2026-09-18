@@ -517,6 +517,36 @@ export type Database = {
         }
         Relationships: []
       }
+      block_reasons: {
+        Row: {
+          category: string
+          code: string
+          description: string | null
+          label: string
+          requires_evidence: boolean | null
+          severity: string
+          sort_order: number | null
+        }
+        Insert: {
+          category: string
+          code: string
+          description?: string | null
+          label: string
+          requires_evidence?: boolean | null
+          severity: string
+          sort_order?: number | null
+        }
+        Update: {
+          category?: string
+          code?: string
+          description?: string | null
+          label?: string
+          requires_evidence?: boolean | null
+          severity?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       blog_comments: {
         Row: {
           blog_id: string
@@ -1206,6 +1236,7 @@ export type Database = {
           id: string
           is_draft: boolean
           like_count: number | null
+          media_items: Json
           media_type: string | null
           media_url: string | null
           meta_description: string | null
@@ -1245,6 +1276,7 @@ export type Database = {
           id?: string
           is_draft?: boolean
           like_count?: number | null
+          media_items?: Json
           media_type?: string | null
           media_url?: string | null
           meta_description?: string | null
@@ -1284,6 +1316,7 @@ export type Database = {
           id?: string
           is_draft?: boolean
           like_count?: number | null
+          media_items?: Json
           media_type?: string | null
           media_url?: string | null
           meta_description?: string | null
@@ -2216,6 +2249,51 @@ export type Database = {
           },
         ]
       }
+      dealer_network: {
+        Row: {
+          company_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          country: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          oem_specialties: string[] | null
+          payload_focus: string | null
+          region: string | null
+          relationship: string | null
+          typical_lead_days: number | null
+        }
+        Insert: {
+          company_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          oem_specialties?: string[] | null
+          payload_focus?: string | null
+          region?: string | null
+          relationship?: string | null
+          typical_lead_days?: number | null
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          oem_specialties?: string[] | null
+          payload_focus?: string | null
+          region?: string | null
+          relationship?: string | null
+          typical_lead_days?: number | null
+        }
+        Relationships: []
+      }
       deals: {
         Row: {
           admin_notes: string | null
@@ -2335,6 +2413,62 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      external_listings: {
+        Row: {
+          asking_price: number | null
+          condition_grade: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          location_country: string | null
+          model_id: string | null
+          raw_model_text: string
+          seller_name: string | null
+          source_platform: string
+          source_url: string
+          verified_on: string
+          year: number | null
+        }
+        Insert: {
+          asking_price?: number | null
+          condition_grade?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          location_country?: string | null
+          model_id?: string | null
+          raw_model_text: string
+          seller_name?: string | null
+          source_platform: string
+          source_url: string
+          verified_on?: string
+          year?: number | null
+        }
+        Update: {
+          asking_price?: number | null
+          condition_grade?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          location_country?: string | null
+          model_id?: string | null
+          raw_model_text?: string
+          seller_name?: string | null
+          source_platform?: string
+          source_url?: string
+          verified_on?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_listings_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "robot_models"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3143,6 +3277,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string
           account_type: string | null
           avatar_url: string | null
           average_rating: number | null
@@ -3151,6 +3286,7 @@ export type Database = {
           company_logo_url: string | null
           company_name: string | null
           completed_sales: number | null
+          content_suppressed_at: string | null
           country: string | null
           created_at: string
           credits_balance: number | null
@@ -3192,6 +3328,7 @@ export type Database = {
           warehouse_storage: boolean | null
         }
         Insert: {
+          account_status?: string
           account_type?: string | null
           avatar_url?: string | null
           average_rating?: number | null
@@ -3200,6 +3337,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           completed_sales?: number | null
+          content_suppressed_at?: string | null
           country?: string | null
           created_at?: string
           credits_balance?: number | null
@@ -3241,6 +3379,7 @@ export type Database = {
           warehouse_storage?: boolean | null
         }
         Update: {
+          account_status?: string
           account_type?: string | null
           avatar_url?: string | null
           average_rating?: number | null
@@ -3249,6 +3388,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           completed_sales?: number | null
+          content_suppressed_at?: string | null
           country?: string | null
           created_at?: string
           credits_balance?: number | null
@@ -3569,6 +3709,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      robot_models: {
+        Row: {
+          applications: string[] | null
+          axes: number | null
+          controller_gen: string[] | null
+          created_at: string | null
+          datasheet_url: string | null
+          id: string
+          ip_rating: string | null
+          lifecycle_status: string | null
+          model: string
+          mounting: string[] | null
+          oem: string
+          payload_kg: number
+          power_kva: number | null
+          reach_mm: number
+          repeatability_mm: number | null
+          robot_weight_kg: number | null
+          series: string | null
+          spares_risk: string | null
+          successor_model: string | null
+          supply_voltage: string | null
+          verified_on: string
+        }
+        Insert: {
+          applications?: string[] | null
+          axes?: number | null
+          controller_gen?: string[] | null
+          created_at?: string | null
+          datasheet_url?: string | null
+          id?: string
+          ip_rating?: string | null
+          lifecycle_status?: string | null
+          model: string
+          mounting?: string[] | null
+          oem: string
+          payload_kg: number
+          power_kva?: number | null
+          reach_mm: number
+          repeatability_mm?: number | null
+          robot_weight_kg?: number | null
+          series?: string | null
+          spares_risk?: string | null
+          successor_model?: string | null
+          supply_voltage?: string | null
+          verified_on?: string
+        }
+        Update: {
+          applications?: string[] | null
+          axes?: number | null
+          controller_gen?: string[] | null
+          created_at?: string | null
+          datasheet_url?: string | null
+          id?: string
+          ip_rating?: string | null
+          lifecycle_status?: string | null
+          model?: string
+          mounting?: string[] | null
+          oem?: string
+          payload_kg?: number
+          power_kva?: number | null
+          reach_mm?: number
+          repeatability_mm?: number | null
+          robot_weight_kg?: number | null
+          series?: string | null
+          spares_risk?: string | null
+          successor_model?: string | null
+          supply_voltage?: string | null
+          verified_on?: string
+        }
+        Relationships: []
       }
       robot_reports: {
         Row: {
@@ -4764,6 +4976,60 @@ export type Database = {
         }
         Relationships: []
       }
+      sourcing_signals: {
+        Row: {
+          application: string | null
+          budget_max: number | null
+          budget_min: number | null
+          buyer_location: string | null
+          created_at: string | null
+          id: string
+          matched_tier: number | null
+          requested_model: string | null
+          requested_oem: string | null
+          required_payload_kg: number | null
+          required_reach_mm: number | null
+          result_count: number | null
+          source_channel: string | null
+          timeline: string | null
+          user_id: string | null
+        }
+        Insert: {
+          application?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          buyer_location?: string | null
+          created_at?: string | null
+          id?: string
+          matched_tier?: number | null
+          requested_model?: string | null
+          requested_oem?: string | null
+          required_payload_kg?: number | null
+          required_reach_mm?: number | null
+          result_count?: number | null
+          source_channel?: string | null
+          timeline?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          application?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          buyer_location?: string | null
+          created_at?: string | null
+          id?: string
+          matched_tier?: number | null
+          requested_model?: string | null
+          requested_oem?: string | null
+          required_payload_kg?: number | null
+          required_reach_mm?: number | null
+          result_count?: number | null
+          source_channel?: string | null
+          timeline?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       spare_parts: {
         Row: {
           brand: string | null
@@ -5303,6 +5569,95 @@ export type Database = {
         }
         Relationships: []
       }
+      user_moderation: {
+        Row: {
+          action: string
+          actioned_at: string
+          actioned_by: string
+          appeal_decided_at: string | null
+          appeal_decided_by: string | null
+          appeal_decision_notes: string | null
+          appeal_status: string | null
+          appeal_submitted_at: string | null
+          appeal_text: string | null
+          created_at: string | null
+          email_sent_at: string | null
+          evidence_urls: string[] | null
+          id: string
+          is_active: boolean | null
+          reason_code: string | null
+          reason_notes: string
+          related_listing_ids: string[] | null
+          related_ticket_ids: string[] | null
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          suspension_until: string | null
+          user_id: string
+          user_role: string | null
+        }
+        Insert: {
+          action: string
+          actioned_at?: string
+          actioned_by: string
+          appeal_decided_at?: string | null
+          appeal_decided_by?: string | null
+          appeal_decision_notes?: string | null
+          appeal_status?: string | null
+          appeal_submitted_at?: string | null
+          appeal_text?: string | null
+          created_at?: string | null
+          email_sent_at?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          reason_code?: string | null
+          reason_notes: string
+          related_listing_ids?: string[] | null
+          related_ticket_ids?: string[] | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          suspension_until?: string | null
+          user_id: string
+          user_role?: string | null
+        }
+        Update: {
+          action?: string
+          actioned_at?: string
+          actioned_by?: string
+          appeal_decided_at?: string | null
+          appeal_decided_by?: string | null
+          appeal_decision_notes?: string | null
+          appeal_status?: string | null
+          appeal_submitted_at?: string | null
+          appeal_text?: string | null
+          created_at?: string | null
+          email_sent_at?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          reason_code?: string | null
+          reason_notes?: string
+          related_listing_ids?: string[] | null
+          related_ticket_ids?: string[] | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          suspension_until?: string | null
+          user_id?: string
+          user_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_moderation_reason_code_fkey"
+            columns: ["reason_code"]
+            isOneToOne: false
+            referencedRelation: "block_reasons"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       user_product_requests: {
         Row: {
           admin_notes: string | null
@@ -5420,6 +5775,51 @@ export type Database = {
           urgency?: string | null
           user_id?: string
           user_name?: string
+        }
+        Relationships: []
+      }
+      user_trust: {
+        Row: {
+          avg_response_hours: number | null
+          company_verified: boolean | null
+          completed_transactions: number | null
+          disputes_raised: number | null
+          disputes_upheld: number | null
+          gst_verified: boolean | null
+          kyc_verified: boolean | null
+          listings_verified: number | null
+          member_since: string | null
+          trust_tier: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avg_response_hours?: number | null
+          company_verified?: boolean | null
+          completed_transactions?: number | null
+          disputes_raised?: number | null
+          disputes_upheld?: number | null
+          gst_verified?: boolean | null
+          kyc_verified?: boolean | null
+          listings_verified?: number | null
+          member_since?: string | null
+          trust_tier?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avg_response_hours?: number | null
+          company_verified?: boolean | null
+          completed_transactions?: number | null
+          disputes_raised?: number | null
+          disputes_upheld?: number | null
+          gst_verified?: boolean | null
+          kyc_verified?: boolean | null
+          listings_verified?: number | null
+          member_since?: string | null
+          trust_tier?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -5661,7 +6061,109 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      external_listings_view: {
+        Row: {
+          asking_price: number | null
+          condition_grade: string | null
+          created_at: string | null
+          currency: string | null
+          days_old: number | null
+          id: string | null
+          is_stale: boolean | null
+          location_country: string | null
+          model_id: string | null
+          raw_model_text: string | null
+          seller_name: string | null
+          source_platform: string | null
+          source_url: string | null
+          verified_on: string | null
+          year: number | null
+        }
+        Insert: {
+          asking_price?: number | null
+          condition_grade?: string | null
+          created_at?: string | null
+          currency?: string | null
+          days_old?: never
+          id?: string | null
+          is_stale?: never
+          location_country?: string | null
+          model_id?: string | null
+          raw_model_text?: string | null
+          seller_name?: string | null
+          source_platform?: string | null
+          source_url?: string | null
+          verified_on?: string | null
+          year?: number | null
+        }
+        Update: {
+          asking_price?: number | null
+          condition_grade?: string | null
+          created_at?: string | null
+          currency?: string | null
+          days_old?: never
+          id?: string | null
+          is_stale?: never
+          location_country?: string | null
+          model_id?: string | null
+          raw_model_text?: string | null
+          seller_name?: string | null
+          source_platform?: string | null
+          source_url?: string | null
+          verified_on?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_listings_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "robot_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_moderation_status: {
+        Row: {
+          action: string | null
+          actioned_at: string | null
+          appeal_decided_at: string | null
+          appeal_status: string | null
+          appeal_submitted_at: string | null
+          case_id: string | null
+          reason_code: string | null
+          suspension_until: string | null
+        }
+        Insert: {
+          action?: string | null
+          actioned_at?: string | null
+          appeal_decided_at?: string | null
+          appeal_status?: string | null
+          appeal_submitted_at?: string | null
+          case_id?: string | null
+          reason_code?: string | null
+          suspension_until?: string | null
+        }
+        Update: {
+          action?: string | null
+          actioned_at?: string | null
+          appeal_decided_at?: string | null
+          appeal_status?: string | null
+          appeal_submitted_at?: string | null
+          case_id?: string | null
+          reason_code?: string | null
+          suspension_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_moderation_reason_code_fkey"
+            columns: ["reason_code"]
+            isOneToOne: false
+            referencedRelation: "block_reasons"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_end_auction: { Args: { p_auction_id: string }; Returns: Json }
@@ -5993,6 +6495,8 @@ export type Database = {
         Args: { p_item_id: string; p_item_type: string; p_user_id: string }
         Returns: boolean
       }
+      is_user_active: { Args: { check_user_id: string }; Returns: boolean }
+      is_user_restricted: { Args: { _user_id: string }; Returns: boolean }
       place_auction_bid: {
         Args: {
           p_auction_id: string
@@ -6017,6 +6521,10 @@ export type Database = {
       }
       seo_hash: { Args: { p: string }; Returns: string }
       slugify: { Args: { input: string }; Returns: string }
+      submit_moderation_appeal: {
+        Args: { _appeal_text: string; _case_id: string }
+        Returns: undefined
+      }
       unlock_buyer_with_credits: {
         Args: { p_item_type: string; p_lead_id: string; p_seller_id: string }
         Returns: boolean
@@ -6102,12 +6610,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6131,11 +6639,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6156,11 +6664,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6181,11 +6689,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6198,11 +6706,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

@@ -20,6 +20,7 @@ import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import SupplierQuoteForm from "@/components/forms/SupplierQuoteForm";
 import RobotQuoteModal from "@/components/forms/RobotQuoteModal";
 import CouponBadge from "@/components/coupons/CouponBadge";
+import TrustBadges from "@/components/trust/TrustBadges";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
 import {
@@ -617,7 +618,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
         title={`${robot.condition === 'new' ? '' : 'Used '}${robot.brand || ''} ${robot.model || robot.name}${robot.payload_capacity ? ` ${robot.payload_capacity}kg Payload` : ''} Industrial Robot for Sale in India | RobotVerse`}
         description={`Buy ${robot.condition === 'new' ? '' : 'used '}${robot.brand || ''} ${robot.model || robot.name} industrial robot in India.${robot.payload_capacity ? ` ${robot.payload_capacity} kg payload.` : ''}${robot.reach ? ` ${robot.reach} mm reach.` : ''}${robot.robot_type ? ` ${robot.robot_type}.` : ''} Verified seller${robot.location ? ` in ${robot.location}` : ''}. Get quotation, inspection, financing & logistics on RobotVerse — India's industrial robot marketplace.`}
         keywords={`${robot.brand} robot India, ${robot.brand} ${robot.model}, used ${robot.brand} robot, ${robot.robot_type} India, ${robot.payload_capacity ? robot.payload_capacity + 'kg payload robot, ' : ''}industrial robot India, buy used robot India`}
-        ogImage={robot.images?.[0] || "/robotverse-logo.jpg"}
+        ogImage={robot.images?.[0] || "/og-image.jpg"}
         jsonLd={generateProductSchema({ ...robot, seller: robot.profiles })}
       />
       <EnhancedHeader />
@@ -1357,6 +1358,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
             </Dialog>
 
             {/* Seller Stats Card */}
+            <TrustBadges userId={robot.seller_id} className="mb-2" />
             {(robot.profiles?.completed_sales > 0 || robot.profiles?.total_reviews > 0) && (
               <Card className="border shadow-sm">
                 <CardHeader className="pb-3">

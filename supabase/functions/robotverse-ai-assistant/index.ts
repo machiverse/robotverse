@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { extractRequirement, isProcurementQuery, matchRobots, type MatchResult } from '../_shared/procurementMatch.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,6 +56,21 @@ function identifyIntent(query: string): { intents: string[]; keywords: string[];
   };
 }
 
+// Moderation: this function uses the service role and bypasses RLS, so it must
+// apply the same suppression the database applies to browsers. Content owned by an
+// account whose profiles.account_status is not 'active' is excluded from results.
+let _supCache: { at: number; list: string[] } | null = null;
+async function suppressedIds(): Promise<string[]> {
+  if (_supCache && Date.now() - _supCache.at < 60_000) return _supCache.list;
+  try {
+    const { data } = await supabaseAdmin.from('profiles').select('user_id').neq('account_status', 'active');
+    const list = (data ?? []).map((r: any) => r.user_id).filter(Boolean);
+    _supCache = { at: Date.now(), list };
+    return list;
+  } catch (_e) { return []; }
+}
+const supFilter = (list: string[]) => `(${list.join(',') || '00000000-0000-0000-0000-000000000000'})`;
+
 async function searchRobots(query: string, location: string | null) {
   const q = query.toLowerCase();
   const brands = ['fanuc', 'abb', 'kuka', 'yaskawa', 'universal robots', 'ur', 'mitsubishi', 'epson', 'staubli', 'kawasaki', 'doosan', 'omron', 'nachi', 'comau', 'denso', 'techman', 'franka', 'igus'];
@@ -64,6 +80,7 @@ async function searchRobots(query: string, location: string | null) {
     .from('robots')
     .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state, availability, applications, seller_id')
     .eq('availability', 'available')
+    .not('seller_id', 'in', supFilter(await suppressedIds()))
     .limit(5);
 
   const matchedBrand = brands.find((b) => q.includes(b));
@@ -101,6 +118,7 @@ async function searchSpareParts(query: string, location: string | null) {
   let dbQuery = supabaseAdmin
     .from('spare_parts')
     .select('id, name, part_number, brand, price, currency, condition, category, main_category, sub_category, compatible_robots, location, state, description, seller_id')
+    .not('seller_id', 'in', supFilter(await suppressedIds()))
     .limit(5);
 
   const orFilters = searchTerms
@@ -126,6 +144,7 @@ async function searchServices(query: string, location: string | null) {
   let dbQuery = supabaseAdmin
     .from('services')
     .select('id, name, service_type, specializations, price_range, location, coverage, description, provider_id')
+    .not('provider_id', 'in', supFilter(await suppressedIds()))
     .limit(5);
 
   if (searchTerms.length > 0) {
@@ -151,6 +170,7 @@ async function searchLogistics(_query: string, _location: string | null) {
     .from('logistics_services')
     .select('id, provider_id, service_name, service_type, description, coverage_areas, base_price, max_weight_kg, delivery_time_hours, transport_modes, special_handling, insurance_included, tracking_available, is_active')
     .eq('is_active', true)
+    .not('provider_id', 'in', supFilter(await suppressedIds()))
     .limit(5);
 
   if (error) {
@@ -166,12 +186,14 @@ async function searchFinance(_query: string) {
     .from('loan_products')
     .select('id, provider_id, product_name, loan_type, description, min_amount, max_amount, min_interest_rate, max_interest_rate, min_tenure_months, max_tenure_months, processing_fee_percentage, collateral_required, quick_approval, is_active')
     .eq('is_active', true)
+    .not('provider_id', 'in', supFilter(await suppressedIds()))
     .limit(5);
 
   const { data: loanSchemes, error: lsErr } = await supabaseAdmin
     .from('loan_schemes')
     .select('id, provider_id, scheme_name, scheme_type, description, interest_rate_min, interest_rate_max, max_amount, features, is_government_scheme, is_active')
     .eq('is_active', true)
+    .not('provider_id', 'in', supFilter(await suppressedIds()))
     .limit(5);
 
   if (lpErr) console.error('Loan products search error:', lpErr.message);
@@ -188,6 +210,7 @@ async function searchSellers(_query: string, location: string | null) {
     .from('profiles')
     .select('user_id, full_name, company_name, location, city, user_type, account_type, user_roles, service_categories')
     .eq('registration_complete', true)
+    .eq('account_status', 'active')
     .in('account_type', ['seller', 'logistics', 'finance'])
     .limit(10);
 
@@ -212,6 +235,7 @@ async function searchBlogs(query: string) {
     .from('blogs')
     .select('id, title, excerpt, tags, created_at')
     .eq('status', 'published')
+    .not('author_id', 'in', supFilter(await suppressedIds()))
     .or(orFilters)
     .limit(3);
 
@@ -312,6 +336,7 @@ serve(async (req) => {
   const authHeader = req.headers.get('Authorization');
   const bearer = authHeader?.replace('Bearer ', '').trim() ?? '';
   const isInternal = bearer.length > 0 && bearer === (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '__none__');
+  let callerUserId: string | null = null;
   if (!isInternal && bearer) {
     try {
       const _authClient = createClient(
@@ -321,6 +346,7 @@ serve(async (req) => {
       );
       const { data: _userData } = await _authClient.auth.getUser();
       if (!_userData?.user) console.log('Assistant called as guest (no user session)');
+      else callerUserId = _userData.user.id;
     } catch (_e) {
       console.log('Assistant guest fallback');
     }
@@ -334,6 +360,24 @@ serve(async (req) => {
 
     const latestQuery = userQuery || messages[messages.length - 1]?.content || '';
     const { intents, location } = identifyIntent(latestQuery);
+
+    // ---------------------------------------------------------------------
+    // PROCUREMENT MODE (additive). Deterministic extraction + matching only;
+    // the LLM never decides which robots match. Non-procurement queries fall
+    // through to the existing pipeline completely unchanged.
+    // ---------------------------------------------------------------------
+    const requirement = extractRequirement(latestQuery);
+    const procurementMode = isProcurementQuery(requirement, latestQuery);
+    let matchResult: MatchResult | null = null;
+    if (procurementMode) {
+      try {
+        matchResult = await matchRobots(supabaseAdmin, requirement);
+        console.log('Procurement match:', JSON.stringify({ requiredPayload: matchResult.requiredPayload, tier: matchResult.tier, models: matchResult.models.length, own: matchResult.own.length, external: matchResult.external.length }));
+      } catch (e) {
+        console.error('Procurement matcher failed, falling back to generic pipeline:', e);
+        matchResult = null;
+      }
+    }
 
     // Determine if this is a robot-focused query (no spare/service/maintenance intent)
     const isRobotOnly = (intents.includes('robot') || intents.some(i => ['welding', 'palletizing', 'pick and place', 'painting', 'assembly', 'machine tending', 'inspection', 'packaging', 'grinding'].includes(i)))
@@ -521,11 +565,44 @@ CRITICAL RULES:
 
 DATABASE RESULTS:${dbContext}`;
 
+    let finalSystemPrompt = systemPrompt;
+    if (matchResult) {
+      const tierNote = matchResult.tier === 0
+        ? `\nTIER 0 — NO MATCH. You MUST tell the buyer plainly: "No matching robot found in our current stock or partner network." State that their requirement has been logged and that the RobotVerse sourcing team will respond within 48 hours. Do not invent alternatives. Still list what specification was understood so they can correct it.`
+        : matchResult.tier === 1
+          ? `\nTIER 1 — Matches exist in RobotVerse's own live listings (the "own" array). Link each with [View Details →](/robots/ID) using the exact id.`
+          : matchResult.tier === 2
+            ? `\nTIER 2 — No own stock, but the partner dealer network can source these models. Quote only the aggregate: dealer count, countries and typical lead-days. Never name a dealer.`
+            : `\nTIER 3 — Only third-party external listings exist. These are NOT RobotVerse stock.`;
+
+      finalSystemPrompt += `
+
+PROCUREMENT MODE. Structured matching has already been performed. Use ONLY the specifications, prices and dates in PROCUREMENT_DATA below. Never estimate or recall a payload, reach, price, year or serial number that is not present there. If a field is missing write 'Not specified'.
+Always surface the caveats a seller would skip: obsolete controllers, high spares risk, missing mastering data, non-transferable software licences, and supply voltage mismatch where supply_voltage is not 50Hz (an Indian buyer will need a transformer).
+External listings are third-party asking prices, not our stock, and may be stale — always state the source platform and the verified_on date next to any external price.
+Recommend at most 3 options, ranked by total landed cost in INR, not by sticker price.
+If assumedGripper is true, state clearly that you assumed the gripper weighs 25% of the part and ask the buyer to confirm.
+Structure the answer as: Recommendation / Alternatives / Risks and caveats / Next step. Be blunt and specific. The reader is an engineer and bounces off marketing adjectives.
+In PROCUREMENT MODE the section templates above are superseded by this four-part structure; landed-cost figures are PROVISIONAL and must be labelled as such.${tierNote}
+
+PROCUREMENT_DATA:
+${JSON.stringify({
+  requiredPayload: matchResult.requiredPayload,
+  assumedGripper: matchResult.assumedGripper,
+  tier: matchResult.tier,
+  requirement: matchResult.requirement,
+  models: matchResult.models,
+  own: matchResult.own,
+  dealerSummary: matchResult.dealerSummary,
+  external: matchResult.external,
+})}`;
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
     const aiMessages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: finalSystemPrompt },
       ...messages.slice(-8).map((msg: any) => ({
         role: msg.role === 'user' ? 'user' : 'assistant',
         content: msg.content,
@@ -568,6 +645,57 @@ DATABASE RESULTS:${dbContext}`;
     const textContent = data.choices?.[0]?.message?.content;
     if (!textContent) throw new Error('No response generated from AI');
 
+    // --- Procurement-only additive fields --------------------------------
+    // deno-lint-ignore no-explicit-any
+    const procurementExtras: Record<string, any> = {};
+    if (matchResult) {
+      const resultCount = matchResult.own.length + matchResult.external.length + (matchResult.dealerSummary?.dealerCount ?? 0);
+      try {
+        await supabaseAdmin.from('sourcing_signals').insert({
+          user_id: callerUserId,
+          requested_oem: requirement.oem ?? null,
+          requested_model: requirement.model ?? null,
+          required_payload_kg: matchResult.requiredPayload,
+          required_reach_mm: requirement.requiredReachMm ?? null,
+          application: requirement.application ?? null,
+          budget_min: null,
+          budget_max: requirement.budgetMax ?? null,
+          buyer_location: location ?? null,
+          timeline: null,
+          matched_tier: matchResult.tier,
+          result_count: resultCount,
+          source_channel: 'site_ai',
+        });
+      } catch (e) {
+        console.error('sourcing_signals insert failed (non-fatal):', e);
+      }
+
+      if (matchResult.tier === 3 && !visibleTabs.includes('external')) visibleTabs = [...visibleTabs, 'external'];
+
+      const priced = matchResult.external.filter((e) => e.landedCost);
+      procurementExtras.procurementMode = true;
+      procurementExtras.requiredPayload = matchResult.requiredPayload;
+      procurementExtras.assumedGripper = matchResult.assumedGripper;
+      procurementExtras.tier = matchResult.tier;
+      procurementExtras.externalCount = matchResult.external.length;
+      procurementExtras.landedCostSummary = priced.length
+        ? {
+            minTotalInr: Math.min(...priced.map((e) => e.landedCost!.totalInr)),
+            maxTotalInr: Math.max(...priced.map((e) => e.landedCost!.totalInr)),
+            count: priced.length,
+            provisional: true,
+          }
+        : null;
+      // Client-safe payload: models + own + external + dealer AGGREGATES only.
+      procurementExtras.procurement = {
+        requirement,
+        models: matchResult.models,
+        own: matchResult.own,
+        dealerSummary: matchResult.dealerSummary,
+        external: matchResult.external,
+      };
+    }
+
     return new Response(JSON.stringify({
       content: textContent,
       intents,
@@ -583,6 +711,7 @@ DATABASE RESULTS:${dbContext}`;
         sellers: 0,
         blogs: blogs.length,
       },
+      ...procurementExtras,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

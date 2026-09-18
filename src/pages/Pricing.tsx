@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { formatAmount } from '@/utils/currency';
 import { SEOHead } from '@/components/SEOHead';
+import BrandLogo from '@/components/BrandLogo';
 
 const planIcons: Record<string, React.ReactNode> = {
   free: <Zap className="h-6 w-6" />,
@@ -108,10 +109,13 @@ const Pricing = () => {
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/robotverse-logo.png" alt="RobotVerse" className="h-8" />
-            <span className="font-bold text-xl">RobotVerse</span>
-          </div>
+          <Link
+            to="/"
+            aria-label="RobotVerse home"
+            className="inline-flex shrink-0 rounded-sm transition-[opacity,transform] duration-150 ease-out hover:opacity-[0.85] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <BrandLogo />
+          </Link>
           <Button onClick={() => navigate('/')}>Back to Home</Button>
         </div>
       </header>

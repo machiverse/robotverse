@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -431,8 +432,9 @@ const BuyLeadsTab = ({
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="overflow-hidden rounded-lg border border-foreground/10 bg-card">
+        <div className="grid h-10 grid-cols-4 items-center gap-4 border-b border-foreground/10 px-4">{[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-3 w-full" />)}</div>
+        {[0, 1, 2, 3, 4].map((row) => <div key={row} className="grid h-11 grid-cols-4 items-center gap-4 border-b border-foreground/[0.06] px-4 last:border-b-0">{[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-3 w-full" />)}</div>)}
       </div>
     );
   }
@@ -491,7 +493,7 @@ const BuyLeadsTab = ({
         </CardContent>
       </Card>
 
-      {/* Leads List */}
+      {/* Leads Table */}
       {filteredLeads.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <ShoppingCart className="mb-3 h-10 w-10 text-muted-foreground" />
@@ -501,79 +503,19 @@ const BuyLeadsTab = ({
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredLeads.map((lead) => (
-            <Card
-              key={lead.buyer_id ?? Math.random().toString(36)}
-              className="overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:border-primary/20 hover:shadow-md"
-            >
-              <div className="flex items-stretch">
-                <div className="w-1 shrink-0 bg-amber-500" />
-                <div className="flex-1 p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30">
-                        <User className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="truncate text-sm font-semibold text-foreground">{lead.buyer_first_name}</h4>
-                        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>{formatDistanceToNow(new Date(lead.latest_activity), { addSuffix: true })}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Button
-                      size="sm"
-                      onClick={() => handleBuyLead(lead)}
-                      disabled={purchasingId === lead.buyer_id}
-                      className={`h-9 px-4 text-xs font-medium ${isCommissionSeller ? 'bg-success hover:bg-success' : 'bg-amber-600 hover:bg-amber-700'}`}
-                    >
-                      {purchasingId === lead.buyer_id ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                      )}
-                      {isCommissionSeller ? 'Convert lead (Free)' : `Buy lead (${lead.total_credits_required} cr)`}
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2 pl-[52px]">
-                    <p className="mb-2 text-xs font-medium text-muted-foreground">Items viewed</p>
-                    {lead.items.map((item, idx) => (
-                      <div
-                        key={`${item.item_id}_${idx}`}
-                        className="flex items-center gap-3 rounded-lg bg-muted/50 p-2"
-                      >
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-medium text-amber-700 dark:bg-amber-900/30">
-                          {idx + 1}
-                        </span>
-
-                        {item.item_image ? (
-                          <img
-                            src={item.item_image}
-                            alt={item.item_name}
-                            className="h-10 w-10 shrink-0 rounded object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-muted">
-                            <Package className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                        )}
-
-                        <span className="flex-1 truncate text-sm font-medium text-foreground">{item.item_name}</span>
-
-                        <Badge variant="outline" className="shrink-0 capitalize text-xs">
-                          {item.item_type.replace(/_/g, " ").replace(/s$/, "")}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <div className="overflow-x-auto rounded-lg border border-foreground/10 bg-card">
+          <table className="w-full min-w-[760px] border-collapse text-[13px] leading-[1.4]">
+            <thead className="sticky top-0 z-10 bg-card text-left text-[11px] font-normal uppercase tracking-[0.06em] text-foreground/45"><tr className="h-10 border-b border-foreground/10"><th className="px-4 font-normal">Buyer</th><th className="px-4 font-normal">Items viewed</th><th className="px-4 text-right font-normal">Last activity</th><th className="px-4 text-right font-normal">Credits</th><th className="px-4 text-right font-normal">Action</th></tr></thead>
+            <tbody>{filteredLeads.map((lead) => (
+              <tr key={lead.buyer_id ?? lead.latest_activity} tabIndex={0} className="h-11 border-b border-foreground/[0.06] text-foreground/65 transition-[background-color,color] duration-150 ease-out last:border-b-0 hover:bg-foreground/[0.03] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <td className="px-4 font-semibold text-foreground">{lead.buyer_first_name}</td>
+                <td className="max-w-[320px] px-4"><p className="truncate text-foreground">{lead.items.map((item) => item.item_name).join(', ')}</p><p className="text-[11px] text-foreground/45">{lead.items.length} item{lead.items.length === 1 ? '' : 's'}</p></td>
+                <td className="px-4 text-right tabular-nums">{formatDistanceToNow(new Date(lead.latest_activity), { addSuffix: true })}</td>
+                <td className="px-4 text-right tabular-nums">{isCommissionSeller ? '—' : lead.total_credits_required}</td>
+                <td className="px-4 text-right"><Button size="sm" onClick={() => handleBuyLead(lead)} disabled={purchasingId === lead.buyer_id} className="h-8 px-3 text-xs font-semibold">{purchasingId === lead.buyer_id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" strokeWidth={1.5} />}{isCommissionSeller ? 'Convert lead' : 'Buy lead'}</Button></td>
+              </tr>
+            ))}</tbody>
+          </table>
         </div>
       )}
 

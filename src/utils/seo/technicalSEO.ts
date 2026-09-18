@@ -300,7 +300,7 @@ export const generateOpenGraphTags = (data: {
     'og:title': data.title,
     'og:description': data.description,
     'og:url': data.url,
-    'og:image': data.image || `${BASE_URL}/robotverse-logo.jpg`,
+    'og:image': data.image || `${BASE_URL}/og-image.jpg`,
     'og:type': data.type || 'website',
     'og:site_name': data.siteName || 'RobotVerse',
     'og:locale': data.locale || 'en_IN'
@@ -322,7 +322,7 @@ export const generateTwitterCardTags = (data: {
     'twitter:site': data.site || '@RobotVerse',
     'twitter:title': data.title,
     'twitter:description': data.description,
-    'twitter:image': data.image || `${BASE_URL}/robotverse-logo.jpg`
+    'twitter:image': data.image || `${BASE_URL}/og-image.jpg`
   };
 };
 

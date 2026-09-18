@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +10,7 @@ import {
   Search,
   Plus,
   Target,
-  DollarSign,
-  Calendar,
   MoreHorizontal,
-  Edit,
-  Trash,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -89,12 +84,7 @@ const CRMOpportunitiesView = ({ crmData }: CRMOpportunitiesViewProps) => {
     });
   };
 
-  // Group by stage for Kanban view
   const stages = Object.keys(STAGE_CONFIG);
-  const oppsByStage = stages.reduce((acc, stage) => {
-    acc[stage] = filteredOpportunities.filter(o => o.stage === stage);
-    return acc;
-  }, {} as Record<string, CRMOpportunity[]>);
 
   return (
     <div className="space-y-6">
@@ -136,82 +126,26 @@ const CRMOpportunitiesView = ({ crmData }: CRMOpportunitiesViewProps) => {
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="grid grid-cols-6 gap-4 overflow-x-auto pb-4">
-        {stages.map((stage) => {
-          const config = STAGE_CONFIG[stage as keyof typeof STAGE_CONFIG];
-          const stageOpps = oppsByStage[stage] || [];
-          const stageValue = stageOpps.reduce((sum, o) => sum + (o.expected_value || 0), 0);
-
-          return (
-            <div key={stage} className="min-w-[250px]">
-              <div className={`rounded-t-lg p-3 ${config.color}`}>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">{config.label}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {stageOpps.length}
-                  </Badge>
-                </div>
-                <p className="text-xs mt-1 opacity-80">
-                  ₹{(stageValue / 100000).toFixed(1)}L
-                </p>
-              </div>
-              <div className="bg-muted/50 rounded-b-lg p-2 min-h-[400px] space-y-2">
-                {stageOpps.map((opp) => (
-                  <Card key={opp.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                    <CardContent className="p-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{opp.opportunity_name}</p>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {opp.opportunity_number}
-                          </p>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {stages.filter(s => s !== stage).map((s) => (
-                              <DropdownMenuItem 
-                                key={s}
-                                onClick={() => handleStageChange(opp.id, s)}
-                              >
-                                Move to {STAGE_CONFIG[s as keyof typeof STAGE_CONFIG].label}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      <div className="mt-3 space-y-2">
-                        <div className="flex items-center gap-2 text-xs">
-                          <DollarSign className="h-3 w-3 text-success" />
-                          <span className="font-medium text-success">
-                            ₹{((opp.expected_value || 0) / 100000).toFixed(1)}L
-                          </span>
-                          <span className="text-muted-foreground">({opp.probability}%)</span>
-                        </div>
-                        {opp.expected_close_date && (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>{format(new Date(opp.expected_close_date), 'dd MMM yyyy')}</span>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                {stageOpps.length === 0 && (
-                  <div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
-                    No opportunities
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div className="overflow-x-auto rounded-lg border border-foreground/10 bg-card">
+        <table className="w-full min-w-[820px] border-collapse text-[13px] leading-[1.4]">
+          <thead className="sticky top-0 z-10 bg-card text-left text-[11px] font-normal uppercase tracking-[0.06em] text-foreground/45">
+            <tr className="h-10 border-b border-foreground/10"><th className="px-4 font-normal">Opportunity</th><th className="px-4 font-normal">Stage</th><th className="px-4 text-right font-normal">Value</th><th className="px-4 text-right font-normal">Probability</th><th className="px-4 text-right font-normal">Close date</th><th className="w-12 px-2"><span className="sr-only">Actions</span></th></tr>
+          </thead>
+          <tbody>
+            {filteredOpportunities.map((opp) => {
+              const config = STAGE_CONFIG[opp.stage as keyof typeof STAGE_CONFIG];
+              return <tr key={opp.id} tabIndex={0} className="h-11 border-b border-foreground/[0.06] text-foreground/65 transition-[background-color,color] duration-150 ease-out last:border-b-0 hover:bg-foreground/[0.03] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <td className="px-4"><p className="font-semibold text-foreground">{opp.opportunity_name}</p><p className="text-[11px] text-foreground/45">{opp.opportunity_number}</p></td>
+                <td className="px-4 capitalize"><span className={`mr-2 inline-block h-1.5 w-1.5 rounded-full ${config?.color.split(' ')[0] || 'bg-muted'}`} />{config?.label || opp.stage.replace('_', ' ')}</td>
+                <td className="px-4 text-right font-semibold tabular-nums">₹{((opp.expected_value || 0) / 100000).toFixed(1)}L</td>
+                <td className="px-4 text-right tabular-nums">{opp.probability}%</td>
+                <td className="px-4 text-right tabular-nums">{opp.expected_close_date ? format(new Date(opp.expected_close_date), 'dd MMM yyyy') : '—'}</td>
+                <td className="px-2"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" strokeWidth={1.5} /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">{stages.filter((stage) => stage !== opp.stage).map((stage) => <DropdownMenuItem key={stage} onClick={() => handleStageChange(opp.id, stage)}>Move to {STAGE_CONFIG[stage as keyof typeof STAGE_CONFIG].label}</DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu></td>
+              </tr>;
+            })}
+          </tbody>
+        </table>
+        {filteredOpportunities.length === 0 && <div className="flex flex-col items-center justify-center gap-3 py-12 text-center text-[13px] text-foreground/65"><Target className="h-4 w-4" strokeWidth={1.5} /><p>Qualified deals and their expected value will appear here.</p><Button size="sm" onClick={() => setIsCreateOpen(true)}><Plus className="mr-2 h-4 w-4" strokeWidth={1.5} />New Opportunity</Button></div>}
       </div>
 
       {/* Create Dialog */}
