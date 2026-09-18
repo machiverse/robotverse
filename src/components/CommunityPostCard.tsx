@@ -40,7 +40,8 @@ import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useContentInteractions } from "@/hooks/useContentInteractions";
 import { toast } from "sonner";
 import FormattedContent from "@/components/FormattedContent";
-import ResponsiveMedia from "@/components/ResponsiveMedia";
+import PostMediaGallery from "@/components/post/PostMediaGallery";
+import { normalizePostMedia } from "@/components/post/postMedia";
 import EditPostModal from "@/components/EditPostModal";
 import { ContentInteractionButtons } from "@/components/content/ContentInteractionButtons";
 import { buildRoboBookPostPath, buildRoboBookPostUrl } from "@/utils/blogSeo";
@@ -54,6 +55,7 @@ interface CommunityPost {
   excerpt?: string;
   media_url?: string;
   media_type?: string;
+  media_items?: any;
   video_duration?: number;
   tags: string[];
   view_count: number;
@@ -104,6 +106,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
   } = useContentInteractions(post.id, contentType);
   const postPath = buildRoboBookPostPath((post as any).slug || post.id);
   const postUrl = buildRoboBookPostUrl((post as any).slug || post.id);
+  const postMedia = normalizePostMedia((post as any).media_items, post.media_url, post.media_type);
 
   const getPostTypeIcon = () => {
     switch (post.post_type) {
@@ -383,27 +386,15 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
           )}
         </div>
 
-        {/* Media Preview with Enhanced Video Support */}
-        {post.media_url && (
-          <div className="relative overflow-hidden rounded-lg">
-            <ResponsiveMedia
-              src={post.media_url}
-              type={post.post_type === 'video' || post.media_type === 'video' ? 'video' : 'image'}
-              alt={post.title || 'Post media'}
+        {/* Media Preview — supports multiple images, videos and documents */}
+        {postMedia.length > 0 && (
+          <div className="px-4 pb-3">
+            <PostMediaGallery
+              items={postMedia}
               title={post.title}
-              videoDuration={post.video_duration}
-              autoplay={post.post_type === 'video' || post.media_type === 'video'}
-              controls={post.post_type === 'video' || post.media_type === 'video'}
-              className="w-full h-auto max-h-[500px] object-cover"
+              maxVisuals={4}
+              compact
             />
-            {/* Video overlay for better UX */}
-            {(post.post_type === 'video' || post.media_type === 'video') && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="bg-foreground/50 rounded-full p-3">
-                  <Play className="h-8 w-8 text-primary-foreground" />
-                </div>
-              </div>
-            )}
           </div>
         )}
       </Link>
