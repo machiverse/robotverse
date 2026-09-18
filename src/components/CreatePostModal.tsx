@@ -34,7 +34,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
-import MediaPreview from "@/components/MediaPreview";
+import PostMediaManager from "@/components/post/PostMediaManager";
+import { PostMediaItem, kindForUrl, splitPostMedia } from "@/components/post/postMedia";
 import RichTextEditor from "@/components/RichTextEditor";
 import { useNavigate } from "react-router-dom";
 
@@ -54,7 +55,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaItems, setMediaItems] = useState<PostMediaItem[]>([]);
   const [mediaUrl, setMediaUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -68,13 +69,6 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
     { value: 'media', label: 'Media', icon: ImageIcon, description: 'Images and visual content' },
   ];
 
-  const allowedFileTypes = {
-    image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
-    video: ['video/mp4', 'video/webm', 'video/mov', 'video/avi'],
-    document: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-  };
-
-  const maxFileSize = 50 * 1024 * 1024; // 50MB
 
   // Rich text formatting functions
   const applyFormat = (format: string) => {
@@ -154,96 +148,6 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const validateFile = (file: File): string[] => {
-    const errors: string[] = [];
-    
-    // Check file size
-    if (file.size > maxFileSize) {
-      errors.push(`File size must be less than 50MB. Current size: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
-    }
-    
-    // Check file type
-    const allAllowedTypes = [
-      ...allowedFileTypes.image,
-      ...allowedFileTypes.video,
-      ...allowedFileTypes.document
-    ];
-    
-    if (!allAllowedTypes.includes(file.type)) {
-      errors.push(`File type "${file.type}" is not supported. Allowed: JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI, PDF, DOC, DOCX`);
-    }
-    
-    return errors;
-  };
-
-  const handleFileSelect = (file: File | null) => {
-    if (!file) {
-      setMediaFile(null);
-      setValidationErrors([]);
-      return;
-    }
-    
-    const errors = validateFile(file);
-    setValidationErrors(errors);
-    
-    if (errors.length === 0) {
-      setMediaFile(file);
-      setMediaUrl(''); // Clear URL if file is selected
-    } else {
-      setMediaFile(null);
-    }
-  };
-
-  const handleFileButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    handleFileSelect(file);
-  };
-
-  const handleFileUpload = async (file: File) => {
-    try {
-      console.log('Starting file upload:', file.name, file.size, file.type);
-      
-      // Validate file before upload
-      const errors = validateFile(file);
-      if (errors.length > 0) {
-        throw new Error(errors.join(', '));
-      }
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `community-media/${fileName}`;
-      
-      console.log('Uploading to path:', filePath);
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('robot-images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
-
-      console.log('Upload successful:', uploadData);
-
-      const { data } = supabase.storage
-        .from('robot-images')
-        .getPublicUrl(filePath);
-
-      console.log('Public URL generated:', data.publicUrl);
-      return data.publicUrl;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
-    }
-  };
 
   const validateForm = (): string[] => {
     const errors: string[] = [];
@@ -257,12 +161,8 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       errors.push('Title is required for blog articles and videos');
     }
 
-    if (!content.trim() && !mediaFile && !mediaUrl) {
+    if (!content.trim() && mediaItems.length === 0 && !mediaUrl) {
       errors.push('Please add some content, upload a file, or provide a media URL');
-    }
-
-    if (mediaFile && validationErrors.length > 0) {
-      errors.push(...validationErrors);
     }
 
     if (content.length > 500000) {
@@ -299,16 +199,12 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
 
     try {
       setIsSubmitting(true);
-      let uploadedMediaUrl = mediaUrl;
-      let mediaType = '';
 
-      if (mediaFile) {
-        uploadedMediaUrl = await handleFileUpload(mediaFile);
-        mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
-      } else if (mediaUrl) {
-        const isVideo = /\.(mp4|webm|mov|avi)$/i.test(mediaUrl) || mediaUrl.includes('youtube') || mediaUrl.includes('vimeo');
-        mediaType = isVideo ? 'video' : 'image';
+      const allMedia: PostMediaItem[] = [...mediaItems];
+      if (mediaUrl.trim()) {
+        allMedia.push({ url: mediaUrl.trim(), type: kindForUrl(mediaUrl.trim()) });
       }
+      const primary = splitPostMedia(allMedia).visuals[0];
 
       const plain = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
       const excerpt = plain.length > 200 ? plain.substring(0, 200) + '...' : plain;
@@ -320,8 +216,9 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
         title: title.trim() || null,
         content: content.trim(),
         excerpt: excerpt,
-        media_url: uploadedMediaUrl || null,
-        media_type: mediaType || null,
+        media_items: allMedia,
+        media_url: primary?.url || null,
+        media_type: primary?.type || null,
         tags: tags,
         status,
         is_draft: mode === 'draft',
@@ -346,7 +243,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       setContent('');
       setTags([]);
       setTagInput('');
-      setMediaFile(null);
+      setMediaItems([]);
       setMediaUrl('');
       setPostType('short_post');
       setValidationErrors([]);
@@ -456,86 +353,22 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
 
           {/* Enhanced Media Upload */}
           <div className="space-y-4">
-            <Label className="text-base font-semibold">Media Upload</Label>
-            
-            {/* Validation Errors */}
-            {validationErrors.length > 0 && (
-              <div className="border border-destructive rounded-lg p-3 bg-destructive/5">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm font-medium text-destructive">Upload Issues</span>
-                </div>
-                <ul className="text-xs text-destructive space-y-1">
-                  {validationErrors.map((error, index) => (
-                    <li key={index}>• {error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            <div className="space-y-4">
-              {/* File Upload with Preview */}
-              {!mediaFile ? (
-                <div className="border-2 border-dashed border-primary/25 rounded-xl p-8 bg-gradient-to-br from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-all">
-                  <div className="text-center">
-                    <div className="bg-primary/5 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                      <Upload className="h-8 w-8 text-primary" />
-                    </div>
-                    <h4 className="font-semibold text-foreground mb-2">Upload High-Quality Media</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Supported: JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI, PDF, DOC, DOCX (max 50MB)
-                    </p>
-                    
-                    {/* Hidden file input */}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    
-                    {/* Custom file upload button */}
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="rounded-full px-6"
-                      onClick={handleFileButtonClick}
-                      type="button"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Choose File
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <MediaPreview 
-                  file={mediaFile} 
-                  onRemove={() => handleFileSelect(null)} 
-                />
-              )}
+            <PostMediaManager items={mediaItems} onChange={setMediaItems} />
 
-              {/* URL Input */}
-              {!mediaFile && (
-                <div className="relative">
-                  <Label htmlFor="media-url" className="text-sm font-medium text-muted-foreground">
-                    Or embed from URL
-                  </Label>
-                  <Input
-                    id="media-url"
-                    value={mediaUrl}
-                    onChange={(e) => {
-                      setMediaUrl(e.target.value);
-                      if (e.target.value) setValidationErrors([]);
-                    }}
-                    placeholder="YouTube, Vimeo, or direct media URL"
-                    className="mt-2 h-12 text-base"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Supports YouTube, Vimeo, and direct image/video links
-                  </p>
-                </div>
-              )}
+            <div className="relative">
+              <Label htmlFor="media-url" className="text-sm font-medium text-muted-foreground">
+                Or embed from URL
+              </Label>
+              <Input
+                id="media-url"
+                value={mediaUrl}
+                onChange={(e) => setMediaUrl(e.target.value)}
+                placeholder="YouTube, Vimeo, or direct media URL"
+                className="mt-2 h-12 text-base"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Supports YouTube, Vimeo, and direct image/video links
+              </p>
             </div>
           </div>
 
