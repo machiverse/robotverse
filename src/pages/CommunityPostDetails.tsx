@@ -41,7 +41,8 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import FormattedContent from "@/components/FormattedContent";
-import ResponsiveMedia from "@/components/ResponsiveMedia";
+import PostMediaGallery from "@/components/post/PostMediaGallery";
+import { normalizePostMedia } from "@/components/post/postMedia";
 import BlogShareBar from "@/components/blog/BlogShareBar";
 import PreviewLinkCard from "@/components/blog/PreviewLinkCard";
 import EditPostModal from "@/components/EditPostModal";
@@ -55,6 +56,7 @@ interface CommunityPost {
   excerpt?: string;
   media_url?: string;
   media_type?: string;
+  media_items?: any;
   video_duration?: number;
   tags: string[];
   view_count: number;
@@ -450,32 +452,10 @@ const CommunityPostDetails = () => {
               )}
             </div>
 
-            {/* Media Content */}
-            {post.media_url && (
+            {/* Media Content — multiple images, videos and document attachments */}
+            {postMedia.length > 0 && (
               <div className="px-6 pb-6">
-                <div className="rounded-lg overflow-hidden bg-muted/30">
-                  {post.post_type === 'video' ? (
-                    <div className="relative group">
-                      <ResponsiveMedia
-                        src={post.media_url}
-                        alt={post.title || 'Video content'}
-                        type="video"
-                      />
-                      {post.video_duration && (
-                        <div className="absolute bottom-2 right-2 bg-foreground/70 text-primary-foreground px-2 py-1 rounded text-xs flex items-center gap-1">
-                          <Play className="h-3 w-3" />
-                          {formatDuration(post.video_duration)}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <ResponsiveMedia
-                      src={post.media_url}
-                      alt={post.title || 'Post media'}
-                      type="image"
-                    />
-                  )}
-                </div>
+                <PostMediaGallery items={postMedia} title={post.title} />
               </div>
             )}
 
