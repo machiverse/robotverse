@@ -46,7 +46,6 @@ interface CreatePostModalProps {
 const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const [open, setOpen] = useState(false);
@@ -58,7 +57,6 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   const [mediaItems, setMediaItems] = useState<PostMediaItem[]>([]);
   const [mediaUrl, setMediaUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [activeFormats, setActiveFormats] = useState<string[]>([]);
   const [scheduledAt, setScheduledAt] = useState<string>('');
 

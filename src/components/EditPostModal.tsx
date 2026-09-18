@@ -25,7 +25,8 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import MediaPreview from "@/components/MediaPreview";
+import PostMediaManager from "@/components/post/PostMediaManager";
+import { PostMediaItem, kindForUrl, normalizePostMedia, splitPostMedia } from "@/components/post/postMedia";
 import RichTextEditor from "@/components/RichTextEditor";
 
 interface CommunityPost {
@@ -54,17 +55,17 @@ interface EditPostModalProps {
 
 const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModalProps) => {
   const { user } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [postType, setPostType] = useState<'blog' | 'video' | 'short_post' | 'media'>(post.post_type);
   const [title, setTitle] = useState(post.title || '');
   const [content, setContent] = useState(post.content || '');
   const [tags, setTags] = useState<string[]>(post.tags || []);
   const [tagInput, setTagInput] = useState('');
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaUrl, setMediaUrl] = useState(post.media_url || '');
+  const [mediaItems, setMediaItems] = useState<PostMediaItem[]>(
+    normalizePostMedia((post as any).media_items, post.media_url, post.media_type)
+  );
+  const [mediaUrl, setMediaUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [scheduledAt, setScheduledAt] = useState<string>('');
 
   const postTypes = [
@@ -74,13 +75,6 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
     { value: 'media', label: 'Media', icon: ImageIcon, description: 'Images and visual content' },
   ];
 
-  const allowedFileTypes = {
-    image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
-    video: ['video/mp4', 'video/webm', 'video/mov', 'video/avi'],
-    document: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-  };
-
-  const maxFileSize = 50 * 1024 * 1024; // 50MB
 
   useEffect(() => {
     if (open) {
@@ -89,9 +83,8 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
       setTitle(post.title || '');
       setContent(post.content || '');
       setTags(post.tags || []);
-      setMediaUrl(post.media_url || '');
-      setMediaFile(null);
-      setValidationErrors([]);
+      setMediaItems(normalizePostMedia((post as any).media_items, post.media_url, post.media_type));
+      setMediaUrl('');
       const sp = (post as any).scheduled_publish_at;
       if (sp) {
         const d = new Date(sp);
@@ -123,83 +116,6 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const validateFile = (file: File): string[] => {
-    const errors: string[] = [];
-    
-    if (file.size > maxFileSize) {
-      errors.push(`File size must be less than 50MB. Current size: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
-    }
-    
-    const allAllowedTypes = [
-      ...allowedFileTypes.image,
-      ...allowedFileTypes.video,
-      ...allowedFileTypes.document
-    ];
-    
-    if (!allAllowedTypes.includes(file.type)) {
-      errors.push(`File type "${file.type}" is not supported. Allowed: JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI, PDF, DOC, DOCX`);
-    }
-    
-    return errors;
-  };
-
-  const handleFileSelect = (file: File | null) => {
-    if (!file) {
-      setMediaFile(null);
-      setValidationErrors([]);
-      return;
-    }
-    
-    const errors = validateFile(file);
-    setValidationErrors(errors);
-    
-    if (errors.length === 0) {
-      setMediaFile(file);
-      setMediaUrl(''); // Clear URL if file is selected
-    } else {
-      setMediaFile(null);
-    }
-  };
-
-  const handleFileButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    handleFileSelect(file);
-  };
-
-  const handleFileUpload = async (file: File) => {
-    try {
-      const errors = validateFile(file);
-      if (errors.length > 0) {
-        throw new Error(errors.join(', '));
-      }
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `community-media/${fileName}`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('robot-images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('robot-images')
-        .getPublicUrl(filePath);
-
-      return data.publicUrl;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
-    }
-  };
 
   const validateForm = (): string[] => {
     const errors: string[] = [];
@@ -213,12 +129,8 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
       errors.push('Title is required for blog articles and videos');
     }
 
-    if (!content.trim() && !mediaFile && !mediaUrl) {
+    if (!content.trim() && mediaItems.length === 0 && !mediaUrl) {
       errors.push('Please add some content, upload a file, or provide a media URL');
-    }
-
-    if (mediaFile && validationErrors.length > 0) {
-      errors.push(...validationErrors);
     }
 
     if (content.length > 500000) {
@@ -256,16 +168,12 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
 
     try {
       setIsSubmitting(true);
-      let uploadedMediaUrl = mediaUrl;
-      let mediaType = '';
 
-      if (mediaFile) {
-        uploadedMediaUrl = await handleFileUpload(mediaFile);
-        mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
-      } else if (mediaUrl) {
-        const isVideo = /\.(mp4|webm|mov|avi)$/i.test(mediaUrl) || mediaUrl.includes('youtube') || mediaUrl.includes('vimeo');
-        mediaType = isVideo ? 'video' : 'image';
+      const allMedia: PostMediaItem[] = [...mediaItems];
+      if (mediaUrl.trim()) {
+        allMedia.push({ url: mediaUrl.trim(), type: kindForUrl(mediaUrl.trim()) });
       }
+      const primary = splitPostMedia(allMedia).visuals[0];
 
       const plain = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
       const excerpt = plain.length > 200 ? plain.substring(0, 200) + '...' : plain;
@@ -277,7 +185,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
           changes: {
             title: post.title !== title.trim() ? { old: post.title, new: title.trim() } : null,
             content: post.content !== content.trim() ? { old: post.content, new: content.trim() } : null,
-            media_url: post.media_url !== uploadedMediaUrl ? { old: post.media_url, new: uploadedMediaUrl } : null,
+            media_url: post.media_url !== (primary?.url || null) ? { old: post.media_url, new: primary?.url || null } : null,
             tags: JSON.stringify(post.tags) !== JSON.stringify(tags) ? { old: post.tags, new: tags } : null,
           },
         },
@@ -294,8 +202,9 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
         title: title.trim() || null,
         content: content.trim(),
         excerpt: excerpt,
-        media_url: uploadedMediaUrl || null,
-        media_type: mediaType || null,
+        media_items: allMedia,
+        media_url: primary?.url || null,
+        media_type: primary?.type || null,
         tags: tags,
         updated_at: new Date().toISOString(),
         edited_at: new Date().toISOString(),
@@ -444,101 +353,20 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
 
           {/* Media Upload/Update */}
           <div className="space-y-4">
-            <Label className="text-base font-semibold">Media</Label>
-            
-            {/* Current Media Preview */}
-            {mediaUrl && !mediaFile && (
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Current Media</Label>
-                <div className="relative">
-                  <img 
-                    src={mediaUrl} 
-                    alt="Current media"
-                    className="max-h-40 rounded-lg object-cover"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => setMediaUrl('')}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            {/* Validation Errors */}
-            {validationErrors.length > 0 && (
-              <div className="border border-destructive rounded-lg p-3 bg-destructive/5">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm font-medium text-destructive">Upload Issues</span>
-                </div>
-                <ul className="text-xs text-destructive space-y-1">
-                  {validationErrors.map((error, index) => (
-                    <li key={index}>• {error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {/* File Upload */}
-            {!mediaFile && !mediaUrl && (
-              <div className="border-2 border-dashed border-primary/25 rounded-xl p-8 bg-primary/5">
-                <div className="text-center">
-                  <div className="bg-primary/5 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-semibold text-foreground mb-2">Upload New Media</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI (max 50MB)
-                  </p>
-                  
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="rounded-full px-6"
-                    onClick={handleFileButtonClick}
-                    type="button"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Choose File
-                  </Button>
-                </div>
-              </div>
-            )}
+            <PostMediaManager items={mediaItems} onChange={setMediaItems} />
 
-            {mediaFile && (
-              <MediaPreview 
-                file={mediaFile} 
-                onRemove={() => handleFileSelect(null)} 
+            <div className="space-y-2">
+              <Label htmlFor="media-url" className="text-sm font-medium text-muted-foreground">
+                Or add a media URL
+              </Label>
+              <Input
+                id="media-url"
+                value={mediaUrl}
+                onChange={(e) => setMediaUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg or video URL"
+                className="w-full"
               />
-            )}
-
-            {/* URL Input */}
-            {!mediaFile && (
-              <div className="space-y-2">
-                <Label htmlFor="media-url" className="text-sm font-medium text-muted-foreground">
-                  Or use media URL
-                </Label>
-                <Input
-                  id="media-url"
-                  value={mediaUrl}
-                  onChange={(e) => setMediaUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg or video URL"
-                  className="w-full"
-                />
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Tags */}
