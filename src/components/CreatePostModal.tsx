@@ -244,7 +244,6 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       setMediaItems([]);
       setMediaUrl('');
       setPostType('short_post');
-      setValidationErrors([]);
       setActiveFormats([]);
       setScheduledAt('');
       setOpen(false);
