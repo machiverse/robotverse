@@ -91,6 +91,7 @@ const CommunityPostDetails = () => {
   const contentType = post?.post_type === 'blog' ? 'blog' : (post?.post_type === 'video' ? 'video' : 'community_post');
   const interactionPostId = post?.id || id || '';
   const shareUrl = post ? buildRoboBookPostUrl((post as any).slug || post.id) : "";
+  const postMedia = post ? normalizePostMedia((post as any).media_items, post.media_url, post.media_type) : [];
   
   // Use new unified interactions hook
   const {
