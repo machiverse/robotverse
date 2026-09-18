@@ -113,6 +113,7 @@ const PostPreview = () => {
   const previewUrl = `${SITE_URL}/preview/${token}`;
   const statusLabel = post.status === "scheduled" ? "Scheduled" : "Draft";
   const isVideo = post.post_type === "video";
+  const previewMedia = normalizePostMedia(post.media_items, post.media_url, post.media_type);
 
   return (
     <div className="min-h-screen bg-background">
@@ -201,7 +202,11 @@ const PostPreview = () => {
               )}
             </div>
 
-            {featuredImage && (
+            {previewMedia.length > 0 ? (
+              <div className="px-5 sm:px-6 pb-5">
+                <PostMediaGallery items={previewMedia} title={post.title} />
+              </div>
+            ) : featuredImage ? (
               <div className="px-5 sm:px-6 pb-5">
                 <div className="rounded-lg overflow-hidden bg-muted/30">
                   <ResponsiveMedia
@@ -211,7 +216,7 @@ const PostPreview = () => {
                   />
                 </div>
               </div>
-            )}
+            ) : null}
 
             {post.content && (
               <div className="px-5 sm:px-6 pb-6">
