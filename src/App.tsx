@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-
 import { AuthProvider } from "@/hooks/useAuth";
 import { RobotComparisonProvider } from "@/contexts/RobotComparisonContext";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
+import { usePageTracking } from "@/hooks/usePageTracking";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -111,6 +112,12 @@ const GlobalChatNotifications = () => {
   return null;
 };
 
+// SPA route-change page view tracker for GA4
+const PageTracker = () => {
+  usePageTracking();
+  return null;
+};
+
 const AppLoadingFallback = () => (
   <div style={{
     display: 'flex',
@@ -140,6 +147,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <PageTracker />
             <AIAssistantProvider>
               <GlobalEmailVerificationHandler />
               <AutoSignInPopup />

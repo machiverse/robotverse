@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { OemRail, OemDot } from '@/components/oem/OemAccents';
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -284,15 +284,16 @@ const HomeRobotListings = () => {
                       <span className="tabular">{robotsOfType.length}</span>{" "}{robotsOfType.length === 1 ? "robot" : "robots"} available
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/robots?type=${encodeURIComponent(robotType)}`)}
-                    className="group shrink-0"
+                  <Link
+                    to={`/robots?type=${encodeURIComponent(robotType)}`}
+                    className="shrink-0 no-underline"
                   >
-                    View All
-                    <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+                    <Button variant="outline" size="sm" className="group shrink-0">
+                      View All
+                      <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+                
                 </div>
 
                 {/* ✅ AUTO-SCROLLS EVERY 5 SECONDS */}
@@ -310,9 +311,12 @@ const HomeRobotListings = () => {
                         key={robot.id}
                         className="pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5"
                       >
+                        <Link
+                          to={`/robots/${robot.id}`}
+                          className="block no-underline text-inherit"
+                        >
                         <Card
                           className="group relative cursor-pointer transition-colors duration-150 overflow-hidden border border-border hover:border-muted-foreground/40 bg-card shadow-none"
-                          onClick={() => navigate(`/robots/${robot.id}`)}
                         >
                           <OemRail brand={robot.brand} />
                           {/* Robot Image */}
@@ -364,6 +368,7 @@ const HomeRobotListings = () => {
                           </CardContent>
 
                         </Card>
+                        </Link>
                       </CarouselItem>
                     ))}
                   </CarouselContent>
@@ -382,14 +387,12 @@ const HomeRobotListings = () => {
 
         {/* View All Robots Button */}
         <div className="text-center mt-12">
-          <Button
-            size="lg"
-            onClick={() => navigate("/robots")}
-            
-          >
-            View All <span className="tabular mx-1">{robots.length}</span> Robots
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
+          <Link to="/robots" className="inline-block no-underline">
+            <Button size="lg">
+              View All <span className="tabular mx-1">{robots.length}</span> Robots
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
