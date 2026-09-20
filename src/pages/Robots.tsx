@@ -1,7 +1,8 @@
 // src/pages/Robots.tsx
 import { useState, useEffect, useMemo } from "react";
 import { OemRail, OemDot } from '@/components/oem/OemAccents';
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { RequestQuotePill, CardLeadTimeNote, isPriceAvailable } from "@/components/pricing/PriceElements";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -423,6 +424,7 @@ const Robots = () => {
 
   const handleAddToWatchlist = async (robot: any, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (!user) {
       toast({
         title: "Login Required",
@@ -940,14 +942,15 @@ const Robots = () => {
                   {viewMode === "grid" ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {robotsGroup.map((robot: any) => (
-                        <Card
+                        <Link
                           key={robot.id}
-                          className="relative overflow-hidden border border-border hover:border-muted-foreground/40 shadow-none transition-colors duration-150 cursor-pointer group"
+                          to={`/robots/${robot.id}`}
+                          className="block no-underline text-inherit"
                           onClick={async () => {
                             await trackItemView("robots", robot.id);
-                            navigate(`/robots/${robot.id}`);
                           }}
                         >
+                        <Card className="relative overflow-hidden border border-border hover:border-muted-foreground/40 shadow-none transition-colors duration-150 cursor-pointer group">
                           <OemRail brand={robot.brand} />
                           {/* Image */}
                           <div className="relative overflow-hidden bg-muted border-b border-border dark:shadow-[inset_0_0_0_1px_hsl(var(--border))]">
@@ -997,6 +1000,7 @@ const Robots = () => {
                                 className="h-8 w-8 p-0 bg-card/80 hover:bg-card"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  e.preventDefault();
                                   const url = `${window.location.origin}/robots/${robot.id}`;
                                   if (navigator.share) {
                                     navigator.share({
@@ -1048,14 +1052,31 @@ const Robots = () => {
                             </div>
 
                             {/* Location + price */}
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center text-xs text-muted-foreground">
                                 <MapPin className="w-3 h-3 mr-1" />
                                 <span className="line-clamp-1">{robot.location || "Location not specified"}</span>
                               </div>
-                              <div className="text-sm font-bold text-primary tabular">
-                                {formatPrice(robot.price, robot.currency)}
-                              </div>
+                              {isPriceAvailable(robot.price) ? (
+                                <div className="text-right">
+                                  <p className="text-sm font-bold text-primary tabular">
+                                    {formatPrice(robot.price, robot.currency)}
+                                  </p>
+                                  <CardLeadTimeNote condition={robot.condition} leadTime={robot.lead_time} />
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-end gap-1">
+                                  <RequestQuotePill
+                                    label="Request for Quote"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      setQuoteRobot(robot);
+                                    }}
+                                  />
+                                  <CardLeadTimeNote condition={robot.condition} leadTime={robot.lead_time} />
+                                </div>
+                              )}
                             </div>
 
                             {/* Availability */}
