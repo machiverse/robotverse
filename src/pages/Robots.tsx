@@ -1217,10 +1217,11 @@ const Robots = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setQuoteRobot(robot);
-                                  }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      setQuoteRobot(robot);
+                                    }}
                                 >
                                   <FileText className="w-3 h-3 mr-1" />
                                   Get Quote
@@ -1246,6 +1247,7 @@ const Robots = () => {
                             </div>
                           </CardContent>
                         </Card>
+                        </Link>
                       ))}
                     </div>
                   )}

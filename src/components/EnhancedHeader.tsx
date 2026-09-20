@@ -1445,38 +1445,16 @@ const EnhancedHeader = () => {
                         {item.label}
                       </Link>
                     ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Brands */}
-              <div>
-                <button
-                  className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition"
-                  onClick={() => setMobileExpandedMenu(mobileExpandedMenu === "brands" ? null : "brands")}
-                >
-                  <span className="flex items-center gap-2">
-                    <Factory className="h-4 w-4" />
-                    Brands
-                  </span>
-                  <ChevronDown
-                    className={cn("h-4 w-4 transition-transform", mobileExpandedMenu === "brands" && "rotate-180")}
-                  />
-                </button>
-                {mobileExpandedMenu === "brands" && (
-                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-border pl-3">
-                    <Link
-                      to="/robots"
-                      className="block px-3 py-2 text-sm font-medium text-primary"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      All Robots
-                    </Link>
+                    <div className="border-t border-border my-2" />
+                    <p className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      <Factory className="h-3 w-3" />
+                      OEM Brands
+                    </p>
                     {NAVIGATION_CONFIG.brands.subItems.map((item) => (
                       <Link
                         key={item.label}
                         to={item.href}
-                        className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+                        className="block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
                         onClick={() => setMenuOpen(false)}
                       >
                         {item.label}
