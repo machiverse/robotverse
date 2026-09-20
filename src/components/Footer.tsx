@@ -9,7 +9,7 @@ const Footer = () => {
   return (
     <footer className="bg-primary/5 border-t">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
             <BrandLogo size="lg" variant="full" />
@@ -92,6 +92,31 @@ const Footer = () => {
               <a href="/buyer-guide" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Buyer Guide
               </a>
+            </nav>
+          </div>
+
+          {/* Top Brands */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-foreground">Top Brands</h3>
+            <nav className="flex flex-col space-y-2">
+              {[
+                { label: "FANUC", slug: "fanuc" },
+                { label: "KUKA", slug: "kuka" },
+                { label: "ABB", slug: "abb" },
+                { label: "Yaskawa", slug: "yaskawa" },
+                { label: "Mitsubishi", slug: "mitsubishi" },
+                { label: "Universal Robots", slug: "universal-robots" },
+                { label: "Kawasaki", slug: "kawasaki" },
+                { label: "Epson", slug: "epson" },
+              ].map((brand) => (
+                <a
+                  key={brand.slug}
+                  href={`/robots/brand/${brand.slug}`}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {brand.label} Robots
+                </a>
+              ))}
             </nav>
           </div>
 
