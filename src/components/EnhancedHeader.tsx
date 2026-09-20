@@ -27,6 +27,7 @@ import {
   Shield,
   Users,
   Gavel,
+  Factory,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -716,6 +717,87 @@ const EnhancedHeader = () => {
                 )}
               </div>
 
+              {/* Brands Menu - OEM Brand Grid */}
+              <div
+                className="relative flex-1 group"
+                onMouseEnter={() => handleDropdownEnter("brands")}
+                onMouseLeave={handleDropdownLeave}
+              >
+                <button
+                  onClick={() => handleNavigation("/robots")}
+                  className={cn(
+                    "nav-item flex items-center justify-center gap-2 w-full",
+                    activeDropdown === "brands" && "text-primary",
+                  )}
+                >
+                  <Factory className="h-4 w-4" />
+                  <span>Brands</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-3 w-3 transition-transform duration-200",
+                      activeDropdown === "brands" && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {activeDropdown === "brands" && (
+                  <div
+                    className="fixed left-1/2 -translate-x-1/2 top-[120px] w-[95vw] max-w-[520px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
+                    onMouseEnter={handleDropdownContentEnter}
+                    onMouseLeave={handleDropdownLeave}
+                  >
+                    <div className="bg-popover border border-border rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+                      {/* Header */}
+                      <div className="px-6 py-4 border-b border-border/50 bg-primary/5">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2.5 rounded-xl bg-primary/10 ring-1 ring-primary/20">
+                            <Factory className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-lg text-foreground">Shop by Brand</h3>
+                            <p className="text-xs text-muted-foreground">Browse robots from leading OEM manufacturers</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Brand Grid - 2 columns */}
+                      <div className="p-5 grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto scrollbar-thin">
+                        {NAVIGATION_CONFIG.brands.subItems.map((item) => (
+                          <Link
+                            key={item.label}
+                            to={item.href}
+                            className="group/item flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200"
+                            onClick={() => setActiveDropdown(null)}
+                          >
+                            <div className="p-2 rounded-lg bg-primary/10 group-hover/item:bg-primary/20 transition-colors">
+                              <Factory className="h-4 w-4 text-primary" />
+                            </div>
+                            <span className="font-medium text-sm text-foreground group-hover/item:text-primary transition-colors">
+                              {item.label}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="px-6 py-3 border-t border-border/50 bg-muted/20 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Factory className="h-3.5 w-3.5" />
+                          {NAVIGATION_CONFIG.brands.subItems.length} OEM Brands
+                        </span>
+                        <Link
+                          to="/robots"
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          View All Robots
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Spare Parts Menu - Professional Mega Menu */}
               <div
                 className="relative flex-1 group"
@@ -1354,6 +1436,43 @@ const EnhancedHeader = () => {
                       All Robots
                     </Link>
                     {NAVIGATION_CONFIG.robots.subItems.map((item) => (
+                      <Link
+                        key={item.label}
+                        to={item.href}
+                        className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Brands */}
+              <div>
+                <button
+                  className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition"
+                  onClick={() => setMobileExpandedMenu(mobileExpandedMenu === "brands" ? null : "brands")}
+                >
+                  <span className="flex items-center gap-2">
+                    <Factory className="h-4 w-4" />
+                    Brands
+                  </span>
+                  <ChevronDown
+                    className={cn("h-4 w-4 transition-transform", mobileExpandedMenu === "brands" && "rotate-180")}
+                  />
+                </button>
+                {mobileExpandedMenu === "brands" && (
+                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-border pl-3">
+                    <Link
+                      to="/robots"
+                      className="block px-3 py-2 text-sm font-medium text-primary"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      All Robots
+                    </Link>
+                    {NAVIGATION_CONFIG.brands.subItems.map((item) => (
                       <Link
                         key={item.label}
                         to={item.href}
