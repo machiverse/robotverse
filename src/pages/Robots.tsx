@@ -1074,6 +1074,7 @@ const Robots = () => {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    e.preventDefault();
                                     if (!user) {
                                       toast({
                                         title: "Sign in required",
@@ -1102,6 +1103,7 @@ const Robots = () => {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    e.preventDefault();
                                     setQuoteRobot(robot);
                                   }}
                                 >
@@ -1130,19 +1132,21 @@ const Robots = () => {
                             </div>
                           </CardContent>
                         </Card>
+                        </Link>
                       ))}
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {robotsGroup.map((robot: any) => (
-                        <Card
+                        <Link
                           key={robot.id}
-                          className="group relative overflow-hidden border border-border hover:border-muted-foreground/40 shadow-none transition-colors duration-150 cursor-pointer flex"
+                          to={`/robots/${robot.id}`}
+                          className="block no-underline text-inherit"
                           onClick={async () => {
                             await trackItemView("robots", robot.id);
-                            navigate(`/robots/${robot.id}`);
                           }}
                         >
+                        <Card className="group relative overflow-hidden border border-border hover:border-muted-foreground/40 shadow-none transition-colors duration-150 cursor-pointer flex">
                           <OemRail brand={robot.brand} />
                           <div className="w-40 flex-shrink-0 bg-background border-r border-border">
                             {robot.images && robot.images.length > 0 ? (
@@ -1181,9 +1185,26 @@ const Robots = () => {
                                 </div>
                               </div>
                               <div className="flex flex-col items-end gap-2">
-                                <div className="text-lg font-bold text-primary">
-                                  {formatPrice(robot.price, robot.currency)}
-                                </div>
+                                {isPriceAvailable(robot.price) ? (
+                                  <div className="text-right">
+                                    <p className="text-lg font-bold text-primary tabular">
+                                      {formatPrice(robot.price, robot.currency)}
+                                    </p>
+                                    <CardLeadTimeNote condition={robot.condition} leadTime={robot.lead_time} />
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-end gap-1">
+                                    <RequestQuotePill
+                                      label="Request for Quote"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        setQuoteRobot(robot);
+                                      }}
+                                    />
+                                    <CardLeadTimeNote condition={robot.condition} leadTime={robot.lead_time} />
+                                  </div>
+                                )}
                                 {robot.condition && (
                                   <Badge
                                     variant={robot.condition === "New" ? "default" : "secondary"}
@@ -1206,10 +1227,11 @@ const Robots = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/robots/${robot.id}`);
-                                  }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      navigate(`/robots/${robot.id}`);
+                                    }}
                                 >
                                   <Eye className="w-3 h-3 mr-1" />
                                   Details
