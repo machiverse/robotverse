@@ -4,8 +4,9 @@
  */
 
 import { ReactNode } from "react";
-import Header from "@/components/Header";
+import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
+import BackButton from "@/components/navigation/BackButton";
 import { Helmet } from "react-helmet-async";
 import AEOContentBlock from "@/components/SEO/AEOContentBlock";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -98,7 +99,9 @@ export function LandingPageLayout({
         <script type="application/ld+json">{JSON.stringify(autoSchemas)}</script>
       </Helmet>
 
-      <Header />
+      <EnhancedHeader />
+      <BackButton fallbackPath="/robots" label="Back" />
+
 
       <main className="flex-1">
         <section className="border-b border-border bg-muted/30">
