@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import BackButton from "@/components/navigation/BackButton";
 import CommunityPostCard from "@/components/CommunityPostCard";
 import CreatePostModal from "@/components/CreatePostModal";
 import SEOMetaTags from "@/components/SEOMetaTags";
@@ -367,6 +368,8 @@ const Community = () => {
         }}
       />
       <EnhancedHeader />
+      <BackButton fallbackPath="/" label="Back" />
+
       
       <main className="container mx-auto px-4 py-8">
         {/* Header Section */}
