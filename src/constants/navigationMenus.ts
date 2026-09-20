@@ -21,6 +21,24 @@ export const ROBOT_TYPES = [
   "Mig Welding Robot",
 ] as const;
 
+// Major industrial robot OEM brands - most searched brands in India for used industrial robots
+export const OEM_BRANDS = [
+  { label: "FANUC", slug: "fanuc" },
+  { label: "KUKA", slug: "kuka" },
+  { label: "ABB", slug: "abb" },
+  { label: "Yaskawa", slug: "yaskawa" },
+  { label: "Mitsubishi", slug: "mitsubishi" },
+  { label: "Universal Robots", slug: "universal-robots" },
+  { label: "Kawasaki", slug: "kawasaki" },
+  { label: "Epson", slug: "epson" },
+  { label: "Stäubli", slug: "staubli" },
+  { label: "Nachi", slug: "nachi" },
+  { label: "Denso", slug: "denso" },
+  { label: "Comau", slug: "comau" },
+  { label: "Doosan", slug: "doosan" },
+  { label: "Hyundai", slug: "hyundai" },
+] as const;
+
 // Service Types - Must match database service_type values
 export const SERVICE_TYPES = [
   "Installation",
@@ -98,6 +116,14 @@ export const NAVIGATION_CONFIG = {
     subItems: ROBOT_TYPES.map(type => ({
       label: type,
       href: `/robots?type=${encodeURIComponent(type)}`,
+    })),
+  },
+  brands: {
+    label: "Brands",
+    href: "/robots",
+    subItems: OEM_BRANDS.map(brand => ({
+      label: brand.label,
+      href: `/robots/brand/${brand.slug}`,
     })),
   },
   spares: {
