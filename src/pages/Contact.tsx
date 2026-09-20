@@ -1,4 +1,5 @@
 import EnhancedHeader from "@/components/EnhancedHeader";
+import BackButton from "@/components/navigation/BackButton";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
