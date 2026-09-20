@@ -1,6 +1,7 @@
 import EnhancedHeader from "@/components/EnhancedHeader";
 import EnhancedHero from "@/components/EnhancedHero";
 import HomeRobotListings from "@/components/HomeRobotListings";
+import ShopByBrand from "@/components/ShopByBrand";
 import MarketplaceCategories from "@/components/MarketplaceCategories";
 import WhyChooseRobotVerse from "@/components/WhyChooseRobotVerse";
 import CitiesCoveredMap from "@/components/CitiesCoveredMap";
@@ -47,6 +48,7 @@ const Index = () => {
       <EnhancedHeader />
       <EnhancedHero />
       <HomeRobotListings />
+      <ShopByBrand />
       <MarketplaceCategories />
       <CitiesCoveredMap />
       <WhyChooseRobotVerse />
