@@ -133,6 +133,15 @@ const StepShell = ({ children }: { children: React.ReactNode }) => (
 
 /* --------------------------------- layout svg ----------------------------- */
 
+const PREVIEW_STATIONS = [
+  "S1 Loading",
+  "S2 Welding",
+  "S3 Finishing",
+  "S4 Inspection",
+  "S5 Palletizing",
+  "S6 Transport",
+];
+
 const FactoryLayoutSvg = ({ stations }: { stations: string[] }) => {
   const placed = stations.slice(0, 6).map((label, i) => ({
     label,
@@ -295,7 +304,7 @@ export default function AutomationStudio() {
                 <CardTitle className="text-base">Preview: generated factory layout</CardTitle>
               </CardHeader>
               <CardContent>
-                <FactoryLayoutSvg stations={stations} />
+                <FactoryLayoutSvg stations={PREVIEW_STATIONS} />
               </CardContent>
             </Card>
 
@@ -622,11 +631,11 @@ export default function AutomationStudio() {
                     <TabsTrigger value="cell">3D Cell View</TabsTrigger>
                   </TabsList>
                   <TabsContent value="layout" className="mt-4">
-                    <FactoryLayoutSvg />
+                    <FactoryLayoutSvg stations={stations} />
                   </TabsContent>
                   <TabsContent value="flow" className="mt-4">
                     <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                      Material flow view will trace each part through the six stations with cycle time, buffer size
+                      Material flow view will trace each part through each station with cycle time, buffer size
                       and queue points per transfer.
                     </div>
                   </TabsContent>
