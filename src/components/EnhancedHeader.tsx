@@ -1678,6 +1678,17 @@ const EnhancedHeader = () => {
                 Robot Talent
               </Link>
 
+              {/* Automation Studio */}
+              <Link
+                to="/automation-studio"
+                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Sparkles className="h-4 w-4" />
+                Automation Studio
+                <span className="bg-primary text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>
+              </Link>
+
               {/* Auction */}
               <Link
                 to="/auctions"
