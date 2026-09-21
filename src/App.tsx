@@ -239,6 +239,7 @@ const App = () => (
               <Route path="/robot-talent/seeker-profile" element={<TalentSeekerProfile />} />
               <Route path="/robot-talent/post-training" element={<TalentPostTraining />} />
               <Route path="/robot-talent/employer-dashboard" element={<TalentEmployerDashboard />} />
+              <Route path="/automation-studio" element={<AutomationStudio />} />
               <Route path="/auctions" element={<Auctions />} />
               <Route path="/auctions/:id" element={<AuctionDetail />} />
               <Route path="/auctions/create" element={<CreateAuction />} />
