@@ -85,6 +85,7 @@ import TalentPostJob from "./pages/TalentPostJob";
 import TalentSeekerProfile from "./pages/TalentSeekerProfile";
 import TalentPostTraining from "./pages/TalentPostTraining";
 import TalentEmployerDashboard from "./pages/TalentEmployerDashboard";
+import AutomationStudio from "./pages/AutomationStudio";
 import Auctions from "./pages/Auctions";
 import AuctionDetail from "./pages/AuctionDetail";
 import CreateAuction from "./pages/CreateAuction";
