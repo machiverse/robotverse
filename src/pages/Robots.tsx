@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import AutomationStudioBanner from "@/components/AutomationStudioBanner";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
@@ -541,6 +542,7 @@ const Robots = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
+        <AutomationStudioBanner />
         <EnhancedHeader />
         <main className="flex-grow flex items-center justify-center">
           <Loader2 className="animate-spin w-10 h-10" />
