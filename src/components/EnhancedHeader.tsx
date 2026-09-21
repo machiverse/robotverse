@@ -27,6 +27,7 @@ import {
   Shield,
   Users,
   Gavel,
+  Factory,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -686,6 +687,37 @@ const EnhancedHeader = () => {
                         ))}
                       </div>
 
+                      {/* Shop by OEM Brand */}
+                      <div className="px-6 py-4 border-t border-border/50">
+                        <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
+                          <Factory className="h-4 w-4 text-primary" />
+                          Shop by OEM Brand
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto scrollbar-thin">
+                          {NAVIGATION_CONFIG.brands.subItems.map((item) => (
+                            <Link
+                              key={item.label}
+                              to={item.href}
+                              className="group/item flex items-center gap-2.5 p-2.5 rounded-lg border border-border/50 bg-card/50 hover:bg-card hover:border-primary/30 transition-colors duration-200"
+                              onClick={() => setActiveDropdown(null)}
+                            >
+                              <Factory className="h-3.5 w-3.5 text-muted-foreground group-hover/item:text-primary transition-colors" />
+                              <span className="text-sm text-foreground group-hover/item:text-primary transition-colors">
+                                {item.label}
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                        <Link
+                          to="/robots"
+                          className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          View All Brands
+                          <ChevronDown className="h-3 w-3 -rotate-90" />
+                        </Link>
+                      </div>
+
                       {/* Footer */}
                       <div className="px-6 py-3 border-t border-border/50 bg-muted/20 flex items-center justify-between">
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -694,22 +726,13 @@ const EnhancedHeader = () => {
                             {NAVIGATION_CONFIG.robots.subItems.length} Robot Types
                           </span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <Link
-                            to="/robots"
-                            className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                            onClick={() => setActiveDropdown(null)}
-                          >
-                            Browse by Brand
-                          </Link>
-                          <Link
-                            to="/robots"
-                            className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                            onClick={() => setActiveDropdown(null)}
-                          >
-                            New Arrivals
-                          </Link>
-                        </div>
+                        <Link
+                          to="/robots"
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          New Arrivals
+                        </Link>
                       </div>
                     </div>
                   </div>
@@ -1358,6 +1381,21 @@ const EnhancedHeader = () => {
                         key={item.label}
                         to={item.href}
                         className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                    <div className="border-t border-border my-2" />
+                    <p className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      <Factory className="h-3 w-3" />
+                      OEM Brands
+                    </p>
+                    {NAVIGATION_CONFIG.brands.subItems.map((item) => (
+                      <Link
+                        key={item.label}
+                        to={item.href}
+                        className="block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
                         onClick={() => setMenuOpen(false)}
                       >
                         {item.label}

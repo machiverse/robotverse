@@ -1,4 +1,5 @@
 import EnhancedHeader from "@/components/EnhancedHeader";
+import BackButton from "@/components/navigation/BackButton";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,8 @@ const BuyerGuide = () => {
         }}
       />
       <EnhancedHeader />
+      <BackButton fallbackPath="/" label="Back" />
+
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
