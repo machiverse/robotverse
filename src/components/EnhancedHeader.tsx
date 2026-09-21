@@ -1302,6 +1302,15 @@ const EnhancedHeader = () => {
                 </Link>
               </div>
 
+              {/* Automation Studio - Direct Link */}
+              <div className="flex-1">
+                <Link to="/automation-studio" className="nav-item flex items-center justify-center gap-2 w-full">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Automation Studio</span>
+                  <span className="bg-primary text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>
+                </Link>
+              </div>
+
               {/* Auction - Direct Link */}
               <div className="flex-1">
                 <Link to="/auctions" className="nav-item flex items-center justify-center gap-2 w-full">
