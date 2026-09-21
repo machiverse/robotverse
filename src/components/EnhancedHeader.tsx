@@ -28,7 +28,6 @@ import {
   Users,
   Gavel,
   Factory,
-  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
