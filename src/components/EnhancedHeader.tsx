@@ -28,6 +28,7 @@ import {
   Users,
   Gavel,
   Factory,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -1302,6 +1303,15 @@ const EnhancedHeader = () => {
                 </Link>
               </div>
 
+              {/* Automation Studio - Direct Link */}
+              <div className="flex-1">
+                <Link to="/automation-studio" className="nav-item flex items-center justify-center gap-2 w-full">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Automation Studio</span>
+                  <span className="bg-primary text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>
+                </Link>
+              </div>
+
               {/* Auction - Direct Link */}
               <div className="flex-1">
                 <Link to="/auctions" className="nav-item flex items-center justify-center gap-2 w-full">
@@ -1666,6 +1676,17 @@ const EnhancedHeader = () => {
               >
                 <Users className="h-4 w-4" />
                 Robot Talent
+              </Link>
+
+              {/* Automation Studio */}
+              <Link
+                to="/automation-studio"
+                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Sparkles className="h-4 w-4" />
+                Automation Studio
+                <span className="bg-primary text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>
               </Link>
 
               {/* Auction */}
