@@ -1,4 +1,5 @@
 import EnhancedHeader from "@/components/EnhancedHeader";
+import AutomationStudioBanner from "@/components/AutomationStudioBanner";
 import EnhancedHero from "@/components/EnhancedHero";
 import HomeRobotListings from "@/components/HomeRobotListings";
 import ShopByBrand from "@/components/ShopByBrand";
@@ -45,6 +46,7 @@ const Index = () => {
         ogDescription="India's marketplace for new, used, and refurbished industrial robots, spare parts, financing, logistics, and automation services. Browse verified FANUC, ABB, KUKA, and Yaskawa robots by brand, payload, reach, and application."
         schemas={homeSchemas}
       />
+      <AutomationStudioBanner />
       <EnhancedHeader />
       <EnhancedHero />
       <HomeRobotListings />
