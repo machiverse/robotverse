@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -41,19 +41,14 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  INDUSTRIES,
+  buildInventory,
+  buildStats,
+  getBlueprint,
+} from "@/data/automationStudioIndustries";
 
 /* ---------------------------------- data --------------------------------- */
-
-const INDUSTRIES = [
-  { label: "Stone & Granite", emoji: "🪨" },
-  { label: "Metal Fabrication", emoji: "🔧" },
-  { label: "Automotive", emoji: "🚗" },
-  { label: "Packaging", emoji: "📦" },
-  { label: "Food & Beverage", emoji: "🥫" },
-  { label: "Pharma", emoji: "💊" },
-  { label: "Construction", emoji: "🏗️" },
-  { label: "Electronics", emoji: "🔌" },
-];
 
 const STEPS = ["Upload & Describe", "Analysis", "Results", "Automation Preview"];
 
@@ -66,137 +61,11 @@ const ANALYSIS_MESSAGES = [
   "Calculating ROI...",
 ];
 
-type Automation = "full" | "semi";
-
-interface ProcessCard {
-  index: string;
-  name: string;
-  automation: Automation;
-  current: string[];
-  automated: string[];
-  robot: { model: string; payload: string; reach: string; controller: string; stock: string };
-  eoat: string[];
-}
-
-const PROCESSES: ProcessCard[] = [
-  {
-    index: "01",
-    name: "Block Handling & Loading",
-    automation: "full",
-    current: [
-      "Overhead crane with 2 operators per block",
-      "Manual slinging, high pinch-point risk",
-      "6-9 minutes cycle per block",
-    ],
-    automated: [
-      "Heavy-payload robot with vacuum lift head",
-      "Auto block detection via 3D area scanner",
-      "2.5 minute cycle, single supervisor",
-    ],
-    robot: { model: "FANUC M-2000iA/900L", payload: "900 kg", reach: "4683 mm", controller: "R-30iB Plus", stock: "In Stock" },
-    eoat: ["Vacuum Pad Gripper", "Load Cell", "Anti-Drop Check Valve"],
-  },
-  {
-    index: "02",
-    name: "Surface Polishing",
-    automation: "full",
-    current: [
-      "Hand-held polisher, 4 operators per shift",
-      "Finish quality varies between operators",
-      "High silica dust exposure",
-    ],
-    automated: [
-      "Force-controlled robotic polishing head",
-      "Constant contact pressure, repeatable gloss",
-      "Enclosed wet cell, no dust exposure",
-    ],
-    robot: { model: "ABB IRB 6700-235/2.65", payload: "235 kg", reach: "2650 mm", controller: "OmniCore C90XT", stock: "In Stock" },
-    eoat: ["Active Force Compliance Head", "Pad Changer", "Coolant Nozzle"],
-  },
-  {
-    index: "03",
-    name: "Edge Profiling & Chamfering",
-    automation: "semi",
-    current: [
-      "CNC edge machine loaded by hand",
-      "Profile templates swapped manually",
-      "Rework rate around 8%",
-    ],
-    automated: [
-      "Robot load/unload with profile recipe library",
-      "Operator retained for first-article approval",
-      "Rework target below 2%",
-    ],
-    robot: { model: "KUKA KR 210 R2700-2", payload: "210 kg", reach: "2700 mm", controller: "KR C5", stock: "4-6 Weeks" },
-    eoat: ["Dual Clamp Gripper", "Tool Changer", "Force/Torque Sensor" ],
-  },
-  {
-    index: "04",
-    name: "Quality Inspection",
-    automation: "full",
-    current: [
-      "Visual inspection under work lamp",
-      "No dimensional record per slab",
-      "Defects found late, after polishing",
-    ],
-    automated: [
-      "Line-scan vision + laser profilometer",
-      "Full dimensional record per part ID",
-      "Inline reject before value is added",
-    ],
-    robot: { model: "Yaskawa GP25-12", payload: "25 kg", reach: "1730 mm", controller: "YRC1000", stock: "In Stock" },
-    eoat: ["Vision Camera Mount", "Laser Profilometer", "LED Ring Light"],
-  },
-  {
-    index: "05",
-    name: "Palletizing & Crating",
-    automation: "full",
-    current: [
-      "3 operators stacking onto A-frames",
-      "Transit damage claims each month",
-      "Pattern depends on who is on shift",
-    ],
-    automated: [
-      "Palletizing robot with pattern generator",
-      "Consistent layer and separator placement",
-      "Auto label and pack-list print",
-    ],
-    robot: { model: "FANUC M-410iC/315", payload: "315 kg", reach: "3143 mm", controller: "R-30iB Plus", stock: "2-3 Weeks" },
-    eoat: ["Clamp + Vacuum Combi Tool", "Separator Feeder", "Label Applicator"],
-  },
-  {
-    index: "06",
-    name: "Inter-Station Material Transport",
-    automation: "semi",
-    current: [
-      "Forklift moves between all stations",
-      "Average 11 minutes queue per move",
-      "Mixed pedestrian and forklift traffic",
-    ],
-    automated: [
-      "AMR fleet on fixed loop with call buttons",
-      "Queue time reduced to under 3 minutes",
-      "Forklift retained for yard work only",
-    ],
-    robot: { model: "AMR 1500 Heavy Deck", payload: "1500 kg", reach: "Loop route", controller: "Fleet Manager", stock: "6-8 Weeks" },
-    eoat: ["Roller Deck Top", "Safety Scanner Pair", "Charge Dock"],
-  },
-];
-
-const INVENTORY = [
-  { model: "FANUC M-2000iA/900L", controller: "R-30iB Plus", qty: 1, payload: "900 kg", reach: "4683 mm", station: "S1 Block Loading", eoat: "Vacuum Pad Gripper" },
-  { model: "ABB IRB 6700-235", controller: "OmniCore C90XT", qty: 2, payload: "235 kg", reach: "2650 mm", station: "S2 Polishing", eoat: "Force Compliance Head" },
-  { model: "KUKA KR 210 R2700-2", controller: "KR C5", qty: 1, payload: "210 kg", reach: "2700 mm", station: "S3 Edge Profiling", eoat: "Dual Clamp Gripper" },
-  { model: "Yaskawa GP25-12", controller: "YRC1000", qty: 1, payload: "25 kg", reach: "1730 mm", station: "S4 Inspection", eoat: "Vision Camera Mount" },
-  { model: "FANUC M-410iC/315", controller: "R-30iB Plus", qty: 1, payload: "315 kg", reach: "3143 mm", station: "S5 Palletizing", eoat: "Clamp + Vacuum Combi" },
-  { model: "AMR 1500 Heavy Deck", controller: "Fleet Manager", qty: 2, payload: "1500 kg", reach: "Loop route", station: "Transport Loop", eoat: "Roller Deck Top" },
-];
-
-const ROI = [
-  { icon: TrendingUp, value: "2-3×", label: "Throughput Increase" },
-  { icon: Wallet, value: "60-70%", label: "Labor Cost Reduction" },
-  { icon: Clock, value: "18-30 mo", label: "Estimated Payback" },
-  { icon: ShieldCheck, value: "<2%", label: "Target Defect Rate" },
+const ROI_CARDS = [
+  { icon: TrendingUp, field: "throughput" as const, label: "Throughput Increase" },
+  { icon: Wallet, field: "labor" as const, label: "Labor Cost Reduction" },
+  { icon: Clock, field: "payback" as const, label: "Estimated Payback" },
+  { icon: ShieldCheck, field: "defect" as const, label: "Target Defect Rate" },
 ];
 
 /* --------------------------------- helpers -------------------------------- */
@@ -264,60 +133,70 @@ const StepShell = ({ children }: { children: React.ReactNode }) => (
 
 /* --------------------------------- layout svg ----------------------------- */
 
-const FactoryLayoutSvg = () => (
-  <svg viewBox="0 0 900 400" className="h-auto w-full" role="img" aria-label="Factory layout preview">
-    <rect x="0" y="0" width="900" height="400" className="fill-muted" />
-    <g className="stroke-border" strokeWidth="1">
-      {Array.from({ length: 17 }).map((_, i) => (
-        <line key={`v${i}`} x1={i * 56} y1="0" x2={i * 56} y2="400" />
-      ))}
-      {Array.from({ length: 8 }).map((_, i) => (
-        <line key={`h${i}`} x1="0" y1={i * 56} x2="900" y2={i * 56} />
-      ))}
-    </g>
-    {[
-      { x: 40, y: 70, label: "S1 Block Loading", r: "R1" },
-      { x: 230, y: 70, label: "S2 Polishing", r: "R2" },
-      { x: 420, y: 70, label: "S3 Edge Profiling", r: "R3" },
-      { x: 610, y: 70, label: "S4 Inspection", r: "R4" },
-      { x: 610, y: 240, label: "S5 Palletizing", r: "R5" },
-      { x: 230, y: 240, label: "Transport Loop", r: "R6" },
-    ].map((s) => (
-      <g key={s.label}>
-        <rect x={s.x} y={s.y} width="160" height="90" rx="8" className="fill-card stroke-primary" strokeWidth="2" />
-        <circle cx={s.x + 32} cy={s.y + 34} r="16" className="fill-primary" />
-        <text x={s.x + 32} y={s.y + 39} textAnchor="middle" className="fill-primary-foreground" fontSize="12" fontWeight="700">
-          {s.r}
-        </text>
-        <text x={s.x + 56} y={s.y + 39} className="fill-foreground" fontSize="12" fontWeight="600">
-          {s.label.split(" ")[0]}
-        </text>
-        <text x={s.x + 16} y={s.y + 72} className="fill-muted-foreground" fontSize="11">
-          {s.label.split(" ").slice(1).join(" ")}
-        </text>
+const PREVIEW_STATIONS = [
+  "S1 Loading",
+  "S2 Welding",
+  "S3 Finishing",
+  "S4 Inspection",
+  "S5 Palletizing",
+  "S6 Transport",
+];
+
+const FactoryLayoutSvg = ({ stations }: { stations: string[] }) => {
+  const placed = stations.slice(0, 6).map((label, i) => ({
+    label,
+    r: `R${i + 1}`,
+    x: 40 + (i % 3) * 190,
+    y: i < 3 ? 70 : 240,
+  }));
+  return (
+    <svg viewBox="0 0 900 400" className="h-auto w-full" role="img" aria-label="Factory layout preview">
+      <rect x="0" y="0" width="900" height="400" className="fill-muted" />
+      <g className="stroke-border" strokeWidth="1">
+        {Array.from({ length: 17 }).map((_, i) => (
+          <line key={`v${i}`} x1={i * 56} y1="0" x2={i * 56} y2="400" />
+        ))}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <line key={`h${i}`} x1="0" y1={i * 56} x2="900" y2={i * 56} />
+        ))}
       </g>
-    ))}
-    <defs>
-      <marker id="as-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-        <path d="M0,0 L6,3 L0,6 Z" className="fill-accent-foreground" />
-      </marker>
-    </defs>
-    <g className="stroke-accent-foreground" strokeWidth="2" strokeDasharray="6 4" markerEnd="url(#as-arrow)" fill="none">
-      <line x1="200" y1="115" x2="228" y2="115" />
-      <line x1="390" y1="115" x2="418" y2="115" />
-      <line x1="580" y1="115" x2="608" y2="115" />
-      <line x1="690" y1="160" x2="690" y2="238" />
-      <line x1="608" y1="285" x2="392" y2="285" />
-    </g>
-    <g>
-      <rect x="40" y="330" width="330" height="44" rx="6" className="fill-card stroke-border" />
-      <circle cx="62" cy="352" r="8" className="fill-primary" />
-      <text x="78" y="356" className="fill-muted-foreground" fontSize="11">Robot cell</text>
-      <line x1="160" y1="352" x2="196" y2="352" className="stroke-accent-foreground" strokeWidth="2" strokeDasharray="6 4" />
-      <text x="204" y="356" className="fill-muted-foreground" fontSize="11">Material flow</text>
-    </g>
-  </svg>
-);
+      {placed.map((st) => (
+        <g key={st.label}>
+          <rect x={st.x} y={st.y} width="160" height="90" rx="8" className="fill-card stroke-primary" strokeWidth="2" />
+          <circle cx={st.x + 32} cy={st.y + 34} r="16" className="fill-primary" />
+          <text x={st.x + 32} y={st.y + 39} textAnchor="middle" className="fill-primary-foreground" fontSize="12" fontWeight="700">
+            {st.r}
+          </text>
+          <text x={st.x + 16} y={st.y + 72} className="fill-foreground" fontSize="11" fontWeight="600">
+            {st.label}
+          </text>
+        </g>
+      ))}
+      <defs>
+        <marker id="as-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" className="fill-accent-foreground" />
+        </marker>
+      </defs>
+      <g className="stroke-accent-foreground" strokeWidth="2" strokeDasharray="6 4" markerEnd="url(#as-arrow)" fill="none">
+        {placed.slice(1).map((st, i) => {
+          const prev = placed[i];
+          return prev.y === st.y ? (
+            <line key={st.label} x1={prev.x + 162} y1={prev.y + 45} x2={st.x - 2} y2={st.y + 45} />
+          ) : (
+            <line key={st.label} x1={prev.x + 80} y1={prev.y + 92} x2={prev.x + 80} y2={st.y - 2} />
+          );
+        })}
+      </g>
+      <g>
+        <rect x="40" y="330" width="330" height="44" rx="6" className="fill-card stroke-border" />
+        <circle cx="62" cy="352" r="8" className="fill-primary" />
+        <text x="78" y="356" className="fill-muted-foreground" fontSize="11">Robot cell</text>
+        <line x1="160" y1="352" x2="196" y2="352" className="stroke-accent-foreground" strokeWidth="2" strokeDasharray="6 4" />
+        <text x="204" y="356" className="fill-muted-foreground" fontSize="11">Material flow</text>
+      </g>
+    </svg>
+  );
+};
 
 /* ---------------------------------- page ---------------------------------- */
 
@@ -333,6 +212,13 @@ export default function AutomationStudio() {
   const [dragging, setDragging] = useState(false);
   const [msgIndex, setMsgIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const blueprint = getBlueprint(industry);
+  const processes = blueprint.processes;
+  const inventory = buildInventory(blueprint);
+  const stats = buildStats(blueprint);
+  const stations = inventory.map((r) => r.station);
+  const roiCards = ROI_CARDS.map((c) => ({ ...c, value: blueprint.roi[c.field] }));
 
   const addFiles = useCallback((incoming: FileList | null) => {
     if (!incoming) return;
@@ -418,7 +304,7 @@ export default function AutomationStudio() {
                 <CardTitle className="text-base">Preview: generated factory layout</CardTitle>
               </CardHeader>
               <CardContent>
-                <FactoryLayoutSvg />
+                <FactoryLayoutSvg stations={PREVIEW_STATIONS} />
               </CardContent>
             </Card>
 
@@ -543,7 +429,7 @@ export default function AutomationStudio() {
                     <Textarea
                       id="as-description"
                       rows={5}
-                      placeholder="Example: We cut granite blocks into slabs, polish them by hand, profile the edges on a CNC, then stack onto A-frames for dispatch."
+                      placeholder={blueprint.placeholder}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />
@@ -559,13 +445,13 @@ export default function AutomationStudio() {
                   <div className="grid grid-cols-2 gap-2">
                     {INDUSTRIES.map((ind) => (
                       <button
-                        key={ind.label}
+                        key={ind.key}
                         type="button"
-                        onClick={() => setIndustry(ind.label)}
-                        aria-pressed={industry === ind.label}
+                        onClick={() => setIndustry(ind.key)}
+                        aria-pressed={industry === ind.key}
                         className={cn(
                           "rounded-lg border p-3 text-left text-xs font-medium transition-colors",
-                          industry === ind.label
+                          industry === ind.key
                             ? "border-primary bg-primary/10 text-foreground"
                             : "border-border hover:border-primary/50",
                         )}
@@ -599,6 +485,9 @@ export default function AutomationStudio() {
               <p className="mt-2 text-sm text-muted-foreground">
                 This usually takes a few seconds. Please keep this page open.
               </p>
+              <Badge variant="secondary" className="mt-4 gap-1.5">
+                <Bot className="h-3.5 w-3.5" /> Powered by RobotVerse AI
+              </Badge>
               <ul className="mt-8 space-y-2 text-left">
                 {ANALYSIS_MESSAGES.map((m, i) => (
                   <li key={m} className="flex items-center gap-2 text-sm">
@@ -619,12 +508,7 @@ export default function AutomationStudio() {
         {step === 3 && (
           <StepShell>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { value: "6", label: "Processes Found" },
-                { value: "4", label: "Fully Automatable" },
-                { value: "2", label: "Semi-Automatable" },
-                { value: "8", label: "Robots Matched" },
-              ].map((s) => (
+              {stats.map((s) => (
                 <Card key={s.label}>
                   <CardContent className="p-5">
                     <p className="text-2xl font-bold text-primary tabular-nums">{s.value}</p>
@@ -635,7 +519,7 @@ export default function AutomationStudio() {
             </div>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
-              {PROCESSES.map((p) => (
+              {processes.map((p) => (
                 <Card key={p.index} className="overflow-hidden">
                   <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
                     <CardTitle className="text-base">
@@ -712,7 +596,16 @@ export default function AutomationStudio() {
               ))}
             </div>
 
-            <div className="mt-8 flex flex-wrap justify-between gap-3">
+            <div className="mt-6 flex justify-center">
+              <Button asChild variant="ghost" className="whitespace-normal min-w-fit w-auto">
+                <Link to="/ai-assistant">
+                  <Bot className="mr-2 h-4 w-4" /> Refine with RobotVerse AI
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-between gap-3">
               <Button variant="outline" className="whitespace-normal min-w-fit w-auto" onClick={() => setStep(1)}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Edit inputs
               </Button>
@@ -738,11 +631,11 @@ export default function AutomationStudio() {
                     <TabsTrigger value="cell">3D Cell View</TabsTrigger>
                   </TabsList>
                   <TabsContent value="layout" className="mt-4">
-                    <FactoryLayoutSvg />
+                    <FactoryLayoutSvg stations={stations} />
                   </TabsContent>
                   <TabsContent value="flow" className="mt-4">
                     <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                      Material flow view will trace each part through the six stations with cycle time, buffer size
+                      Material flow view will trace each part through each station with cycle time, buffer size
                       and queue points per transfer.
                     </div>
                   </TabsContent>
@@ -774,7 +667,7 @@ export default function AutomationStudio() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {INVENTORY.map((r) => (
+                    {inventory.map((r) => (
                       <TableRow key={r.model}>
                         <TableCell className="font-medium">{r.model}</TableCell>
                         <TableCell className="text-muted-foreground">{r.controller}</TableCell>
@@ -791,7 +684,7 @@ export default function AutomationStudio() {
             </Card>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {ROI.map((r) => (
+              {roiCards.map((r) => (
                 <Card key={r.label}>
                   <CardContent className="p-5">
                     <r.icon className="mb-2 h-5 w-5 text-primary" />
@@ -823,6 +716,11 @@ export default function AutomationStudio() {
                   onClick={() => toast({ title: "Request noted", description: "An automation engineer will be connected to this study shortly." })}
                 >
                   <MessageSquare className="mr-2 h-4 w-4" /> Talk to an Engineer
+                </Button>
+                <Button asChild variant="outline" className="whitespace-normal min-w-fit w-auto">
+                  <Link to="/ai-assistant">
+                    <Bot className="mr-2 h-4 w-4" /> Discuss with RobotVerse AI
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
