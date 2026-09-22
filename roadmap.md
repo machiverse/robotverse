@@ -7,3 +7,12 @@
 - [x] Add the 52px header, breadcrumb, mobile drawer, and persistent desktop collapse state.
 - [x] Verify TypeScript, diff integrity, forbidden transition/tab patterns, and role mount signature.
 - [ ] Run authenticated browser interaction checks — blocked because this project uses externally managed authentication and no preview session is available.
+
+# Automation Studio analysis upgrade
+
+- [ ] Remove the top Automation Studio banner and its page mounts.
+- [ ] Add Automation Studio to desktop header actions and mobile Quick Actions.
+- [ ] Add cycle, safety, and integration detail to every industry process.
+- [ ] Add the Deep Analysis Summary.
+- [ ] Build Factory Layout, Material Flow, and 3D Cell visualizations.
+- [ ] Verify type safety and public desktop/mobile presentation.
