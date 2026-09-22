@@ -28,6 +28,7 @@ import {
   Users,
   Gavel,
   Factory,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -360,6 +361,18 @@ const EnhancedHeader = () => {
               <Search className="h-4 w-4" />
               <span className="hidden lg:inline">Submit Request</span>
             </Button>
+
+            {/* Automation Studio */}
+            <Link to="/automation-studio" className="hidden sm:flex">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden lg:inline">Automation Studio</span>
+              </Button>
+            </Link>
 
             {/* RobotVerse AI */}
             <Link to="/ai-assistant" className="hidden sm:flex">
@@ -1332,6 +1345,10 @@ const EnhancedHeader = () => {
 
             {/* Mobile Quick Actions */}
             <div className="flex items-center justify-around py-3 mb-4 border-b border-border">
+              <Link to="/automation-studio" onClick={() => setMenuOpen(false)} className="flex flex-col items-center gap-1">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <span className="text-xs text-primary font-medium">Studio</span>
+              </Link>
               <Link to="/watchlist" onClick={() => setMenuOpen(false)} className="flex flex-col items-center gap-1">
                 <Heart className="h-5 w-5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Wishlist</span>

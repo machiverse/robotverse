@@ -320,6 +320,43 @@ All colors MUST be HSL.
   }
 }
 
+@keyframes as-dashflow {
+  to { stroke-dashoffset: -20px; }
+}
+
+@keyframes as-robot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.12); opacity: 0.72; }
+}
+
+.as-dashflow {
+  animation: as-dashflow 1s linear infinite;
+}
+
+.as-robot-pulse {
+  animation: as-robot-pulse 1.8s ease-in-out infinite;
+}
+
+.as-cell-link {
+  animation: as-dashflow 1s linear infinite;
+}
+
+.as-isometric-floor {
+  background-image:
+    linear-gradient(hsl(var(--border)) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-color: hsl(var(--card));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .as-dashflow,
+  .as-robot-pulse,
+  .as-cell-link {
+    animation: none;
+  }
+}
+
 /* Hero image slider — Ken Burns drift (alternating pan direction per slide). */
 @keyframes rv-kb-left {
   from {

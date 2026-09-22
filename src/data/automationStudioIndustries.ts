@@ -18,6 +18,12 @@ export interface ProcessCard {
   robot: { model: string; payload: string; reach: string; controller: string; stock: string };
   eoat: string[];
   qty?: number;
+  cycleTimeCurrent: string;
+  cycleTimeAutomated: string;
+  cycleImprovement: string;
+  safetyRiskCurrent: "High" | "Medium" | "Low";
+  safetyRiskAutomated: "Low";
+  integrationNote: string;
 }
 
 export interface IndustryBlueprint {
@@ -52,16 +58,26 @@ const p = (
   stock: string,
   eoat: string[],
   qty = 1,
-): Omit<ProcessCard, "index"> => ({
-  name,
-  short,
-  automation,
-  current,
-  automated,
-  robot: { model, payload, reach, controller, stock },
-  eoat,
-  qty,
-});
+): Omit<ProcessCard, "index"> => {
+  const highRisk = /weld|paint|cut|grind|block|panel|rebar|transport|handling|polish/i.test(name);
+  const quickCycle = /inspect|label|test|solder|cap|sort|pick/i.test(name);
+  return {
+    name,
+    short,
+    automation,
+    current,
+    automated,
+    robot: { model, payload, reach, controller, stock },
+    eoat,
+    qty,
+    cycleTimeCurrent: quickCycle ? "45-75 sec" : "6-9 min",
+    cycleTimeAutomated: quickCycle ? "18 sec" : automation === "full" ? "2.5 min" : "3.5 min",
+    cycleImprovement: quickCycle ? "68% faster" : automation === "full" ? "65% faster" : "52% faster",
+    safetyRiskCurrent: highRisk ? "High" : automation === "semi" ? "Medium" : "Low",
+    safetyRiskAutomated: "Low",
+    integrationNote: `Requires ${automation === "full" ? "safety fencing, light curtains" : "collaborative safety zoning"}, ${controller} PLC tie-in, and interface commissioning for the ${eoat[0].toLowerCase()}.`,
+  };
+};
 
 type Raw = Omit<IndustryBlueprint, "processes"> & { processes: Omit<ProcessCard, "index">[] };
 
