@@ -37,6 +37,9 @@ import {
   Wallet,
   Clock,
   ShieldCheck,
+  Gauge,
+  HardHat,
+  Cable,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -142,42 +145,61 @@ const PREVIEW_STATIONS = [
   "S6 Transport",
 ];
 
-const FactoryLayoutSvg = ({ stations }: { stations: string[] }) => {
-  const placed = stations.slice(0, 6).map((label, i) => ({
-    label,
-    r: `R${i + 1}`,
+interface VisualStation {
+  label: string;
+  eoat: string;
+  cycle: string;
+  automation: "full" | "semi";
+}
+
+const previewVisualStations: VisualStation[] = PREVIEW_STATIONS.map((label, index) => ({
+  label,
+  eoat: ["Vacuum Gripper", "Welding Torch", "Grinding Head", "Vision Camera", "Pallet Fork", "AMR Deck"][index],
+  cycle: index === 1 ? "2.5 min" : `${3 + index} min`,
+  automation: index === 2 || index === 5 ? "semi" : "full",
+}));
+
+const placeStations = (stations: VisualStation[]) => stations.slice(0, 6).map((station, i) => ({
+    ...station,
     x: 40 + (i % 3) * 190,
     y: i < 3 ? 70 : 240,
-  }));
+}));
+
+const RobotArmSymbol = ({ x, y }: { x: number; y: number }) => (
+  <g transform={`translate(${x} ${y})`} className="stroke-primary" fill="none" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 30h32M10 30V20h20v10M20 20l8-14 14 9 10-10" />
+    <circle cx="28" cy="6" r="4" className="fill-card" />
+    <circle cx="42" cy="15" r="4" className="fill-card" />
+    <path d="M52 5l7-4M52 5l7 5" strokeWidth="3" />
+  </g>
+);
+
+const FactoryLayoutSvg = ({ stations }: { stations: VisualStation[] }) => {
+  const placed = placeStations(stations);
   return (
     <svg viewBox="0 0 900 400" className="h-auto w-full" role="img" aria-label="Factory layout preview">
-      <rect x="0" y="0" width="900" height="400" className="fill-muted" />
-      <g className="stroke-border" strokeWidth="1">
-        {Array.from({ length: 17 }).map((_, i) => (
-          <line key={`v${i}`} x1={i * 56} y1="0" x2={i * 56} y2="400" />
-        ))}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <line key={`h${i}`} x1="0" y1={i * 56} x2="900" y2={i * 56} />
-        ))}
-      </g>
-      {placed.map((st) => (
-        <g key={st.label}>
-          <rect x={st.x} y={st.y} width="160" height="90" rx="8" className="fill-card stroke-primary" strokeWidth="2" />
-          <circle cx={st.x + 32} cy={st.y + 34} r="16" className="fill-primary" />
-          <text x={st.x + 32} y={st.y + 39} textAnchor="middle" className="fill-primary-foreground" fontSize="12" fontWeight="700">
-            {st.r}
-          </text>
-          <text x={st.x + 16} y={st.y + 72} className="fill-foreground" fontSize="11" fontWeight="600">
-            {st.label}
-          </text>
-        </g>
-      ))}
       <defs>
+        <pattern id="factory-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+          <path d="M28 0H0V28" fill="none" className="stroke-border" strokeWidth="1" />
+        </pattern>
         <marker id="as-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
           <path d="M0,0 L6,3 L0,6 Z" className="fill-accent-foreground" />
         </marker>
       </defs>
-      <g className="stroke-accent-foreground" strokeWidth="2" strokeDasharray="6 4" markerEnd="url(#as-arrow)" fill="none">
+      <rect width="900" height="400" className="fill-muted" />
+      <rect width="900" height="400" fill="url(#factory-grid)" opacity="0.9" />
+      {placed.map((st) => (
+        <g key={st.label}>
+          <rect x={st.x} y={st.y} width="160" height="100" rx="8" className={st.automation === "full" ? "fill-card stroke-success" : "fill-card stroke-warning"} strokeWidth="2" />
+          <RobotArmSymbol x={st.x + 14} y={st.y + 10} />
+          <text x={st.x + 76} y={st.y + 30} className="fill-muted-foreground" fontSize="9">{st.eoat}</text>
+          <text x={st.x + 14} y={st.y + 75} className="fill-foreground" fontSize="11" fontWeight="600">
+            {st.label}
+          </text>
+          <text x={st.x + 14} y={st.y + 91} className="fill-muted-foreground" fontSize="9">EOAT: {st.eoat}</text>
+        </g>
+      ))}
+      <g className="as-dashflow stroke-accent-foreground" strokeWidth="2" strokeDasharray="6 4" markerEnd="url(#as-arrow)" fill="none">
         {placed.slice(1).map((st, i) => {
           const prev = placed[i];
           return prev.y === st.y ? (
@@ -198,6 +220,70 @@ const FactoryLayoutSvg = ({ stations }: { stations: string[] }) => {
   );
 };
 
+const MaterialFlowSvg = ({ stations }: { stations: VisualStation[] }) => {
+  const placed = placeStations(stations);
+  const paths = placed.slice(1).map((station, index) => {
+    const previous = placed[index];
+    return previous.y === station.y
+      ? `M${previous.x + 160},${previous.y + 50} L${station.x},${station.y + 50}`
+      : `M${previous.x + 80},${previous.y + 100} C${previous.x + 80},${station.y - 30} ${station.x + 80},${previous.y + 130} ${station.x + 80},${station.y}`;
+  });
+  const circuit = paths.join(" ");
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-muted/30">
+      <svg viewBox="0 0 900 410" className="h-auto w-full" role="img" aria-label="Animated material flow">
+        <defs>
+          <pattern id="flow-grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" className="stroke-border" strokeWidth="1" /></pattern>
+          <path id="material-circuit" d={circuit} />
+        </defs>
+        <rect width="900" height="410" className="fill-muted" />
+        <rect width="900" height="410" fill="url(#flow-grid)" />
+        {paths.map((path, index) => <path key={path} d={path} fill="none" className="as-dashflow stroke-primary" strokeWidth="3" strokeDasharray="8 6" />)}
+        {placed.map((station, index) => (
+          <g key={station.label}>
+            <rect x={station.x} y={station.y} width="160" height="100" rx="8" className={station.automation === "full" ? "fill-card stroke-success" : "fill-card stroke-warning"} strokeWidth="2" />
+            <text x={station.x + 80} y={station.y + 42} textAnchor="middle" className="fill-foreground" fontSize="11" fontWeight="600">{station.label}</text>
+            <text x={station.x + 80} y={station.y + 63} textAnchor="middle" className="fill-primary" fontSize="11">{station.cycle}/cycle</text>
+            {index < placed.length - 1 && <rect x={station.x + 164} y={station.y + 42} width="20" height="16" rx="3" className="fill-warning" opacity="0.8" />}
+          </g>
+        ))}
+        {[0, 0.24, 0.5, 0.73].map((begin, index) => (
+          <circle key={begin} r="6" className="fill-primary">
+            <animateMotion dur={`${7 + index}s`} begin={`-${begin * 8}s`} repeatCount="indefinite"><mpath href="#material-circuit" /></animateMotion>
+          </circle>
+        ))}
+      </svg>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-sm">
+        <span className="text-muted-foreground">Buffer zones shown between connected stations</span>
+        <span className="font-semibold text-primary">Estimated: 47 parts/hour</span>
+      </div>
+    </div>
+  );
+};
+
+const IsometricCellView = ({ stations }: { stations: VisualStation[] }) => (
+  <div className="overflow-hidden rounded-lg border border-border bg-muted/40 px-3 py-10 sm:px-8 [perspective:1200px]">
+    <div className="as-isometric-floor mx-auto grid aspect-[16/9] w-full max-w-4xl grid-cols-3 gap-5 border border-border p-6 [transform:rotateX(55deg)_rotateZ(-45deg)] [transform-style:preserve-3d]">
+      {stations.slice(0, 6).map((station, index) => (
+        <div key={station.label} className="relative flex min-h-28 items-center justify-center [transform:translateZ(20px)] [transform-style:preserve-3d]">
+          <div className={cn("absolute inset-0 border-2 bg-card shadow-[8px_8px_0_hsl(var(--border))]", station.automation === "full" ? "border-success" : "border-warning")} />
+          <span className="as-robot-pulse relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">R{index + 1}</span>
+          <div className="absolute left-1/2 top-full z-20 mt-2 w-32 -translate-x-1/2 text-center [transform:rotateZ(45deg)_rotateX(-55deg)]">
+            <p className="text-[10px] font-semibold text-foreground">{station.label}</p>
+            <p className="text-[9px] text-muted-foreground">{station.eoat}</p>
+          </div>
+          {index < stations.length - 1 && <span className="as-cell-link absolute -right-5 top-1/2 h-px w-5 border-t-2 border-dashed border-primary" />}
+        </div>
+      ))}
+    </div>
+    <div className="mt-12 flex flex-wrap justify-center gap-5 text-xs text-muted-foreground">
+      <span className="flex items-center gap-2"><span className="h-3 w-3 border-2 border-success" /> Fully automated</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-3 border-2 border-warning" /> Semi-automated</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-primary" /> Robot position</span>
+    </div>
+  </div>
+);
+
 /* ---------------------------------- page ---------------------------------- */
 
 export default function AutomationStudio() {
@@ -217,7 +303,12 @@ export default function AutomationStudio() {
   const processes = blueprint.processes;
   const inventory = buildInventory(blueprint);
   const stats = buildStats(blueprint);
-  const stations = inventory.map((r) => r.station);
+  const stations: VisualStation[] = processes.map((process, index) => ({
+    label: inventory[index]?.station ?? process.short,
+    eoat: process.eoat[0],
+    cycle: process.cycleTimeAutomated,
+    automation: process.automation,
+  }));
   const roiCards = ROI_CARDS.map((c) => ({ ...c, value: blueprint.roi[c.field] }));
 
   const addFiles = useCallback((incoming: FileList | null) => {
@@ -304,7 +395,7 @@ export default function AutomationStudio() {
                 <CardTitle className="text-base">Preview: generated factory layout</CardTitle>
               </CardHeader>
               <CardContent>
-                <FactoryLayoutSvg stations={PREVIEW_STATIONS} />
+                <FactoryLayoutSvg stations={previewVisualStations} />
               </CardContent>
             </Card>
 
@@ -567,6 +658,21 @@ export default function AutomationStudio() {
                       </div>
                     </div>
 
+                    <div className="divide-y divide-border rounded-lg border border-border bg-muted/20 text-xs">
+                      <div className="grid gap-2 p-3 sm:grid-cols-[110px_1fr] sm:items-center">
+                        <span className="flex items-center gap-1.5 font-semibold"><Gauge className="h-3.5 w-3.5 text-primary" /> Cycle Time</span>
+                        <div className="flex flex-wrap items-center gap-2"><span>{p.cycleTimeCurrent}</span><ArrowRight className="h-3.5 w-3.5 text-muted-foreground" /><span className="font-semibold">{p.cycleTimeAutomated}</span><Badge className="border-transparent bg-success text-primary-foreground hover:bg-success">{p.cycleImprovement}</Badge></div>
+                      </div>
+                      <div className="grid gap-2 p-3 sm:grid-cols-[110px_1fr] sm:items-center">
+                        <span className="flex items-center gap-1.5 font-semibold"><HardHat className="h-3.5 w-3.5 text-primary" /> Safety</span>
+                        <div className="flex items-center gap-2"><Badge className={cn("border-transparent text-primary-foreground", p.safetyRiskCurrent === "High" ? "bg-destructive hover:bg-destructive" : p.safetyRiskCurrent === "Medium" ? "bg-warning hover:bg-warning" : "bg-success hover:bg-success")}>{p.safetyRiskCurrent}</Badge><ArrowRight className="h-3.5 w-3.5 text-muted-foreground" /><Badge className="border-transparent bg-success text-primary-foreground hover:bg-success">{p.safetyRiskAutomated}</Badge></div>
+                      </div>
+                      <div className="grid gap-2 p-3 sm:grid-cols-[110px_1fr]">
+                        <span className="flex items-center gap-1.5 font-semibold"><Cable className="h-3.5 w-3.5 text-primary" /> Integration</span>
+                        <span className="leading-relaxed text-muted-foreground">{p.integrationNote}</span>
+                      </div>
+                    </div>
+
                     <div className="rounded-lg border border-border bg-muted/40 p-3">
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                         <span className="flex items-center gap-1.5 text-sm font-semibold text-amber-600 dark:text-amber-400">
@@ -595,6 +701,20 @@ export default function AutomationStudio() {
                 </Card>
               ))}
             </div>
+
+            <Card className="mt-6">
+              <CardHeader><CardTitle className="text-base">Deep Analysis Summary</CardTitle></CardHeader>
+              <CardContent className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  ["Est. Investment", "₹1.2Cr — ₹1.8Cr"],
+                  ["Annual Savings", "₹45L — ₹65L"],
+                  ["Manpower", "From 24 workers → 8 operators"],
+                  ["Capacity Increase", "+150% throughput"],
+                  ["Timeline", "12-16 weeks deployment"],
+                  ["Payback Period", "18-30 months"],
+                ].map(([label, value]) => <div key={label} className="bg-card p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold text-foreground">{value}</p></div>)}
+              </CardContent>
+            </Card>
 
             <div className="mt-6 flex justify-center">
               <Button asChild variant="ghost" className="whitespace-normal min-w-fit w-auto">
@@ -634,16 +754,10 @@ export default function AutomationStudio() {
                     <FactoryLayoutSvg stations={stations} />
                   </TabsContent>
                   <TabsContent value="flow" className="mt-4">
-                    <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                      Material flow view will trace each part through each station with cycle time, buffer size
-                      and queue points per transfer.
-                    </div>
+                    <MaterialFlowSvg stations={stations} />
                   </TabsContent>
                   <TabsContent value="cell" className="mt-4">
-                    <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                      3D cell view will show robot reach envelopes, fencing, and operator access zones for each
-                      matched robot.
-                    </div>
+                    <IsometricCellView stations={stations} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
