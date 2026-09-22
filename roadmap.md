@@ -10,9 +10,9 @@
 
 # Automation Studio analysis upgrade
 
-- [ ] Remove the top Automation Studio banner and its page mounts.
-- [ ] Add Automation Studio to desktop header actions and mobile Quick Actions.
-- [ ] Add cycle, safety, and integration detail to every industry process.
-- [ ] Add the Deep Analysis Summary.
-- [ ] Build Factory Layout, Material Flow, and 3D Cell visualizations.
+- [x] Remove the top Automation Studio banner and its page mounts.
+- [x] Add Automation Studio to desktop header actions and mobile Quick Actions.
+- [x] Add cycle, safety, and integration detail to every industry process.
+- [x] Add the Deep Analysis Summary.
+- [x] Build Factory Layout, Material Flow, and 3D Cell visualizations.
 - [ ] Verify type safety and public desktop/mobile presentation.
