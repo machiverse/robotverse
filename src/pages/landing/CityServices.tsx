@@ -14,7 +14,8 @@ export default function CityServices() {
   const params = useParams<{ city?: string; id?: string }>();
   const city = params.city ?? params.id ?? "";
   const cityLabel = titleCase(city);
-  const [items, setItems] = useState<any[]>([]);
+  type ServiceRow = { id: string; name: string; service_type: string; location: string; description: string };
+  const [items, setItems] = useState<ServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
