@@ -91,3 +91,6 @@ verify_jwt = false
 
 [functions.send-moderation-email]
 verify_jwt = false
+
+[functions.seo-render]
+verify_jwt = false

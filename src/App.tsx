@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { RobotComparisonProvider } from "@/contexts/RobotComparisonContext";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
 import { usePageTracking } from "@/hooks/usePageTracking";
+import { useCanonicalHead } from "@/hooks/useCanonicalHead";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -118,6 +119,12 @@ const PageTracker = () => {
   return null;
 };
 
+// Keeps title/description/canonical/robots identical to the seo-render snapshot
+const HeadSync = () => {
+  useCanonicalHead();
+  return null;
+};
+
 const AppLoadingFallback = () => (
   <div style={{
     display: 'flex',
@@ -148,6 +155,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <PageTracker />
+            <HeadSync />
             <AIAssistantProvider>
               <GlobalEmailVerificationHandler />
               <AutoSignInPopup />
