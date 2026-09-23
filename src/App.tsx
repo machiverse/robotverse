@@ -168,7 +168,7 @@ const App = () => (
               <Route path="/robots/:id" element={<RobotDetails />} />
               <Route path="/parts/brand/:brand" element={<BrandParts />} />
               <Route path="/parts/category/:cat" element={<CategoryParts />} />
-              <Route path="/services/:city/:type" element={<CityServices />} />
+              {/* Removed: /services/:city/:serviceCombo doorway pages (now 404 + noindex) */}
               <Route path="/compare/:slug" element={<CompareRobots />} />
               <Route path="/dashboard/admin/seo" element={<SEODashboard />} />
               <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
