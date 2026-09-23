@@ -338,7 +338,7 @@ export const analyzeDescription = (description: string, industry: string | null)
 
   return ids.map((id, i) => ({
     ...TEMPLATES[id],
-    index: `S${i + 1}`,
+    index: String(i + 1).padStart(2, "0"),
   }));
 };
 
