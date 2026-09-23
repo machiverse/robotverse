@@ -113,13 +113,8 @@ export const useSEOPageView = (pageName: string) => {
     // Track page view
     console.log(`📊 Page View: ${pageName} - ${location.pathname}`);
     
-    // Send to analytics (implement your analytics tracking here)
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('config', 'GA_MEASUREMENT_ID', {
-        page_path: location.pathname,
-        page_title: pageName
-      });
-    }
+    // Send to analytics via the GTM dataLayer
+    trackPageView(location.pathname, pageName);
   }, [location, pageName]);
 };
 
