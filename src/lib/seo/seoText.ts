@@ -7,8 +7,8 @@ export const SITE_URL = "https://www.robotverse.in";
 
 export const DEFAULT_TITLE =
   "RobotVerse | Buy & Sell Used Industrial Robots in India";
-const RAW_DEFAULT_DESCRIPTION =
-  "India's marketplace for new, used and refurbished industrial robots, spare parts, services, logistics and financing. Verified FANUC, ABB, KUKA and Yaskawa listings.";
+export const DEFAULT_DESCRIPTION =
+  "India's marketplace for new, used and refurbished industrial robots, spare parts, services, logistics and financing from verified sellers.";
 
 export const TITLE_MAX = 60;
 export const DESC_MAX = 155;
