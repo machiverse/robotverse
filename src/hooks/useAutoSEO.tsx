@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
+import { trackPageView } from '@/lib/analytics';
 import {
   generateRobotSEO,
   generateRobotListingSEO,
