@@ -201,7 +201,7 @@ export function robotDescription(r: RobotLike): string {
   if (r.payload_capacity != null) bits.push(`${r.payload_capacity} kg payload`);
   if (r.reach != null) bits.push(`${r.reach} mm reach`);
   if (r.year_manufactured) bits.push(`year ${r.year_manufactured}`);
-  if (r.condition) bits.push(String(r.condition).toLowerCase());
+  if (r.condition) bits.push(String(r.condition).replace(/[-_]+/g, " ").toLowerCase());
   const price = inr(r.price) ? `Price ${inr(r.price)}.` : "Price on request.";
   return clampDescription(`${label}: ${bits.join(", ")}. ${price} Buy verified industrial robots on RobotVerse.`);
 }
@@ -235,7 +235,7 @@ export function partDescription(p: PartLike): string {
   const bits: string[] = [];
   if (p.part_number) bits.push(`part no. ${p.part_number}`);
   if (p.category) bits.push(String(p.category).toLowerCase());
-  if (p.condition) bits.push(String(p.condition).toLowerCase());
+  if (p.condition) bits.push(String(p.condition).replace(/[-_]+/g, " ").toLowerCase());
   if (p.compatible_robots?.length) bits.push(`fits ${p.compatible_robots.slice(0, 2).join(", ")}`);
   const price = inr(p.price) ? `Price ${inr(p.price)}.` : "Price on request.";
   return clampDescription(`${label}: ${bits.join(", ")}. ${price} Genuine robot spare parts on RobotVerse.`);
