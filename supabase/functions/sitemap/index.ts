@@ -29,6 +29,7 @@ const xmlHeaders = () =>
     ...corsHeaders,
     "content-type": "application/xml; charset=utf-8",
     "cache-control": "public, max-age=600, s-maxage=3600",
+    "x-sitemap-ver": "2",
   });
 
 type Client = ReturnType<typeof createClient>;
