@@ -48,8 +48,8 @@ export function FactoryLayoutSvg({ stations, playing, speed, active = true }: { 
   });
 
   return (
-    <div className="automation-studio-visuals overflow-hidden rounded-lg border border-border" data-speed={speed} data-paused={!playing || !active ? "true" : "false"}>
-      <svg viewBox="0 0 900 470" className="h-auto min-h-[340px] w-full" role="img" aria-label="Animated factory layout preview">
+    <div className="automation-studio-visuals overflow-x-auto rounded-lg border border-border" data-speed={speed} data-paused={!playing || !active ? "true" : "false"}>
+      <svg viewBox="0 0 900 470" className="h-auto w-full min-w-[760px]" role="img" aria-label="Animated factory layout preview">
         <defs>
           <pattern id={gridId} width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" className="stroke-border" strokeWidth="1.2" /></pattern>
           <marker id={arrowId} markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" className="fill-accent-foreground" /></marker>
@@ -116,8 +116,8 @@ export function MaterialFlowSvg({ stations, playing, speed, active = true }: { s
   }, [active, playing, speed]);
 
   return (
-    <div className="automation-studio-visuals overflow-hidden rounded-lg border border-border bg-muted/30" data-speed={speed} data-paused={!playing || !active ? "true" : "false"}>
-      <svg viewBox="0 0 900 475" className="h-auto min-h-[340px] w-full" role="img" aria-label="Animated material flow">
+    <div className="automation-studio-visuals overflow-x-auto rounded-lg border border-border bg-muted/30" data-speed={speed} data-paused={!playing || !active ? "true" : "false"}>
+      <svg viewBox="0 0 900 475" className="h-auto w-full min-w-[760px]" role="img" aria-label="Animated material flow">
         <defs><pattern id={`${uid}-flow-grid`} width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" className="stroke-border" strokeWidth="1" /></pattern><pattern id={`${uid}-conveyor`} width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="7" height="18" className="fill-primary/20" /></pattern><filter id={`${uid}-part-glow`} x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="6" result="blur"/><feFlood floodColor="hsl(var(--primary))" floodOpacity="0.45"/><feComposite in2="blur" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
         <rect width="900" height="475" className="fill-muted" /><rect width="900" height="475" fill={`url(#${uid}-flow-grid)`} />
         <g className={cn("as-flow-network", hovered !== null && "is-focused")}>

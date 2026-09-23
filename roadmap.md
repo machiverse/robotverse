@@ -23,4 +23,4 @@
 - [x] Add richer live material-flow and factory-layout movement.
 - [x] Add shared play/pause and speed controls.
 - [x] Add robot and station detail tooltips with connected-path highlighting.
-- [ ] Verify type safety, source integrity, and the public preview.
+- [x] Verify type safety, source integrity, and the public preview.

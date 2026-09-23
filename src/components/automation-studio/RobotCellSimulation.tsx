@@ -28,11 +28,11 @@ export default function RobotCellSimulation({ station, playing, speed, active = 
 
   return (
     <div
-      className="automation-studio-visuals overflow-hidden rounded-lg border border-border bg-muted/30"
+      className="automation-studio-visuals overflow-x-auto rounded-lg border border-border bg-muted/30"
       data-speed={speed}
       data-paused={!playing || !active ? "true" : "false"}
     >
-      <svg viewBox="0 0 900 520" className="h-auto min-h-[360px] w-full" role="img" aria-label={`Animated robot cell for ${station.label}`}>
+      <svg viewBox="0 0 900 520" className="h-auto w-full min-w-[760px]" role="img" aria-label={`Animated robot cell for ${station.label}`}>
         <defs>
           <pattern id={gridId} width="32" height="32" patternUnits="userSpaceOnUse">
             <path d="M32 0H0V32" fill="none" className="stroke-border" strokeWidth="1" />
