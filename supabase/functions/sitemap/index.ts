@@ -24,11 +24,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const xmlHeaders = {
-  ...corsHeaders,
-  "Content-Type": "application/xml; charset=utf-8",
-  "Cache-Control": "public, max-age=600, s-maxage=3600",
-};
+const xmlHeaders = () =>
+  new Headers({
+    ...corsHeaders,
+    "content-type": "application/xml; charset=utf-8",
+    "cache-control": "public, max-age=600, s-maxage=3600",
+  });
 
 type Client = ReturnType<typeof createClient>;
 
