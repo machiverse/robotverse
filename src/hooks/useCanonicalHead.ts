@@ -133,7 +133,7 @@ export function useCanonicalHead() {
 
     return () => {
       cancelled = true;
-      observer.disconnect();
+      timers.forEach((t) => window.clearTimeout(t));
     };
   }, [location.pathname]);
 }
