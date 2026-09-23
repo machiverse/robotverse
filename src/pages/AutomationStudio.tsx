@@ -40,6 +40,8 @@ import {
   Gauge,
   HardHat,
   Cable,
+  Play,
+  Pause,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +52,9 @@ import {
   buildStats,
   getBlueprint,
 } from "@/data/automationStudioIndustries";
+import RobotCellSimulation from "@/components/automation-studio/RobotCellSimulation";
+import { FactoryLayoutSvg, MaterialFlowSvg } from "@/components/automation-studio/StudioVisualizations";
+import type { VisualStation } from "@/components/automation-studio/visualTypes";
 
 /* ---------------------------------- data --------------------------------- */
 
@@ -134,7 +139,7 @@ const StepShell = ({ children }: { children: React.ReactNode }) => (
   <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">{children}</div>
 );
 
-/* --------------------------------- layout svg ----------------------------- */
+/* ------------------------------ visual preview ---------------------------- */
 
 const PREVIEW_STATIONS = [
   "S1 Loading",
@@ -145,144 +150,15 @@ const PREVIEW_STATIONS = [
   "S6 Transport",
 ];
 
-interface VisualStation {
-  label: string;
-  eoat: string;
-  cycle: string;
-  automation: "full" | "semi";
-}
-
 const previewVisualStations: VisualStation[] = PREVIEW_STATIONS.map((label, index) => ({
   label,
   eoat: ["Vacuum Gripper", "Welding Torch", "Grinding Head", "Vision Camera", "Pallet Fork", "AMR Deck"][index],
   cycle: index === 1 ? "2.5 min" : `${3 + index} min`,
   automation: index === 2 || index === 5 ? "semi" : "full",
+  model: ["KUKA KR 120", "ABB IRB 2600", "Kawasaki RS020N", "Yaskawa GP12", "FANUC M-410iC", "AMR 1500"][index],
+  payload: ["120 kg", "15 kg", "20 kg", "12 kg", "315 kg", "1500 kg"][index],
+  reach: ["2700 mm", "1850 mm", "1725 mm", "1440 mm", "3143 mm", "Loop route"][index],
 }));
-
-const placeStations = (stations: VisualStation[]) => stations.slice(0, 6).map((station, i) => ({
-    ...station,
-    x: 40 + (i % 3) * 190,
-    y: i < 3 ? 70 : 240,
-}));
-
-const RobotArmSymbol = ({ x, y }: { x: number; y: number }) => (
-  <g transform={`translate(${x} ${y})`} className="stroke-primary" fill="none" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 30h32M10 30V20h20v10M20 20l8-14 14 9 10-10" />
-    <circle cx="28" cy="6" r="4" className="fill-card" />
-    <circle cx="42" cy="15" r="4" className="fill-card" />
-    <path d="M52 5l7-4M52 5l7 5" strokeWidth="3" />
-  </g>
-);
-
-const FactoryLayoutSvg = ({ stations }: { stations: VisualStation[] }) => {
-  const placed = placeStations(stations);
-  return (
-    <svg viewBox="0 0 900 400" className="h-auto w-full" role="img" aria-label="Factory layout preview">
-      <defs>
-        <pattern id="factory-grid" width="28" height="28" patternUnits="userSpaceOnUse">
-          <path d="M28 0H0V28" fill="none" className="stroke-border" strokeWidth="1" />
-        </pattern>
-        <marker id="as-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 Z" className="fill-accent-foreground" />
-        </marker>
-      </defs>
-      <rect width="900" height="400" className="fill-muted" />
-      <rect width="900" height="400" fill="url(#factory-grid)" opacity="0.9" />
-      {placed.map((st) => (
-        <g key={st.label}>
-          <rect x={st.x} y={st.y} width="160" height="100" rx="8" className={st.automation === "full" ? "fill-card stroke-success" : "fill-card stroke-warning"} strokeWidth="2" />
-          <RobotArmSymbol x={st.x + 14} y={st.y + 10} />
-          <text x={st.x + 76} y={st.y + 30} className="fill-muted-foreground" fontSize="9">{st.eoat}</text>
-          <text x={st.x + 14} y={st.y + 75} className="fill-foreground" fontSize="11" fontWeight="600">
-            {st.label}
-          </text>
-          <text x={st.x + 14} y={st.y + 91} className="fill-muted-foreground" fontSize="9">EOAT: {st.eoat}</text>
-        </g>
-      ))}
-      <g className="as-dashflow stroke-accent-foreground" strokeWidth="2" strokeDasharray="6 4" markerEnd="url(#as-arrow)" fill="none">
-        {placed.slice(1).map((st, i) => {
-          const prev = placed[i];
-          return prev.y === st.y ? (
-            <line key={st.label} x1={prev.x + 162} y1={prev.y + 45} x2={st.x - 2} y2={st.y + 45} />
-          ) : (
-            <line key={st.label} x1={prev.x + 80} y1={prev.y + 92} x2={prev.x + 80} y2={st.y - 2} />
-          );
-        })}
-      </g>
-      <g>
-        <rect x="40" y="330" width="330" height="44" rx="6" className="fill-card stroke-border" />
-        <circle cx="62" cy="352" r="8" className="fill-primary" />
-        <text x="78" y="356" className="fill-muted-foreground" fontSize="11">Robot cell</text>
-        <line x1="160" y1="352" x2="196" y2="352" className="stroke-accent-foreground" strokeWidth="2" strokeDasharray="6 4" />
-        <text x="204" y="356" className="fill-muted-foreground" fontSize="11">Material flow</text>
-      </g>
-    </svg>
-  );
-};
-
-const MaterialFlowSvg = ({ stations }: { stations: VisualStation[] }) => {
-  const placed = placeStations(stations);
-  const paths = placed.slice(1).map((station, index) => {
-    const previous = placed[index];
-    return previous.y === station.y
-      ? `M${previous.x + 160},${previous.y + 50} L${station.x},${station.y + 50}`
-      : `M${previous.x + 80},${previous.y + 100} C${previous.x + 80},${station.y - 30} ${station.x + 80},${previous.y + 130} ${station.x + 80},${station.y}`;
-  });
-  const circuit = paths.join(" ");
-  return (
-    <div className="overflow-hidden rounded-lg border border-border bg-muted/30">
-      <svg viewBox="0 0 900 410" className="h-auto w-full" role="img" aria-label="Animated material flow">
-        <defs>
-          <pattern id="flow-grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" className="stroke-border" strokeWidth="1" /></pattern>
-          <path id="material-circuit" d={circuit} />
-        </defs>
-        <rect width="900" height="410" className="fill-muted" />
-        <rect width="900" height="410" fill="url(#flow-grid)" />
-        {paths.map((path, index) => <path key={path} d={path} fill="none" className="as-dashflow stroke-primary" strokeWidth="3" strokeDasharray="8 6" />)}
-        {placed.map((station, index) => (
-          <g key={station.label}>
-            <rect x={station.x} y={station.y} width="160" height="100" rx="8" className={station.automation === "full" ? "fill-card stroke-success" : "fill-card stroke-warning"} strokeWidth="2" />
-            <text x={station.x + 80} y={station.y + 42} textAnchor="middle" className="fill-foreground" fontSize="11" fontWeight="600">{station.label}</text>
-            <text x={station.x + 80} y={station.y + 63} textAnchor="middle" className="fill-primary" fontSize="11">{station.cycle}/cycle</text>
-            {index < placed.length - 1 && <rect x={station.x + 164} y={station.y + 42} width="20" height="16" rx="3" className="fill-warning" opacity="0.8" />}
-          </g>
-        ))}
-        {[0, 0.24, 0.5, 0.73].map((begin, index) => (
-          <circle key={begin} r="6" className="fill-primary">
-            <animateMotion dur={`${7 + index}s`} begin={`-${begin * 8}s`} repeatCount="indefinite"><mpath href="#material-circuit" /></animateMotion>
-          </circle>
-        ))}
-      </svg>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-sm">
-        <span className="text-muted-foreground">Buffer zones shown between connected stations</span>
-        <span className="font-semibold text-primary">Estimated: 47 parts/hour</span>
-      </div>
-    </div>
-  );
-};
-
-const IsometricCellView = ({ stations }: { stations: VisualStation[] }) => (
-  <div className="overflow-hidden rounded-lg border border-border bg-muted/40 px-3 py-10 sm:px-8 [perspective:1200px]">
-    <div className="as-isometric-floor mx-auto grid aspect-[16/9] w-full max-w-4xl grid-cols-3 gap-5 border border-border p-6 [transform:rotateX(55deg)_rotateZ(-45deg)] [transform-style:preserve-3d]">
-      {stations.slice(0, 6).map((station, index) => (
-        <div key={station.label} className="relative flex min-h-28 items-center justify-center [transform:translateZ(20px)] [transform-style:preserve-3d]">
-          <div className={cn("absolute inset-0 border-2 bg-card shadow-[8px_8px_0_hsl(var(--border))]", station.automation === "full" ? "border-success" : "border-warning")} />
-          <span className="as-robot-pulse relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">R{index + 1}</span>
-          <div className="absolute left-1/2 top-full z-20 mt-2 w-32 -translate-x-1/2 text-center [transform:rotateZ(45deg)_rotateX(-55deg)]">
-            <p className="text-[10px] font-semibold text-foreground">{station.label}</p>
-            <p className="text-[9px] text-muted-foreground">{station.eoat}</p>
-          </div>
-          {index < stations.length - 1 && <span className="as-cell-link absolute -right-5 top-1/2 h-px w-5 border-t-2 border-dashed border-primary" />}
-        </div>
-      ))}
-    </div>
-    <div className="mt-12 flex flex-wrap justify-center gap-5 text-xs text-muted-foreground">
-      <span className="flex items-center gap-2"><span className="h-3 w-3 border-2 border-success" /> Fully automated</span>
-      <span className="flex items-center gap-2"><span className="h-3 w-3 border-2 border-warning" /> Semi-automated</span>
-      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-primary" /> Robot position</span>
-    </div>
-  </div>
-);
 
 /* ---------------------------------- page ---------------------------------- */
 
@@ -297,6 +173,9 @@ export default function AutomationStudio() {
   const [industry, setIndustry] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [msgIndex, setMsgIndex] = useState(0);
+  const [visualTab, setVisualTab] = useState("layout");
+  const [visualPlaying, setVisualPlaying] = useState(true);
+  const [visualSpeed, setVisualSpeed] = useState<"0.5" | "1" | "2">("1");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const blueprint = getBlueprint(industry);
@@ -308,6 +187,9 @@ export default function AutomationStudio() {
     eoat: process.eoat[0],
     cycle: process.cycleTimeAutomated,
     automation: process.automation,
+    model: process.robot.model,
+    payload: process.robot.payload,
+    reach: process.robot.reach,
   }));
   const roiCards = ROI_CARDS.map((c) => ({ ...c, value: blueprint.roi[c.field] }));
 
@@ -395,7 +277,7 @@ export default function AutomationStudio() {
                 <CardTitle className="text-base">Preview: generated factory layout</CardTitle>
               </CardHeader>
               <CardContent>
-                <FactoryLayoutSvg stations={previewVisualStations} />
+                <FactoryLayoutSvg stations={previewVisualStations} playing speed="1" />
               </CardContent>
             </Card>
 
@@ -744,20 +626,48 @@ export default function AutomationStudio() {
                 <CardTitle className="text-base">Automation preview</CardTitle>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="layout">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="whitespace-normal min-w-fit w-auto gap-2"
+                    onClick={() => setVisualPlaying((value) => !value)}
+                    aria-pressed={!visualPlaying}
+                  >
+                    {visualPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    {visualPlaying ? "Pause" : "Play"}
+                  </Button>
+                  <div className="flex items-center gap-1 rounded-md border border-border bg-card p-1" aria-label="Animation speed">
+                    {(["1", "2", "0.5"] as const).map((speed) => (
+                      <Button
+                        key={speed}
+                        type="button"
+                        variant={visualSpeed === speed ? "default" : "ghost"}
+                        size="sm"
+                        className="h-7 min-w-10 px-2 text-xs"
+                        onClick={() => setVisualSpeed(speed)}
+                        aria-pressed={visualSpeed === speed}
+                      >
+                        {speed}x
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <Tabs value={visualTab} onValueChange={setVisualTab}>
                   <TabsList className="flex-wrap">
                     <TabsTrigger value="layout">Factory Layout</TabsTrigger>
                     <TabsTrigger value="flow">Material Flow</TabsTrigger>
                     <TabsTrigger value="cell">3D Cell View</TabsTrigger>
                   </TabsList>
                   <TabsContent value="layout" className="mt-4">
-                    <FactoryLayoutSvg stations={stations} />
+                    <FactoryLayoutSvg stations={stations} playing={visualPlaying} speed={visualSpeed} active={visualTab === "layout"} />
                   </TabsContent>
                   <TabsContent value="flow" className="mt-4">
-                    <MaterialFlowSvg stations={stations} />
+                    <MaterialFlowSvg stations={stations} playing={visualPlaying} speed={visualSpeed} active={visualTab === "flow"} />
                   </TabsContent>
                   <TabsContent value="cell" className="mt-4">
-                    <IsometricCellView stations={stations} />
+                    {stations[0] && <RobotCellSimulation station={stations[0]} playing={visualPlaying} speed={visualSpeed} active={visualTab === "cell"} />}
                   </TabsContent>
                 </Tabs>
               </CardContent>
