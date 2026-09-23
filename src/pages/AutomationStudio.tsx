@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { analyzeDescription } from "@/utils/processAnalyzer";
 import { Link, useNavigate } from "react-router-dom";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
@@ -179,9 +180,9 @@ export default function AutomationStudio() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const blueprint = getBlueprint(industry);
-  const processes = blueprint.processes;
-  const inventory = buildInventory(blueprint);
-  const stats = buildStats(blueprint);
+  const processes = useMemo(() => analyzeDescription(description, industry), [description, industry]);
+  const inventory = buildInventory({ ...blueprint, processes });
+  const stats = buildStats({ ...blueprint, processes });
   const stations: VisualStation[] = processes.map((process, index) => ({
     label: inventory[index]?.station ?? process.short,
     eoat: process.eoat[0],

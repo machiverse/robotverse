@@ -410,7 +410,7 @@ export const buildInventory = (bp: IndustryBlueprint): InventoryRow[] =>
 
 export const buildStats = (bp: IndustryBlueprint) => {
   const full = bp.processes.filter((x) => x.automation === "full").length;
-  const robots = bp.processes.reduce((sum, x) => sum + (x.qty ?? 1), 0);
+  const robots = new Set(bp.processes.map((x) => x.robot.model)).size;
   return [
     { value: String(bp.processes.length), label: "Processes Found" },
     { value: String(full), label: "Fully Automatable" },
