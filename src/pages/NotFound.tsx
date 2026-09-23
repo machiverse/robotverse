@@ -11,6 +11,20 @@ const NotFound = () => {
     );
   }, [location.pathname]);
 
+  // Keep 404s out of search indexes (removed doorway URLs land here).
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex, follow";
+    document.head.appendChild(meta);
+    const prevTitle = document.title;
+    document.title = "Page not found | RobotVerse";
+    return () => {
+      meta.remove();
+      document.title = prevTitle;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted">
       <div className="text-center">

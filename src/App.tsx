@@ -18,7 +18,6 @@ import RobotDetails from "./pages/RobotDetails";
 import Parts from "./pages/Parts";
 import SparePartDetails from "./pages/SparePartDetails";
 import Services from "./pages/Services";
-import ServiceDetails from "./pages/ServiceDetails";
 import Logistics from "./pages/Logistics";
 import LogisticsDetails from "./pages/LogisticsDetails";
 import Financing from "./pages/Financing";
@@ -43,7 +42,7 @@ import UsedBrandRobots from "./pages/landing/UsedBrandRobots";
 import ApplicationRobots from "./pages/landing/ApplicationRobots";
 import BrandParts from "./pages/landing/BrandParts";
 import CategoryParts from "./pages/landing/CategoryParts";
-import CityServices from "./pages/landing/CityServices";
+import ServiceRoute from "./pages/ServiceRoute";
 import CompareRobots from "./pages/landing/CompareRobots";
 import SEODashboard from "./pages/dashboard/admin/SEODashboard";
 
@@ -168,7 +167,7 @@ const App = () => (
               <Route path="/robots/:id" element={<RobotDetails />} />
               <Route path="/parts/brand/:brand" element={<BrandParts />} />
               <Route path="/parts/category/:cat" element={<CategoryParts />} />
-              <Route path="/services/:city/:type" element={<CityServices />} />
+              {/* Removed: /services/:city/:serviceCombo doorway pages (now 404 + noindex) */}
               <Route path="/compare/:slug" element={<CompareRobots />} />
               <Route path="/dashboard/admin/seo" element={<SEODashboard />} />
               <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
@@ -178,7 +177,7 @@ const App = () => (
             <Route path="/spares/:category/:subcategory" element={<Parts />} />
             <Route path="/spares/:category/:subcategory/:componentType" element={<Parts />} />
             <Route path="/services" element={<Services />} />
-            <Route path="/services/:id" element={<ServiceDetails />} />
+            <Route path="/services/:id" element={<ServiceRoute />} />
             <Route path="/logistics" element={<Logistics />} />
             <Route path="/logistics/:id" element={<LogisticsDetails />} />
             <Route path="/test-image-migration" element={<TestImageMigration />} />
