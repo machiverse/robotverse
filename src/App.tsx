@@ -43,7 +43,7 @@ import UsedBrandRobots from "./pages/landing/UsedBrandRobots";
 import ApplicationRobots from "./pages/landing/ApplicationRobots";
 import BrandParts from "./pages/landing/BrandParts";
 import CategoryParts from "./pages/landing/CategoryParts";
-import CityServices from "./pages/landing/CityServices";
+import ServiceRoute from "./pages/ServiceRoute";
 import CompareRobots from "./pages/landing/CompareRobots";
 import SEODashboard from "./pages/dashboard/admin/SEODashboard";
 
@@ -178,7 +178,7 @@ const App = () => (
             <Route path="/spares/:category/:subcategory" element={<Parts />} />
             <Route path="/spares/:category/:subcategory/:componentType" element={<Parts />} />
             <Route path="/services" element={<Services />} />
-            <Route path="/services/:id" element={<ServiceDetails />} />
+            <Route path="/services/:id" element={<ServiceRoute />} />
             <Route path="/logistics" element={<Logistics />} />
             <Route path="/logistics/:id" element={<LogisticsDetails />} />
             <Route path="/test-image-migration" element={<TestImageMigration />} />
