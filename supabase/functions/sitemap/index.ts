@@ -384,13 +384,13 @@ Deno.serve(async (req) => {
       default: xml = await buildIndex(supabase); break;
     }
 
-    return new Response(xml, { headers: xmlHeaders });
+    return new Response(xml, { headers: xmlHeaders() });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "unknown error";
     console.error("sitemap error:", msg);
     return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<!-- sitemap error: ${xmlEscape(msg)} -->`, {
       status: 500,
-      headers: xmlHeaders,
+      headers: xmlHeaders(),
     });
   }
 });
