@@ -99,12 +99,11 @@ export function useCanonicalHead() {
     apply(desired.current);
 
     // Page-level SEO effects run after this one; re-assert the authoritative
-    // values whenever they change the head so the SPA matches seo-render.
+    // values on a few ticks so the SPA head settles on the seo-render values.
     const enforce = () => {
-      if (desired.current) apply(desired.current);
+      if (!cancelled && desired.current) apply(desired.current);
     };
-    const observer = new MutationObserver(enforce);
-    observer.observe(document.head, { childList: true, subtree: true, attributes: true });
+    const timers = [200, 900, 2500].map((ms) => window.setTimeout(enforce, ms));
 
     if (ENTITY_KINDS.has(match.kind)) {
       // The function is a public GET endpoint; fetch it directly with the path.
