@@ -11,7 +11,8 @@ const titleCase = (s: string) =>
 // Multi-service combination URLs (/services/{city}/{service-words}) were removed
 // as doorway pages and are no longer routed or generated anywhere.
 export default function CityServices() {
-  const { city = "" } = useParams<{ city: string }>();
+  const params = useParams<{ city?: string; id?: string }>();
+  const city = params.city ?? params.id ?? "";
   const cityLabel = titleCase(city);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
