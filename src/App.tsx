@@ -18,7 +18,6 @@ import RobotDetails from "./pages/RobotDetails";
 import Parts from "./pages/Parts";
 import SparePartDetails from "./pages/SparePartDetails";
 import Services from "./pages/Services";
-import ServiceDetails from "./pages/ServiceDetails";
 import Logistics from "./pages/Logistics";
 import LogisticsDetails from "./pages/LogisticsDetails";
 import Financing from "./pages/Financing";
