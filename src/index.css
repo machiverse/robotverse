@@ -324,36 +324,186 @@ All colors MUST be HSL.
   to { stroke-dashoffset: -20px; }
 }
 
-@keyframes as-robot-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.12); opacity: 0.72; }
+@keyframes as-layout-wrist {
+  0%, 100% { transform: translate(31px, 8px) rotate(-5deg); }
+  50% { transform: translate(31px, 8px) rotate(5deg); }
+}
+
+@keyframes as-activity-pulse {
+  0%, 100% { transform: scale(0.75); opacity: 0.45; }
+  50% { transform: scale(1.35); opacity: 1; }
+}
+
+@keyframes as-path-travel {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
+}
+
+@keyframes as-conveyor-scroll {
+  to { transform: translateX(28px); }
+}
+
+@keyframes as-arm-shoulder-cycle {
+  0%, 8%, 92%, 100% { transform: rotate(0deg); }
+  18%, 30% { transform: rotate(-33deg); }
+  48%, 68% { transform: rotate(35deg); }
+}
+
+@keyframes as-arm-elbow-cycle {
+  0%, 8%, 92%, 100% { transform: translate(0, -128px) rotate(0deg); }
+  18%, 30% { transform: translate(0, -128px) rotate(-22deg); }
+  48%, 68% { transform: translate(0, -128px) rotate(25deg); }
+}
+
+@keyframes as-arm-wrist-cycle {
+  0%, 8%, 92%, 100% { transform: translate(106px, -74px) rotate(0deg); }
+  18%, 30% { transform: translate(106px, -74px) rotate(20deg); }
+  48%, 68% { transform: translate(106px, -74px) rotate(-23deg); }
+}
+
+@keyframes as-gripper-cycle {
+  0%, 18%, 68%, 100% { transform: translate(82px, 42px) scale(1); }
+  24%, 56% { transform: translate(82px, 42px) scale(0.72); }
+}
+
+@keyframes as-part-cycle {
+  0% { transform: translateX(0); opacity: 0; }
+  8%, 28% { opacity: 1; }
+  70% { opacity: 1; }
+  88%, 100% { transform: translateX(650px); opacity: 0; }
+}
+
+@keyframes as-spark-burst {
+  0%, 45%, 72%, 100% { opacity: 0; transform: scale(0.25) rotate(0deg); }
+  52%, 64% { opacity: 1; transform: scale(1) rotate(25deg); }
 }
 
 .as-dashflow {
-  animation: as-dashflow 1s linear infinite;
+  --base-duration: 1s;
+  animation: as-dashflow calc(var(--base-duration) * var(--anim-speed, 1)) linear infinite;
 }
 
-.as-robot-pulse {
-  animation: as-robot-pulse 1.8s ease-in-out infinite;
+.automation-studio-visuals {
+  --anim-speed: 1;
+}
+
+.automation-studio-visuals[data-speed="0.5"] {
+  --anim-speed: 2;
+}
+
+.automation-studio-visuals[data-speed="2"] {
+  --anim-speed: 0.5;
+}
+
+.automation-studio-visuals[data-paused="true"] *,
+.automation-studio-visuals[data-paused="true"] *::before,
+.automation-studio-visuals[data-paused="true"] *::after {
+  animation-play-state: paused !important;
+}
+
+.as-layout-wrist {
+  --base-duration: 2.4s;
+  transform-origin: 31px 8px;
+  animation: as-layout-wrist calc(var(--base-duration) * var(--anim-speed)) ease-in-out infinite;
+}
+
+.as-activity-dot,
+.as-status-pulse,
+.as-zone-active,
+.as-light-curtain {
+  --base-duration: 1.6s;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: as-activity-pulse calc(var(--base-duration) * var(--anim-speed)) ease-in-out infinite;
+}
+
+.as-layout-flow-dot,
+.as-flow-part {
+  --base-duration: 3.2s;
+  animation: as-path-travel calc(var(--base-duration) * var(--anim-speed)) linear infinite;
+}
+
+.as-conveyor-belt,
+.as-conveyor-line {
+  --base-duration: 0.8s;
+  animation: as-conveyor-scroll calc(var(--base-duration) * var(--anim-speed)) linear infinite;
+}
+
+.as-arm-shoulder {
+  --base-duration: 4s;
+  transform-origin: 0 -20px;
+  animation: as-arm-shoulder-cycle calc(var(--base-duration) * var(--anim-speed)) ease-in-out infinite;
+}
+
+.as-arm-elbow {
+  --base-duration: 4s;
+  transform-origin: 0 0;
+  animation: as-arm-elbow-cycle calc(var(--base-duration) * var(--anim-speed)) ease-in-out infinite;
+}
+
+.as-arm-wrist {
+  --base-duration: 4s;
+  transform-origin: 0 0;
+  animation: as-arm-wrist-cycle calc(var(--base-duration) * var(--anim-speed)) ease-in-out infinite;
+}
+
+.as-cell-gripper {
+  --base-duration: 4s;
+  transform-origin: 0 0;
+  animation: as-gripper-cycle calc(var(--base-duration) * var(--anim-speed)) ease-in-out infinite;
+}
+
+.as-cell-part {
+  --base-duration: 4s;
+  animation: as-part-cycle calc(var(--base-duration) * var(--anim-speed)) linear infinite;
+}
+
+.as-cell-part-2 { animation-delay: calc(-1.35s * var(--anim-speed)); }
+.as-cell-part-3 { animation-delay: calc(-2.7s * var(--anim-speed)); }
+
+.as-weld-sparks {
+  --base-duration: 4s;
+  transform-origin: center;
+  animation: as-spark-burst calc(var(--base-duration) * var(--anim-speed)) ease-out infinite;
+}
+
+.as-station-tooltip,
+.as-cell-tooltip {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease-out;
+}
+
+.as-station-group:hover .as-station-tooltip,
+.as-station-group:focus .as-station-tooltip,
+.as-station-group:focus-visible .as-station-tooltip,
+.as-robot-interactive:hover .as-cell-tooltip,
+.as-robot-interactive:focus .as-cell-tooltip,
+.as-robot-interactive:focus-visible .as-cell-tooltip {
+  opacity: 1;
+}
+
+.as-station-group:focus,
+.as-robot-interactive:focus {
+  outline: none;
+}
+
+.as-flow-network.is-focused .as-flow-connection {
+  opacity: 0.28;
+}
+
+.as-flow-network.is-focused .as-flow-connection.is-connected {
+  opacity: 1;
 }
 
 .as-cell-link {
-  animation: as-dashflow 1s linear infinite;
-}
-
-.as-isometric-floor {
-  background-image:
-    linear-gradient(hsl(var(--border)) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
-  background-size: 24px 24px;
-  background-color: hsl(var(--card));
+  --base-duration: 1s;
+  animation: as-dashflow calc(var(--base-duration) * var(--anim-speed, 1)) linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .as-dashflow,
-  .as-robot-pulse,
-  .as-cell-link {
-    animation: none;
+  .automation-studio-visuals * {
+    animation: none !important;
   }
 }
 

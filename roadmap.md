@@ -16,3 +16,11 @@
 - [x] Add the Deep Analysis Summary.
 - [x] Build Factory Layout, Material Flow, and 3D Cell visualizations.
 - [x] Verify type safety and public desktop/mobile presentation.
+
+# Automation Studio animated visual upgrade
+
+- [x] Replace the isometric cell with an animated SVG robot work cell.
+- [x] Add richer live material-flow and factory-layout movement.
+- [x] Add shared play/pause and speed controls.
+- [x] Add robot and station detail tooltips with connected-path highlighting.
+- [ ] Verify type safety, source integrity, and the public preview.
