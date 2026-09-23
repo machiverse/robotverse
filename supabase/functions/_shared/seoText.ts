@@ -8,7 +8,7 @@ export const SITE_URL = "https://www.robotverse.in";
 export const DEFAULT_TITLE =
   "RobotVerse | Buy & Sell Used Industrial Robots in India";
 export const DEFAULT_DESCRIPTION =
-  "India's marketplace for new, used and refurbished industrial robots, spare parts, services, logistics and financing. Verified FANUC, ABB, KUKA and Yaskawa listings.";
+  "India's marketplace for new, used and refurbished industrial robots, spare parts, services, logistics and financing from verified sellers.";
 
 export const TITLE_MAX = 60;
 export const DESC_MAX = 155;
@@ -25,7 +25,12 @@ export function clampWords(text: string, max: number): string {
     out = next;
   }
   if (!out) out = clean.slice(0, max).trimEnd();
-  return out.replace(/[\s|,\-–—:]+$/, "");
+  out = out.replace(/[\s|,\-–—:]+$/, "");
+  // never end on a dangling preposition/conjunction
+  while (/\s(in|for|of|with|and|to|on|at|by|the|a|an)$/i.test(out)) {
+    out = out.replace(/\s\S+$/, "").replace(/[\s|,\-–—:]+$/, "");
+  }
+  return out;
 }
 
 export const clampTitle = (t: string) => clampWords(t, TITLE_MAX);
