@@ -75,8 +75,11 @@ const ENTITY_KINDS = new Set([
   "robobook-post",
 ]);
 
+type Desired = Parameters<typeof apply>[0];
+
 export function useCanonicalHead() {
   const location = useLocation();
+  const desired = useRef<Desired | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +87,7 @@ export function useCanonicalHead() {
     const match = classifyPath(path);
     const base = staticMeta(match.kind);
 
-    apply({
+    desired.current = {
       title: base.title,
       description: base.description,
       canonical: canonicalFor(path),
@@ -92,35 +95,46 @@ export function useCanonicalHead() {
         match.kind === "private" || match.kind === "unknown" || match.kind === "gone"
           ? NOINDEX_ROBOTS
           : INDEXABLE_ROBOTS,
-    });
+    };
+    apply(desired.current);
 
-    if (!ENTITY_KINDS.has(match.kind)) return;
+    // Page-level SEO effects run after this one; re-assert the authoritative
+    // values whenever they change the head so the SPA matches seo-render.
+    const enforce = () => {
+      if (desired.current) apply(desired.current);
+    };
+    const observer = new MutationObserver(enforce);
+    observer.observe(document.head, { childList: true, subtree: true, attributes: true });
 
-    // The function is a public GET endpoint; fetch it directly with the path.
-    (async () => {
-      try {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/seo-render?path=${encodeURIComponent(path)}`;
-        const res = await fetch(url, {
-          headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string },
-        });
-        if (!res.ok || cancelled) return;
-        const snap = await res.json();
-        if (cancelled || !snap?.title) return;
-        apply({
-          title: snap.title,
-          description: snap.description,
-          canonical: snap.canonical,
-          robots: snap.robots,
-          image: snap.image,
-          ogType: snap.ogType,
-        });
-      } catch {
-        // keep the locally derived head values
-      }
-    })();
+    if (ENTITY_KINDS.has(match.kind)) {
+      // The function is a public GET endpoint; fetch it directly with the path.
+      (async () => {
+        try {
+          const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/seo-render?path=${encodeURIComponent(path)}`;
+          const res = await fetch(url, {
+            headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string },
+          });
+          if (!res.ok || cancelled) return;
+          const snap = await res.json();
+          if (cancelled || !snap?.title) return;
+          desired.current = {
+            title: snap.title,
+            description: snap.description,
+            canonical: snap.canonical,
+            robots: snap.robots,
+            image: snap.image,
+            ogType: snap.ogType,
+          };
+          apply(desired.current);
+        } catch {
+          // keep the locally derived head values
+        }
+      })();
+    }
 
     return () => {
       cancelled = true;
+      observer.disconnect();
     };
   }, [location.pathname]);
 }
