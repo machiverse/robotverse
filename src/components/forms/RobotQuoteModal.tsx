@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { pushEvent } from '@/lib/analytics';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -236,6 +237,7 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
       }
 
       setSuccess(true);
+      pushEvent('generate_lead', { item_id: robot.id, item_type: 'robot', item_brand: robot.brand || undefined, value: robot.price ? Number(robot.price) : undefined, currency: 'INR' });
       toast.success('Quote request sent successfully!');
       
       // Close after showing success
