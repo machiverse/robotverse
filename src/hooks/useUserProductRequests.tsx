@@ -98,7 +98,7 @@ export const useUserProductRequests = () => {
         .select()
         .single();
       if (error) throw error;
-      pushEvent('generate_lead', { item_id: (result as any)?.id, item_type: (request as any)?.product_type === 'spare_part' ? 'part' : ((request as any)?.product_type || 'robot'), item_brand: (request as any)?.brand || undefined, currency: 'INR' });
+      pushEvent('generate_lead', { item_id: (result as any)?.id, item_type: data.product_type === 'spare_part' ? 'part' : (data.product_type || 'robot'), item_brand: data.brand || undefined, currency: 'INR' });
       toast({ title: 'Request Submitted!', description: 'Your request has been submitted. We will connect you with relevant sellers.' });
       return result;
     } catch (err: any) {
