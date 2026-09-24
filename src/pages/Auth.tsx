@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { pushEvent } from '@/lib/analytics';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1134,6 +1135,7 @@ const Auth = () => {
         }
 
         console.log('✅ User account created:', newUser.id);
+        pushEvent('sign_up', { method: 'email' });
 
         // NOTE: We used to detect "repeated signup" via empty `identities` array,
         // but Supabase now returns an empty identities array for ALL new signups

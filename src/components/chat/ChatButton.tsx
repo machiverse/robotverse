@@ -1,4 +1,5 @@
 import React from 'react';
+import { pushEvent } from '@/lib/analytics';
 import { MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -52,6 +53,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
       return;
     }
 
+    pushEvent('contact_seller', { item_id: itemId, item_type: itemType === 'spare_part' ? 'part' : itemType, method: 'chat' });
     // Navigate to chat page with parameters
     const params = new URLSearchParams({
       other_user: otherUserId,

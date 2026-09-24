@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { pushEvent } from '@/lib/analytics';
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -212,6 +213,7 @@ const BulkRobotUpload = ({ onSuccess }: BulkRobotUploadProps) => {
         failed += chunk.length;
       } else {
         inserted += chunk.length;
+        pushEvent('add_listing', { item_type: 'robot', count: chunk.length });
       }
       setProgress(Math.round(((i + chunk.length) / validRows.length) * 100));
     }

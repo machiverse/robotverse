@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { pushEvent } from '@/lib/analytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -217,6 +218,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
       }
 
       if (result.error) throw result.error;
+      if (!editingPart) pushEvent('add_listing', { item_type: 'part' });
 
       toast({
         title: "Success",
