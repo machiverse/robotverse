@@ -42,7 +42,7 @@ const robotFeedTitle = (r: any) => {
   const cond = condition(r.condition);
   const lead = cond === "new" ? "New" : cond === "refurbished" ? "Refurbished" : "Used";
   return clampWords([
-    lead, r.brand, r.model || r.name, r.robot_type ? `${r.robot_type} Robot` : "Robot",
+    lead, r.brand, r.model || r.name, r.robot_type ? (/robot|cobot/i.test(r.robot_type) ? r.robot_type : `${r.robot_type} Robot`) : "Robot",
     r.payload_capacity ? `${r.payload_capacity}kg Payload` : "",
     r.reach ? `${r.reach}mm Reach` : "",
   ].filter(Boolean).join(" "), 150);
