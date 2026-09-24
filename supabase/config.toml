@@ -94,3 +94,6 @@ verify_jwt = false
 
 [functions.seo-render]
 verify_jwt = false
+
+[functions.merchant-feed]
+verify_jwt = false
