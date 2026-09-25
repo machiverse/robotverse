@@ -29,7 +29,6 @@ import {
   Gavel,
   Factory,
   Sparkles,
-  Library,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -1323,14 +1322,6 @@ const EnhancedHeader = () => {
                   <span>Auction</span>
                 </Link>
               </div>
-
-              {/* Directory - Direct Link */}
-              <div className="flex-1">
-                <Link to="/directory" className="nav-item flex items-center justify-center gap-2 w-full">
-                  <Library className="h-4 w-4" />
-                  <span>Directory</span>
-                </Link>
-              </div>
             </div>
           </div>
         </nav>
@@ -1702,16 +1693,6 @@ const EnhancedHeader = () => {
               >
                 <Gavel className="h-4 w-4" />
                 Auction
-              </Link>
-
-              {/* Directory */}
-              <Link
-                to="/directory"
-                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition"
-                onClick={() => setMenuOpen(false)}
-              >
-                <Library className="h-4 w-4" />
-                Directory
               </Link>
             </nav>
 
