@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,26 +104,6 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
-
-    // Keep a record of the lead (non-fatal if the table is missing)
-    try {
-      const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-      const { error } = await supabase.from("directory_enquiries").insert({
-        name: data.name,
-        email: data.email,
-        phone: data.phone || null,
-        company: data.company || null,
-        role: data.role || null,
-        interests: data.interests,
-        section: data.section || null,
-        item_name: data.itemName || null,
-        message: data.message || null,
-        page_url: data.pageUrl || null,
-      });
-      if (error) console.error("directory_enquiries insert failed:", error.message);
-    } catch (e) {
-      console.error("directory_enquiries insert error:", e);
     }
 
     const ts = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
