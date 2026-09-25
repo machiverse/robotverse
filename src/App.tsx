@@ -65,6 +65,7 @@ import MyRequests from "./pages/dashboard/MyRequests";
 import ApiKeys from "./pages/dashboard/ApiKeys";
 import ApiDocs from "./pages/ApiDocs";
 import Contact from "./pages/Contact";
+import Directory from "./pages/Directory";
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
 import BuyerGuide from "./pages/BuyerGuide";
@@ -227,6 +228,7 @@ const App = () => (
             <Route path="/profile-settings" element={<ProfileSettings />} />
             <Route path="/settings" element={<ProfileSettings />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/directory" element={<Directory />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/seller-guide" element={<SellerGuide />} />
             <Route path="/buyer-guide" element={<BuyerGuide />} />

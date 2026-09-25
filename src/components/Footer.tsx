@@ -77,6 +77,9 @@ const Footer = () => {
               <a href="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Contact Us
               </a>
+              <a href="/directory" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Directory
+              </a>
               <a
                 href="/dashboard/privacy"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"

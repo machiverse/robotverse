@@ -97,3 +97,6 @@ verify_jwt = false
 
 [functions.merchant-feed]
 verify_jwt = false
+
+[functions.send-directory-enquiry]
+verify_jwt = false
