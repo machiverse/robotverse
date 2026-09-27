@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, GraduationCap, IndianRupee, Award } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OemDot, OemRail } from "@/components/oem/OemAccents";
+import TalentListLayout from "./TalentListLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -24,34 +26,51 @@ const TalentTrainingList = () => {
     toast({ title: 'Inquiry sent!' });
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <Select onValueChange={v => setFilters((f: any) => ({ ...f, brand: v === 'all' ? undefined : v }))}>
-          <SelectTrigger><SelectValue placeholder="Robot Brand" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Brands</SelectItem>
-            {ROBOT_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select onValueChange={v => setFilters((f: any) => ({ ...f, category: v === 'all' ? undefined : v }))}>
-          <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            {JOB_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select onValueChange={v => setFilters((f: any) => ({ ...f, mode: v === 'all' ? undefined : v }))}>
-          <SelectTrigger><SelectValue placeholder="Mode" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="online">Online</SelectItem>
-            <SelectItem value="offline">Offline</SelectItem>
-            <SelectItem value="hybrid">Hybrid</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+  const hasFilters = Object.values(filters).some((v) => v !== undefined);
 
+  return (
+    <TalentListLayout
+      noun="Programs"
+      count={programs?.length ?? 0}
+      isLoading={isLoading}
+      hasFilters={hasFilters}
+      onClear={() => setFilters({})}
+      filters={<>
+        <div>
+          <p className="mb-1 text-xs font-semibold">Robot Brand</p>
+          <Select value={filters.brand ?? 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, brand: v === 'all' ? undefined : v }))}>
+            <SelectTrigger><SelectValue placeholder="Robot Brand" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Brands</SelectItem>
+              {ROBOT_BRANDS.map(b => <SelectItem key={b} value={b}><span className="flex items-center gap-2"><OemDot brand={b} />{b}</span></SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-semibold">Category</p>
+          <Select value={filters.category ?? 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, category: v === 'all' ? undefined : v }))}>
+            <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {JOB_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-semibold">Mode</p>
+          <Select value={filters.mode ?? 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, mode: v === 'all' ? undefined : v }))}>
+            <SelectTrigger><SelectValue placeholder="Mode" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Modes</SelectItem>
+              <SelectItem value="online">Online</SelectItem>
+              <SelectItem value="offline">Offline</SelectItem>
+              <SelectItem value="hybrid">Hybrid</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </>}
+    >
+      <div className="space-y-4">
       {isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
 
       {!isLoading && programs?.length === 0 && (
@@ -62,7 +81,8 @@ const TalentTrainingList = () => {
       )}
 
       {programs?.map((p: any) => (
-        <Card key={p.id} className="hover:shadow-md transition-shadow">
+        <Card key={p.id} className="group relative overflow-hidden border border-border shadow-none hover:border-muted-foreground/40 transition-colors duration-150">
+          <OemRail brand={p.robot_brand} />
           <CardContent className="p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
@@ -91,7 +111,8 @@ const TalentTrainingList = () => {
           </CardContent>
         </Card>
       ))}
-    </div>
+      </div>
+    </TalentListLayout>
   );
 };
 

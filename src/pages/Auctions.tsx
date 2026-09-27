@@ -8,7 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import AuctionCard from "@/components/auction/AuctionCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { OemDot, OemRail } from "@/components/oem/OemAccents";
 import { Badge } from "@/components/ui/badge";
 import {
   Gavel,
@@ -31,10 +35,12 @@ import {
   ChevronRight,
   Maximize2,
   X,
+  Search,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useUrlParam } from "@/hooks/useUrlState";
+import { useDebouncedUrlParam, useUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import AuctionBidsPanel from "@/components/auction/AuctionBidsPanel";
 import { getAuctionStatus } from "@/utils/auctionStatus";
@@ -45,6 +51,11 @@ const Auctions: React.FC = () => {
   const [tab, setTab] = useUrlParam<string>("tab", "live");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [search, setSearch] = useDebouncedUrlParam("q", "");
+  const [brandFilter, setBrandFilter] = useUrlParam<string>("brand", "all");
+  const [typeFilter, setTypeFilter] = useUrlParam<string>("rtype", "all");
+  const [formatFilter, setFormatFilter] = useUrlParam<string>("format", "all");
+  const [sortBy, setSortBy] = useUrlParam<string>("sort", "newest");
 
   useEffect(() => {
     const tick = async () => {
@@ -88,6 +99,113 @@ const Auctions: React.FC = () => {
     { label: "Upcoming", value: upcomingAuctions?.length || 0, icon: Clock, color: "text-primary" },
     { label: "Completed", value: closedAuctions?.length || 0, icon: Trophy, color: "text-amber-400" },
   ];
+
+  const isListingTab = tab === "live" || tab === "upcoming" || tab === "closed";
+  type AuctionRow = NonNullable<typeof liveAuctions>[number];
+  const currentList: AuctionRow[] =
+    (tab === "upcoming" ? upcomingAuctions : tab === "closed" ? closedAuctions : liveAuctions) || [];
+  const allListed: AuctionRow[] = [...(liveAuctions || []), ...(upcomingAuctions || []), ...(closedAuctions || [])];
+  const brandOptions = Array.from(new Set(allListed.map((a) => a.robots?.brand).filter(Boolean))).sort() as string[];
+  const typeOptions = Array.from(new Set(allListed.map((a) => a.robots?.robot_type).filter(Boolean))).sort() as string[];
+
+  const priceOf = (a: AuctionRow) => Number(a.current_highest_bid || a.starting_price || 0);
+  const applyFilters = (list: AuctionRow[] | undefined) => {
+    if (!list) return list;
+    const q = search.trim().toLowerCase();
+    const out = list.filter((a) => {
+      if (brandFilter !== "all" && a.robots?.brand !== brandFilter) return false;
+      if (typeFilter !== "all" && a.robots?.robot_type !== typeFilter) return false;
+      if (formatFilter !== "all" && a.auction_type !== formatFilter) return false;
+      if (!q) return true;
+      return [a.auction_title, a.robots?.brand, a.robots?.name, a.robots?.model, a.item_location, a.robots?.location]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    });
+    const time = (v: string | undefined) => (v ? new Date(v).getTime() : 0);
+    if (sortBy === "ending") out.sort((a, b) => time(a.end_time) - time(b.end_time));
+    if (sortBy === "price-low") out.sort((a, b) => priceOf(a) - priceOf(b));
+    if (sortBy === "price-high") out.sort((a, b) => priceOf(b) - priceOf(a));
+    if (sortBy === "bids") out.sort((a, b) => (b.total_bids || 0) - (a.total_bids || 0));
+    return out;
+  };
+  const filteredCount = applyFilters(currentList)?.length || 0;
+  const activeFilterCount = [search, brandFilter !== "all", typeFilter !== "all", formatFilter !== "all"].filter(Boolean).length;
+  const clearFilters = () => {
+    setSearch("");
+    setBrandFilter("all");
+    setTypeFilter("all");
+    setFormatFilter("all");
+  };
+
+  const filterPanel = (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search auctions..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+          aria-label="Search auctions"
+        />
+      </div>
+      <div>
+        <p className="text-xs font-semibold mb-1">Robot Type</p>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-full" aria-label="Robot type">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Robot Types</SelectItem>
+            {typeOptions.map((t) => (
+              <SelectItem key={t} value={t}>
+                {t}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <p className="text-xs font-semibold mb-1">Manufacturer</p>
+        <Select value={brandFilter} onValueChange={setBrandFilter}>
+          <SelectTrigger className="w-full" aria-label="Manufacturer">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Manufacturers</SelectItem>
+            {brandOptions.map((b) => (
+              <SelectItem key={b} value={b}>
+                <span className="flex items-center gap-2">
+                  <OemDot brand={b} />
+                  {b}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <p className="text-xs font-semibold mb-1">Auction Format</p>
+        <Select value={formatFilter} onValueChange={setFormatFilter}>
+          <SelectTrigger className="w-full" aria-label="Auction format">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Formats</SelectItem>
+            <SelectItem value="open">Open Bidding</SelectItem>
+            <SelectItem value="sealed">Sealed Bid</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {activeFilterCount > 0 && (
+        <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={clearFilters}>
+          Clear All Filters
+        </Button>
+      )}
+    </div>
+  );
 
   // Grid View
   const renderGridView = (auctions: any[] | undefined, loading: boolean) => {
@@ -140,9 +258,10 @@ const Auctions: React.FC = () => {
           return (
             <Card
               key={a.id}
-              className="border border-border hover:border-primary hover:shadow-md transition-all cursor-pointer"
+              className="group relative overflow-hidden border border-border shadow-none hover:border-muted-foreground/40 transition-colors duration-150 cursor-pointer"
               onClick={() => navigate(`/auctions/${a.id}`)}
             >
+              <OemRail brand={a.robots?.brand} />
               <CardContent className="p-4">
                 {/* Main Content Row - Compact */}
                 <div className="flex flex-col lg:flex-row gap-3">
@@ -281,7 +400,18 @@ const Auctions: React.FC = () => {
   };
 
   const renderContent = (auctions: any[] | undefined, loading: boolean) => {
-    return viewMode === "list" ? renderListView(auctions, loading) : renderGridView(auctions, loading);
+    const list = applyFilters(auctions);
+    if (!loading && auctions?.length && !list?.length) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Gavel className="w-16 h-16 text-muted-foreground/30 mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-1">No auctions match the current filters.</h3>
+          <p className="text-sm text-muted-foreground mb-4">Try clearing some filters or changing the search text.</p>
+          <Button onClick={clearFilters}>Clear Filters</Button>
+        </div>
+      );
+    }
+    return viewMode === "list" ? renderListView(list, loading) : renderGridView(list, loading);
   };
 
   return (
@@ -360,34 +490,120 @@ const Auctions: React.FC = () => {
               )}
             </TabsList>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground hidden md:inline">View:</span>
-              <div className="flex border border-border rounded-md overflow-hidden">
-                <Button
-                  variant={viewMode === "list" ? "default" : "ghost"}
-                  size="sm"
-                  className="h-9 px-3"
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="w-4 h-4" />
-                  <span className="ml-1.5 hidden sm:inline text-xs">List</span>
-                </Button>
-                <Button
-                  variant={viewMode === "grid" ? "default" : "ghost"}
-                  size="sm"
-                  className="h-9 px-3 border-l border-border"
-                  onClick={() => setViewMode("grid")}
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                  <span className="ml-1.5 hidden sm:inline text-xs">Grid</span>
-                </Button>
-              </div>
-            </div>
           </div>
 
-          <TabsContent value="live">{renderContent(liveAuctions, loadingLive)}</TabsContent>
-          <TabsContent value="upcoming">{renderContent(upcomingAuctions, loadingUpcoming)}</TabsContent>
-          <TabsContent value="closed">{renderContent(closedAuctions, loadingClosed)}</TabsContent>
+          {isListingTab && (
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* LEFT FILTER COLUMN (sticky) */}
+              <aside className="w-72 flex-shrink-0 hidden lg:block">
+                <div className="sticky top-20 space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Search className="w-4 h-4" />
+                        Filter Auctions
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>{filterPanel}</CardContent>
+                  </Card>
+                  {user && (
+                    <Card className="border-primary/20 bg-primary/5">
+                      <CardContent className="p-4 text-center">
+                        <p className="text-sm font-semibold mb-1">Have robots to sell?</p>
+                        <p className="text-xs text-muted-foreground mb-3">List them in an auction and receive bids.</p>
+                        <Button size="sm" className="w-full" onClick={() => navigate("/auctions/create")}>
+                          <Plus className="w-3 h-3 mr-1" /> Create Auction
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </aside>
+
+              {/* RIGHT CONTENT COLUMN */}
+              <div className="flex-1 min-w-0 w-full space-y-6">
+                <Card>
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex gap-2 lg:hidden">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          placeholder="Search auctions..."
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                          className="pl-9"
+                          aria-label="Search auctions"
+                        />
+                      </div>
+                      <Sheet>
+                        <SheetTrigger asChild>
+                          <Button variant="outline" className="shrink-0">
+                            <SlidersHorizontal className="w-4 h-4 mr-2" />
+                            Filters{activeFilterCount > 0 && ` (${activeFilterCount})`}
+                          </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="w-80 overflow-y-auto">
+                          <SheetHeader className="mb-4">
+                            <SheetTitle>Filter Auctions</SheetTitle>
+                          </SheetHeader>
+                          {filterPanel}
+                        </SheetContent>
+                      </Sheet>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="text-sm text-muted-foreground">
+                        Showing <span className="font-semibold text-foreground">{filteredCount}</span> of{" "}
+                        {currentList.length} auctions
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium">Sort by</span>
+                          <Select value={sortBy} onValueChange={setSortBy}>
+                            <SelectTrigger className="w-40" aria-label="Sort by">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="newest">Newest</SelectItem>
+                              <SelectItem value="ending">Ending Soon</SelectItem>
+                              <SelectItem value="bids">Most Bids</SelectItem>
+                              <SelectItem value="price-low">Price Low to High</SelectItem>
+                              <SelectItem value="price-high">Price High to Low</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                <div className="flex border border-border rounded-md overflow-hidden">
+                  <Button
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-9 px-3"
+                    onClick={() => setViewMode("list")}
+                    aria-label="List view"
+                  >
+                    <List className="w-4 h-4" />
+                    <span className="ml-1.5 hidden sm:inline text-xs">List</span>
+                  </Button>
+                  <Button
+                    variant={viewMode === "grid" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-9 px-3 border-l border-border"
+                    onClick={() => setViewMode("grid")}
+                    aria-label="Grid view"
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                    <span className="ml-1.5 hidden sm:inline text-xs">Grid</span>
+                  </Button>
+                </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <TabsContent value="live" className="mt-0">{renderContent(liveAuctions, loadingLive)}</TabsContent>
+                <TabsContent value="upcoming" className="mt-0">{renderContent(upcomingAuctions, loadingUpcoming)}</TabsContent>
+                <TabsContent value="closed" className="mt-0">{renderContent(closedAuctions, loadingClosed)}</TabsContent>
+              </div>
+            </div>
+          )}
 
           {user && (
             <TabsContent value="myauctions">

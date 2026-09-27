@@ -7,39 +7,62 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { MapPin, Briefcase, Search, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OemDot, OemRail } from "@/components/oem/OemAccents";
+import TalentListLayout from "./TalentListLayout";
 
 const TalentProfilesList = () => {
   const [filters, setFilters] = useState<any>({});
   const [citySearch, setCitySearch] = useState("");
   const { data: profiles, isLoading } = useTalentProfiles(filters);
 
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="flex gap-1">
-          <Input placeholder="Search city" value={citySearch} onChange={e => setCitySearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && setFilters((f: any) => ({ ...f, city: citySearch || undefined }))} />
-          <Button size="icon" variant="outline" onClick={() => setFilters((f: any) => ({ ...f, city: citySearch || undefined }))}><Search className="h-4 w-4" /></Button>
-        </div>
-        <Select onValueChange={v => setFilters((f: any) => ({ ...f, brand: v === 'all' ? undefined : v }))}>
-          <SelectTrigger><SelectValue placeholder="Robot Brand" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Brands</SelectItem>
-            {ROBOT_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select onValueChange={v => setFilters((f: any) => ({ ...f, expMin: v === 'all' ? undefined : parseInt(v) }))}>
-          <SelectTrigger><SelectValue placeholder="Experience" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Any</SelectItem>
-            <SelectItem value="0">0+ years</SelectItem>
-            <SelectItem value="3">3+ years</SelectItem>
-            <SelectItem value="5">5+ years</SelectItem>
-            <SelectItem value="10">10+ years</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input placeholder="Skill filter" onChange={e => setFilters((f: any) => ({ ...f, skill: e.target.value || undefined }))} />
-      </div>
+  const hasFilters = Object.values(filters).some((v) => v !== undefined);
+  const clearFilters = () => { setFilters({}); setCitySearch(""); };
 
+  return (
+    <TalentListLayout
+      noun="Profiles"
+      count={profiles?.length ?? 0}
+      isLoading={isLoading}
+      hasFilters={hasFilters}
+      onClear={clearFilters}
+      filters={<>
+        <div>
+          <p className="mb-1 text-xs font-semibold">City</p>
+          <div className="flex gap-1">
+            <Input placeholder="Search city" value={citySearch} onChange={e => setCitySearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && setFilters((f: any) => ({ ...f, city: citySearch || undefined }))} />
+            <Button size="icon" variant="outline" aria-label="Apply city" onClick={() => setFilters((f: any) => ({ ...f, city: citySearch || undefined }))}><Search className="h-4 w-4" /></Button>
+          </div>
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-semibold">Robot Brand</p>
+          <Select value={filters.brand ?? 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, brand: v === 'all' ? undefined : v }))}>
+            <SelectTrigger><SelectValue placeholder="Robot Brand" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Brands</SelectItem>
+              {ROBOT_BRANDS.map(b => <SelectItem key={b} value={b}><span className="flex items-center gap-2"><OemDot brand={b} />{b}</span></SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-semibold">Experience</p>
+          <Select value={filters.expMin !== undefined ? String(filters.expMin) : 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, expMin: v === 'all' ? undefined : parseInt(v) }))}>
+            <SelectTrigger><SelectValue placeholder="Experience" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any</SelectItem>
+              <SelectItem value="0">0+ years</SelectItem>
+              <SelectItem value="3">3+ years</SelectItem>
+              <SelectItem value="5">5+ years</SelectItem>
+              <SelectItem value="10">10+ years</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-semibold">Skill</p>
+          <Input placeholder="Skill filter" value={filters.skill ?? ''} onChange={e => setFilters((f: any) => ({ ...f, skill: e.target.value || undefined }))} />
+        </div>
+      </>}
+    >
+      <div className="space-y-4">
       {isLoading && Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
 
       {!isLoading && profiles?.length === 0 && (
@@ -50,7 +73,8 @@ const TalentProfilesList = () => {
       )}
 
       {profiles?.map((p: any) => (
-        <Card key={p.id} className="hover:shadow-md transition-shadow">
+        <Card key={p.id} className="group relative overflow-hidden border border-border shadow-none hover:border-muted-foreground/40 transition-colors duration-150">
+          <OemRail brand={p.robot_brands?.[0]} />
           <CardContent className="p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
@@ -79,7 +103,8 @@ const TalentProfilesList = () => {
           </CardContent>
         </Card>
       ))}
-    </div>
+      </div>
+    </TalentListLayout>
   );
 };
 

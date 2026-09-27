@@ -8,6 +8,9 @@ import { usePostInteractions } from "@/hooks/usePostInteractions";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Search, 
@@ -19,7 +22,8 @@ import {
   BookOpen,
   Video,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   Select,
@@ -330,6 +334,121 @@ const Community = () => {
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
+  const hasFilters = !!searchTerm || (selectedTag && selectedTag !== "all") || filterType !== "all";
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterType("all");
+    setSelectedTag("all");
+  };
+
+  const filterPanel = (
+          <div className="flex flex-col gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search posts by content, title, or tags..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 font-medium"
+              />
+            </div>
+
+            <p className="text-xs font-semibold -mb-2">Post Type</p>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full font-medium">
+                <SelectValue placeholder="Post type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    All Types
+                  </div>
+                </SelectItem>
+                <SelectItem value="short_post">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Short Posts
+                  </div>
+                </SelectItem>
+                <SelectItem value="blog">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Blog Articles
+                  </div>
+                </SelectItem>
+                <SelectItem value="video">
+                  <div className="flex items-center gap-2">
+                    <Video className="h-4 w-4" />
+                    Videos
+                  </div>
+                </SelectItem>
+                <SelectItem value="media">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Media
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <p className="text-xs font-semibold -mb-2">Sort By</p>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full font-medium">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="latest">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Latest
+                  </div>
+                </SelectItem>
+                <SelectItem value="trending">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Trending
+                  </div>
+                </SelectItem>
+                <SelectItem value="most_viewed">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    Most Viewed
+                  </div>
+                </SelectItem>
+                <SelectItem value="most_liked">
+                  <div className="flex items-center gap-2">
+                    <Heart className="h-4 w-4" />
+                    Most Liked
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {availableTags.length > 0 && <p className="text-xs font-semibold -mb-2">Tag</p>}
+            {availableTags.length > 0 && (
+              <Select value={selectedTag} onValueChange={setSelectedTag}>
+                <SelectTrigger className="w-full font-medium">
+                  <SelectValue placeholder="Filter by tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Tags</SelectItem>
+                  {availableTags.map(tag => (
+                    <SelectItem key={tag} value={tag}>
+                      #{tag}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {hasFilters && (
+              <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={clearFilters}>
+                Clear All Filters
+              </Button>
+            )}
+          </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <SEOMetaTags 
@@ -376,8 +495,8 @@ const Community = () => {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight text-primary">RoboBook</h1>
-              <p className="text-lg text-muted-foreground mt-2">
+              <h1 className="text-3xl font-bold tracking-tight text-primary">RoboBook</h1>
+              <p className="text-muted-foreground mt-2">
                 Learn, share, and connect - your knowledge hub for industrial robotics and automation technology
               </p>
               <div className="mt-3"><CopySearchLinkButton /></div>
@@ -398,108 +517,80 @@ const Community = () => {
 
 
 
-          {/* Search and Filters */}
-          <div className="flex flex-col md:flex-row gap-4 bg-card p-6 rounded-lg shadow-sm border">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search posts by content, title, or tags..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 font-medium"
-              />
-            </div>
-
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full md:w-48 font-medium">
-                <SelectValue placeholder="Post type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    All Types
-                  </div>
-                </SelectItem>
-                <SelectItem value="short_post">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Short Posts
-                  </div>
-                </SelectItem>
-                <SelectItem value="blog">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Blog Articles
-                  </div>
-                </SelectItem>
-                <SelectItem value="video">
-                  <div className="flex items-center gap-2">
-                    <Video className="h-4 w-4" />
-                    Videos
-                  </div>
-                </SelectItem>
-                <SelectItem value="media">
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4" />
-                    Media
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full md:w-48 font-medium">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="latest">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Latest
-                  </div>
-                </SelectItem>
-                <SelectItem value="trending">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" />
-                    Trending
-                  </div>
-                </SelectItem>
-                <SelectItem value="most_viewed">
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-4 w-4" />
-                    Most Viewed
-                  </div>
-                </SelectItem>
-                <SelectItem value="most_liked">
-                  <div className="flex items-center gap-2">
-                    <Heart className="h-4 w-4" />
-                    Most Liked
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            {availableTags.length > 0 && (
-              <Select value={selectedTag} onValueChange={setSelectedTag}>
-                <SelectTrigger className="w-full md:w-48 font-medium">
-                  <SelectValue placeholder="Filter by tag" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tags</SelectItem>
-                  {availableTags.map(tag => (
-                    <SelectItem key={tag} value={tag}>
-                      #{tag}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
         </div>
 
+        <div className="flex flex-col lg:flex-row gap-6">
+        {/* LEFT FILTER COLUMN (sticky) */}
+        <aside className="w-72 flex-shrink-0 hidden lg:block">
+          <div className="sticky top-20 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Search className="w-4 h-4" />
+                  Filter Posts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>{filterPanel}</CardContent>
+            </Card>
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm font-semibold mb-1">Share your knowledge</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Post articles, videos and tips for the robotics community.
+                </p>
+                <CreatePostModal onPostCreated={fetchPosts} />
+              </CardContent>
+            </Card>
+          </div>
+        </aside>
+
         {/* Feed Layout - Professional Social Platform Style */}
-        <div className="max-w-4xl mx-auto">
+        <div className="flex-1 min-w-0 w-full max-w-4xl space-y-6">
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex gap-2 lg:hidden">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search posts..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                    aria-label="Search posts"
+                  />
+                </div>
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="shrink-0">
+                      <SlidersHorizontal className="w-4 h-4 mr-2" />
+                      Filters
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-80 overflow-y-auto">
+                    <SheetHeader className="mb-4">
+                      <SheetTitle>Filter Posts</SheetTitle>
+                    </SheetHeader>
+                    {filterPanel}
+                  </SheetContent>
+                </Sheet>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-muted-foreground">
+                  {loading ? "Loading…" : (
+                    <>
+                      Showing <span className="font-semibold text-foreground">{filteredPosts.length}</span> posts
+                    </>
+                  )}
+                </div>
+                {hasFilters && (
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {loading ? (
             <div className="space-y-6">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -566,6 +657,7 @@ const Community = () => {
               </div>
             </>
           )}
+        </div>
         </div>
       </main>
     </div>
