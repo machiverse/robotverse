@@ -21,12 +21,27 @@ Allow: /
 
 User-agent: *
 Allow: /
-Disallow: /dashboard
 Disallow: /auth
 Disallow: /reset-password
+Disallow: /account-status
+Disallow: /dashboard
+Disallow: /spare-parts-dashboard
+Disallow: /watchlist
 Disallow: /profile-settings
-Disallow: /crm
+Disallow: /settings
 Disallow: /chat
+Disallow: /crm
+Disallow: /ai-assistant
+Disallow: /whatsapp-bot
+Disallow: /robobook/create
+Disallow: /*/edit
+Disallow: /auctions/create
+Disallow: /robot-talent/post-job
+Disallow: /robot-talent/post-training
+Disallow: /robot-talent/employer-dashboard
+Disallow: /robot-talent/seeker-profile
+Disallow: /preview/
+Disallow: /test-image-migration
 Disallow: /*?*sortBy=
 Disallow: /*?*viewMode=
 

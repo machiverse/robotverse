@@ -1,40 +1,31 @@
 # RobotVerse
 
-> India's B2B marketplace for industrial robots, robot spare parts, robotics services, logistics, financing, auctions and robotics knowledge (RoboBook).
+> RobotVerse is a B2B marketplace and auction platform for new, used and refurbished industrial robots and robot spare parts in India, based in Chennai. Buyers compare verified listings, request quotations and bid in auctions; sellers list robots, parts and robotics services.
 
-RobotVerse lists new, used and refurbished industrial robots from brands such as FANUC, ABB, KUKA, Yaskawa, Kawasaki, Universal Robots and Mitsubishi. Every listing carries structured specifications (payload, reach, axes, controller, year, condition, location), verified-seller status, and options for quotation, inspection, financing and logistics. Prices are in INR unless stated otherwise. Seller contact details are masked by design; buyers request quotes through the platform.
+Listings carry structured specifications (brand, model, payload, reach, year, controller, condition, location) and prices in INR where the seller has published one. Seller contact details are masked; buyers request quotes through the platform.
 
-## Catalog structure
+## Main sections
 
-- [Industrial robots](/robots): All robot listings. Individual listings live at `/robots/{id}` with full specs, FAQs and schema.org Product data.
-- [Robot spare parts](/parts): Motors, gearboxes, controllers, teach pendants, cables, servo drives. Individual parts at `/parts/{id}`.
-- [Robotics services](/services): Installation, programming, AMC, repair, retrofitting, training. Individual services at `/services/{id}`.
-- [Auctions](/auctions): Live, upcoming and closed robot auctions. Individual auctions at `/auctions/{id}`.
-- [RoboBook](/robobook): Editorial guides, buying advice and community posts on industrial robotics.
-- [Logistics](/logistics): Robot transport, rigging and installation partners across India.
-- [Financing](/financing): Equipment loans, leasing and EMI options for robot purchases.
-- [Robot talent](/robot-talent): Robotics jobs, training programs and engineer profiles.
-
-## Discovery pages
-
-- [Brand robot pages](/robots/brand/fanuc): Brand-scoped listings, e.g. `/robots/brand/{brand}`.
-- [Used brand robots](/robots/fanuc/used): Condition-scoped brand pages, e.g. `/robots/{brand}/used`.
-- [Application robots](/robots/application/welding): Application-scoped listings, e.g. `/robots/application/{application}`.
-- [Robot comparison](/robots/compare): Side-by-side specification comparison of robots.
-- [AI assistant](/ai-assistant): Natural-language search across robots, parts and services.
+- [Industrial robots](https://www.robotverse.in/robots): all robot listings; each listing lives at https://www.robotverse.in/robots/{id}
+- [Robots by brand](https://www.robotverse.in/robots/brand/fanuc): brand pages at https://www.robotverse.in/robots/brand/{brand} (FANUC, ABB, KUKA, Yaskawa, Universal Robots and more)
+- [Robots by city](https://www.robotverse.in/robots/city/chennai): city pages at https://www.robotverse.in/robots/city/{city}
+- [Robot spare parts](https://www.robotverse.in/parts): parts at https://www.robotverse.in/parts/{id}, brand pages at https://www.robotverse.in/parts/brand/{brand}
+- [Robotics directory](https://www.robotverse.in/directory): robot models, end-of-arm tools, external axes and training
+- [Automation Studio 3D](https://www.robotverse.in/automation-studio/3d): simulate a robot cell in 3D from a process description
+- [Automation Studio](https://www.robotverse.in/automation-studio): process-to-robot recommendation planner
+- [Auctions](https://www.robotverse.in/auctions): live and upcoming robot auctions at https://www.robotverse.in/auctions/{id}
+- [RoboBook](https://www.robotverse.in/robobook): guides, buying advice and community posts
+- [Robotics services](https://www.robotverse.in/services): installation, programming, AMC and repair providers
+- [Robot talent](https://www.robotverse.in/robot-talent): robotics jobs and training
+- [Buyer guide](https://www.robotverse.in/buyer-guide): how to buy a used industrial robot in India
+- [Seller guide](https://www.robotverse.in/seller-guide): how to list and sell robots and parts
 
 ## Company
 
-- [About and contact](/contact): Company details and enquiry form.
-- [Buyer guide](/buyer-guide): How to evaluate and buy a used industrial robot in India.
-- [Seller guide](/seller-guide): How to list and sell robots and parts.
-- [Pricing](/pricing): Subscription plans and credit packs for sellers.
-- [Sitemap](/sitemap): Full human-readable site index.
+- [Contact](https://www.robotverse.in/contact)
+- [Pricing](https://www.robotverse.in/pricing)
+- [API documentation](https://www.robotverse.in/api-docs)
 
-## Optional
+## Sitemap
 
-- [Terms](/terms)
-- [Privacy](/privacy)
-- [Cookies](/cookies)
-- [Accessibility](/accessibility)
-- [API documentation](/api-docs): REST API for partners consuming RobotVerse catalog data.
+- https://www.robotverse.in/sitemap.xml

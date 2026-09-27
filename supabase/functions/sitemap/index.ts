@@ -134,7 +134,7 @@ async function activeRobots(supabase: Client, supUsers: Set<string>) {
   return await fetchAll(supabase, () =>
     supabase
       .from("robots")
-      .select("id, brand, location, updated_at, created_at")
+      .select("id, brand, location, seller_id, updated_at, created_at")
       .eq("availability", "available")
       .not("seller_id", "in", notIn(Array.from(supUsers)))
   );
@@ -178,6 +178,36 @@ async function buildPages(supabase: Client): Promise<string> {
     "/seller-guide",
     "/contact",
     "/pricing",
+    "/automation-studio",
+    "/automation-studio/3d",
+    "/directory",
+    "/auctions",
+    "/robot-talent",
+    "/robots/compare",
+    "/api-docs",
+    "/sitemap",
+    "/terms",
+    "/privacy",
+    "/cookies",
+    "/accessibility",
+  ];
+
+  // Live/upcoming auctions, open jobs and seller pages with >= 1 active robot.
+  const [{ data: auctions }, { data: jobs }] = await Promise.all([
+    supabase.from("auctions").select("id, seller_id, updated_at, created_at, status").in("status", ["live", "upcoming"]),
+    supabase.from("talent_jobs").select("id, employer_id, updated_at, created_at").eq("status", "open"),
+  ]);
+  const sup = new Set(supUsers);
+  const dynamicTags = [
+    ...((auctions ?? []) as any[])
+      .filter((a) => !sup.has(a.seller_id))
+      .map((a) => urlTag(`/auctions/${a.id}`, isoDay(a.updated_at ?? a.created_at))),
+    ...((jobs ?? []) as any[])
+      .filter((j) => !sup.has(j.employer_id))
+      .map((j) => urlTag(`/robot-talent/jobs/${j.id}`, isoDay(j.updated_at ?? j.created_at))),
+    ...Array.from(new Set(robots.map((r: any) => r.seller_id).filter(Boolean))).map((id) =>
+      urlTag(`/seller/${id}/robots`, STATIC_LASTMOD)
+    ),
   ];
 
   // Only emit a landing page when it has at least one real active listing.
@@ -213,6 +243,7 @@ async function buildPages(supabase: Client): Promise<string> {
   return urlset([
     ...staticPaths.map((p) => urlTag(p, STATIC_LASTMOD)),
     ...landing.map((p) => urlTag(p, STATIC_LASTMOD)),
+    ...dynamicTags,
   ]);
 }
 
@@ -364,7 +395,7 @@ ${body}
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const supabase = createClient(
+  const supabase: Client = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );

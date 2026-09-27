@@ -73,6 +73,14 @@ const ENTITY_KINDS = new Set([
   "service-city",
   "blog",
   "robobook-post",
+  "auction",
+  "auction-detail",
+  "robot-talent",
+  "job",
+  "compare",
+  "spares",
+  "seller-robots",
+  "robot-application",
 ]);
 
 type Desired = Parameters<typeof apply>[0];
@@ -90,7 +98,7 @@ export function useCanonicalHead() {
     desired.current = {
       title: base.title,
       description: base.description,
-      canonical: canonicalFor(path),
+      canonical: canonicalFor(match.path),
       robots:
         match.kind === "private" || match.kind === "unknown" || match.kind === "gone"
           ? NOINDEX_ROBOTS
@@ -103,7 +111,7 @@ export function useCanonicalHead() {
     const enforce = () => {
       if (!cancelled && desired.current) apply(desired.current);
     };
-    const timers = [200, 900, 2500].map((ms) => window.setTimeout(enforce, ms));
+    const timers = [200, 900, 2500, 5000, 9000].map((ms) => window.setTimeout(enforce, ms));
 
     if (ENTITY_KINDS.has(match.kind)) {
       // The function is a public GET endpoint; fetch it directly with the path.
