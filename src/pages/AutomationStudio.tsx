@@ -311,6 +311,9 @@ export default function AutomationStudio() {
           <p className="mt-2 text-sm text-muted-foreground">
             Upload your factory process. See the automation before you build it.
           </p>
+          <Button asChild variant="outline" className="mt-4 whitespace-normal min-w-fit w-auto">
+            <Link to="/automation-studio/3d">Open 3D simulation</Link>
+          </Button>
         </div>
 
         <div className="mb-10">
