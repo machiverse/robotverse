@@ -30,6 +30,9 @@ import {
   robotTitle,
   staticMeta,
   titleCaseSlug,
+  robotFaq,
+  brandFaq,
+  type FaqItem,
   type RouteKind,
 } from "../_shared/seoText.ts";
 
@@ -154,6 +157,25 @@ const itemListNode = (items: Array<{ name: string; url: string }>) => ({
     url: `${SITE_URL}${it.url}`,
   })),
 });
+
+const faqNode = (faq: FaqItem[]) =>
+  faq.length
+    ? {
+        "@type": "FAQPage",
+        mainEntity: faq.map((q) => ({
+          "@type": "Question",
+          name: q.question,
+          acceptedAnswer: { "@type": "Answer", text: q.answer },
+        })),
+      }
+    : null;
+
+const faqHtml = (faq: FaqItem[]) =>
+  faq.length
+    ? `<section><h2>Frequently asked questions</h2>` +
+      faq.map((q) => `<h3>${esc(q.question)}</h3><p>${esc(q.answer)}</p>`).join("") +
+      `</section>`
+    : "";
 
 const conditionUrl = (condition?: string | null) => {
   const c = String(condition ?? "").toLowerCase();
@@ -295,6 +317,7 @@ async function buildRobotDetail(supabase: Client, id: string, path: string): Pro
   const description = robotDescription(robot);
   const images = (Array.isArray(robot.images) ? robot.images : []).map((i: string) => abs(i)).filter(Boolean) as string[];
   const priceText = inr(robot.price) ?? "Price on request";
+  const faq = robotFaq(robot);
 
   const trail = [
     { name: "Home", path: "/" },
@@ -323,6 +346,7 @@ async function buildRobotDetail(supabase: Client, id: string, path: string): Pro
         ["Availability", robot.availability],
         ["Price", priceText],
       ]) +
+      faqHtml(faq) +
       linkList(
         [
           ...(robot.brand
@@ -358,6 +382,7 @@ async function buildRobotDetail(supabase: Client, id: string, path: string): Pro
         url: path,
       }),
       breadcrumbNode(trail),
+      faqNode(faq),
     ]),
     bodyHtml,
   };
@@ -521,12 +546,14 @@ async function buildCollection(
   const description = collectionDescription(kind, label, count);
   const items = rows.slice(0, 50).map((r) => ({ name: itemName(r), url: itemPath(r) }));
   const trail = [{ name: "Home", path: "/" }, crumbRoot, { name: label, path }];
+  const faq = kind === "robot-brand" ? brandFaq(String(rows[0]?.brand || label), rows) : [];
 
   const bodyHtml = page(
     crumbHtml(trail) +
       `<h1>${esc(clampWordsSafe(title))}</h1>` +
       `<p>${esc(description)}</p>` +
-      linkList(items, `${count} listing${count === 1 ? "" : "s"}`)
+      linkList(items, `${count} listing${count === 1 ? "" : "s"}`) +
+      faqHtml(faq)
   );
 
   return {
@@ -546,6 +573,7 @@ async function buildCollection(
       },
       itemListNode(items),
       breadcrumbNode(trail),
+      faqNode(faq),
     ]),
     bodyHtml,
   };
@@ -833,22 +861,71 @@ async function buildStaticIndex(supabase: Client, kind: RouteKind, path: string)
   };
 }
 
-function buildInfoPage(kind: RouteKind, path: string): Snapshot {
+const DEFAULT_LINKS = [
+  { url: "/robots", label: "Industrial robots for sale" },
+  { url: "/parts", label: "Robot spare parts" },
+  { url: "/services", label: "Robot service providers" },
+  { url: "/contact", label: "Contact RobotVerse" },
+];
+
+const PAGE_LINKS: Partial<Record<RouteKind, Array<{ url: string; label: string }>>> = {
+  "automation-studio": [
+    { url: "/automation-studio/3d", label: "Open the 3D robot cell simulation" },
+    { url: "/robots", label: "Industrial robots for sale" },
+    { url: "/directory", label: "Robotics directory" },
+    { url: "/services", label: "Robot integrators and service providers" },
+  ],
+  "automation-studio-3d": [
+    { url: "/automation-studio", label: "Automation Studio process planner" },
+    { url: "/robots", label: "Industrial robots for sale" },
+    { url: "/robots/compare", label: "Compare robots" },
+    { url: "/services", label: "Robot integrators and service providers" },
+  ],
+  directory: [
+    { url: "/directory?tab=robots", label: "Industrial robot models" },
+    { url: "/directory?tab=tools", label: "End-of-arm tools" },
+    { url: "/directory?tab=axes", label: "External axes" },
+    { url: "/directory?tab=training", label: "Training and workshops" },
+    { url: "/robots", label: "Industrial robots for sale" },
+  ],
+  "robot-compare": [
+    { url: "/robots", label: "Industrial robots for sale" },
+    { url: "/robots/brand/fanuc", label: "FANUC robots" },
+    { url: "/robots/brand/abb", label: "ABB robots" },
+    { url: "/robots/brand/kuka", label: "KUKA robots" },
+  ],
+  pricing: [
+    { url: "/seller-guide", label: "Seller guide" },
+    { url: "/robots", label: "Industrial robots for sale" },
+    { url: "/contact", label: "Contact RobotVerse" },
+  ],
+  "api-docs": [
+    { url: "/robots", label: "Robot catalogue" },
+    { url: "/parts", label: "Spare parts catalogue" },
+    { url: "/contact", label: "Request partner access" },
+  ],
+  "sitemap-page": [
+    { url: "/robots", label: "Industrial robots" },
+    { url: "/parts", label: "Spare parts" },
+    { url: "/services", label: "Services" },
+    { url: "/auctions", label: "Auctions" },
+    { url: "/robobook", label: "RoboBook" },
+    { url: "/directory", label: "Robotics directory" },
+    { url: "/automation-studio/3d", label: "Automation Studio 3D" },
+    { url: "/robot-talent", label: "Robot talent" },
+    { url: "/buyer-guide", label: "Buyer guide" },
+    { url: "/seller-guide", label: "Seller guide" },
+  ],
+};
+
+function buildInfoPage(kind: RouteKind, path: string, extraNode?: Record<string, unknown>): Snapshot {
   const meta = staticMeta(kind);
   const trail = [{ name: "Home", path: "/" }, { name: clampWordsSafe(meta.title), path }];
   const bodyHtml = page(
     crumbHtml(trail) +
       `<h1>${esc(clampWordsSafe(meta.title))}</h1>` +
       `<p>${esc(meta.description)}</p>` +
-      linkList(
-        [
-          { url: "/robots", label: "Industrial robots for sale" },
-          { url: "/parts", label: "Robot spare parts" },
-          { url: "/services", label: "Robot service providers" },
-          { url: "/contact", label: "Contact RobotVerse" },
-        ],
-        "Useful pages"
-      )
+      linkList(PAGE_LINKS[kind] ?? DEFAULT_LINKS, "Related pages")
   );
   return {
     status: 200,
@@ -859,11 +936,331 @@ function buildInfoPage(kind: RouteKind, path: string): Snapshot {
     ogType: "website",
     robots: INDEXABLE_ROBOTS,
     jsonld: graph([
-      { "@type": "WebPage", name: meta.title, description: meta.description, url: canonicalFor(path) },
+      extraNode
+        ? { name: meta.title, description: meta.description, url: canonicalFor(path), ...extraNode }
+        : { "@type": "WebPage", name: meta.title, description: meta.description, url: canonicalFor(path) },
       breadcrumbNode(trail),
     ]),
     bodyHtml,
   };
+}
+
+
+/* ----------------------------------------------------- additional routes */
+
+const webAppNode = {
+  "@type": "WebApplication",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web browser",
+  offers: { "@type": "Offer", price: 0, priceCurrency: "INR" },
+  publisher: sellerNode,
+};
+
+const simplePage = (opts: {
+  path: string;
+  title: string;
+  description: string;
+  h1: string;
+  trail: Array<{ name: string; path: string }>;
+  nodes: unknown[];
+  sections: string;
+  robots?: string;
+  image?: string | null;
+  ogType?: string;
+}): Snapshot => ({
+  status: 200,
+  title: opts.title,
+  description: opts.description,
+  canonical: canonicalFor(opts.path),
+  image: opts.image ?? DEFAULT_OG,
+  ogType: opts.ogType ?? "website",
+  robots: opts.robots ?? INDEXABLE_ROBOTS,
+  jsonld: graph([...opts.nodes, breadcrumbNode(opts.trail)]),
+  bodyHtml: page(crumbHtml(opts.trail) + `<h1>${esc(opts.h1)}</h1>` + `<p>${esc(opts.description)}</p>` + opts.sections),
+});
+
+async function buildAuctions(supabase: Client, path: string): Promise<Snapshot> {
+  const sup = await suppressedUsers(supabase);
+  const meta = staticMeta("auction");
+  const { data } = await supabase
+    .from("auctions")
+    .select("id, auction_title, status")
+    .in("status", ["live", "upcoming"])
+    .not("seller_id", "in", notIn(sup))
+    .order("end_time", { ascending: true })
+    .limit(50);
+  const items = (data ?? []).map((a: any) => ({ name: a.auction_title || "Robot auction", url: `/auctions/${a.id}` }));
+  const trail = [{ name: "Home", path: "/" }, { name: "Auctions", path }];
+  return simplePage({
+    path, title: meta.title, description: meta.description, h1: "Industrial Robot Auctions", trail,
+    nodes: [
+      { "@type": "CollectionPage", name: meta.title, description: meta.description, url: canonicalFor(path) },
+      items.length ? itemListNode(items) : null,
+    ],
+    sections: linkList(items, "Live and upcoming auctions") +
+      linkList([{ url: "/robots", label: "Industrial robots for sale" }, { url: "/buyer-guide", label: "Buyer guide" }], "Related pages"),
+  });
+}
+
+async function buildAuctionDetail(supabase: Client, id: string, path: string): Promise<Snapshot> {
+  const sup = await suppressedUsers(supabase);
+  const { data } = await supabase
+    .from("auctions")
+    .select("*")
+    .eq("id", id)
+    .not("seller_id", "in", notIn(sup))
+    .maybeSingle();
+  const a: any = data;
+  if (!a || a.status === "cancelled") return notFound(path);
+  const name = String(a.auction_title || "Industrial robot auction");
+  const ended = !["live", "upcoming"].includes(String(a.status));
+  const price = a.current_highest_bid ?? a.starting_price;
+  const images = (Array.isArray(a.images) ? a.images : []).map((i: string) => abs(i)).filter(Boolean) as string[];
+  const title = clampTitle(`${name} Auction | RobotVerse`).includes("RobotVerse")
+    ? clampTitle(`${name} Auction | RobotVerse`)
+    : clampTitle(`${name} Auction`);
+  const description = clampDescription(
+    `${name}${a.item_location ? ` in ${a.item_location}` : ""}. ${String(a.status).replace(/^\w/, (c: string) => c.toUpperCase())} auction, ${a.current_highest_bid ? "current bid" : "starting price"} ${inr(price) ?? "on request"}. ${stripTags(a.description)}`
+  );
+  const trail = [{ name: "Home", path: "/" }, { name: "Auctions", path: "/auctions" }, { name, path }];
+  const offer: Record<string, unknown> = {
+    "@type": "Offer",
+    url: canonicalFor(path),
+    availability: ended ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+    seller: sellerNode,
+    validFrom: a.start_time,
+    priceValidUntil: String(a.end_time ?? "").slice(0, 10) || undefined,
+  };
+  if (price != null) { offer.price = Number(price); offer.priceCurrency = a.currency || "INR"; }
+  return simplePage({
+    path, title, description, h1: name, trail, image: images[0] ?? DEFAULT_OG, ogType: "product",
+    robots: ended ? NOINDEX_ROBOTS : INDEXABLE_ROBOTS,
+    nodes: [{ "@type": "Product", name, description, ...(images.length ? { image: images } : {}), offers: offer }],
+    sections:
+      specTable([
+        ["Status", a.status],
+        ["Auction type", a.auction_type],
+        ["Starting price", inr(a.starting_price)],
+        ["Current highest bid", inr(a.current_highest_bid)],
+        ["Starts", String(a.start_time ?? "").slice(0, 16).replace("T", " ")],
+        ["Ends", String(a.end_time ?? "").slice(0, 16).replace("T", " ")],
+        ["Location", a.item_location],
+        ["Total bids", a.total_bids],
+        ["Warranty", a.warranty_period],
+      ]) +
+      (a.description ? `<p>${esc(stripTags(a.description).slice(0, 1500))}</p>` : "") +
+      linkList([{ url: "/auctions", label: "All robot auctions" }, { url: "/robots", label: "Industrial robots for sale" }], "Related pages"),
+  });
+}
+
+async function buildTalent(supabase: Client, path: string): Promise<Snapshot> {
+  const meta = staticMeta("robot-talent");
+  const { data } = await supabase
+    .from("talent_jobs")
+    .select("id, title, city")
+    .eq("status", "open")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  const items = (data ?? []).map((j: any) => ({ name: `${j.title}${j.city ? ` — ${j.city}` : ""}`, url: `/robot-talent/jobs/${j.id}` }));
+  const trail = [{ name: "Home", path: "/" }, { name: "Robot Talent", path }];
+  return simplePage({
+    path, title: meta.title, description: meta.description, h1: "Robotics Jobs and Training in India", trail,
+    nodes: [
+      { "@type": "CollectionPage", name: meta.title, description: meta.description, url: canonicalFor(path) },
+      items.length ? itemListNode(items) : null,
+    ],
+    sections: linkList(items, "Open robotics jobs") +
+      linkList([{ url: "/services", label: "Robot service providers" }, { url: "/directory?tab=training", label: "Robotics training directory" }], "Related pages"),
+  });
+}
+
+const EMPLOYMENT: Record<string, string> = {
+  "full-time": "FULL_TIME", full_time: "FULL_TIME", fulltime: "FULL_TIME",
+  "part-time": "PART_TIME", part_time: "PART_TIME",
+  contract: "CONTRACTOR", contractor: "CONTRACTOR", freelance: "CONTRACTOR",
+  internship: "INTERN", intern: "INTERN", temporary: "TEMPORARY",
+};
+
+async function buildJob(supabase: Client, id: string, path: string): Promise<Snapshot> {
+  const sup = await suppressedUsers(supabase);
+  const { data } = await supabase.from("talent_jobs").select("*").eq("id", id).maybeSingle();
+  const j: any = data;
+  if (!j || j.status !== "open" || sup.includes(j.employer_id)) return notFound(path);
+  let company: string | null = null;
+  try {
+    const { data: prof } = await supabase.from("profiles").select("company_name").eq("user_id", j.employer_id).maybeSingle();
+    company = (prof as any)?.company_name || null;
+  } catch { /* optional */ }
+  const city = j.city || String(j.location ?? "").split(",")[0].trim() || null;
+  const title = clampTitle(`${j.title}${city ? ` Job in ${city}` : " Job"} | RobotVerse`);
+  const description = clampDescription(
+    `${j.title}${company ? ` at ${company}` : ""}${city ? ` in ${city}` : ""}. ${j.experience_min != null ? `${j.experience_min}${j.experience_max != null ? `–${j.experience_max}` : "+"} years experience. ` : ""}${stripTags(j.description)}`
+  );
+  const node: Record<string, unknown> = {
+    "@type": "JobPosting",
+    title: j.title,
+    description: stripTags(j.description) || j.title,
+    datePosted: String(j.created_at).slice(0, 10),
+    hiringOrganization: { "@type": "Organization", name: company || "RobotVerse employer" },
+    jobLocation: {
+      "@type": "Place",
+      address: { "@type": "PostalAddress", ...(city ? { addressLocality: city } : {}), addressCountry: "IN" },
+    },
+    directApply: false,
+  };
+  const et = EMPLOYMENT[String(j.job_type ?? "").toLowerCase()];
+  if (et) node.employmentType = et;
+  if (Array.isArray(j.skills_required) && j.skills_required.length) node.skills = j.skills_required.join(", ");
+  if (j.salary_min != null || j.salary_max != null) {
+    node.baseSalary = {
+      "@type": "MonetaryAmount",
+      currency: "INR",
+      value: {
+        "@type": "QuantitativeValue",
+        ...(j.salary_min != null ? { minValue: Number(j.salary_min) } : {}),
+        ...(j.salary_max != null ? { maxValue: Number(j.salary_max) } : {}),
+        unitText: "YEAR",
+      },
+    };
+  }
+  const trail = [{ name: "Home", path: "/" }, { name: "Robot Talent", path: "/robot-talent" }, { name: j.title, path }];
+  return simplePage({
+    path, title, description, h1: j.title, trail, nodes: [node],
+    sections:
+      specTable([
+        ["Company", company],
+        ["Location", j.location || city],
+        ["Job type", j.job_type],
+        ["Category", j.category],
+        ["Robot brand", j.robot_brand],
+        ["Experience", j.experience_min != null ? `${j.experience_min}${j.experience_max != null ? `–${j.experience_max}` : "+"} years` : null],
+        ["Skills", Array.isArray(j.skills_required) ? j.skills_required.join(", ") : null],
+      ]) +
+      (j.description ? `<p>${esc(stripTags(j.description).slice(0, 2000))}</p>` : "") +
+      linkList([{ url: "/robot-talent", label: "All robotics jobs" }], "Related pages"),
+  });
+}
+
+async function buildCompare(key: string, path: string): Promise<Snapshot> {
+  const sides = key.toLowerCase().split("-vs-").map((s) => s.trim()).filter(Boolean);
+  if (sides.length !== 2) return notFound(path);
+  const [a, b] = sides.map(titleCaseSlug);
+  const title = clampTitle(`${a} vs ${b} Industrial Robots Compared | RobotVerse`);
+  const description = clampDescription(
+    `${a} vs ${b}: compare payload, reach, controllers, service support and used prices of ${a} and ${b} industrial robots listed in India.`
+  );
+  const trail = [{ name: "Home", path: "/" }, { name: "Compare", path: "/robots/compare" }, { name: `${a} vs ${b}`, path }];
+  return simplePage({
+    path, title, description, h1: `${a} vs ${b} Industrial Robots`, trail,
+    nodes: [{ "@type": "WebPage", name: title, description, url: canonicalFor(path) }],
+    sections: linkList(
+      [
+        { url: `/robots/brand/${sides[0]}`, label: `${a} robots for sale` },
+        { url: `/robots/brand/${sides[1]}`, label: `${b} robots for sale` },
+        { url: "/robots/compare", label: "Compare specific robots side by side" },
+      ],
+      "Related pages"
+    ),
+  });
+}
+
+async function buildSpares(supabase: Client, key: string, path: string): Promise<Snapshot> {
+  const segs = key.split("/").map(titleCaseSlug);
+  const label = segs[segs.length - 1];
+  const sup = await suppressedUsers(supabase);
+  const { data } = await supabase
+    .from("spare_parts")
+    .select("id, name, brand, part_number, category, main_category, subcategory, component_type")
+    .not("seller_id", "in", notIn(sup))
+    .limit(1000);
+  const wanted = key.split("/").map((s) => slug(s));
+  const rows = (data ?? []).filter((r: any) => {
+    const vals = [r.main_category, r.category, r.subcategory, r.component_type].map((v) => slug(v));
+    return wanted.every((w) => vals.includes(w));
+  });
+  const count = rows.length;
+  const title = clampTitle(`${segs.join(" ")} Robot Spare Parts${count ? ` (${count} listings)` : ""} | RobotVerse`);
+  const description = clampDescription(
+    `Buy ${label.toLowerCase()} robot spare parts in India${count ? ` — ${count} listing${count === 1 ? "" : "s"}` : ""} from verified sellers, with compatibility, condition and pricing details.`
+  );
+  const items = rows.slice(0, 50).map((r: any) => ({
+    name: [r.brand, r.name || r.part_number].filter(Boolean).join(" ") || "Spare part",
+    url: `/parts/${r.id}`,
+  }));
+  const trail = [
+    { name: "Home", path: "/" },
+    { name: "Spare Parts", path: "/parts" },
+    ...segs.map((s, i) => ({ name: s, path: `/spares/${key.split("/").slice(0, i + 1).join("/")}` })),
+  ];
+  return simplePage({
+    path, title, description, h1: `${label} Robot Spare Parts`, trail,
+    robots: count ? INDEXABLE_ROBOTS : "noindex,follow",
+    nodes: [
+      { "@type": "CollectionPage", name: title, description, url: canonicalFor(path) },
+      items.length ? itemListNode(items) : null,
+    ],
+    sections: linkList(items, `${count} listing${count === 1 ? "" : "s"}`) +
+      linkList([{ url: "/parts", label: "All spare parts" }, { url: "/robots", label: "Industrial robots for sale" }], "Related pages"),
+  });
+}
+
+async function buildSellerRobots(supabase: Client, sellerId: string, path: string): Promise<Snapshot> {
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("company_name, full_name, account_status")
+    .eq("user_id", sellerId)
+    .maybeSingle();
+  if (!prof || (prof as any).account_status !== "active") return notFound(path);
+  const { data } = await supabase
+    .from("robots")
+    .select("id, name, brand, model")
+    .eq("seller_id", sellerId)
+    .eq("availability", "available")
+    .order("updated_at", { ascending: false })
+    .limit(200);
+  const rows = data ?? [];
+  const seller = (prof as any).company_name || "RobotVerse Seller";
+  const count = rows.length;
+  const title = clampTitle(`${seller} Industrial Robots for Sale (${count} listings) | RobotVerse`);
+  const description = clampDescription(
+    `Browse ${count} industrial robot${count === 1 ? "" : "s"} listed by ${seller} on RobotVerse, with specifications, condition and price details.`
+  );
+  const items = rows.slice(0, 50).map((r: any) => ({
+    name: [r.brand, r.model || r.name].filter(Boolean).join(" ") || "Industrial robot",
+    url: `/robots/${r.id}`,
+  }));
+  const trail = [{ name: "Home", path: "/" }, { name: "Industrial Robots", path: "/robots" }, { name: seller, path }];
+  return simplePage({
+    path, title, description, h1: `Industrial Robots from ${seller}`, trail,
+    robots: count > 0 ? INDEXABLE_ROBOTS : NOINDEX_ROBOTS,
+    nodes: [
+      { "@type": "CollectionPage", name: title, description, url: canonicalFor(path) },
+      items.length ? itemListNode(items) : null,
+    ],
+    sections: linkList(items, `${count} listing${count === 1 ? "" : "s"}`) +
+      linkList([{ url: "/robots", label: "All industrial robots" }], "Related pages"),
+  });
+}
+
+async function buildApplication(key: string, path: string): Promise<Snapshot> {
+  const label = titleCaseSlug(key);
+  const title = clampTitle(`${label} Robots for Sale in India | RobotVerse`);
+  const description = clampDescription(
+    `Used and refurbished industrial robots for ${label.toLowerCase()} in India. Compare payload, reach, brand and price, and request quotes from verified sellers.`
+  );
+  const trail = [{ name: "Home", path: "/" }, { name: "Industrial Robots", path: "/robots" }, { name: `${label} robots`, path }];
+  return simplePage({
+    path, title, description, h1: `${label} Robots`, trail,
+    nodes: [{ "@type": "CollectionPage", name: title, description, url: canonicalFor(path) }],
+    sections: linkList(
+      [
+        { url: "/robots", label: "All industrial robots" },
+        { url: "/automation-studio/3d", label: `Simulate a ${label.toLowerCase()} cell in 3D` },
+        { url: "/services", label: "Robot integrators" },
+      ],
+      "Related pages"
+    ),
+  });
 }
 
 /* ----------------------------------------------------------------- handler */
@@ -890,8 +1287,39 @@ async function render(supabase: Client, rawPath: string): Promise<Snapshot> {
     case "seller-guide":
     case "contact":
     case "about":
-    case "auction":
+    case "robot-compare":
+    case "pricing":
+    case "api-docs":
+    case "sitemap-page":
+    case "terms":
+    case "privacy":
+    case "cookies":
+    case "accessibility":
       return buildInfoPage(match.kind, path);
+    case "automation-studio":
+    case "automation-studio-3d":
+      return buildInfoPage(match.kind, path, {
+        ...webAppNode,
+        ...(match.kind === "automation-studio-3d" ? { name: "Automation Studio 3D" } : { name: "Automation Studio" }),
+      });
+    case "directory":
+      return buildInfoPage(match.kind, path, { "@type": "CollectionPage" });
+    case "auction":
+      return await buildAuctions(supabase, path);
+    case "auction-detail":
+      return await buildAuctionDetail(supabase, match.key!, path);
+    case "robot-talent":
+      return await buildTalent(supabase, path);
+    case "job":
+      return await buildJob(supabase, match.key!, path);
+    case "compare":
+      return await buildCompare(match.key!, path);
+    case "spares":
+      return await buildSpares(supabase, match.key!, path);
+    case "seller-robots":
+      return await buildSellerRobots(supabase, match.key!, path);
+    case "robot-application":
+      return await buildApplication(match.key!, path);
     case "robot":
       return await buildRobotDetail(supabase, match.key!, path);
     case "part":
