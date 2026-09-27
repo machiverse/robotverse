@@ -1,15 +1,9 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, ImageIcon, Mail } from "lucide-react";
+import { ImageIcon, Mail } from "lucide-react";
 import ItemImage from "./ItemImage";
-import {
-  enquiryMailto,
-  oemPhotoSearchUrl,
-  robodkPageUrl,
-  type CatalogItem,
-  type CatalogKind,
-} from "./directoryTypes";
+import { enquiryMailto, oemPhotoSearchUrl, type CatalogItem, type CatalogKind } from "./directoryTypes";
 
 interface Props {
   kind: CatalogKind;
@@ -30,7 +24,6 @@ const row = (label: string, value: string | number | undefined, unit = "") =>
 
 const DirectoryItemDialog = ({ kind, item, onOpenChange }: Props) => {
   if (!item) return <Dialog open={false} onOpenChange={onOpenChange} />;
-  const page = robodkPageUrl(item);
 
   return (
     <Dialog open={!!item} onOpenChange={onOpenChange}>
@@ -49,10 +42,9 @@ const DirectoryItemDialog = ({ kind, item, onOpenChange }: Props) => {
 
         <div className="grid gap-6 md:grid-cols-2">
           <figure>
-            <div className="h-64 rounded-lg border border-border bg-white p-4">
+            <div className="h-64 overflow-hidden rounded-lg border border-border">
               <ItemImage key={item.id} kind={kind} item={item} large />
             </div>
-            <figcaption className="mt-1 text-[11px] text-muted-foreground">Image: RoboDK 3D model render</figcaption>
           </figure>
 
           <dl>
@@ -94,18 +86,10 @@ const DirectoryItemDialog = ({ kind, item, onOpenChange }: Props) => {
               Find OEM photos
             </a>
           </Button>
-          {page && (
-            <Button variant="outline" asChild>
-              <a href={page} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View on RoboDK
-              </a>
-            </Button>
-          )}
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Specifications are indicative, from the RoboDK robot library. Please confirm with the manufacturer before purchase.
+          Specifications are indicative. Please confirm with the manufacturer before purchase.
         </p>
       </DialogContent>
     </Dialog>

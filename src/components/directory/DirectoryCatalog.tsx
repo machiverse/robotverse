@@ -212,7 +212,7 @@ const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
                 onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSelected(item)}
                 className="group cursor-pointer overflow-hidden transition-all hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <div className="relative h-40 bg-white p-3">
+                <div className="relative h-40 overflow-hidden">
                   <ItemImage kind={kind} item={item} />
                   <Badge variant="secondary" className="absolute left-2 top-2 font-mono text-[10px]">
                     {item.id}

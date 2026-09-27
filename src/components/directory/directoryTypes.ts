@@ -16,19 +16,9 @@ export interface CatalogItem {
   e?: number; // repeatability (mm)
   w?: number; // weight (kg)
   ap?: string[]; // applications
-  img: string; // main image file name
-  th?: string; // thumbnail file name
-  u?: string; // RoboDK page slug (brand/model)
 }
 
 export const SUPPORT_EMAIL = "support@robotverse.in";
-
-const ROBODK_CDN = "https://cdn.robodk.com";
-
-export const imageUrl = (kind: CatalogKind, file: string) =>
-  kind === "tools" ? `${ROBODK_CDN}/robotlib/tools/${file}` : `${ROBODK_CDN}/robot/img/${file}`;
-
-export const robodkPageUrl = (item: CatalogItem) => (item.u ? `https://robodk.com/robot/${item.u}` : undefined);
 
 export const oemPhotoSearchUrl = (item: CatalogItem) =>
   `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${item.n} official product photo`)}`;

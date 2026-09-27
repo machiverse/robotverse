@@ -12,7 +12,7 @@ import { listTrainingMailto, mailto } from "@/components/directory/directoryType
 import { TRAINING_LISTINGS } from "@/data/directoryTraining";
 
 const TABS = [
-  { id: "robots", label: "Industrial Robots", short: "Robots", icon: Bot, count: "1,513" },
+  { id: "robots", label: "Industrial Robots", short: "Robots", icon: Bot, count: "1,507" },
   { id: "tools", label: "End-of-Arm Tools", short: "Tools", icon: Wrench, count: "171" },
   { id: "axes", label: "External Axes", short: "Axes", icon: MoveHorizontal, count: "101" },
   { id: "training", label: "Training & Workshops", short: "Training", icon: GraduationCap, count: String(TRAINING_LISTINGS.length) },
@@ -35,7 +35,7 @@ const Directory = () => {
     <div className="min-h-screen bg-background">
       <UniversalSEOHead
         title="Robotics Directory | Industrial Robots, End-of-Arm Tools & Training | RobotVerse"
-        description="Browse 1,500+ industrial robots from 99 brands, end-of-arm tools, linear tracks and positioners, plus robotics training courses and workshops. Compare payload, reach and axes, and enquire with RobotVerse."
+        description="Browse 1,500+ industrial robots from 98 brands, end-of-arm tools, linear tracks and positioners, plus robotics training courses and workshops. Compare payload, reach and axes, and enquire with RobotVerse."
         keywords={[
           "industrial robot directory",
           "robot specifications payload reach",
@@ -101,8 +101,8 @@ const Directory = () => {
         </Tabs>
 
         <p className="mt-10 text-center text-xs text-muted-foreground">
-          Robot, tool and axis data and images: RoboDK robot library. Specifications are indicative; confirm with the
-          manufacturer before purchase. All enquiries go to support@robotverse.in.
+          Specifications are indicative; confirm with the manufacturer before purchase. All enquiries go to
+          support@robotverse.in.
         </p>
       </main>
 

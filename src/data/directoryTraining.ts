@@ -69,17 +69,6 @@ export const TRAINING_LISTINGS: TrainingListing[] = [
   },
   {
     id: "RVTrain0006",
-    title: "RoboDK Academy",
-    provider: "RoboDK",
-    kind: "Online Course",
-    mode: "Online",
-    location: "Online",
-    topics: ["Robot simulation", "Offline programming", "Post processors"],
-    description: "Courses on simulating robot cells and generating robot programs offline for many robot brands.",
-    link: "https://robodk.com/academy",
-  },
-  {
-    id: "RVTrain0007",
     title: "Robotic Welding Program",
     provider: "Application training",
     kind: "Program",
@@ -89,7 +78,7 @@ export const TRAINING_LISTINGS: TrainingListing[] = [
     description: "Hands-on programming of arc and spot welding robots, torch and wire setup, and weld quality checks.",
   },
   {
-    id: "RVTrain0008",
+    id: "RVTrain0007",
     title: "PLC + Robot Integration Workshop",
     provider: "Integrator training",
     kind: "Workshop",
@@ -99,7 +88,7 @@ export const TRAINING_LISTINGS: TrainingListing[] = [
     description: "Connecting robots to PLCs, I/O and fieldbus communication, and safety for robot cells.",
   },
   {
-    id: "RVTrain0009",
+    id: "RVTrain0008",
     title: "Used Robot Maintenance & Troubleshooting",
     provider: "Service training",
     kind: "Workshop",
