@@ -800,6 +800,7 @@ export default function AutomationStudio() {
                                 variant="embedded"
                                 showEditor={false}
                                 processes={processes}
+                                description={description.trim() || undefined}
                                 title="Your automated line"
                                 subtitle={`${processes.length} tasks from your description · robots, tools and multitasking planned from the robot skills knowledge base`}
                               />

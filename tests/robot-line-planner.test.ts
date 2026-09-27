@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { INDUSTRY_BLUEPRINTS } from "../src/data/automationStudioIndustries";
-import { analyzeDescription } from "../src/utils/processAnalyzer";
+import { analyzeDescription, matchTemplateIds, SKILL_LIBRARY } from "../src/utils/processAnalyzer";
+import { buildBom } from "../src/features/automation3d/solutionCost";
 import { planLine, recommendRobots, isProseDescription, type DirectoryRobot } from "../src/features/automation3d/robotKnowledge";
 import { TOOL_ACTIONS } from "../src/features/automation3d/robotSim.js";
 import type { SimStep } from "../src/features/automation3d/robotSim";
@@ -76,4 +77,33 @@ for (const industry of INDUSTRY_BLUEPRINTS) {
   p.robots.forEach((r, i) => assertFlows(r.steps, `${industry.key} ${r.title}`, i === 0, i === p.robots.length - 1));
   lines++;
 }
-console.log(`robot line planner: ok (${lines} industry lines)`);
+// Every skill in the library is understood from a plain sentence and simulates cleanly.
+for (const { id, template } of SKILL_LIBRARY) {
+  const sentence = `We need robots for ${template.name.toLowerCase()}.`;
+  assert.ok(matchTemplateIds(sentence).includes(id), `skill "${template.name}" not recognised from its own name`);
+  const p = planLine(analyzeDescription(sentence, null));
+  p.robots.forEach((r, i) => assertFlows(r.steps, `${template.name} ${r.title}`, i === 0, i === p.robots.length - 1));
+}
+
+// Any kind of automation request gets a plan and a budget.
+const REQUESTS = [
+  "Our plastics plant runs injection moulding machines. Operators remove the parts, cut the sprue, laser mark a serial number, check the dimensions and pack them into boxes.",
+  "We make car door panels. Blanks are loaded into the stamping press, then the panels are hemmed, adhesive is applied, spot welded, and the panels are stacked in racks.",
+  "Aluminium die casting: workers extract castings from the die casting machine, trim the flash, wash the parts and put them on pallets.",
+  "Warehouse: we unload pallets of cartons, sort the parcels by destination, scan barcodes, and load them into shipping boxes.",
+  "Cement plant: 50 kg bags come off the filler and workers stack the bags on pallets.",
+  "We assemble electronic boards: insert components, solder the pins, screw the housing, run a function test and label each unit.",
+  "Forging shop: hot billets from the furnace are placed in the forging press, then trimmed and cooled.",
+];
+for (const q of REQUESTS) {
+  const p = planLine(analyzeDescription(q, null));
+  assert.ok(p.robots.length > 0, q);
+  p.robots.forEach((r, i) => assertFlows(r.steps, `${q.slice(0, 30)} ${r.title}`, i === 0, i === p.robots.length - 1));
+  const bom = buildBom(p, catalog);
+  assert.ok(bom.total[0] > 0 && bom.total[1] >= bom.total[0] && bom.total[0] > bom.hardware[0], `${q}: budget`);
+  assert.equal(bom.robots.length, p.robots.length);
+}
+// Words inside other words do not trigger skills ("capacity", "image", "latest").
+assert.deepEqual(matchTemplateIds("our capacity is the latest image of the whole team"), []);
+
+console.log(`robot line planner: ok (${SKILL_LIBRARY.length} skills, ${lines} industry lines)`);

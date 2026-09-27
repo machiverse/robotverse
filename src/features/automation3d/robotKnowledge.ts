@@ -55,7 +55,18 @@ export interface PlannedTask {
   name: string;
   kind: ProcessKind;
   skill: RobotSkill;
+  /** End-of-arm tooling named for this task by the analysis, if any. */
+  eoat?: string[];
+  /** Payload this task needs, in kg. */
+  payload: number;
 }
+
+/** Tasks whose parts are heavy: size the robot from the analysed template, not the skill minimum. */
+const HEAVY = /forg|bag|sack|depallet|press|stamp|die cast|heavy|lift|spot weld|bend/i;
+const kg = (v?: string) => {
+  const n = parseFloat(String(v || "").replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+};
 
 export interface PlannedRobot {
   title: string;
@@ -129,13 +140,17 @@ function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean): SimSte
  * on a tool changer. Handling, inspection and palletizing join the robot
  * that already holds the part.
  */
-export function planLine(processes: Pick<ProcessCard, "name">[]): LinePlan {
+type TaskInput = Pick<ProcessCard, "name"> & Partial<Pick<ProcessCard, "eoat" | "robot">>;
+
+export function planLine(processes: TaskInput[]): LinePlan {
   const groups: PlannedTask[][] = [];
   let cur: PlannedTask[] | null = null;
 
   for (const p of processes) {
     const kind = processKind(p);
-    const task: PlannedTask = { name: p.name, kind, skill: SKILLS[kind] };
+    const skill = SKILLS[kind];
+    const payload = HEAVY.test(p.name) ? Math.max(skill.minPayload, kg(p.robot?.payload)) : skill.minPayload;
+    const task: PlannedTask = { name: p.name, kind, skill, eoat: p.eoat, payload };
     if (!cur) {
       cur = [task];
       groups.push(cur);
@@ -169,16 +184,20 @@ export function planLine(processes: Pick<ProcessCard, "name">[]): LinePlan {
   }
 
   const robots: PlannedRobot[] = groups.map((tasks, i) => {
-    const tools = [...new Set(tasks.filter((t) => t.skill.tool).map((t) => t.skill.toolName))];
+    // One end-of-arm tool per family; handling-type tasks share the gripper.
+    const byFamily = new Map<string, string>();
+    for (const t of tasks) if (!byFamily.has(t.skill.tool ?? "gripper")) byFamily.set(t.skill.tool ?? "gripper", t.skill.toolName);
+    const tools = [...byFamily.values()];
     const apps = [...new Set(tasks.flatMap((t) => t.skill.apps))];
     return {
       title: `Robot ${i + 1}`,
       tasks,
       tools,
+      // Swapping between a gripper and a process tool (or two process tools) needs a tool changer.
       toolChanger: tools.length > 1,
       multitask: tasks.length > 1,
       apps,
-      minPayload: Math.max(...tasks.map((t) => t.skill.minPayload)),
+      minPayload: Math.max(...tasks.map((t) => t.payload)),
       steps: buildSteps(tasks, i === 0, i === groups.length - 1),
     };
   });

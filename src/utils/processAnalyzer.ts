@@ -246,6 +246,91 @@ const TEMPLATES: Record<string, Template> = {
     ["Robot stacking to a programmed pattern", "Alignment held through the stack", "Separators placed automatically"],
     "KUKA KR 180 PA", "180 kg", "3200 mm", "KR C5", ["Clamp + Vacuum Combi Tool", "Separator Feeder", "Stack Height Sensor"],
     { stock: "4-6 Weeks", risk: "High" }),
+  binpick: t("Bin Picking", "Bin", "full",
+    ["Parts sorted out of mixed bins by hand", "Reaching into deep bins all shift", "Feed rate depends on the operator"],
+    ["3D vision guides the robot to each part", "Bins emptied without manual reach-in", "Steady feed to the next station"],
+    "FANUC M-20iD/25", "25 kg", "1831 mm", "R-30iB Plus", ["3D Vision Sensor", "Magnetic / Vacuum Gripper", "Collision Guard"],
+    { quick: true }),
+  depal: t("Depalletizing", "Depal", "full",
+    ["Cases lifted off inbound pallets by hand", "Heavy lifts at floor and head height", "Slip sheets removed manually"],
+    ["Robot unloads layer by layer with 3D vision", "No manual lifting at the infeed", "Slip sheets removed automatically"],
+    "ABB IRB 460", "110 kg", "2400 mm", "OmniCore", ["Layer Vacuum Gripper", "3D Layer Camera", "Slip-Sheet Remover"],
+    { quick: true, risk: "High" }),
+  kit: t("Kitting & Sequencing", "Kit", "semi",
+    ["Kits built by hand from part racks", "Missing or wrong parts reach the line", "Kits prepared a shift in advance"],
+    ["Robot builds each kit to the order", "Every part verified before release", "Kits sequenced just in time"],
+    "Universal Robots UR10e", "12.5 kg", "1300 mm", "PolyScope 5", ["Multi-Part Gripper", "Kit Tray Locator", "Pick-to-Light Interface"],
+    { quick: true }),
+  food: t("Food Handling & Tray Loading", "Food", "full",
+    ["Products placed into trays by hand", "Hygiene risk from manual contact", "Speed limited by line staff"],
+    ["Delta robot picks with vision tracking", "Hygienic, washdown-rated handling", "High-speed tray loading"],
+    "ABB IRB 360 FlexPicker", "8 kg", "1600 mm", "OmniCore", ["Hygienic Vacuum Gripper", "Conveyor Tracking Camera", "Washdown Covers"],
+    { quick: true }),
+  press: t("Press Tending & Stamping", "Press", "full",
+    ["Blanks fed into the press by hand", "Hands near the die every stroke", "Stroke rate limited by the operator"],
+    ["Robot loads and unloads the press", "No hands in the die area", "Press runs at its rated stroke rate"],
+    "ABB IRB 6700-150/3.20", "150 kg", "3200 mm", "OmniCore", ["Tooling Boom Vacuum Gripper", "Double-Blank Sensor", "Part Presence Sensor"],
+    { risk: "High" }),
+  bend: t("Press Brake Bending", "Bend", "full",
+    ["Sheets held and followed by hand at the brake", "Heavy sheets lifted every bend", "Angle varies with operator support"],
+    ["Robot feeds, follows and regrips each bend", "Repeatable bend sequence per program", "Operator only changes tooling"],
+    "Yaskawa GP50", "50 kg", "2061 mm", "YRC1000", ["Vacuum Sheet Gripper", "Regrip Station", "Bend Follow Sensor"],
+    { risk: "High" }),
+  mould: t("Injection Moulding Tending", "Mould", "full",
+    ["Operator removes parts at every cycle", "Moulding machine waits for the operator", "Sprues cut off by hand"],
+    ["Robot extracts, degates and places each part", "Machine runs at its own cycle", "Sprues separated automatically"],
+    "Yaskawa GP25", "25 kg", "1730 mm", "YRC1000", ["Sprue Picker Gripper", "Vacuum Part Gripper", "Degating Station"],
+    { quick: true }),
+  cast: t("Die Casting Extraction", "Cast", "full",
+    ["Hot castings pulled out with tongs", "Heat and splash exposure at the machine", "Quench timing varies"],
+    ["Foundry-rated robot extracts and quenches", "No operator at the hot zone", "Consistent quench and trim timing"],
+    "KUKA KR 120 R2700-2 F", "120 kg", "2700 mm", "KR C5", ["Heat-Resistant Gripper", "Release Agent Spray Tool", "Quench Tank Interface"],
+    { risk: "High" }),
+  forge: t("Forging Handling", "Forge", "full",
+    ["Hot billets handled with tongs", "Heavy, hot and repetitive work", "Transfer time cools the part"],
+    ["Robot transfers billets furnace to press", "No manual hot handling", "Short, repeatable transfer time"],
+    "FANUC M-900iB/280", "280 kg", "2655 mm", "R-30iB Plus", ["Forging Tong Gripper", "Heat Shield", "Billet Temperature Sensor"],
+    { stock: "4-6 Weeks", risk: "High" }),
+  mark: t("Laser Marking & Coding", "Mark", "full",
+    ["Parts marked with stamps or stickers", "Codes smudged or unreadable", "Traceability kept on paper"],
+    ["Robot presents parts to a fibre laser", "Every code verified after marking", "Full part traceability"],
+    "Epson VT6L", "6 kg", "900 mm", "Built-in", ["Fibre Laser Marking Head", "Fume Extraction", "Code Verification Reader"],
+    { quick: true }),
+  dispense: t("Adhesive & Sealant Dispensing", "Glue", "full",
+    ["Beads applied by hand with a cartridge gun", "Bead width varies and misses occur", "Excess material cleaned off by hand"],
+    ["Robot applies a constant bead on the path", "Bead checked by an inline sensor", "Material use cut by metered dosing"],
+    "FANUC LR Mate 200iD/7L", "7 kg", "911 mm", "R-30iB Mini Plus", ["Dispensing Valve & Nozzle", "Bead Inspection Sensor", "Metering Pump Unit"],
+    { quick: true }),
+  rivet: t("Riveting Assembly", "Rivet", "full",
+    ["Rivets set by hand with a pneumatic tool", "Missed or crooked rivets", "Vibration exposure for operators"],
+    ["Robot sets each rivet with force monitoring", "Every joint logged", "No hand-arm vibration"],
+    "KUKA KR 60-3", "60 kg", "2033 mm", "KR C5", ["Self-Pierce Riveting Gun", "Rivet Feeder", "Force/Stroke Monitor"],
+    { risk: "Medium" }),
+  deflash: t("Deflashing & Surface Finishing", "Deflash", "full",
+    ["Flash trimmed off with hand tools", "Cuts and repetitive strain", "Edge quality varies"],
+    ["Compliant spindle follows every edge", "Consistent edge quality", "No hand trimming"],
+    "Staubli TX2-90", "12 kg", "1000 mm", "CS9", ["Compliant Deflashing Spindle", "Force Sensor", "Chip Extraction Nozzle"],
+    { risk: "Medium" }),
+  clean: t("Part Cleaning & Surface Prep", "Clean", "full",
+    ["Parts washed and blown off by hand", "Splash and chemical exposure", "Residue left on hidden areas"],
+    ["Robot washes and blows off to a program", "Every surface reached the same way", "Operator away from the wash zone"],
+    "FANUC M-10iD/12", "12 kg", "1441 mm", "R-30iB Plus", ["High-Pressure Wash Nozzle", "Air Blow-Off Nozzle", "Splash Guard"],
+    { quick: true }),
+  measure: t("Dimensional Measurement & Gauging", "Gauge", "full",
+    ["Parts measured with hand gauges", "Sampling only, not every part", "Results written on paper"],
+    ["Robot presents each part to a 3D scanner", "Every part measured and logged", "Out-of-tolerance parts sorted out"],
+    "FANUC CRX-10iA", "10 kg", "1249 mm", "R-30iB Mini Plus", ["3D Laser Scanner", "Probe Gauge Head", "Reference Fixture"],
+    { quick: true }),
+  bag: t("Bag & Sack Palletizing", "Bag", "full",
+    ["Heavy sacks lifted by hand", "Back strain on every bag", "Stack pattern varies"],
+    ["Robot handles every bag with a fork gripper", "No manual sack lifting", "Uniform, stable stacks"],
+    "FANUC M-410iC/185", "185 kg", "3143 mm", "R-30iB Plus", ["Bag Fork Gripper", "Bag Flattener", "Check Weigher Interface"],
+    { quick: true, risk: "High" }),
+  pipette: t("Lab Sample Pipetting & Dosing", "Lab", "full",
+    ["Samples pipetted by hand", "Repetitive strain and pipetting errors", "Throughput limited by staff"],
+    ["Robot handles tubes and doses to protocol", "Every sample barcode-tracked", "Runs overnight unattended"],
+    "Staubli TX2-40", "2.3 kg", "515 mm", "CS9", ["Pipetting Head", "Tube Gripper", "Barcode Reader"],
+    { quick: true }),
 };
 
 /* ------------------------------- keywords ------------------------------- */
@@ -256,10 +341,10 @@ const PROCESS_KEYWORDS: Record<string, keyof typeof TEMPLATES> = {
   pick: "pick", picking: "pick", picker: "pick", "order pick": "pick",
   scan: "scan", scanning: "scan", scanner: "scan", barcode: "scan", "bar code": "scan", rfid: "scan",
   pack: "pack", packing: "pack", packaging: "pack", packer: "pack",
-  box: "box", carton: "box", "box forming": "box",
+  box: "pack", carton: "pack", "box forming": "box", "carton erect": "box", "erect": "box", "box erect": "box",
   label: "label", labeling: "label", labelling: "label", weighing: "label", checkweigh: "label",
   shipping: "ship", dispatch: "ship", despatch: "ship", outbound: "ship",
-  palletiz: "palletize", palletis: "palletize", pallet: "palletize", depalletiz: "palletize",
+  palletiz: "palletize", palletis: "palletize", pallet: "palletize",
   sort: "sort", sorting: "sort", sortation: "sort", classif: "sort",
   "convey to": "transport", "conveyed to": "transport", forklift: "transport", "pallet truck": "transport", agv: "transport", amr: "transport", transport: "transport",
 
@@ -303,9 +388,39 @@ const PROCESS_KEYWORDS: Record<string, keyof typeof TEMPLATES> = {
   load: "load", loading: "load", unload: "load", unloading: "load", "machine load": "load",
   lift: "lift", lifting: "lift", hoist: "lift", crane: "lift",
   stack: "stack", stacking: "stack", stacked: "stack", rack: "stack",
+  "heat treat": "load", furnace: "load", oven: "load", autoclave: "load", feed: "load", feeding: "load",
+  "bin pick": "binpick", "bin picking": "binpick", "random pick": "binpick",
+  depalletiz: "depal", depalletis: "depal", "unload pallet": "depal",
+  kitting: "kit", kit: "kit", sequencing: "kit",
+  tray: "food", "pick and place": "food", "pick & place": "food", delta: "food",
+
+  // Forming, moulding and foundry
+  "press machine": "press", "power press": "press", "press tend": "press", "the press": "press", stamping: "press", stamp: "press", punching: "press",
+  bend: "bend", bending: "bend", "press brake": "bend", folding: "bend",
+  "injection mo": "mould", moulding: "mould", molding: "mould", mould: "mould", mold: "mould", "plastic part": "mould",
+  "die cast": "cast", casting: "cast", foundry: "cast",
+  forging: "forge", forge: "forge", billet: "forge",
+
+  // Marking, joining and finishing
+  "laser mark": "mark", marking: "mark", engrav: "mark", etch: "mark", inkjet: "mark", "date cod": "mark", serial: "mark",
+  "laser weld": "weld", "laser welding": "weld", brazing: "weld",
+  glue: "dispense", gluing: "dispense", adhesive: "dispense", sealant: "dispense", dispens: "dispense", caulk: "dispense",
+  rivet: "rivet", riveting: "rivet", clinch: "rivet", hemming: "rivet", hemmed: "rivet",
+  deflash: "deflash", flash: "deflash", trimming: "deflash", deburring: "grind", sanding: "polish", sand: "polish", finishing: "polish",
+  clean: "clean", cleaning: "clean", wash: "clean", washing: "clean", "blow off": "clean",
+  tapping: "drill", threading: "drill", routing: "cut", waterjet: "cut", trim: "cut",
+  insert: "assembly", inserting: "assembly", "press fit": "assembly", mounting: "assembly", install: "assembly",
+  nutrunn: "screw", tighten: "screw",
+  glaz: "paint", enamel: "paint", varnish: "paint", lacquer: "paint", primer: "paint",
+
+  // Measurement and lab
+  measur: "measure", gaug: "measure", dimension: "measure", cmm: "measure", "3d scan": "measure",
+  weigh: "label", "leak test": "test", "function test": "test", grading: "sort", grade: "sort", reject: "sort",
+  bag: "bag", bagging: "bag", sack: "bag", wrapping: "pack", wrap: "pack", "case pack": "pack",
+  pipett: "pipette", "lab sample": "pipette", "test tube": "pipette", vial: "fill",
 };
 
-const MAX_STATIONS = 8;
+const MAX_STATIONS = 10;
 
 /** Matches keywords in the description and returns unique template ids in order of appearance. */
 export const matchTemplateIds = (description: string): string[] => {
@@ -324,7 +439,12 @@ export const matchTemplateIds = (description: string): string[] => {
   const keywords = Object.keys(PROCESS_KEYWORDS).sort((a, b) => b.length - a.length);
 
   for (const keyword of keywords) {
-    const at = text.indexOf(keyword);
+    // Keywords match at the start of a word; short ones ("cap", "cut", "mig")
+    // must be the whole word so "capacity" or "image" do not count.
+    const at =
+      keyword.length <= 4
+        ? text.search(new RegExp(` ${keyword}(s|es|ed|ped|ting|ing)? `))
+        : text.indexOf(` ${keyword}`);
     if (at === -1) continue;
     const id = PROCESS_KEYWORDS[keyword];
     if (seen.has(id)) continue;
@@ -336,14 +456,23 @@ export const matchTemplateIds = (description: string): string[] => {
   // A specific process replaces its generic parent, and stacking onto pallets is palletizing.
   const SUPERSEDED: Record<string, string[]> = {
     weld: ["mig", "tig", "spotweld"],
-    paint: ["powdercoat"],
-    stack: ["palletize"],
+    paint: ["powdercoat", "dispense", "spray"],
+    stack: ["palletize", "depal", "bag"],
     cnc: ["mill", "turn"],
-    inspect: ["vision"],
-    assembly: ["screw"],
+    inspect: ["vision", "measure"],
+    assembly: ["screw", "rivet"],
+    polish: ["deflash"],
+    grind: ["deflash"],
+    pick: ["binpick", "kit", "food"],
+    palletize: ["depal", "bag"],
+    load: ["press", "mould", "cast", "forge", "bend", "depal"],
+    cut: ["mark", "deflash"],
+    test: ["pipette"],
+    spray: ["dispense"],
+    seal: ["dispense", "cap"],
+    label: ["mark"],
+    fill: ["pipette"],
   };
-  // "Pack into cartons" is packing; box forming only when it is asked for.
-  if (!/\b(form|erect|fold)\w*/.test(text)) SUPERSEDED.box = ["pack"];
   const keep = hits.filter((h) => !(SUPERSEDED[h.id] || []).some((specific) => ids.has(specific)));
   return keep.sort((a, b) => a.at - b.at).map((h) => h.id).slice(0, MAX_STATIONS);
 };
@@ -361,5 +490,17 @@ export const analyzeDescription = (description: string, industry: string | null)
     index: String(i + 1).padStart(2, "0"),
   }));
 };
+
+/**
+ * Every industrial robot skill the studio knows, with the words that trigger
+ * it in a description. Shown as the Skills library in the 3D simulator.
+ */
+export const SKILL_LIBRARY = Object.entries(TEMPLATES).map(([id, template]) => ({
+  id,
+  template,
+  keywords: Object.entries(PROCESS_KEYWORDS)
+    .filter(([, v]) => v === id)
+    .map(([k]) => k),
+}));
 
 export type { Template as ProcessTemplate };

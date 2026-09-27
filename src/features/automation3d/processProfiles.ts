@@ -20,16 +20,17 @@ export const PROCESS_PROFILES: Record<ProcessKind, { label: string; color: strin
 // Classify the process itself, not incidental mentions in tooling or robot names.
 export function processKind(process: Pick<ProcessCard, "name">): ProcessKind {
   const name = process.name.toLowerCase();
+  if (/depallet/.test(name)) return "handling";
   if (/transport|material supply/.test(name)) return "transport";
   if (/weld|solder/.test(name)) return "welding";
   if (/polish|grind|finish|surface prep/.test(name)) return "finishing";
   if (/sealant|adhesive|paint|coat|spray|dispens/.test(name)) return "coating";
-  if (/inspect|test|scan|verification/.test(name)) return "inspection";
+  if (/inspect|test|scan|verification|measur|gaug/.test(name)) return "inspection";
   if (/pallet|stack/.test(name)) return "palletizing";
   if (/label|coding|serialisation/.test(name)) return "labeling";
   if (/fill|dos/.test(name)) return "filling";
   if (/cap|seal|stopper/.test(name)) return "sealing";
-  if (/cnc|mill|turning|drill|cut|bend|profil|chamfer/.test(name)) return "machining";
+  if (/cnc|mill|turning|drill|cut|bend|profil|chamfer|press|stamp|mould|mold|cast|forg/.test(name)) return "machining";
   if (/assembly|screw/.test(name)) return "assembly";
   if (/pack|box|carton/.test(name)) return "packing";
   return "handling";

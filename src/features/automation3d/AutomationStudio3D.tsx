@@ -5,12 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Bot, CheckCircle2, Info, Pause, Play, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
+import { AlertTriangle, BookOpen, Bot, CheckCircle2, FileText, Info, Pause, Play, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds } from "@/utils/processAnalyzer";
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation } from "./robotSim.js";
-import { PROCESS_PROFILES } from "./processProfiles";
-import { isProseDescription, planLine, recommendRobots, type DirectoryRobot, type LinePlan } from "./robotKnowledge";
+import { PROCESS_PROFILES, type ProcessKind } from "./processProfiles";
+import { planLine, recommendRobots, type DirectoryRobot, type LinePlan } from "./robotKnowledge";
+import { buildBom, inrRange } from "./solutionCost";
+import SolutionReport from "./SolutionReport";
+import SkillsLibrary from "./SkillsLibrary";
 
 type Step = { action: string; station: string; label: string; auto?: boolean };
 type SimState = {
@@ -36,6 +39,21 @@ const LINE_EXAMPLES: Record<string, string> = {
     "We machine aluminium housings. Operators load raw blanks from the conveyor into the CNC machine, deburr and polish the edges, assemble the cover with screws, check the dimensions and stack the housings on pallets.",
 };
 
+/** Process families each built-in template shows, so only related templates are offered. */
+const PRESET_KINDS: Record<string, ProcessKind[]> = {
+  "Machine tending": ["machining", "handling", "inspection"],
+  Palletizing: ["palletizing", "transport"],
+  "Pick and place": ["handling", "transport"],
+  Welding: ["welding"],
+  Painting: ["coating"],
+  Dispensing: ["coating"],
+  Polishing: ["finishing"],
+  Assembly: ["assembly"],
+  "Filling & capping": ["filling", "sealing"],
+  Labeling: ["labeling"],
+  Packing: ["packing"],
+};
+
 let catalogPromise: Promise<DirectoryRobot[]> | null = null;
 const loadCatalog = () =>
   (catalogPromise ??= fetch("/directory/robots.json")
@@ -59,7 +77,9 @@ interface Props {
   /** Hide the process editor (used when the steps come from an analysis) */
   showEditor?: boolean;
   /** Analysed process line: simulated as a multi-robot line instead of one cell */
-  processes?: Pick<ProcessCard, "name">[];
+  processes?: Pick<ProcessCard, "name" | "eoat" | "robot">[] | Pick<ProcessCard, "name">[];
+  /** The user's own words, quoted in the solution report */
+  description?: string;
 }
 
 const Panel = ({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) => (
@@ -76,6 +96,7 @@ export default function AutomationStudio3D({
   variant = "page",
   showEditor = true,
   processes,
+  description: initialDescription,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const simRef = useRef<Simulation | null>(null);
@@ -90,6 +111,10 @@ export default function AutomationStudio3D({
   const [plan, setPlan] = useState<LinePlan | null>(null);
   const [focus, setFocus] = useState(0);
   const [catalog, setCatalog] = useState<DirectoryRobot[]>([]);
+  const [description, setDescription] = useState<string | undefined>(initialDescription);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
+  const [allTemplates, setAllTemplates] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -114,11 +139,12 @@ export default function AutomationStudio3D({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function runPlan(p: LinePlan) {
+  function runPlan(p: LinePlan, planNotes: string[] = []) {
     setPlan(p);
     setFocus(0);
+    setAllTemplates(false);
     setSteps(p.robots[0]?.steps || []);
-    setNotes([]);
+    setNotes(planNotes);
     simRef.current?.setPlan(p.sim);
     simRef.current?.setFocus(0);
     simRef.current?.play();
@@ -141,12 +167,20 @@ export default function AutomationStudio3D({
   }
 
   function build(src: string) {
-    // A paragraph about the whole factory: extract only the tasks it names and
-    // plan a robot line for them. Otherwise it is a list of robot steps.
-    if (isProseDescription(src) && matchTemplateIds(src).length > 0) {
-      runPlan(planLine(analyzeDescription(src, null)));
+    // Any request written as sentences (not one step per line) is analysed:
+    // only the tasks it names are extracted and a robot line is planned for them.
+    const isStepList = /\n|->|→/.test(src.trim());
+    if (!isStepList && src.trim()) {
+      setDescription(src.trim());
+      if (matchTemplateIds(src).length > 0) runPlan(planLine(analyzeDescription(src, null)));
+      else
+        // Every request still gets a solution: a general pick-and-place cell.
+        runPlan(planLine([{ name: "Pick & Place Handling" }]), [
+          "No specific process was recognised, so this is a general pick-and-place robot cell. Name the tasks (weld, grind, paint, glue, assemble, screw, machine tending, press, moulding, inspect, measure, label, pack, palletize…) or open the Skills library for a detailed plan.",
+        ]);
       return;
     }
+    setDescription(undefined);
     setPlan(null);
     setFocus(0);
     const { steps: parsed, notes: n } = parseProcess(src);
@@ -173,6 +207,14 @@ export default function AutomationStudio3D({
   const autoAdded = steps.filter((s) => s.auto).length;
 
   const embedded = variant === "embedded";
+
+  // With a plan, offer only the templates for the process families it uses.
+  const taskCount = plan?.robots.reduce((n, r) => n + r.tasks.length, 0) ?? 0;
+  const planKinds = new Set(plan?.robots.flatMap((r) => r.tasks.map((t) => t.kind)) || []);
+  const relatedPresets = Object.entries(PRESETS).filter(([name]) => (PRESET_KINDS[name] || []).some((k) => planKinds.has(k)));
+  const related = !!plan && relatedPresets.length > 0;
+  const presets = related && !allTemplates ? relatedPresets : Object.entries(PRESETS);
+  const budget = useMemo(() => (plan ? buildBom(plan, catalog).total : null), [plan, catalog]);
 
   return (
     <div
@@ -215,6 +257,16 @@ export default function AutomationStudio3D({
         </div>
 
         <div className="flex items-center gap-1.5">
+          {plan && (
+            <Button size="sm" onClick={() => setReportOpen(true)} className="bg-amber-500 text-black hover:bg-amber-400">
+              <FileText className="h-4 w-4" />
+              <span className="ml-1.5">Solution report</span>
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => setSkillsOpen(true)} aria-label="Skills library">
+            <BookOpen className="h-4 w-4" />
+            <span className="ml-1.5 hidden xl:inline">Skills library</span>
+          </Button>
           <Button
             size="sm"
             variant={playing ? "outline" : "default"}
@@ -278,9 +330,16 @@ export default function AutomationStudio3D({
               <Button className="mt-2 w-full" onClick={() => build(text)}>
                 <Play className="mr-2 h-4 w-4" /> Build simulation
               </Button>
-              <p className="mb-1.5 mt-3 text-[11px] font-semibold text-muted-foreground">Templates</p>
+              <p className="mb-1.5 mt-3 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                {related ? "Templates related to your process" : "Templates"}
+                {related && (
+                  <button className="font-normal text-primary hover:underline" onClick={() => setAllTemplates((v) => !v)}>
+                    {allTemplates ? "Show related" : `Show all (${Object.keys(PRESETS).length})`}
+                  </button>
+                )}
+              </p>
               <div className="flex flex-wrap gap-1.5">
-                {Object.entries(PRESETS).map(([name, t]) => (
+                {presets.map(([name, t]) => (
                   <button
                     key={name}
                     className={cn(
@@ -336,11 +395,25 @@ export default function AutomationStudio3D({
           )}
 
           {plan && (
-            <Panel title={`Robot plan: ${plan.robots.length} robot${plan.robots.length > 1 ? "s" : ""}, ${plan.robots.reduce((n, r) => n + r.tasks.length, 0)} tasks`}>
+            <Panel title={`Robot plan: ${plan.robots.length} robot${plan.robots.length > 1 ? "s" : ""}, ${taskCount} task${taskCount === 1 ? "" : "s"}`}>
               <p className="mb-2 text-[11px] text-muted-foreground">
                 Only the tasks in your description are simulated. A robot takes on several tasks when its tools allow;
                 parts move between robots on transfer conveyors. Select a robot to follow it.
               </p>
+              {budget && (
+                <button
+                  onClick={() => setReportOpen(true)}
+                  className="mb-2 flex w-full items-center justify-between gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-2 text-left text-xs"
+                >
+                  <span>
+                    <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">Indicative budget</span>
+                    <b className="tabular-nums">{inrRange(budget)}</b>
+                  </span>
+                  <span className="flex items-center gap-1 font-semibold text-amber-600">
+                    <FileText className="h-3.5 w-3.5" /> Full report
+                  </span>
+                </button>
+              )}
               <div className="space-y-2">
                 {plan.robots.map((r, i) => {
                   const recs = recommendRobots(r, catalog);
@@ -558,6 +631,25 @@ export default function AutomationStudio3D({
           </Panel>
         </aside>
       </div>
+      {plan && (
+        <SolutionReport
+          open={reportOpen}
+          onOpenChange={setReportOpen}
+          plan={plan}
+          catalog={catalog}
+          description={description}
+          lastCycle={state?.lastCycle}
+          unreachable={unreachable.map((u) => STATION_NAMES[u] || u)}
+        />
+      )}
+      <SkillsLibrary
+        open={skillsOpen}
+        onOpenChange={setSkillsOpen}
+        onTry={(t) => {
+          setText(t);
+          build(t);
+        }}
+      />
     </div>
   );
 }
