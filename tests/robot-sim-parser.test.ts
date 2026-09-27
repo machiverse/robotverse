@@ -54,6 +54,9 @@ assert.deepEqual(kinds("Fill bottle\nCap bottle\nLabel bottle\nPack into carton"
 assert.deepEqual(kinds("Heat treatment of gears"), ["operate"]);
 assert.deepEqual(kinds("Pick box from conveyor\nStack on pallet"), ["pick", "place"]);
 assert.equal(parseProcess("Pick box from conveyor").steps[0].station, "conveyor");
+// "weld" as the object of an inspection is an inspection, not another weld.
+assert.deepEqual(kinds("Pick part from conveyor\nInspect weld with camera\nStack on pallet"), ["pick", "inspect", "place"]);
+assert.deepEqual(kinds("Check weld quality"), ["inspect", "place"].slice(0, 1));
 for (const t of ["grind the weld, then paint it blue, check quality, box it", "Heat treatment of gears", "Screw the lid"]) {
   assertFlows(parseProcess(t).steps, t);
 }

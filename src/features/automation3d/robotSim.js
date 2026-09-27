@@ -130,7 +130,12 @@ export function parseProcess(text) {
     let action = null;
     if (/\bunload/.test(c)) action = "pick";
     else if (/\bload\b|\binsert\b(?! component)/.test(c) && !/\b(pick|take|grab|collect)\b/.test(c)) action = "place";
-    else if (/\b(weld|solder)/.test(c) && !/(on|onto|to|from) (the )?(weld|solder)/.test(c)) action = "weld";
+    else if (
+      /\b(weld|solder)/.test(c) &&
+      !/(on|onto|to|from) (the )?(weld|solder)/.test(c) &&
+      !/\b(inspect|check|scan|measure|camera|vision|quality|test|verif\w*)\b/.test(c)
+    )
+      action = "weld";
     else if (/\b(pick|take|grab|lift|collect|get|receive)\b/.test(c)) action = "pick";
     else if (/\b(pack|box|carton|bag)\w*\b/.test(c) && !/pallet/.test(c) && !/\b(form|erect|fold)\w*/.test(c)) action = "place";
     else if (/\b(place|put|drop|stack|palleti[sz]e|deliver|transfer|set down|move|carry|transport|sort|store)\b/.test(c)) action = "place";
