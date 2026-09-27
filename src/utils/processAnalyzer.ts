@@ -503,4 +503,18 @@ export const SKILL_LIBRARY = Object.entries(TEMPLATES).map(([id, template]) => (
     .map(([k]) => k),
 }));
 
+/**
+ * Process cards for a list of skill names (as returned by the photo / video
+ * analysis). Unknown names fall back to keyword matching; duplicates are dropped.
+ */
+export const processesFromSkills = (names: string[]): ProcessCard[] => {
+  const byName = new Map(Object.entries(TEMPLATES).map(([id, t]) => [t.name.toLowerCase(), id]));
+  const ids: string[] = [];
+  for (const n of names) {
+    const id = byName.get(String(n).toLowerCase().trim()) ?? matchTemplateIds(String(n))[0];
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids.slice(0, MAX_STATIONS).map((id, i) => ({ ...TEMPLATES[id], index: String(i + 1).padStart(2, "0") }));
+};
+
 export type { Template as ProcessTemplate };

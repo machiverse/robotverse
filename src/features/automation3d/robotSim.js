@@ -369,6 +369,56 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     return s;
   }
 
+  /* Reference photo of the user's manual process, on a board behind the robots */
+  let refUrl = null;
+  let refLabel = "Your reference: manual process";
+  let refGroup = null;
+  let refToken = 0;
+  function clearReference() {
+    if (!refGroup) return;
+    scene.remove(refGroup);
+    refGroup.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material && o.material !== M.dark && o.material !== M.frame) {
+        if (o.material.map) o.material.map.dispose();
+        o.material.dispose();
+      }
+    });
+    refGroup = null;
+  }
+  function placeReference() {
+    clearReference();
+    const token = ++refToken;
+    if (!refUrl) return;
+    new THREE.TextureLoader().load(refUrl, (tex) => {
+      if (token !== refToken) return tex.dispose();
+      if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+      const img = tex.image;
+      const aspect = img && img.width ? img.width / img.height : 4 / 3;
+      const h = 1.25;
+      const w = Math.min(h * aspect, 3.2);
+      const g = new THREE.Group();
+      const bottom = 0.85;
+      const board = box(w + 0.1, h + 0.1, 0.05, M.dark);
+      board.position.set(0, bottom + h / 2, -0.03);
+      const pic = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+      pic.position.set(0, bottom + h / 2, 0.001);
+      g.add(board, pic);
+      for (const sx of [-1, 1]) {
+        const leg = box(0.05, bottom + 0.05, 0.05, M.frame);
+        leg.position.set(sx * (w / 2 - 0.1), (bottom + 0.05) / 2, -0.06);
+        g.add(leg);
+      }
+      const lbl = makeLabel(refLabel, "#fbbf24");
+      lbl.position.set(0, bottom + h + 0.2, 0);
+      g.add(lbl);
+      const span = (cells.length - 1) * CELL_SPACING;
+      g.position.set(span / 2, 0, -2.75);
+      scene.add(g);
+      refGroup = g;
+    });
+  }
+
   /* Parts */
   const partGeo = new THREE.BoxGeometry(PART.w, PART.h, PART.d);
   const partMats = {
@@ -1570,6 +1620,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     const ext = 4 + span / 2;
     Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: 4, bottom: -4, near: 0.5, far: 30 + span });
     sun.shadow.camera.updateProjectionMatrix();
+    placeReference();
     // Push the fog back so a long line stays clear.
     scene.fog.near = 9 + span * 1.2;
     scene.fog.far = 30 + span * 2;
@@ -1722,6 +1773,12 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     },
     setRobotSize,
     setView,
+    /** Show a photo of the user's manual process behind the line (null hides it). */
+    setReference(url, label) {
+      refUrl = url || null;
+      if (label) refLabel = label;
+      placeReference();
+    },
     setFocus(i) {
       focus = clamp(Number(i) || 0, 0, cells.length - 1);
       emit(true);
@@ -1740,6 +1797,8 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     dispose() {
       cancelAnimationFrame(raf);
       ro ? ro.disconnect() : window.removeEventListener("resize", resize);
+      refToken++;
+      clearReference();
       disposeLine();
       controls.dispose();
       renderer.dispose();

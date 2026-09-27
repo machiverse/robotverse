@@ -7,13 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, BookOpen, Bot, CheckCircle2, FileText, Info, Pause, Play, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
-import { analyzeDescription, matchTemplateIds } from "@/utils/processAnalyzer";
+import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/utils/processAnalyzer";
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation } from "./robotSim.js";
 import { PROCESS_PROFILES, type ProcessKind } from "./processProfiles";
 import { planLine, recommendRobots, type DirectoryRobot, type LinePlan } from "./robotKnowledge";
 import { buildBom, inrRange } from "./solutionCost";
 import SolutionReport from "./SolutionReport";
 import SkillsLibrary from "./SkillsLibrary";
+import MediaAnalyzer from "./MediaAnalyzer";
+import type { MediaAnalysis } from "./mediaAnalysis";
 
 type Step = { action: string; station: string; label: string; auto?: boolean };
 type SimState = {
@@ -80,6 +82,10 @@ interface Props {
   processes?: Pick<ProcessCard, "name" | "eoat" | "robot">[] | Pick<ProcessCard, "name">[];
   /** The user's own words, quoted in the solution report */
   description?: string;
+  /** Photo (or video frame) of the manual work, shown in the 3D scene and the report */
+  referenceImage?: string;
+  /** AI reading of the user's photos / video */
+  mediaAnalysis?: MediaAnalysis | null;
 }
 
 const Panel = ({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) => (
@@ -97,6 +103,8 @@ export default function AutomationStudio3D({
   showEditor = true,
   processes,
   description: initialDescription,
+  referenceImage,
+  mediaAnalysis,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const simRef = useRef<Simulation | null>(null);
@@ -115,6 +123,12 @@ export default function AutomationStudio3D({
   const [reportOpen, setReportOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [allTemplates, setAllTemplates] = useState(false);
+  const [reference, setReference] = useState<string | undefined>(referenceImage);
+  const [media, setMedia] = useState<MediaAnalysis | null>(mediaAnalysis ?? null);
+
+  useEffect(() => {
+    simRef.current?.setReference(reference ?? null, "Your reference: manual process today");
+  }, [reference]);
 
   useEffect(() => {
     let live = true;
@@ -133,6 +147,7 @@ export default function AutomationStudio3D({
       onUpdate: (s: SimState) => setState(s),
     });
     simRef.current = sim;
+    if (reference) sim.setReference(reference, "Your reference: manual process today");
     if (processes?.length) runPlan(planLine(processes));
     else build(text);
     return () => sim.dispose();
@@ -189,6 +204,18 @@ export default function AutomationStudio3D({
     simRef.current?.setSteps(parsed);
     simRef.current?.play();
     setUnreachable(simRef.current?.checkReach(parsed) || []);
+  }
+
+  // Photos / video analysed by AI: plan exactly the tasks it found and show the photo in 3D.
+  function applyMedia(r: MediaAnalysis, frames: string[]) {
+    setMedia(r);
+    setReference(frames[0]);
+    const words = r.description || r.summary;
+    if (words) setText(words);
+    setDescription(words || undefined);
+    const procs = processesFromSkills(r.tasks);
+    if (procs.length) runPlan(planLine(procs));
+    else build(words || "pick and place");
   }
 
   function changeSize(key: string) {
@@ -330,6 +357,10 @@ export default function AutomationStudio3D({
               <Button className="mt-2 w-full" onClick={() => build(text)}>
                 <Play className="mr-2 h-4 w-4" /> Build simulation
               </Button>
+              <p className="mb-1.5 mt-3 text-[11px] font-semibold text-muted-foreground">
+                Or show us the manual work (AI photo / video analysis)
+              </p>
+              <MediaAnalyzer onResult={applyMedia} />
               <p className="mb-1.5 mt-3 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
                 {related ? "Templates related to your process" : "Templates"}
                 {related && (
@@ -549,6 +580,12 @@ export default function AutomationStudio3D({
               </button>
             ))}
           </div>
+          {reference && (
+            <figure className="absolute bottom-10 right-3 hidden w-36 overflow-hidden rounded-lg border border-amber-400/60 bg-[#0e1621]/85 sm:block">
+              <img src={reference} alt="Your manual process" className="h-20 w-full object-cover" />
+              <figcaption className="px-2 py-1 text-[10px] text-amber-300">Before: manual work · After: robots</figcaption>
+            </figure>
+          )}
           <span className="absolute bottom-3.5 right-3 hidden text-xs text-white/60 sm:inline">
             Drag to rotate · scroll to zoom
           </span>
@@ -640,6 +677,8 @@ export default function AutomationStudio3D({
           description={description}
           lastCycle={state?.lastCycle}
           unreachable={unreachable.map((u) => STATION_NAMES[u] || u)}
+          referenceImage={reference}
+          media={media}
         />
       )}
       <SkillsLibrary

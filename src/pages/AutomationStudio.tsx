@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
-import { analyzeDescription } from "@/utils/processAnalyzer";
+import { analyzeDescription, processesFromSkills } from "@/utils/processAnalyzer";
+import MediaAnalyzer from "@/features/automation3d/MediaAnalyzer";
+import type { MediaAnalysis } from "@/features/automation3d/mediaAnalysis";
 import { Link, useNavigate } from "react-router-dom";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
@@ -115,7 +117,7 @@ const fileIcon = (type: string) => {
   return FileIcon;
 };
 
-const ACCEPT = ".jpg,.jpeg,.png,.mp4,.pdf,.doc,.docx";
+const ACCEPT = ".jpg,.jpeg,.png,.webp,.mp4,.mov,.webm,.pdf,.doc,.docx";
 
 /* ------------------------------ step indicator ---------------------------- */
 
@@ -198,7 +200,15 @@ export default function AutomationStudio() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const blueprint = getBlueprint(industry);
-  const processes = useMemo(() => analyzeDescription(description, industry), [description, industry]);
+  // AI reading of uploaded photos / video: its tasks are used while the description it wrote is unchanged.
+  const [media, setMedia] = useState<{ result: MediaAnalysis; frame: string; text: string } | null>(null);
+  const processes = useMemo(() => {
+    if (media && description === media.text) {
+      const fromMedia = processesFromSkills(media.result.tasks);
+      if (fromMedia.length) return fromMedia;
+    }
+    return analyzeDescription(description, industry);
+  }, [description, industry, media]);
   const inventory = buildInventory({ ...blueprint, processes });
   const stats = buildStats({ ...blueprint, processes });
   const stations: VisualStation[] = processes.map((process, index) => ({
@@ -468,6 +478,23 @@ export default function AutomationStudio() {
                     </ul>
                   )}
 
+                  {files.some((f) => f.file.type.startsWith("image/") || f.file.type.startsWith("video/")) && (
+                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                      <p className="mb-2 text-sm font-medium">Let AI study your photos / video of the manual work</p>
+                      <MediaAnalyzer
+                        files={files.map((f) => f.file)}
+                        onResult={(result, frames) => {
+                          const text = result.description || result.summary;
+                          setDescription(text);
+                          setMedia({ result, frame: frames[0], text });
+                          toast({
+                            title: "Photo / video analysed",
+                            description: `${result.tasks.length} robot task${result.tasks.length === 1 ? "" : "s"} found. Click "Analyze My Process" to continue.`,
+                          });
+                        }}
+                      />
+                    </div>
+                  )}
                   <div>
                     <label htmlFor="as-description" className="mb-2 block text-sm font-medium">
                       Describe your process
@@ -801,6 +828,8 @@ export default function AutomationStudio() {
                                 showEditor={false}
                                 processes={processes}
                                 description={description.trim() || undefined}
+                                referenceImage={media?.frame}
+                                mediaAnalysis={media && description === media.text ? media.result : null}
                                 title="Your automated line"
                                 subtitle={`${processes.length} tasks from your description · robots, tools and multitasking planned from the robot skills knowledge base`}
                               />

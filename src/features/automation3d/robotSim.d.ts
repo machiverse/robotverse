@@ -27,6 +27,7 @@ export interface Simulation {
   setSteps(steps: SimStep[]): void;
   setPlan(plan: SimPlan): void;
   setFocus(i: number): void;
+  setReference(url: string | null, label?: string): void;
   play(): void;
   pause(): void;
   reset(): void;

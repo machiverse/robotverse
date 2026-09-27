@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, Download, FileSpreadsheet, Mail, Printer, Repeat, Wrench } from "lucide-react";
 import { PROCESS_PROFILES } from "./processProfiles";
 import type { DirectoryRobot, LinePlan } from "./robotKnowledge";
+import type { MediaAnalysis } from "./mediaAnalysis";
 import { buildBom, inr, inrRange, type BomLine } from "./solutionCost";
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
   /** From the running simulation */
   lastCycle?: number | null;
   unreachable?: string[];
+  referenceImage?: string;
+  media?: MediaAnalysis | null;
 }
 
 const PRINT_CSS = `
@@ -45,8 +48,21 @@ const Section = ({ n, title, children }: { n: number; title: string; children: R
   </section>
 );
 
-export default function SolutionReport({ open, onOpenChange, plan, catalog, description, lastCycle, unreachable = [] }: Props) {
+export default function SolutionReport({
+  open,
+  onOpenChange,
+  plan,
+  catalog,
+  description,
+  lastCycle,
+  unreachable = [],
+  referenceImage,
+  media,
+}: Props) {
   const bom = useMemo(() => buildBom(plan, catalog), [plan, catalog]);
+  // Section numbers follow whichever sections are shown.
+  let sectionNo = 0;
+  const next = () => ++sectionNo;
   const perHour = lastCycle ? Math.floor(3600 / lastCycle) : null;
   const taskCount = plan.robots.reduce((n, r) => n + r.tasks.length, 0);
   const date = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
@@ -159,12 +175,59 @@ export default function SolutionReport({ open, onOpenChange, plan, catalog, desc
           </div>
 
           {description && (
-            <Section n={1} title="Your requirement">
+            <Section n={next()} title="Your requirement">
               <p className="rounded-md border-l-4 border-primary bg-muted/30 p-3 text-sm italic">{description}</p>
             </Section>
           )}
 
-          <Section n={description ? 2 : 1} title="Tasks found and how a robot does them">
+          {(referenceImage || media) && (
+            <Section n={next()} title="Your photo / video: manual work today and the robot solution">
+              <div className="grid gap-4 md:grid-cols-[260px_1fr]">
+                {referenceImage && (
+                  <figure className="overflow-hidden rounded-lg border border-border">
+                    <img src={referenceImage} alt="Manual process uploaded by you" className="w-full object-cover" />
+                    <figcaption className="px-2 py-1 text-xs text-muted-foreground">Reference uploaded by you</figcaption>
+                  </figure>
+                )}
+                {media && (
+                  <div className="grid gap-3 text-sm sm:grid-cols-2">
+                    <div className="rounded-lg border border-border p-3">
+                      <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">Before: manual work</p>
+                      <p className="mb-1.5">{media.summary}</p>
+                      <ol className="list-inside list-decimal text-xs">
+                        {media.manual_steps.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ol>
+                      {media.workpiece?.name && (
+                        <p className="mt-1.5 text-xs text-muted-foreground">
+                          Part: {media.workpiece.name}
+                          {media.workpiece.material && media.workpiece.material !== "unknown" ? `, ${media.workpiece.material}` : ""}
+                          {media.workpiece.weight_kg ? `, ~${media.workpiece.weight_kg} kg` : ""}
+                        </p>
+                      )}
+                    </div>
+                    <div className="rounded-lg border border-primary/40 p-3">
+                      <p className="mb-1 text-xs font-semibold uppercase text-primary">After: robot line</p>
+                      <ol className="list-inside list-decimal text-xs">
+                        {plan.robots.map((r) => (
+                          <li key={r.title}>
+                            {r.title}: {r.tasks.map((t) => t.name).join(" + ")}
+                          </li>
+                        ))}
+                      </ol>
+                      {media.observations.length > 0 && (
+                        <p className="mt-1.5 text-xs text-muted-foreground">Issues removed: {media.observations.join("; ")}</p>
+                      )}
+                      <p className="mt-1.5 text-[11px] text-muted-foreground">AI confidence: {media.confidence}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Section>
+          )}
+
+          <Section n={next()} title="Tasks found and how a robot does them">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs text-muted-foreground">
@@ -197,7 +260,7 @@ export default function SolutionReport({ open, onOpenChange, plan, catalog, desc
             </div>
           </Section>
 
-          <Section n={description ? 3 : 2} title="Robot solution">
+          <Section n={next()} title="Robot solution">
             <div className="grid gap-3 md:grid-cols-2">
               {bom.robots.map(({ robot, models, eoat, cost }) => (
                 <div key={robot.title} className="space-y-2 rounded-lg border border-border p-3 text-sm">
@@ -251,7 +314,7 @@ export default function SolutionReport({ open, onOpenChange, plan, catalog, desc
             </div>
           </Section>
 
-          <Section n={description ? 4 : 3} title="Bill of materials and approximate price (INR)">
+          <Section n={next()} title="Bill of materials and approximate price (INR)">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs text-muted-foreground">
@@ -285,7 +348,7 @@ export default function SolutionReport({ open, onOpenChange, plan, catalog, desc
             </div>
           </Section>
 
-          <Section n={description ? 5 : 4} title="Simulation check and next steps">
+          <Section n={next()} title="Simulation check and next steps">
             <ul className="list-inside list-disc space-y-1 text-sm">
               <li>
                 3D simulation: {plan.robots.length} robot cell{plan.robots.length > 1 ? "s" : ""} linked by conveyors;{" "}
