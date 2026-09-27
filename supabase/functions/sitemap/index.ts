@@ -134,7 +134,7 @@ async function activeRobots(supabase: Client, supUsers: Set<string>) {
   return await fetchAll(supabase, () =>
     supabase
       .from("robots")
-      .select("id, brand, location, updated_at, created_at")
+      .select("id, brand, location, seller_id, updated_at, created_at")
       .eq("availability", "available")
       .not("seller_id", "in", notIn(Array.from(supUsers)))
   );
@@ -395,7 +395,7 @@ ${body}
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const supabase = createClient(
+  const supabase: Client = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
