@@ -31,7 +31,7 @@ const PRINT_CSS = `
   #rv-solution-report .rv-no-print { display: none !important; }
   #rv-solution-report, #rv-solution-report * { color: #111 !important; border-color: #d4d4d8 !important; }
   #rv-solution-report div, #rv-solution-report tr, #rv-solution-report p, #rv-solution-report section { background-color: transparent !important; }
-  #rv-solution-report tfoot tr:last-child, #rv-solution-report tbody tr.bg-muted\/40 { background-color: #f1f5f9 !important; }
+  #rv-solution-report tfoot tr:last-child, #rv-solution-report tbody tr.rv-group { background-color: #f1f5f9 !important; }
   #rv-solution-report section { break-inside: avoid; }
 }`;
 
@@ -312,7 +312,7 @@ function FragmentRows({ scope, lines }: { scope: string; lines: BomLine[] }) {
   const sub: [number, number] = [lines.reduce((n, l) => n + l.total[0], 0), lines.reduce((n, l) => n + l.total[1], 0)];
   return (
     <>
-      <tr className="bg-muted/40">
+      <tr className="rv-group bg-muted/40">
         <td className="px-2 py-1.5 font-semibold" colSpan={3}>
           {scope === "Line" ? "Line equipment and services" : scope}
         </td>
