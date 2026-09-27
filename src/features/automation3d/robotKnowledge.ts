@@ -1,0 +1,240 @@
+/**
+ * Automation Studio — industrial robot knowledge base and line planner.
+ *
+ * SKILLS records what an industrial robot needs to perform each kind of
+ * process: the end-of-arm tool, whether that tool can share a robot with
+ * others through a tool changer, which Directory application tags a robot
+ * must carry, and a minimum payload. planLine() uses it to split a user's
+ * described process into robots (one robot multitasks where tools allow)
+ * and builds the step list each robot runs in the 3D simulation.
+ */
+
+import type { ProcessCard } from "@/data/automationStudioIndustries";
+import { processKind, type ProcessKind } from "./processProfiles";
+import { stepLabel, type SimPlan, type SimStep } from "./robotSim";
+
+export interface RobotSkill {
+  /** End-of-arm tool family, or null when the gripper does the work. */
+  tool: string | null;
+  toolName: string;
+  /** A dedicated tool (torch, spray gun) cannot share a robot with another process tool. */
+  dedicated?: boolean;
+  /** How the robot performs it in the simulation. */
+  sim: "handling" | "weld" | "cnc" | "inspect" | "output" | "finish" | "apply" | "assemble" | "fill" | "cap" | "label";
+  /** Directory application tags a suitable robot must list. */
+  apps: string[];
+  /** Minimum payload in kg (tool plus part). */
+  minPayload: number;
+  /** What the robot does, in plain words. */
+  does: string;
+}
+
+export const SKILLS: Record<ProcessKind, RobotSkill> = {
+  handling: { tool: null, toolName: "Parallel / vacuum gripper", sim: "handling", apps: ["Material Handling"], minPayload: 10, does: "Picks parts from the conveyor and moves them between stations." },
+  transport: { tool: null, toolName: "Parallel / vacuum gripper", sim: "handling", apps: ["Material Handling"], minPayload: 10, does: "Transfers parts between stations." },
+  welding: { tool: "torch", toolName: "MIG/TIG welding torch + wire feeder", dedicated: true, sim: "weld", apps: ["Welding"], minPayload: 6, does: "Positions the part in the weld fixture and follows the seam path with the torch." },
+  machining: { tool: null, toolName: "Dual gripper (machine tending)", sim: "cnc", apps: ["Material Handling"], minPayload: 10, does: "Loads the machine, waits for the cycle, and unloads the part." },
+  finishing: { tool: "spindle", toolName: "Grinding / polishing spindle with force control", sim: "finish", apps: ["Finishing"], minPayload: 20, does: "Sweeps a grinding or polishing tool over the surface with constant force." },
+  coating: { tool: "spray", toolName: "Spray gun / dispensing valve", dedicated: true, sim: "apply", apps: ["Dispensing"], minPayload: 5, does: "Follows the part surface with a spray gun or bead dispenser." },
+  inspection: { tool: null, toolName: "Gripper + vision camera", sim: "inspect", apps: ["Material Handling"], minPayload: 3, does: "Presents the part to a camera and sorts out rejects." },
+  palletizing: { tool: null, toolName: "Vacuum / fork palletizing gripper", sim: "output", apps: ["Palletizing"], minPayload: 20, does: "Stacks finished parts on the pallet in layers." },
+  packing: { tool: null, toolName: "Vacuum gripper", sim: "output", apps: ["Material Handling"], minPayload: 5, does: "Places products into cartons." },
+  assembly: { tool: "driver", toolName: "Screwdriver / insertion tool", sim: "assemble", apps: ["Assembly"], minPayload: 5, does: "Locates components and fastens or inserts them." },
+  filling: { tool: "filler", toolName: "Dosing nozzle", sim: "fill", apps: ["Dispensing"], minPayload: 5, does: "Doses product into the container." },
+  sealing: { tool: "capper", toolName: "Capping head", sim: "cap", apps: ["Assembly"], minPayload: 5, does: "Places and torques caps or seals." },
+  labeling: { tool: "labeler", toolName: "Label applicator", sim: "label", apps: ["Material Handling"], minPayload: 3, does: "Applies labels to the product." },
+};
+
+/** Most process tools one robot handles through an automatic tool changer. */
+const MAX_TOOLS_PER_ROBOT = 2;
+/** Most value-adding tasks (machine tending, welding, tool work) per robot, to keep its cycle short. */
+const MAX_WORK_PER_ROBOT = 3;
+const isWork = (t: PlannedTask) => !!t.skill.tool || t.skill.sim === "cnc" || t.skill.sim === "weld";
+
+export interface PlannedTask {
+  name: string;
+  kind: ProcessKind;
+  skill: RobotSkill;
+}
+
+export interface PlannedRobot {
+  title: string;
+  tasks: PlannedTask[];
+  tools: string[];
+  toolChanger: boolean;
+  multitask: boolean;
+  apps: string[];
+  minPayload: number;
+  steps: SimStep[];
+}
+
+export interface LinePlan {
+  robots: PlannedRobot[];
+  sim: SimPlan;
+}
+
+const step = (action: string, station: string, label?: string): SimStep => {
+  const s = { action, station, label: "" } as SimStep;
+  s.label = label || stepLabel(s);
+  return s;
+};
+
+function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean): SimStep[] {
+  const steps: SimStep[] = [];
+  const handling = tasks.find((t) => t.skill.sim === "handling");
+  steps.push(first ? step("pick", "conveyor", handling ? "Load part from conveyor" : undefined) : step("pick", "in", "Pick from transfer conveyor"));
+  let onTable = false;
+  const offTable = () => {
+    if (onTable) steps.push(step("pick", "table"));
+    onTable = false;
+  };
+  let output: PlannedTask | undefined;
+
+  for (const t of tasks) {
+    switch (t.skill.sim) {
+      case "handling":
+        break;
+      case "weld":
+        offTable();
+        steps.push(step("place", "weld", "Load welding fixture"), step("weld", "weld", t.name), step("pick", "weld", "Unload welding fixture"));
+        break;
+      case "cnc":
+        offTable();
+        steps.push(step("place", "cnc"), step("process", "cnc", t.name), step("pick", "cnc"));
+        break;
+      case "inspect":
+        offTable();
+        steps.push(step("inspect", "vision", t.name));
+        break;
+      case "output":
+        output = t;
+        break;
+      default:
+        if (!onTable) steps.push(step("place", "table"));
+        onTable = true;
+        steps.push({ action: t.skill.sim, station: "table", label: t.name, text: t.name });
+    }
+  }
+  offTable();
+  if (!last) steps.push(step("place", "out", "Pass to next robot"));
+  else if (output?.kind === "packing") steps.push(step("place", "carton", "Pack into carton"));
+  else steps.push(step("place", "pallet", undefined));
+  return steps;
+}
+
+/**
+ * Split an analysed process line into robots. A robot takes on consecutive
+ * tasks until a new process tool would not fit: a dedicated tool (torch,
+ * spray gun) works alone, and others share up to MAX_TOOLS_PER_ROBOT tools
+ * on a tool changer. Handling, inspection and palletizing join the robot
+ * that already holds the part.
+ */
+export function planLine(processes: Pick<ProcessCard, "name">[]): LinePlan {
+  const groups: PlannedTask[][] = [];
+  let cur: PlannedTask[] | null = null;
+
+  for (const p of processes) {
+    const kind = processKind(p);
+    const task: PlannedTask = { name: p.name, kind, skill: SKILLS[kind] };
+    if (!cur) {
+      cur = [task];
+      groups.push(cur);
+      continue;
+    }
+    if (isWork(task) && cur.filter(isWork).length >= MAX_WORK_PER_ROBOT) {
+      cur = [task];
+      groups.push(cur);
+      continue;
+    }
+    if (task.skill.tool) {
+      // Distinct tools: grinding then polishing reuses the same spindle.
+      const tools = [...new Set(cur.filter((t) => t.skill.tool).map((t) => t.skill))];
+      if (tools.includes(task.skill) && !task.skill.dedicated) {
+        cur.push(task);
+        continue;
+      }
+      const full =
+        tools.some((s) => s.dedicated) ||
+        (task.skill.dedicated && tools.length > 0) ||
+        tools.length >= MAX_TOOLS_PER_ROBOT ||
+        // Tools come after the part is out of the output stage.
+        cur.some((t) => t.skill.sim === "output");
+      if (full) {
+        cur = [task];
+        groups.push(cur);
+        continue;
+      }
+    }
+    cur.push(task);
+  }
+
+  const robots: PlannedRobot[] = groups.map((tasks, i) => {
+    const tools = [...new Set(tasks.filter((t) => t.skill.tool).map((t) => t.skill.toolName))];
+    const apps = [...new Set(tasks.flatMap((t) => t.skill.apps))];
+    return {
+      title: `Robot ${i + 1}`,
+      tasks,
+      tools,
+      toolChanger: tools.length > 1,
+      multitask: tasks.length > 1,
+      apps,
+      minPayload: Math.max(...tasks.map((t) => t.skill.minPayload)),
+      steps: buildSteps(tasks, i === 0, i === groups.length - 1),
+    };
+  });
+
+  return {
+    robots,
+    sim: { cells: robots.map((r) => ({ title: `${r.title}: ${r.tasks.map((t) => t.name).join(" + ")}`, steps: r.steps })) },
+  };
+}
+
+/* ------------------------- robot recommendations ------------------------- */
+
+/** Compact record from public/directory/robots.json. */
+export interface DirectoryRobot {
+  id: string;
+  b: string;
+  m: string;
+  n: string;
+  t: string;
+  a: number;
+  p: number;
+  r: number;
+  ap?: string[];
+  th?: string;
+  img?: string;
+}
+
+/** Widely supported industrial robot brands, listed first. */
+const MAJOR_BRANDS = ["ABB", "Fanuc", "KUKA", "Yaskawa Motoman", "Kawasaki", "Universal Robots", "Nachi", "Staubli", "Comau", "Denso", "Epson", "OTC Daihen", "Mitsubishi", "Doosan Robotics", "Hyundai Robotics"];
+const brandRank = (b: string) => {
+  const i = MAJOR_BRANDS.indexOf(b);
+  return i === -1 ? MAJOR_BRANDS.length : i;
+};
+
+/**
+ * Real robot models from the Directory that list every application the
+ * robot's tasks need and carry at least the required payload. One model per
+ * brand, smallest suitable payload first.
+ */
+export function recommendRobots(robot: Pick<PlannedRobot, "apps" | "minPayload">, catalog: DirectoryRobot[], limit = 3): DirectoryRobot[] {
+  const fits = catalog
+    .filter((r) => r.p >= robot.minPayload && robot.apps.every((a) => r.ap?.includes(a)))
+    .sort((x, y) => Number(y.a === 6) - Number(x.a === 6) || brandRank(x.b) - brandRank(y.b) || x.p - y.p || y.r - x.r);
+  const seen = new Set<string>();
+  const out: DirectoryRobot[] = [];
+  for (const r of fits) {
+    if (seen.has(r.b)) continue;
+    seen.add(r.b);
+    out.push(r);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/** A description reads as prose (not a list of robot steps) when it is one long sentence block. */
+export function isProseDescription(text: string): boolean {
+  const t = String(text || "").trim();
+  return !t.includes("\n") && t.split(/\s+/).length > 14;
+}

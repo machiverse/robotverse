@@ -5,8 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CheckCircle2, Info, Pause, Play, RotateCcw, Sparkles } from "lucide-react";
+import { AlertTriangle, Bot, CheckCircle2, Info, Pause, Play, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
+import type { ProcessCard } from "@/data/automationStudioIndustries";
+import { analyzeDescription, matchTemplateIds } from "@/utils/processAnalyzer";
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation } from "./robotSim.js";
+import { PROCESS_PROFILES } from "./processProfiles";
+import { isProseDescription, planLine, recommendRobots, type DirectoryRobot, type LinePlan } from "./robotKnowledge";
 
 type Step = { action: string; station: string; label: string; auto?: boolean };
 type SimState = {
@@ -18,7 +22,25 @@ type SimState = {
   lastCycle: number | null;
   currentCycle: number;
   events: { t: number; msg: string }[];
+  focus?: number;
+  cells?: { title: string; stepIndex: number; step: Step | null; cycles: number }[];
 };
+
+/** Whole-factory descriptions: the planner splits them into several robots. */
+const LINE_EXAMPLES: Record<string, string> = {
+  "Fabrication line":
+    "We fabricate steel brackets and frames. Operators load parts from the conveyor into a welding fixture, MIG weld the joints, grind the weld spatter, apply anti-rust coating, inspect the weld quality, and stack finished parts on pallets for dispatch.",
+  "Packaging line":
+    "We make cosmetic creams. Workers pick jars from the conveyor, fill the cream, cap the jars, apply the product label, inspect the fill level and pack the jars into cartons.",
+  "Machine shop":
+    "We machine aluminium housings. Operators load raw blanks from the conveyor into the CNC machine, deburr and polish the edges, assemble the cover with screws, check the dimensions and stack the housings on pallets.",
+};
+
+let catalogPromise: Promise<DirectoryRobot[]> | null = null;
+const loadCatalog = () =>
+  (catalogPromise ??= fetch("/directory/robots.json")
+    .then((r) => (r.ok ? r.json() : []))
+    .catch(() => []));
 
 const VIEWS: [string, string][] = [
   ["iso", "3D"],
@@ -36,6 +58,8 @@ interface Props {
   variant?: "page" | "embedded";
   /** Hide the process editor (used when the steps come from an analysis) */
   showEditor?: boolean;
+  /** Analysed process line: simulated as a multi-robot line instead of one cell */
+  processes?: Pick<ProcessCard, "name">[];
 }
 
 const Panel = ({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) => (
@@ -51,6 +75,7 @@ export default function AutomationStudio3D({
   subtitle = "Describe any process and watch a 6-axis robot cell run it in 3D",
   variant = "page",
   showEditor = true,
+  processes,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const simRef = useRef<Simulation | null>(null);
@@ -62,6 +87,17 @@ export default function AutomationStudio3D({
   const [speed, setSpeed] = useState(1);
   const [state, setState] = useState<SimState | null>(null);
   const [unreachable, setUnreachable] = useState<string[]>([]);
+  const [plan, setPlan] = useState<LinePlan | null>(null);
+  const [focus, setFocus] = useState(0);
+  const [catalog, setCatalog] = useState<DirectoryRobot[]>([]);
+
+  useEffect(() => {
+    let live = true;
+    loadCatalog().then((c) => live && setCatalog(c));
+    return () => {
+      live = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!stageRef.current) return;
@@ -72,12 +108,47 @@ export default function AutomationStudio3D({
       onUpdate: (s: SimState) => setState(s),
     });
     simRef.current = sim;
-    build(text);
+    if (processes?.length) runPlan(planLine(processes));
+    else build(text);
     return () => sim.dispose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function runPlan(p: LinePlan) {
+    setPlan(p);
+    setFocus(0);
+    setSteps(p.robots[0]?.steps || []);
+    setNotes([]);
+    simRef.current?.setPlan(p.sim);
+    simRef.current?.setFocus(0);
+    simRef.current?.play();
+    setUnreachable(simRef.current?.checkReach() || []);
+  }
+
+  function restart() {
+    if (plan) {
+      simRef.current?.setPlan(plan.sim);
+      simRef.current?.setFocus(focus);
+    } else simRef.current?.setSteps(steps);
+    simRef.current?.play();
+  }
+
+  function focusRobot(i: number) {
+    if (!plan) return;
+    setFocus(i);
+    setSteps(plan.robots[i].steps);
+    simRef.current?.setFocus(i);
+  }
+
   function build(src: string) {
+    // A paragraph about the whole factory: extract only the tasks it names and
+    // plan a robot line for them. Otherwise it is a list of robot steps.
+    if (isProseDescription(src) && matchTemplateIds(src).length > 0) {
+      runPlan(planLine(analyzeDescription(src, null)));
+      return;
+    }
+    setPlan(null);
+    setFocus(0);
     const { steps: parsed, notes: n } = parseProcess(src);
     setSteps(parsed as Step[]);
     setNotes(n);
@@ -89,8 +160,8 @@ export default function AutomationStudio3D({
   function changeSize(key: string) {
     setSize(key);
     simRef.current?.setRobotSize(key);
-    simRef.current?.setSteps(steps);
-    setUnreachable(simRef.current?.checkReach(steps) || []);
+    restart();
+    setUnreachable((plan ? simRef.current?.checkReach() : simRef.current?.checkReach(steps)) || []);
   }
 
   const playing = state?.playing ?? true;
@@ -157,10 +228,7 @@ export default function AutomationStudio3D({
             size="sm"
             variant="outline"
             aria-label="Restart"
-            onClick={() => {
-              simRef.current?.setSteps(steps);
-              simRef.current?.play();
-            }}
+            onClick={restart}
           >
             <RotateCcw className="h-4 w-4" />
           </Button>
@@ -185,9 +253,9 @@ export default function AutomationStudio3D({
 
       <div
         className={cn(
-          "grid flex-1 grid-cols-1",
-          showEditor ? "lg:grid-cols-[320px_1fr_270px]" : "lg:grid-cols-[260px_1fr_270px]",
-          embedded && "lg:h-[640px]",
+          "grid flex-1 grid-cols-1 lg:grid-rows-[minmax(0,1fr)]",
+          showEditor || plan ? "lg:grid-cols-[320px_1fr_270px]" : "lg:grid-cols-[260px_1fr_270px]",
+          embedded ? "lg:h-[640px] lg:flex-none" : "lg:h-[calc(100vh-8.5rem)] lg:min-h-[620px] lg:flex-none",
         )}
       >
         {/* Left: process */}
@@ -195,8 +263,9 @@ export default function AutomationStudio3D({
           {showEditor && (
             <Panel title="Describe the process">
               <p className="mb-2 text-xs text-muted-foreground">
-                One step per line, in plain words: pick, place, weld, paint, polish, assemble, fill, cap, label, inspect,
-                pack, stack…
+                Describe your whole factory in a sentence or two and the studio picks out only the tasks you name, plans
+                the robots and shows the line. Or write one robot step per line: pick, place, weld, paint, polish,
+                assemble, fill, cap, label, inspect, pack, stack…
               </p>
               <Textarea
                 value={text}
@@ -217,6 +286,24 @@ export default function AutomationStudio3D({
                     className={cn(
                       "rounded-full border px-2.5 py-1 text-[11px] transition-colors",
                       text === t ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary",
+                    )}
+                    onClick={() => {
+                      setText(t);
+                      build(t);
+                    }}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+              <p className="mb-1.5 mt-3 text-[11px] font-semibold text-muted-foreground">Whole-factory examples (multi-robot)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(LINE_EXAMPLES).map(([name, t]) => (
+                  <button
+                    key={name}
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+                      text === t ? "border-amber-500 bg-amber-500/10 text-amber-600" : "border-border hover:border-amber-500",
                     )}
                     onClick={() => {
                       setText(t);
@@ -248,7 +335,75 @@ export default function AutomationStudio3D({
             </div>
           )}
 
-          <Panel title={`Process steps (${steps.length})`}>
+          {plan && (
+            <Panel title={`Robot plan: ${plan.robots.length} robot${plan.robots.length > 1 ? "s" : ""}, ${plan.robots.reduce((n, r) => n + r.tasks.length, 0)} tasks`}>
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Only the tasks in your description are simulated. A robot takes on several tasks when its tools allow;
+                parts move between robots on transfer conveyors. Select a robot to follow it.
+              </p>
+              <div className="space-y-2">
+                {plan.robots.map((r, i) => {
+                  const recs = recommendRobots(r, catalog);
+                  const cell = state?.cells?.[i];
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => focusRobot(i)}
+                      aria-pressed={focus === i}
+                      className={cn(
+                        "w-full rounded-md border bg-background p-2.5 text-left transition-colors",
+                        focus === i ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/60",
+                      )}
+                    >
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <Bot className="h-4 w-4 text-primary" />
+                        <b className="whitespace-nowrap text-sm">{r.title}</b>
+                        {r.multitask && (
+                          <Badge variant="secondary" className="h-4 gap-0.5 px-1 text-[9px]">
+                            <Repeat className="h-2.5 w-2.5" /> Multitask
+                          </Badge>
+                        )}
+                        {r.toolChanger && (
+                          <Badge variant="outline" className="h-4 px-1 text-[9px]">
+                            Tool changer
+                          </Badge>
+                        )}
+                        <span className="ml-auto whitespace-nowrap text-[10px] tabular-nums text-muted-foreground">
+                          {cell ? `${cell.cycles} parts` : ""}
+                        </span>
+                      </span>
+                      <span className="mt-1.5 flex flex-wrap gap-1">
+                        {r.tasks.map((t, k) => (
+                          <span
+                            key={k}
+                            className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+                            style={{ background: `${PROCESS_PROFILES[t.kind].color}22`, color: PROCESS_PROFILES[t.kind].color }}
+                          >
+                            {t.name}
+                          </span>
+                        ))}
+                      </span>
+                      <span className="mt-1.5 flex items-start gap-1 text-[11px] text-muted-foreground">
+                        <Wrench className="mt-0.5 h-3 w-3 shrink-0" />
+                        {r.tools.length ? r.tools.join(" + ") : r.tasks[0].skill.toolName}
+                        {" · "}min {r.minPayload} kg
+                      </span>
+                      {recs.length > 0 && (
+                        <span className="mt-1 block text-[11px] text-muted-foreground">
+                          Suitable: <span className="text-foreground">{recs.map((m) => m.n).join(", ")}</span>
+                        </span>
+                      )}
+                      {cell?.step && focus !== i && (
+                        <span className="mt-1 block truncate text-[11px] text-amber-600">Now: {cell.step.label}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </Panel>
+          )}
+
+          <Panel title={plan ? `${plan.robots[focus]?.title ?? "Robot"} steps (${steps.length})` : `Process steps (${steps.length})`}>
             <ol className="space-y-1">
               {steps.map((s, i) => (
                 <li
@@ -280,13 +435,25 @@ export default function AutomationStudio3D({
         <div className="relative order-1 min-h-[60vh] bg-[#1a2433] lg:order-2 lg:min-h-0">
           <div ref={stageRef} className="absolute inset-0" />
           <div className="absolute left-3 top-3 max-w-[70%] min-w-[200px] rounded-lg border border-white/10 bg-[#0e1621]/85 px-3 py-2 text-[#e6ecf3] backdrop-blur">
-            <span className="text-[11px] uppercase tracking-wide opacity-70">
-              {state?.step ? `Step ${state.stepIndex + 1} of ${steps.length}` : "Ready"}
-            </span>
-            <b className="block truncate text-[15px]">{state?.step?.label || "Build a process to start"}</b>
+            {plan && state?.cells ? (
+              <ul className="space-y-0.5">
+                {state.cells.map((c, i) => (
+                  <li key={i} className={cn("truncate text-[12px]", i === focus ? "font-semibold" : "opacity-75")}>
+                    <span className="text-amber-300">R{i + 1}</span> · {c.step?.label || "Waiting"}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <>
+                <span className="text-[11px] uppercase tracking-wide opacity-70">
+                  {state?.step ? `Step ${state.stepIndex + 1} of ${steps.length}` : "Ready"}
+                </span>
+                <b className="block truncate text-[15px]">{state?.step?.label || "Build a process to start"}</b>
+              </>
+            )}
           </div>
           <div className="absolute right-3 top-3 hidden rounded-lg border border-white/10 bg-[#0e1621]/85 px-3 py-2 text-right text-[#e6ecf3] backdrop-blur sm:block">
-            <span className="text-[11px] uppercase tracking-wide opacity-70">Cycle</span>
+            <span className="text-[11px] uppercase tracking-wide opacity-70">{plan ? "Line cycle" : "Cycle"}</span>
             <b className="block text-[15px] tabular-nums">
               {state?.lastCycle ? `${state.lastCycle.toFixed(1)} s` : `${(state?.currentCycle ?? 0).toFixed(1)} s`}
             </b>
@@ -346,11 +513,13 @@ export default function AutomationStudio3D({
               <span>
                 {unreachable.length
                   ? `Out of reach: ${unreachable.map((u) => STATION_NAMES[u]).join(", ")}. Choose a larger robot or move these stations closer.`
-                  : "Every station is within this robot's reach."}
+                  : plan
+                    ? "Every station is within each robot's reach."
+                    : "Every station is within this robot's reach."}
               </span>
             </div>
           </Panel>
-          <Panel title="Joints">
+          <Panel title={plan ? `Joints: ${plan.robots[focus]?.title ?? ""}` : "Joints"}>
             <p className="mb-2 text-[11px] text-muted-foreground">
               {playing ? "Pause to move joints by hand." : "Drag a slider to move that joint."}
             </p>

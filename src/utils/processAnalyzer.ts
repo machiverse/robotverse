@@ -261,7 +261,7 @@ const PROCESS_KEYWORDS: Record<string, keyof typeof TEMPLATES> = {
   shipping: "ship", dispatch: "ship", despatch: "ship", outbound: "ship",
   palletiz: "palletize", palletis: "palletize", pallet: "palletize", depalletiz: "palletize",
   sort: "sort", sorting: "sort", sortation: "sort", classif: "sort",
-  conveyor: "transport", forklift: "transport", "pallet truck": "transport", agv: "transport", amr: "transport", transport: "transport",
+  "convey to": "transport", "conveyed to": "transport", forklift: "transport", "pallet truck": "transport", agv: "transport", amr: "transport", transport: "transport",
 
   // Welding
   "spot weld": "spotweld", "spot welding": "spotweld", "resistance weld": "spotweld",
@@ -309,7 +309,14 @@ const MAX_STATIONS = 8;
 
 /** Matches keywords in the description and returns unique template ids in order of appearance. */
 export const matchTemplateIds = (description: string): string[] => {
-  const text = ` ${description.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ")} `;
+  const text = ` ${description
+    .toLowerCase()
+    // "…on pallets for dispatch" states a purpose, not an extra station.
+    .replace(/\b(ready )?for (dispatch|despatch|shipping|shipment|delivery|sale|storage)\b/g, " ")
+    // Picking parts off a conveyor is machine loading, not warehouse order picking.
+    .replace(/\bpick(s|ed|ing)?\b((?: [a-z]+){0,3}) from (the )?(conveyor|belt|line)/g, "load$2 from the $4")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")} `;
   if (text.trim().length === 0) return [];
 
   const hits: { id: string; at: number }[] = [];
@@ -325,7 +332,20 @@ export const matchTemplateIds = (description: string): string[] => {
     hits.push({ id, at });
   }
 
-  return hits.sort((a, b) => a.at - b.at).map((h) => h.id).slice(0, MAX_STATIONS);
+  const ids = new Set(hits.map((h) => h.id));
+  // A specific process replaces its generic parent, and stacking onto pallets is palletizing.
+  const SUPERSEDED: Record<string, string[]> = {
+    weld: ["mig", "tig", "spotweld"],
+    paint: ["powdercoat"],
+    stack: ["palletize"],
+    cnc: ["mill", "turn"],
+    inspect: ["vision"],
+    assembly: ["screw"],
+  };
+  // "Pack into cartons" is packing; box forming only when it is asked for.
+  if (!/\b(form|erect|fold)\w*/.test(text)) SUPERSEDED.box = ["pack"];
+  const keep = hits.filter((h) => !(SUPERSEDED[h.id] || []).some((specific) => ids.has(specific)));
+  return keep.sort((a, b) => a.at - b.at).map((h) => h.id).slice(0, MAX_STATIONS);
 };
 
 /**

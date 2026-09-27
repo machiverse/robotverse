@@ -191,7 +191,8 @@ export default function AutomationStudio() {
   const [dragging, setDragging] = useState(false);
   const [msgIndex, setMsgIndex] = useState(0);
   const [visualTab, setVisualTab] = useState("robot");
-  const [simIndex, setSimIndex] = useState(0);
+  // -1 = the whole line with every robot; otherwise one station
+  const [simIndex, setSimIndex] = useState(-1);
   const [visualPlaying, setVisualPlaying] = useState(true);
   const [visualSpeed, setVisualSpeed] = useState<"0.5" | "1" | "2">("1");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -742,25 +743,38 @@ export default function AutomationStudio() {
                   </TabsList>
                   <TabsContent value="robot" className="mt-4 space-y-3">
                     {processes.length > 0 && (() => {
-                      const current = processes[Math.min(simIndex, processes.length - 1)];
+                      const full = simIndex < 0;
+                      const current = processes[Math.min(Math.max(simIndex, 0), processes.length - 1)];
                       const kind = processKind(current);
                       const text = processToText(kind, current.name);
+                      const lineHref = `/automation-studio/3d?line=${encodeURIComponent(processes.map((p) => p.name).join("|"))}`;
                       return (
                         <>
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="text-sm text-muted-foreground">
-                              Choose a station to watch the robot run it. Every detected process can be simulated.
+                              Watch your whole line with every robot, or choose one station to see it on its own.
                             </p>
                             <Button variant="outline" size="sm" asChild>
-                              <Link to={simLink(text, current.name)}>
+                              <Link to={full ? lineHref : simLink(text, current.name)}>
                                 <Maximize2 className="mr-2 h-4 w-4" /> Open full screen
                               </Link>
                             </Button>
                           </div>
                           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Station to simulate">
+                            <button
+                              role="tab"
+                              aria-selected={full}
+                              onClick={() => setSimIndex(-1)}
+                              className={cn(
+                                "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-left text-xs font-semibold transition-colors",
+                                full ? "border-amber-500 bg-amber-500/10 text-foreground" : "border-border hover:border-amber-500/60",
+                              )}
+                            >
+                              <Box className="h-3.5 w-3.5 text-amber-500" /> Full line (all robots)
+                            </button>
                             {processes.map((p, i) => {
                               const k = processKind(p);
-                              const active = i === Math.min(simIndex, processes.length - 1);
+                              const active = !full && i === Math.min(simIndex, processes.length - 1);
                               return (
                                 <button
                                   key={p.index}
@@ -780,14 +794,25 @@ export default function AutomationStudio() {
                             })}
                           </div>
                           <Suspense fallback={<SimFallback />}>
-                            <RobotCell3D
-                              key={`${simIndex}-${current.name}`}
-                              variant="embedded"
-                              showEditor={false}
-                              initialProcess={text}
-                              title={`Station ${String(simIndex + 1).padStart(2, "0")}: ${current.name}`}
-                              subtitle={`${PROCESS_PROFILES[kind].label} · ${current.robot.model} · ${current.eoat[0] ?? "EOAT"}`}
-                            />
+                            {full ? (
+                              <RobotCell3D
+                                key={`line-${processes.map((p) => p.name).join("|")}`}
+                                variant="embedded"
+                                showEditor={false}
+                                processes={processes}
+                                title="Your automated line"
+                                subtitle={`${processes.length} tasks from your description · robots, tools and multitasking planned from the robot skills knowledge base`}
+                              />
+                            ) : (
+                              <RobotCell3D
+                                key={`${simIndex}-${current.name}`}
+                                variant="embedded"
+                                showEditor={false}
+                                initialProcess={text}
+                                title={`Station ${String(simIndex + 1).padStart(2, "0")}: ${current.name}`}
+                                subtitle={`${PROCESS_PROFILES[kind].label} · ${current.robot.model} · ${current.eoat[0] ?? "EOAT"}`}
+                              />
+                            )}
                           </Suspense>
                         </>
                       );

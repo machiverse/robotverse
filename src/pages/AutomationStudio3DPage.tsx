@@ -9,6 +9,12 @@ export default function AutomationStudio3DPage() {
   // Automation Studio links here with ?process=<steps>&title=<process name>
   const process = params.get("process") || undefined;
   const title = params.get("title") || undefined;
+  // ?line=<task|task|…> simulates a whole analysed line with several robots
+  const line = (params.get("line") || "")
+    .split("|")
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .map((name) => ({ name }));
 
   return (
     <>
@@ -31,9 +37,10 @@ export default function AutomationStudio3DPage() {
         </div>
       </div>
       <AutomationStudio3D
-        key={process || "default"}
+        key={line.length ? `line-${params.get("line")}` : process || "default"}
         initialProcess={process}
-        title={title ? `Robot cell: ${title}` : "Robot Cell Simulator"}
+        processes={line.length ? line : undefined}
+        title={line.length ? "Your automated line" : title ? `Robot cell: ${title}` : "Robot Cell Simulator"}
       />
     </>
   );

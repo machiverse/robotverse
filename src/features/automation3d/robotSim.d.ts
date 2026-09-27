@@ -14,10 +14,19 @@ export interface SimUpdate {
   holding: boolean;
   unreachable: string[];
   events: { t: number; msg: string }[];
+  /** Index of the robot whose joints/step are reported (multi-robot lines). */
+  focus?: number;
+  cells?: { title: string; stepIndex: number; step: SimStep | null; cycles: number }[];
+}
+
+export interface SimPlan {
+  cells: { title?: string; steps: SimStep[] }[];
 }
 
 export interface Simulation {
   setSteps(steps: SimStep[]): void;
+  setPlan(plan: SimPlan): void;
+  setFocus(i: number): void;
   play(): void;
   pause(): void;
   reset(): void;
