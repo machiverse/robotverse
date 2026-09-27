@@ -86,6 +86,7 @@ import TalentSeekerProfile from "./pages/TalentSeekerProfile";
 import TalentPostTraining from "./pages/TalentPostTraining";
 import TalentEmployerDashboard from "./pages/TalentEmployerDashboard";
 import AutomationStudio from "./pages/AutomationStudio";
+import AutomationStudio3DPage from "./pages/AutomationStudio3DPage";
 import Auctions from "./pages/Auctions";
 import AuctionDetail from "./pages/AuctionDetail";
 import CreateAuction from "./pages/CreateAuction";
@@ -247,6 +248,7 @@ const App = () => (
               <Route path="/robot-talent/post-training" element={<TalentPostTraining />} />
               <Route path="/robot-talent/employer-dashboard" element={<TalentEmployerDashboard />} />
               <Route path="/automation-studio" element={<AutomationStudio />} />
+              <Route path="/automation-studio/3d" element={<AutomationStudio3DPage />} />
               <Route path="/auctions" element={<Auctions />} />
               <Route path="/auctions/:id" element={<AuctionDetail />} />
               <Route path="/auctions/create" element={<CreateAuction />} />
