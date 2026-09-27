@@ -419,6 +419,77 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     });
   }
 
+  /* Safety fence around industrial robot cells (cobot lines run without one) */
+  /** Per robot cell: true when that cell needs a fence (industrial robot). */
+  let fenceCells = [];
+  let fenceGroup = null;
+  const fenceMesh = new THREE.MeshStandardMaterial({ color: 0xf2b705, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false });
+  function clearFence() {
+    if (!fenceGroup) return;
+    scene.remove(fenceGroup);
+    fenceGroup.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.isSprite) {
+        o.material.map.dispose();
+        o.material.dispose();
+      }
+    });
+    fenceGroup = null;
+  }
+  function placeFence() {
+    clearFence();
+    if (!fenceCells.some(Boolean)) return;
+    // Enclose everything the cells and conveyors occupy on the floor.
+    const bounds = new THREE.Box3();
+    const tmp = new THREE.Box3();
+    for (const o of scene.children) {
+      if (o === floor || o === grid || o === refGroup || o.isLight || o === sun.target || !o.visible) continue;
+      if (o.isSprite) continue;
+      tmp.setFromObject(o);
+      if (!tmp.isEmpty()) bounds.union(tmp);
+    }
+    if (bounds.isEmpty()) return;
+    const z0 = Math.max(bounds.min.z - 0.35, -2.45), z1 = bounds.max.z + 0.35;
+    const n = cells.length;
+    const H = 1.4;
+    const g = new THREE.Group();
+    const post = (x, z) => {
+      const p = box(0.05, H, 0.05, M.amber);
+      p.position.set(x, H / 2, z);
+      g.add(p);
+    };
+    const side = (ax, az, bx, bz) => {
+      const len = Math.hypot(bx - ax, bz - az);
+      const n = Math.max(1, Math.ceil(len / 1.4));
+      for (let i = 0; i <= n; i++) post(ax + ((bx - ax) * i) / n, az + ((bz - az) * i) / n);
+      const panel = new THREE.Mesh(new THREE.PlaneGeometry(len, H - 0.15), fenceMesh);
+      panel.position.set((ax + bx) / 2, 0.15 + (H - 0.15) / 2, (az + bz) / 2);
+      panel.rotation.y = -Math.atan2(bz - az, bx - ax);
+      g.add(panel);
+      const rail = box(len, 0.04, 0.04, M.amber);
+      rail.position.set((ax + bx) / 2, H, (az + bz) / 2);
+      rail.rotation.y = panel.rotation.y;
+      g.add(rail);
+    };
+    // One fenced area per run of neighbouring industrial cells; cobot cells stay open.
+    for (let i = 0; i < n; i++) {
+      if (!fenceCells[i] || (i > 0 && fenceCells[i - 1])) continue;
+      let j = i;
+      while (j + 1 < n && fenceCells[j + 1]) j++;
+      const x0 = i === 0 ? bounds.min.x - 0.35 : i * CELL_SPACING - CELL_SPACING / 2 + 0.05;
+      const x1 = j === n - 1 ? bounds.max.x + 0.35 : j * CELL_SPACING + CELL_SPACING / 2 - 0.05;
+      side(x0, z0, x1, z0);
+      side(x1, z0, x1, z1);
+      side(x1, z1, x0, z1);
+      side(x0, z1, x0, z0);
+      const lbl = makeLabel("Safety fence with interlocked door", "#f2b705");
+      lbl.position.set((x0 + x1) / 2, H + 0.18, z1);
+      g.add(lbl);
+    }
+    scene.add(g);
+    fenceGroup = g;
+  }
+
   /* Parts */
   const partGeo = new THREE.BoxGeometry(PART.w, PART.h, PART.d);
   const partMats = {
@@ -1621,6 +1692,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: 4, bottom: -4, near: 0.5, far: 30 + span });
     sun.shadow.camera.updateProjectionMatrix();
     placeReference();
+    placeFence();
     // Push the fog back so a long line stays clear.
     scene.fog.near = 9 + span * 1.2;
     scene.fog.far = 30 + span * 2;
@@ -1672,6 +1744,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     if (!ROBOT_SIZES[key]) return;
     sizeKey = key;
     cells.forEach((c) => c.buildRobot(ROBOT_SIZES[key].scale));
+    placeFence();
     reset();
   }
 
@@ -1773,6 +1846,11 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     },
     setRobotSize,
     setView,
+    /** Fence the industrial robot cells: true / false for all, or one flag per cell. */
+    setFencing(on) {
+      fenceCells = Array.isArray(on) ? on.map(Boolean) : cells.map(() => !!on);
+      placeFence();
+    },
     /** Show a photo of the user's manual process behind the line (null hides it). */
     setReference(url, label) {
       refUrl = url || null;
@@ -1799,6 +1877,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       ro ? ro.disconnect() : window.removeEventListener("resize", resize);
       refToken++;
       clearReference();
+      clearFence();
       disposeLine();
       controls.dispose();
       renderer.dispose();

@@ -45,10 +45,39 @@ export const SKILLS: Record<ProcessKind, RobotSkill> = {
   labeling: { tool: "labeler", toolName: "Label applicator", sim: "label", apps: ["Material Handling"], minPayload: 3, does: "Applies labels to the product." },
 };
 
-/** Most process tools one robot handles through an automatic tool changer. */
-const MAX_TOOLS_PER_ROBOT = 2;
-/** Most value-adding tasks (machine tending, welding, tool work) per robot, to keep its cycle short. */
-const MAX_WORK_PER_ROBOT = 3;
+export type Strategy = "economy" | "balanced" | "throughput";
+
+/**
+ * Solution options. Each sets how many process tools one robot may carry
+ * (through a tool changer) and how many value-adding tasks it takes on
+ * (machine tending, welding, tool work), which trades robots against cycle time.
+ */
+export const STRATEGIES: Record<Strategy, { label: string; maxTools: number; maxWork: number; cobot: boolean; bestFor: string }> = {
+  economy: {
+    label: "Economy (cobots)",
+    maxTools: 3,
+    maxWork: 5,
+    cobot: true,
+    bestFor: "Lowest investment and floor space, small batches, people working alongside the robots",
+  },
+  balanced: {
+    label: "Balanced",
+    maxTools: 2,
+    maxWork: 3,
+    cobot: false,
+    bestFor: "Good mix of investment and output for most plants",
+  },
+  throughput: {
+    label: "High throughput",
+    maxTools: 1,
+    maxWork: 1,
+    cobot: false,
+    bestFor: "Maximum output with the shortest cycle, two or three shifts",
+  },
+};
+
+/** Work a collaborative robot should not do: spray booths, heavy or hot parts, blasting. */
+const NOT_FOR_COBOTS = /paint|powder|spray|glaze|thermal|blast|fettl|forg|die cast|press|tyre|glass|brick|truck|bag|sack/i;
 const isWork = (t: PlannedTask) => !!t.skill.tool || t.skill.sim === "cnc" || t.skill.sim === "weld";
 
 export interface PlannedTask {
@@ -77,11 +106,14 @@ export interface PlannedRobot {
   apps: string[];
   minPayload: number;
   steps: SimStep[];
+  /** A collaborative robot (cobot): no fencing, works next to people. */
+  collaborative: boolean;
 }
 
 export interface LinePlan {
   robots: PlannedRobot[];
   sim: SimPlan;
+  strategy: Strategy;
 }
 
 const step = (action: string, station: string, label?: string): SimStep => {
@@ -142,7 +174,8 @@ function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean): SimSte
  */
 type TaskInput = Pick<ProcessCard, "name"> & Partial<Pick<ProcessCard, "eoat" | "robot">>;
 
-export function planLine(processes: TaskInput[]): LinePlan {
+export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"): LinePlan {
+  const { maxTools: MAX_TOOLS_PER_ROBOT, maxWork: MAX_WORK_PER_ROBOT, cobot } = STRATEGIES[strategy];
   const groups: PlannedTask[][] = [];
   let cur: PlannedTask[] | null = null;
 
@@ -156,7 +189,9 @@ export function planLine(processes: TaskInput[]): LinePlan {
       groups.push(cur);
       continue;
     }
-    if (isWork(task) && cur.filter(isWork).length >= MAX_WORK_PER_ROBOT) {
+    // High throughput: palletizing / packing gets its own robot once the current one does value-adding work.
+    const ownOutput = strategy === "throughput" && task.skill.sim === "output" && cur.some(isWork);
+    if (ownOutput || (isWork(task) && cur.filter(isWork).length >= MAX_WORK_PER_ROBOT)) {
       cur = [task];
       groups.push(cur);
       continue;
@@ -164,13 +199,15 @@ export function planLine(processes: TaskInput[]): LinePlan {
     if (task.skill.tool) {
       // Distinct tools: grinding then polishing reuses the same spindle.
       const tools = [...new Set(cur.filter((t) => t.skill.tool).map((t) => t.skill))];
-      if (tools.includes(task.skill) && !task.skill.dedicated) {
+      // A cobot line swaps even the welding torch on a tool changer; spray booths stay dedicated.
+      const dedicated = (sk: RobotSkill) => !!sk.dedicated && !(cobot && sk.tool === "torch");
+      if (tools.includes(task.skill) && !dedicated(task.skill)) {
         cur.push(task);
         continue;
       }
       const full =
-        tools.some((s) => s.dedicated) ||
-        (task.skill.dedicated && tools.length > 0) ||
+        tools.some(dedicated) ||
+        (dedicated(task.skill) && tools.length > 0) ||
         tools.length >= MAX_TOOLS_PER_ROBOT ||
         // Tools come after the part is out of the output stage.
         cur.some((t) => t.skill.sim === "output");
@@ -189,6 +226,7 @@ export function planLine(processes: TaskInput[]): LinePlan {
     for (const t of tasks) if (!byFamily.has(t.skill.tool ?? "gripper")) byFamily.set(t.skill.tool ?? "gripper", t.skill.toolName);
     const tools = [...byFamily.values()];
     const apps = [...new Set(tasks.flatMap((t) => t.skill.apps))];
+    const minPayload = Math.max(...tasks.map((t) => t.payload));
     return {
       title: `Robot ${i + 1}`,
       tasks,
@@ -197,13 +235,15 @@ export function planLine(processes: TaskInput[]): LinePlan {
       toolChanger: tools.length > 1,
       multitask: tasks.length > 1,
       apps,
-      minPayload: Math.max(...tasks.map((t) => t.payload)),
+      minPayload,
       steps: buildSteps(tasks, i === 0, i === groups.length - 1),
+      collaborative: cobot && minPayload <= 25 && !tasks.some((t) => NOT_FOR_COBOTS.test(t.name)),
     };
   });
 
   return {
     robots,
+    strategy,
     sim: { cells: robots.map((r) => ({ title: `${r.title}: ${r.tasks.map((t) => t.name).join(" + ")}`, steps: r.steps })) },
   };
 }
@@ -237,7 +277,16 @@ const brandRank = (b: string) => {
  * robot's tasks need and carry at least the required payload. One model per
  * brand, smallest suitable payload first.
  */
-export function recommendRobots(robot: Pick<PlannedRobot, "apps" | "minPayload">, catalog: DirectoryRobot[], limit = 3): DirectoryRobot[] {
+export function recommendRobots(
+  robot: Pick<PlannedRobot, "apps" | "minPayload"> & { collaborative?: boolean },
+  catalog: DirectoryRobot[],
+  limit = 3,
+): DirectoryRobot[] {
+  // A cobot plan asks for collaborative models first and falls back to any suitable robot.
+  if (robot.collaborative) {
+    const cobots = recommendRobots({ apps: [...robot.apps, "Collaborative"], minPayload: robot.minPayload }, catalog, limit);
+    if (cobots.length) return cobots;
+  }
   const fits = catalog
     .filter((r) => r.p >= robot.minPayload && robot.apps.every((a) => r.ap?.includes(a)))
     .sort((x, y) => Number(y.a === 6) - Number(x.a === 6) || brandRank(x.b) - brandRank(y.b) || x.p - y.p || y.r - x.r);

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,8 @@ import { Bot, Download, FileSpreadsheet, Mail, Printer, Repeat, Wrench } from "l
 import { PROCESS_PROFILES } from "./processProfiles";
 import type { DirectoryRobot, LinePlan } from "./robotKnowledge";
 import type { MediaAnalysis } from "./mediaAnalysis";
-import { buildBom, inr, inrRange, type BomLine } from "./solutionCost";
+import { buildBom, inr, inrRange, payback, type BomLine, type OptionSummary } from "./solutionCost";
+import { STRATEGIES } from "./robotKnowledge";
 
 interface Props {
   open: boolean;
@@ -19,6 +20,8 @@ interface Props {
   unreachable?: string[];
   referenceImage?: string;
   media?: MediaAnalysis | null;
+  /** The same tasks planned as economy / balanced / high throughput */
+  options?: OptionSummary[];
 }
 
 const PRINT_CSS = `
@@ -58,7 +61,12 @@ export default function SolutionReport({
   unreachable = [],
   referenceImage,
   media,
+  options = [],
 }: Props) {
+  // Payback inputs: people doing these tasks today.
+  const [operators, setOperators] = useState(() => Math.max(1, Math.min(8, plan.robots.reduce((n, r) => n + r.tasks.length, 0))));
+  const [shifts, setShifts] = useState(2);
+  const [wage, setWage] = useState(25000);
   const bom = useMemo(() => buildBom(plan, catalog), [plan, catalog]);
   // Section numbers follow whichever sections are shown.
   let sectionNo = 0;
@@ -114,6 +122,31 @@ export default function SolutionReport({
       }));
       lines.push({ Item: "TOTAL", "Total low (INR)": bom.total[0], "Total high (INR)": bom.total[1] });
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lines), "Bill of Materials");
+      if (options.length) {
+        const opts = options.map((o) => ({
+          Option: o.label,
+          Robots: o.robots,
+          Cobots: o.cobots,
+          "Relative output": o.relativeOutput,
+          "Budget low (INR)": o.total[0],
+          "Budget high (INR)": o.total[1],
+          "Best for": o.bestFor,
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(opts), "Options");
+      }
+      const pb = payback(bom.total, operators, shifts, wage);
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet([
+          ["Operators per shift", operators],
+          ["Shifts per day", shifts],
+          ["Cost per operator per month (INR)", wage],
+          ["Labour saved per year (INR)", pb.annualSaving],
+          ["Payback low (months)", Number.isFinite(pb.months[0]) ? Math.round(pb.months[0]) : "-"],
+          ["Payback high (months)", Number.isFinite(pb.months[1]) ? Math.round(pb.months[1]) : "-"],
+        ]),
+        "ROI",
+      );
       XLSX.writeFile(wb, "RobotVerse_Automation_Solution.xlsx");
     });
   }
@@ -143,7 +176,7 @@ export default function SolutionReport({
             <p className="text-xs font-semibold uppercase tracking-wide text-primary">RobotVerse Automation Studio · {date}</p>
             <DialogTitle className="text-2xl">Automation Solution Report</DialogTitle>
             <DialogDescription>
-              Complete robot solution for your process: tasks, robots, end-of-arm tooling, equipment and an indicative budget.
+              Option: <b>{STRATEGIES[plan.strategy].label}</b>. Complete robot solution for your process: tasks, robots, end-of-arm tooling, equipment and an indicative budget.
             </DialogDescription>
             <div className="rv-no-print flex flex-wrap gap-2 pt-2">
               <Button size="sm" onClick={() => window.print()}>
@@ -272,6 +305,11 @@ export default function SolutionReport({
                         <Repeat className="h-3 w-3" /> Multitask
                       </Badge>
                     )}
+                    {robot.collaborative && (
+                      <Badge variant="outline" className="border-emerald-500/60 text-[10px] text-emerald-600">
+                        Cobot · no fencing
+                      </Badge>
+                    )}
                     {robot.toolChanger && (
                       <Badge variant="outline" className="text-[10px]">
                         Tool changer
@@ -314,6 +352,45 @@ export default function SolutionReport({
             </div>
           </Section>
 
+          {options.length > 0 && (
+            <Section n={next()} title="Solution options compared">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-xs text-muted-foreground">
+                    <tr>
+                      <th className="py-1.5 pr-3">Option</th>
+                      <th className="py-1.5 pr-3 text-right">Robots</th>
+                      <th className="py-1.5 pr-3 text-right">Output</th>
+                      <th className="py-1.5 pr-3 text-right">Budget</th>
+                      <th className="py-1.5">Best for</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {options.map((o) => (
+                      <tr key={o.strategy} className={o.strategy === plan.strategy ? "border-t border-border bg-primary/10 font-medium" : "border-t border-border"}>
+                        <td className="py-1.5 pr-3">
+                          {o.label}
+                          {o.strategy === plan.strategy && <span className="ml-1 text-xs text-primary">(this report)</span>}
+                        </td>
+                        <td className="py-1.5 pr-3 text-right tabular-nums">
+                          {o.robots}
+                          {o.cobots ? ` (${o.cobots} cobot${o.cobots > 1 ? "s" : ""})` : ""}
+                        </td>
+                        <td className="py-1.5 pr-3 text-right tabular-nums">{o.relativeOutput}×</td>
+                        <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums">{inrRange(o.total)}</td>
+                        <td className="py-1.5 text-xs text-muted-foreground">{o.bestFor}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Output is relative to the Balanced option, from each option's busiest robot. Switch options in the simulator to see
+                each one run in 3D with its measured cycle time.
+              </p>
+            </Section>
+          )}
+
           <Section n={next()} title="Bill of materials and approximate price (INR)">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -346,6 +423,52 @@ export default function SolutionReport({
                 </tfoot>
               </table>
             </div>
+          </Section>
+
+          <Section n={next()} title="Return on investment (estimate)">
+            {(() => {
+              const pb = payback(bom.total, operators, shifts, wage);
+              const fmt = (m: number) => (Number.isFinite(m) ? `${m.toFixed(0)} months` : "–");
+              return (
+                <div className="grid gap-3 md:grid-cols-[1fr_1.2fr]">
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    {[
+                      ["Operators per shift", operators, setOperators, 1, 50],
+                      ["Shifts per day", shifts, setShifts, 1, 3],
+                      ["Cost per operator / month (₹)", wage, setWage, 5000, 500000],
+                    ].map(([label, value, set, min, max]) => (
+                      <label key={label as string} className="space-y-1">
+                        <span className="block text-muted-foreground">{label as string}</span>
+                        <input
+                          type="number"
+                          min={min as number}
+                          max={max as number}
+                          value={value as number}
+                          onChange={(e) => (set as (v: number) => void)(Math.max(0, Number(e.target.value) || 0))}
+                          className="h-8 w-full rounded-md border border-border bg-background px-2 text-sm tabular-nums"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-lg border border-border p-2.5">
+                      <b className="block text-lg tabular-nums">{inr(pb.annualSaving)}</b>
+                      <span className="text-xs text-muted-foreground">Labour cost saved per year</span>
+                    </div>
+                    <div className="rounded-lg border border-emerald-500/50 p-2.5">
+                      <b className="block text-lg tabular-nums">
+                        {fmt(pb.months[0])} – {fmt(pb.months[1])}
+                      </b>
+                      <span className="text-xs text-muted-foreground">Simple payback on the budget</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+            <p className="text-xs text-muted-foreground">
+              Labour savings only. Extra output, better quality, less scrap and fewer injuries usually shorten the payback further.
+              {plan.robots.some((r) => r.collaborative) ? " Cobots can often be redeployed to new tasks later." : ""}
+            </p>
           </Section>
 
           <Section n={next()} title="Simulation check and next steps">

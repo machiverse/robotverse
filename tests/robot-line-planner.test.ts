@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { INDUSTRY_BLUEPRINTS } from "../src/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, SKILL_LIBRARY } from "../src/utils/processAnalyzer";
-import { buildBom } from "../src/features/automation3d/solutionCost";
+import { buildBom, compareOptions, payback } from "../src/features/automation3d/solutionCost";
 import { planLine, recommendRobots, isProseDescription, type DirectoryRobot } from "../src/features/automation3d/robotKnowledge";
 import { TOOL_ACTIONS } from "../src/features/automation3d/robotSim.js";
 import type { SimStep } from "../src/features/automation3d/robotSim";
@@ -103,6 +103,28 @@ for (const q of REQUESTS) {
   assert.ok(bom.total[0] > 0 && bom.total[1] >= bom.total[0] && bom.total[0] > bom.hardware[0], `${q}: budget`);
   assert.equal(bom.robots.length, p.robots.length);
 }
+// Every solution option plans consistent robot cycles; economy never needs more robots than balanced,
+// and high throughput never fewer.
+for (const q of [QUERY, ...REQUESTS]) {
+  const tasks = analyzeDescription(q, null);
+  for (const strategy of ["economy", "balanced", "throughput"] as const) {
+    const p = planLine(tasks, strategy);
+    assert.equal(p.strategy, strategy);
+    p.robots.forEach((r, i) => assertFlows(r.steps, `${strategy} ${q.slice(0, 30)} ${r.title}`, i === 0, i === p.robots.length - 1));
+    if (strategy !== "economy") assert.ok(p.robots.every((r) => !r.collaborative), `${strategy}: industrial robots only`);
+  }
+  const [eco, bal, fast] = compareOptions(tasks, catalog);
+  assert.ok(eco.robots <= bal.robots && bal.robots <= fast.robots, `${q.slice(0, 40)}: option robot counts`);
+}
+const weldOptions = compareOptions(processes, catalog);
+assert.deepEqual(weldOptions.map((o) => o.robots), [2, 3, 4]);
+assert.ok(weldOptions[0].cobots >= 1 && weldOptions[0].total[0] < weldOptions[1].total[0], "economy uses cobots and costs less");
+// Painting stays on an industrial robot even in the cobot option.
+assert.ok(planLine(processes, "economy").robots.find((r) => r.tasks.some((t) => t.kind === "coating"))!.collaborative === false);
+const pb = payback([60e5, 120e5], 2, 2, 25000);
+assert.equal(pb.annualSaving, 1200000);
+assert.deepEqual(pb.months.map(Math.round), [60, 120]);
+
 // Words inside other words do not trigger skills ("capacity", "image", "latest").
 assert.deepEqual(matchTemplateIds("our capacity is the latest image of the whole team"), []);
 

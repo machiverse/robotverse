@@ -11,7 +11,16 @@
  */
 
 import type { ProcessKind } from "./processProfiles";
-import { recommendRobots, SKILLS, type DirectoryRobot, type LinePlan, type PlannedRobot } from "./robotKnowledge";
+import {
+  planLine,
+  recommendRobots,
+  SKILLS,
+  STRATEGIES,
+  type DirectoryRobot,
+  type LinePlan,
+  type PlannedRobot,
+  type Strategy,
+} from "./robotKnowledge";
 
 const GRIPPER_PRIORITY: ProcessKind[] = ["palletizing", "machining", "packing", "handling", "transport", "inspection"];
 
@@ -111,7 +120,12 @@ export const EQUIPMENT: Record<ProcessKind, { eoat: Priced[]; peripherals: Price
 };
 
 /** Robot arm + controller + teach pendant, by payload class (INR). */
-export function robotPrice(payloadKg: number): [number, number] {
+export function robotPrice(payloadKg: number, collaborative = false): [number, number] {
+  if (collaborative) {
+    if (payloadKg <= 7) return [10 * L, 16 * L];
+    if (payloadKg <= 12) return [14 * L, 22 * L];
+    return [18 * L, 30 * L];
+  }
   if (payloadKg <= 7) return [8 * L, 14 * L];
   if (payloadKg <= 12) return [11 * L, 18 * L];
   if (payloadKg <= 25) return [14 * L, 24 * L];
@@ -168,7 +182,16 @@ export function buildBom(plan: LinePlan, catalog: DirectoryRobot[] = []): Bom {
     const models = recommendRobots(r, catalog);
     const payload = models[0]?.p ?? r.minPayload;
     const model = models[0] ? `${models[0].n} (${models[0].p} kg, ${models[0].r} mm)` : `${r.minPayload} kg class`;
-    lines.push(line(`6-axis industrial robot: ${model}`, "Robot", r.title, 1, robotPrice(payload), "Arm, controller and teach pendant"));
+    lines.push(
+      line(
+        `${r.collaborative ? "Collaborative robot (cobot)" : "6-axis industrial robot"}: ${model}`,
+        "Robot",
+        r.title,
+        1,
+        robotPrice(payload, r.collaborative),
+        "Arm, controller and teach pendant",
+      ),
+    );
     lines.push(line("Robot riser / base plate", "Robot", r.title, 1, [0.5 * L, 1.2 * L]));
 
     // EOAT and peripherals once per kind of task on this robot.
@@ -192,8 +215,12 @@ export function buildBom(plan: LinePlan, catalog: DirectoryRobot[] = []): Bom {
     if (r.toolChanger) {
       lines.push(line("Automatic tool changer + tool stands", "EOAT", r.title, 1, [2 * L, 4 * L], "Lets this robot switch between its tasks"));
     }
-    lines.push(line("Safety fencing with interlocked door", "Safety", r.title, 1, [1.5 * L, 3 * L]));
-    lines.push(line("Area scanner / light curtain", "Safety", r.title, 1, [0.8 * L, 2 * L]));
+    if (r.collaborative) {
+      lines.push(line("Collaborative safety: area scanner + risk assessment (ISO/TS 15066)", "Safety", r.title, 1, [1 * L, 2.2 * L], "No fencing needed"));
+    } else {
+      lines.push(line("Safety fencing with interlocked door", "Safety", r.title, 1, [1.5 * L, 3 * L]));
+      lines.push(line("Area scanner / light curtain", "Safety", r.title, 1, [0.8 * L, 2 * L]));
+    }
 
     const mine = lines.slice(start);
     return {
@@ -227,3 +254,48 @@ export function inr(v: number): string {
 }
 
 export const inrRange = ([a, b]: [number, number]) => `${inr(a)} – ${inr(b)}`;
+
+export interface OptionSummary {
+  strategy: Strategy;
+  label: string;
+  bestFor: string;
+  robots: number;
+  cobots: number;
+  /** Weighted cycle of the busiest robot: the line's bottleneck. */
+  bottleneckSteps: number;
+  /** Output relative to the Balanced option (1 = same). */
+  relativeOutput: number;
+  total: [number, number];
+}
+
+/** Rough relative time of a robot cycle: process steps take longer than moves. */
+const STEP_WEIGHT: Record<string, number> = { weld: 4, process: 4, inspect: 1.5, pick: 1, place: 1 };
+const cycleWeight = (r: PlannedRobot) => r.steps.reduce((n, st) => n + (STEP_WEIGHT[st.action] ?? 3), 0);
+
+/** The same tasks planned three ways: economy (cobots), balanced and high throughput. */
+export function compareOptions(processes: Parameters<typeof planLine>[0], catalog: DirectoryRobot[] = []): OptionSummary[] {
+  const rows = (Object.keys(STRATEGIES) as Strategy[]).map((strategy) => {
+    const plan = planLine(processes, strategy);
+    const bom = buildBom(plan, catalog);
+    return {
+      strategy,
+      label: STRATEGIES[strategy].label,
+      bestFor: STRATEGIES[strategy].bestFor,
+      robots: plan.robots.length,
+      cobots: plan.robots.filter((r) => r.collaborative).length,
+      bottleneckSteps: Math.max(...plan.robots.map(cycleWeight)),
+      relativeOutput: 1,
+      total: bom.total,
+    };
+  });
+  const base = rows.find((r) => r.strategy === "balanced")!.bottleneckSteps;
+  rows.forEach((r) => (r.relativeOutput = Math.round((base / r.bottleneckSteps) * 10) / 10));
+  return rows;
+}
+
+/** Simple payback: operators replaced × shifts × monthly cost, against the budget. */
+export function payback(total: [number, number], operators: number, shifts: number, monthlyCost: number) {
+  const monthlySaving = Math.max(0, operators * shifts * monthlyCost);
+  const months = (v: number) => (monthlySaving ? v / monthlySaving : Infinity);
+  return { monthlySaving, annualSaving: monthlySaving * 12, months: [months(total[0]), months(total[1])] as [number, number] };
+}

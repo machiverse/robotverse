@@ -10,8 +10,10 @@ import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/utils/processAnalyzer";
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation } from "./robotSim.js";
 import { PROCESS_PROFILES, type ProcessKind } from "./processProfiles";
-import { planLine, recommendRobots, type DirectoryRobot, type LinePlan } from "./robotKnowledge";
-import { buildBom, inrRange } from "./solutionCost";
+import { planLine, recommendRobots, STRATEGIES, type DirectoryRobot, type LinePlan, type Strategy } from "./robotKnowledge";
+import { buildBom, compareOptions, inrRange } from "./solutionCost";
+
+type LineInput = Parameters<typeof planLine>[0];
 import SolutionReport from "./SolutionReport";
 import SkillsLibrary from "./SkillsLibrary";
 import MediaAnalyzer from "./MediaAnalyzer";
@@ -117,6 +119,9 @@ export default function AutomationStudio3D({
   const [state, setState] = useState<SimState | null>(null);
   const [unreachable, setUnreachable] = useState<string[]>([]);
   const [plan, setPlan] = useState<LinePlan | null>(null);
+  // The tasks the current plan was made from, so another solution option can re-plan them.
+  const [lineInput, setLineInput] = useState<LineInput | null>(null);
+  const [strategy, setStrategy] = useState<Strategy>("balanced");
   const [focus, setFocus] = useState(0);
   const [catalog, setCatalog] = useState<DirectoryRobot[]>([]);
   const [description, setDescription] = useState<string | undefined>(initialDescription);
@@ -148,11 +153,21 @@ export default function AutomationStudio3D({
     });
     simRef.current = sim;
     if (reference) sim.setReference(reference, "Your reference: manual process today");
-    if (processes?.length) runPlan(planLine(processes));
+    if (processes?.length) runLine(processes);
     else build(text);
     return () => sim.dispose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function runLine(input: LineInput, planNotes: string[] = [], option: Strategy = strategy) {
+    setLineInput(input);
+    runPlan(planLine(input, option), planNotes);
+  }
+
+  function chooseOption(option: Strategy) {
+    setStrategy(option);
+    if (lineInput) runPlan(planLine(lineInput, option), notes);
+  }
 
   function runPlan(p: LinePlan, planNotes: string[] = []) {
     setPlan(p);
@@ -161,6 +176,8 @@ export default function AutomationStudio3D({
     setSteps(p.robots[0]?.steps || []);
     setNotes(planNotes);
     simRef.current?.setPlan(p.sim);
+    // Industrial robots work behind a fence; a cobot-only line does not need one.
+    simRef.current?.setFencing(p.robots.map((r) => !r.collaborative));
     simRef.current?.setFocus(0);
     simRef.current?.play();
     setUnreachable(simRef.current?.checkReach() || []);
@@ -187,16 +204,18 @@ export default function AutomationStudio3D({
     const isStepList = /\n|->|→/.test(src.trim());
     if (!isStepList && src.trim()) {
       setDescription(src.trim());
-      if (matchTemplateIds(src).length > 0) runPlan(planLine(analyzeDescription(src, null)));
+      if (matchTemplateIds(src).length > 0) runLine(analyzeDescription(src, null));
       else
         // Every request still gets a solution: a general pick-and-place cell.
-        runPlan(planLine([{ name: "Pick & Place Handling" }]), [
+        runLine([{ name: "Pick & Place Handling" }], [
           "No specific process was recognised, so this is a general pick-and-place robot cell. Name the tasks (weld, grind, paint, glue, assemble, screw, machine tending, press, moulding, inspect, measure, label, pack, palletize…) or open the Skills library for a detailed plan.",
         ]);
       return;
     }
     setDescription(undefined);
     setPlan(null);
+    setLineInput(null);
+    simRef.current?.setFencing(false);
     setFocus(0);
     const { steps: parsed, notes: n } = parseProcess(src);
     setSteps(parsed as Step[]);
@@ -214,7 +233,7 @@ export default function AutomationStudio3D({
     if (words) setText(words);
     setDescription(words || undefined);
     const procs = processesFromSkills(r.tasks);
-    if (procs.length) runPlan(planLine(procs));
+    if (procs.length) runLine(procs);
     else build(words || "pick and place");
   }
 
@@ -242,6 +261,7 @@ export default function AutomationStudio3D({
   const related = !!plan && relatedPresets.length > 0;
   const presets = related && !allTemplates ? relatedPresets : Object.entries(PRESETS);
   const budget = useMemo(() => (plan ? buildBom(plan, catalog).total : null), [plan, catalog]);
+  const options = useMemo(() => (lineInput ? compareOptions(lineInput, catalog) : []), [lineInput, catalog]);
 
   return (
     <div
@@ -431,6 +451,34 @@ export default function AutomationStudio3D({
                 Only the tasks in your description are simulated. A robot takes on several tasks when its tools allow;
                 parts move between robots on transfer conveyors. Select a robot to follow it.
               </p>
+              {options.length > 0 && (
+                <div className="mb-2" role="radiogroup" aria-label="Solution option">
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Solution option</p>
+                  <div className="grid grid-cols-3 gap-1">
+                    {options.map((o) => (
+                      <button
+                        key={o.strategy}
+                        role="radio"
+                        aria-checked={strategy === o.strategy}
+                        onClick={() => chooseOption(o.strategy)}
+                        title={STRATEGIES[o.strategy].bestFor}
+                        className={cn(
+                          "rounded-md border px-1.5 py-1.5 text-left text-[10px] leading-tight transition-colors",
+                          strategy === o.strategy ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
+                        )}
+                      >
+                        <b className="block text-[11px]">{o.label.replace(" (cobots)", "")}</b>
+                        <span className="block text-muted-foreground">
+                          {o.robots} robot{o.robots > 1 ? "s" : ""}
+                          {o.cobots ? ` · ${o.cobots} cobot${o.cobots > 1 ? "s" : ""}` : ""}
+                        </span>
+                        <span className="block text-muted-foreground">{o.relativeOutput}× output</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted-foreground">{STRATEGIES[strategy].bestFor}.</p>
+                </div>
+              )}
               {budget && (
                 <button
                   onClick={() => setReportOpen(true)}
@@ -465,6 +513,11 @@ export default function AutomationStudio3D({
                         {r.multitask && (
                           <Badge variant="secondary" className="h-4 gap-0.5 px-1 text-[9px]">
                             <Repeat className="h-2.5 w-2.5" /> Multitask
+                          </Badge>
+                        )}
+                        {r.collaborative && (
+                          <Badge variant="outline" className="h-4 border-emerald-500/60 px-1 text-[9px] text-emerald-600">
+                            Cobot
                           </Badge>
                         )}
                         {r.toolChanger && (
@@ -679,6 +732,7 @@ export default function AutomationStudio3D({
           unreachable={unreachable.map((u) => STATION_NAMES[u] || u)}
           referenceImage={reference}
           media={media}
+          options={options}
         />
       )}
       <SkillsLibrary
