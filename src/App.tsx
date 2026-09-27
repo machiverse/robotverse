@@ -206,9 +206,9 @@ const App = () => (
             <Route path="/blogs/:id" element={<RedirectWithId base="/blog" />} />
             <Route path="/blog/:id" element={<BlogDetails />} />
 
-            <Route path="/marketplace/robots" element={<Robots />} />
-            <Route path="/marketplace/parts" element={<Parts />} />
-            <Route path="/marketplace/services" element={<Services />} />
+            <Route path="/marketplace/robots" element={<Navigate to="/robots" replace />} />
+            <Route path="/marketplace/parts" element={<Navigate to="/parts" replace />} />
+            <Route path="/marketplace/services" element={<Navigate to="/services" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/dashboard/analytics" element={<Analytics />} />
             <Route path="/dashboard/reports" element={<Reports />} />

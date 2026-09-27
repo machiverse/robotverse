@@ -73,6 +73,14 @@ const ENTITY_KINDS = new Set([
   "service-city",
   "blog",
   "robobook-post",
+  "auction",
+  "auction-detail",
+  "robot-talent",
+  "job",
+  "compare",
+  "spares",
+  "seller-robots",
+  "robot-application",
 ]);
 
 type Desired = Parameters<typeof apply>[0];
@@ -90,7 +98,7 @@ export function useCanonicalHead() {
     desired.current = {
       title: base.title,
       description: base.description,
-      canonical: canonicalFor(path),
+      canonical: canonicalFor(match.path),
       robots:
         match.kind === "private" || match.kind === "unknown" || match.kind === "gone"
           ? NOINDEX_ROBOTS
