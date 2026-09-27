@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -65,6 +66,8 @@ import MyRequests from "./pages/dashboard/MyRequests";
 import ApiKeys from "./pages/dashboard/ApiKeys";
 import ApiDocs from "./pages/ApiDocs";
 import Contact from "./pages/Contact";
+// Loaded on demand so the Directory adds nothing to the main bundle
+const Directory = lazy(() => import("./pages/Directory"));
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
 import BuyerGuide from "./pages/BuyerGuide";
@@ -228,6 +231,7 @@ const App = () => (
             <Route path="/profile-settings" element={<ProfileSettings />} />
             <Route path="/settings" element={<ProfileSettings />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/directory" element={<Suspense fallback={null}><Directory /></Suspense>} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/seller-guide" element={<SellerGuide />} />
             <Route path="/buyer-guide" element={<BuyerGuide />} />

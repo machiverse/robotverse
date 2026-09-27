@@ -1,0 +1,115 @@
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, ImageIcon, Mail } from "lucide-react";
+import ItemImage from "./ItemImage";
+import {
+  enquiryMailto,
+  oemPhotoSearchUrl,
+  robodkPageUrl,
+  type CatalogItem,
+  type CatalogKind,
+} from "./directoryTypes";
+
+interface Props {
+  kind: CatalogKind;
+  item: CatalogItem | null;
+  onOpenChange: (open: boolean) => void;
+}
+
+const row = (label: string, value: string | number | undefined, unit = "") =>
+  value === undefined || value === "" ? null : (
+    <div key={label} className="flex justify-between gap-4 border-b border-border/60 py-2 text-sm last:border-0">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium text-foreground">
+        {typeof value === "number" ? value.toLocaleString("en-IN") : value}
+        {unit && ` ${unit}`}
+      </dd>
+    </div>
+  );
+
+const DirectoryItemDialog = ({ kind, item, onOpenChange }: Props) => {
+  if (!item) return <Dialog open={false} onOpenChange={onOpenChange} />;
+  const page = robodkPageUrl(item);
+
+  return (
+    <Dialog open={!!item} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary" className="font-mono">
+              {item.id}
+            </Badge>
+            {(item.t || item.c) && <Badge variant="outline">{item.t || item.c}</Badge>}
+            {item.ap?.includes("Collaborative") && <Badge variant="outline">Cobot</Badge>}
+          </div>
+          <DialogTitle className="text-xl">{item.n}</DialogTitle>
+          <DialogDescription>Brand: {item.b}</DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <figure>
+            <div className="h-64 rounded-lg border border-border bg-white p-4">
+              <ItemImage key={item.id} kind={kind} item={item} large />
+            </div>
+            <figcaption className="mt-1 text-[11px] text-muted-foreground">Image: RoboDK 3D model render</figcaption>
+          </figure>
+
+          <dl>
+            {row("RobotVerse ID", item.id)}
+            {row("Brand", item.b)}
+            {row("Model", item.m)}
+            {row(kind === "robots" ? "Robot type" : "Category", item.t || item.c)}
+            {row(kind === "tools" ? "Moving axes" : "Axes", item.a)}
+            {row("Payload", item.p, "kg")}
+            {row(kind === "axes" ? "Stroke / reach" : "Reach", item.r, "mm")}
+            {row("Repeatability", item.e, "mm")}
+            {row("Weight", item.w, "kg")}
+          </dl>
+        </div>
+
+        {item.ap && item.ap.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Applications</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {item.ap.map((a) => (
+                <Badge key={a} variant="secondary" className="font-normal">
+                  {a}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Button asChild>
+            <a href={enquiryMailto(item)}>
+              <Mail className="mr-2 h-4 w-4" />
+              Enquire about this
+            </a>
+          </Button>
+          <Button variant="outline" asChild>
+            <a href={oemPhotoSearchUrl(item)} target="_blank" rel="noopener noreferrer">
+              <ImageIcon className="mr-2 h-4 w-4" />
+              Find OEM photos
+            </a>
+          </Button>
+          {page && (
+            <Button variant="outline" asChild>
+              <a href={page} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View on RoboDK
+              </a>
+            </Button>
+          )}
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          Specifications are indicative, from the RoboDK robot library. Please confirm with the manufacturer before purchase.
+        </p>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default DirectoryItemDialog;
