@@ -121,10 +121,10 @@ const specTable = (rows: Array<[string, string | number | null | undefined]>) =>
   return body ? `<table><caption>Specifications</caption><tbody>${body}</tbody></table>` : "";
 };
 
-const linkList = (items: Array<{ url: string; label: string }>, heading: string) =>
+const linkList = (items: Array<{ url: string; label?: string; name?: string }>, heading: string) =>
   items.length
     ? `<section><h2>${esc(heading)}</h2><ul>` +
-      items.map((i) => `<li><a href="${esc(i.url)}">${esc(i.label)}</a></li>`).join("") +
+      items.map((i) => `<li><a href="${esc(i.url)}">${esc(i.label ?? i.name)}</a></li>`).join("") +
       `</ul></section>`
     : "";
 
@@ -1344,7 +1344,7 @@ async function render(supabase: Client, rawPath: string): Promise<Snapshot> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const supabase = createClient(
+  const supabase: Client = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
