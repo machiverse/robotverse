@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, X } from "lucide-react";
 import DirectoryItemDialog from "./DirectoryItemDialog";
 import ItemImage from "./ItemImage";
-import type { CatalogItem, CatalogKind } from "./directoryTypes";
+import type { CatalogItem, CatalogKind, PhotoMap } from "./directoryTypes";
 
 const PAGE_SIZE = 24;
 const ALL = "__all";
@@ -30,6 +30,11 @@ const fetchCatalog = async (kind: CatalogKind): Promise<CatalogItem[]> => {
   return res.json();
 };
 
+const fetchPhotos = async (): Promise<PhotoMap> => {
+  const res = await fetch("/directory/photos.json");
+  return res.ok ? res.json() : {};
+};
+
 const fmt = (v: number | undefined, unit: string) => (v === undefined ? "—" : `${v.toLocaleString("en-IN")} ${unit}`);
 
 const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
@@ -38,6 +43,8 @@ const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
     queryFn: () => fetchCatalog(kind),
     staleTime: Infinity,
   });
+
+  const { data: photos = {} } = useQuery({ queryKey: ["directory", "photos"], queryFn: fetchPhotos, staleTime: Infinity });
 
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState(ALL);
@@ -213,7 +220,7 @@ const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
                 className="group cursor-pointer overflow-hidden transition-all hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="relative h-40 overflow-hidden">
-                  <ItemImage kind={kind} item={item} />
+                  <ItemImage kind={kind} item={item} photo={photos[item.id]} />
                   <Badge variant="secondary" className="absolute left-2 top-2 font-mono text-[10px]">
                     {item.id}
                   </Badge>
@@ -258,7 +265,7 @@ const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
         </>
       )}
 
-      <DirectoryItemDialog kind={kind} item={selected} onOpenChange={(open) => !open && setSelected(null)} />
+      <DirectoryItemDialog kind={kind} item={selected} photo={selected ? photos[selected.id] : undefined} onOpenChange={(open) => !open && setSelected(null)} />
     </div>
   );
 };

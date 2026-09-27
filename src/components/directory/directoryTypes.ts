@@ -16,9 +16,26 @@ export interface CatalogItem {
   e?: number; // repeatability (mm)
   w?: number; // weight (kg)
   ap?: string[]; // applications
+  img?: string; // product render file name (fallback image)
+  th?: string; // small render file name
 }
 
 export const SUPPORT_EMAIL = "support@robotverse.in";
+
+// Real OEM photos, keyed by RobotVerse ID, live in /public/directory/photos.json
+// ({ "RVRobot0001": "https://…" }). They take priority over the product renders.
+export type PhotoMap = Record<string, string>;
+
+const RENDER_HOST = "https://cdn.robodk.com";
+
+export const renderUrl = (kind: CatalogKind, file: string) =>
+  kind === "tools" ? `${RENDER_HOST}/robotlib/tools/${file}` : `${RENDER_HOST}/robot/img/${file}`;
+
+/** Image candidates in priority order: real OEM photo, then product render. */
+export const imageCandidates = (kind: CatalogKind, item: CatalogItem, photo: string | undefined, large: boolean) => {
+  const renders = (large ? [item.img, item.th] : [item.th, item.img]).filter(Boolean) as string[];
+  return [photo, ...renders.map((f) => renderUrl(kind, f))].filter(Boolean) as string[];
+};
 
 export const oemPhotoSearchUrl = (item: CatalogItem) =>
   `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${item.n} official product photo`)}`;

@@ -8,6 +8,7 @@ import { enquiryMailto, oemPhotoSearchUrl, type CatalogItem, type CatalogKind } 
 interface Props {
   kind: CatalogKind;
   item: CatalogItem | null;
+  photo?: string;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -22,7 +23,7 @@ const row = (label: string, value: string | number | undefined, unit = "") =>
     </div>
   );
 
-const DirectoryItemDialog = ({ kind, item, onOpenChange }: Props) => {
+const DirectoryItemDialog = ({ kind, item, photo, onOpenChange }: Props) => {
   if (!item) return <Dialog open={false} onOpenChange={onOpenChange} />;
 
   return (
@@ -43,7 +44,7 @@ const DirectoryItemDialog = ({ kind, item, onOpenChange }: Props) => {
         <div className="grid gap-6 md:grid-cols-2">
           <figure>
             <div className="h-64 overflow-hidden rounded-lg border border-border">
-              <ItemImage key={item.id} kind={kind} item={item} large />
+              <ItemImage key={item.id} kind={kind} item={item} photo={photo} large />
             </div>
           </figure>
 
