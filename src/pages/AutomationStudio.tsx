@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { analyzeDescription } from "@/utils/processAnalyzer";
 import { Link, useNavigate } from "react-router-dom";
 import EnhancedHeader from "@/components/EnhancedHeader";
@@ -53,9 +53,10 @@ import {
   buildStats,
   getBlueprint,
 } from "@/data/automationStudioIndustries";
-import RobotCellSimulation from "@/components/automation-studio/RobotCellSimulation";
 import { FactoryLayoutSvg, MaterialFlowSvg } from "@/components/automation-studio/StudioVisualizations";
 import type { VisualStation } from "@/components/automation-studio/visualTypes";
+
+const ProcessLine3D = lazy(() => import("@/features/automation3d/ProcessLine3D"));
 
 /* ---------------------------------- data --------------------------------- */
 
@@ -174,7 +175,7 @@ export default function AutomationStudio() {
   const [industry, setIndustry] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [msgIndex, setMsgIndex] = useState(0);
-  const [visualTab, setVisualTab] = useState("layout");
+  const [visualTab, setVisualTab] = useState("cell");
   const [visualPlaying, setVisualPlaying] = useState(true);
   const [visualSpeed, setVisualSpeed] = useState<"0.5" | "1" | "2">("1");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -659,10 +660,10 @@ export default function AutomationStudio() {
                   </div>
                 </div>
                 <Tabs value={visualTab} onValueChange={setVisualTab}>
-                  <TabsList className="flex-wrap">
+                  <TabsList className="h-auto flex-wrap">
                     <TabsTrigger value="layout">Factory Layout</TabsTrigger>
                     <TabsTrigger value="flow">Material Flow</TabsTrigger>
-                    <TabsTrigger value="cell">3D Cell View</TabsTrigger>
+                    <TabsTrigger value="cell">3D Production Line ({processes.length})</TabsTrigger>
                   </TabsList>
                   <TabsContent value="layout" className="mt-4">
                     <FactoryLayoutSvg stations={stations} playing={visualPlaying} speed={visualSpeed} active={visualTab === "layout"} />
@@ -671,7 +672,9 @@ export default function AutomationStudio() {
                     <MaterialFlowSvg stations={stations} playing={visualPlaying} speed={visualSpeed} active={visualTab === "flow"} />
                   </TabsContent>
                   <TabsContent value="cell" className="mt-4">
-                    {stations[0] && <RobotCellSimulation station={stations[0]} playing={visualPlaying} speed={visualSpeed} active={visualTab === "cell"} />}
+                    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading 3D production line…</div>}>
+                      <ProcessLine3D processes={processes} playing={visualPlaying && visualTab === "cell"} speed={visualSpeed} />
+                    </Suspense>
                   </TabsContent>
                 </Tabs>
               </CardContent>

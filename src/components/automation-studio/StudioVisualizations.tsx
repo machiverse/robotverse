@@ -2,10 +2,10 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { VisualMotionProps, VisualStation } from "./visualTypes";
 
-const placeStations = (stations: VisualStation[]) => stations.slice(0, 6).map((station, index) => ({
+const placeStations = (stations: VisualStation[]) => stations.map((station, index) => ({
   ...station,
   x: 40 + (index % 3) * 270,
-  y: index < 3 ? 70 : 260,
+  y: 70 + Math.floor(index / 3) * 190,
 }));
 
 const StationTooltip = ({ station, x, y }: { station: VisualStation; x: number; y: number }) => (
@@ -36,6 +36,7 @@ const RobotArmSymbol = ({ x, y }: { x: number; y: number }) => (
 
 export function FactoryLayoutSvg({ stations, playing, speed, active = true }: { stations: VisualStation[] } & VisualMotionProps) {
   const placed = placeStations(stations);
+  const height = Math.max(470, Math.ceil(stations.length / 3) * 190 + 90);
   const uid = useId().replace(/:/g, "");
   const [hovered, setHovered] = useState<number | null>(null);
   const gridId = `${uid}-factory-grid`;
@@ -49,13 +50,13 @@ export function FactoryLayoutSvg({ stations, playing, speed, active = true }: { 
 
   return (
     <div className="automation-studio-visuals overflow-x-auto rounded-lg border border-border" data-speed={speed} data-paused={!playing || !active ? "true" : "false"}>
-      <svg viewBox="0 0 900 470" className="h-auto w-full min-w-[760px]" role="img" aria-label="Animated factory layout preview">
+      <svg viewBox={`0 0 900 ${height}`} className="h-auto w-full min-w-[760px]" role="img" aria-label="Animated factory layout preview">
         <defs>
           <pattern id={gridId} width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" className="stroke-border" strokeWidth="1.2" /></pattern>
           <marker id={arrowId} markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" className="fill-accent-foreground" /></marker>
         </defs>
-        <rect width="900" height="470" className="fill-muted" />
-        <rect width="900" height="470" fill={`url(#${gridId})`} opacity="0.95" />
+        <rect width="900" height={height} className="fill-muted" />
+        <rect width="900" height={height} fill={`url(#${gridId})`} opacity="0.95" />
         <g className={cn("as-flow-network", hovered !== null && "is-focused")} fill="none">
           {paths.map((path, index) => (
             <g key={path} className={cn("as-flow-connection", hovered !== null && (index === hovered || index + 1 === hovered) && "is-connected")}>
@@ -86,7 +87,7 @@ export function FactoryLayoutSvg({ stations, playing, speed, active = true }: { 
             <StationTooltip station={station} x={Math.min(station.x + 14, 660)} y={station.y < 150 ? station.y + 132 : station.y - 130} />
           </g>
         ))}
-        <g transform="translate(40 420)"><rect width="470" height="34" rx="5" className="fill-card stroke-border" /><rect x="16" y="11" width="14" height="12" className="fill-success/10 stroke-success" /><text x="38" y="22" className="fill-muted-foreground" fontSize="10">Safety envelope</text><circle cx="165" cy="17" r="5" className="fill-success" /><text x="177" y="22" className="fill-muted-foreground" fontSize="10">Active robot</text><line x1="273" y1="17" x2="306" y2="17" className="stroke-primary" strokeDasharray="6 4" /><text x="316" y="22" className="fill-muted-foreground" fontSize="10">Material flow</text></g>
+        <g transform={`translate(40 ${height - 50})`}><rect width="470" height="34" rx="5" className="fill-card stroke-border" /><rect x="16" y="11" width="14" height="12" className="fill-success/10 stroke-success" /><text x="38" y="22" className="fill-muted-foreground" fontSize="10">Safety envelope</text><circle cx="165" cy="17" r="5" className="fill-success" /><text x="177" y="22" className="fill-muted-foreground" fontSize="10">Active robot</text><line x1="273" y1="17" x2="306" y2="17" className="stroke-primary" strokeDasharray="6 4" /><text x="316" y="22" className="fill-muted-foreground" fontSize="10">Material flow</text></g>
       </svg>
     </div>
   );
@@ -94,9 +95,9 @@ export function FactoryLayoutSvg({ stations, playing, speed, active = true }: { 
 
 export function MaterialFlowSvg({ stations, playing, speed, active = true }: { stations: VisualStation[] } & VisualMotionProps) {
   const placed = placeStations(stations);
+  const height = Math.max(470, Math.ceil(stations.length / 3) * 190 + 90);
   const uid = useId().replace(/:/g, "");
-  const [counts, setCounts] = useState(() => stations.slice(0, 6).map(() => 0));
-  const [throughput, setThroughput] = useState(0);
+  const [counts, setCounts] = useState(() => stations.map(() => 0));
   const [hovered, setHovered] = useState<number | null>(null);
   const paths = useMemo(() => placed.slice(1).map((station, index) => {
     const previous = placed[index];
@@ -105,21 +106,24 @@ export function MaterialFlowSvg({ stations, playing, speed, active = true }: { s
       : `M${previous.x + 105},${previous.y + 128} C${previous.x + 105},${station.y - 20} ${station.x + 105},${previous.y + 160} ${station.x + 105},${station.y}`;
   }), [placed]);
 
+  const stationKey = stations.map(s => s.label).join("|");
+  const stationCount = stations.length;
+  useEffect(() => { setCounts(Array(stationCount).fill(0)); }, [stationKey, stationCount]);
+
   useEffect(() => {
     if (!playing || !active) return;
     const multiplier = speed === "2" ? 2 : speed === "0.5" ? 0.5 : 1;
     const timer = window.setInterval(() => {
       setCounts((current) => current.map((count, index) => count + (index % 2 === 0 ? 1 : 2)));
-      setThroughput((value) => Math.min(47, value + 1));
     }, 700 / multiplier);
     return () => window.clearInterval(timer);
   }, [active, playing, speed]);
 
   return (
     <div className="automation-studio-visuals overflow-x-auto rounded-lg border border-border bg-muted/30" data-speed={speed} data-paused={!playing || !active ? "true" : "false"}>
-      <svg viewBox="0 0 900 475" className="h-auto w-full min-w-[760px]" role="img" aria-label="Animated material flow">
+      <svg viewBox={`0 0 900 ${height}`} className="h-auto w-full min-w-[760px]" role="img" aria-label="Animated material flow">
         <defs><pattern id={`${uid}-flow-grid`} width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" className="stroke-border" strokeWidth="1" /></pattern><pattern id={`${uid}-conveyor`} width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="7" height="18" className="fill-primary/20" /></pattern><filter id={`${uid}-part-glow`} x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="6" result="blur"/><feFlood floodColor="hsl(var(--primary))" floodOpacity="0.45"/><feComposite in2="blur" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-        <rect width="900" height="475" className="fill-muted" /><rect width="900" height="475" fill={`url(#${uid}-flow-grid)`} />
+        <rect width="900" height={height} className="fill-muted" /><rect width="900" height={height} fill={`url(#${uid}-flow-grid)`} />
         <g className={cn("as-flow-network", hovered !== null && "is-focused")}>
           {paths.map((path, index) => (
             <g key={path} className={cn("as-flow-connection", hovered !== null && (index === hovered || index + 1 === hovered) && "is-connected")}>
@@ -143,7 +147,7 @@ export function MaterialFlowSvg({ stations, playing, speed, active = true }: { s
           </g>
         ))}
       </svg>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-sm"><span className="text-muted-foreground">Live buffers and station output</span><span className="font-semibold text-primary tabular-nums">Estimated: {throughput} parts/hour</span></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-sm"><span className="text-muted-foreground">Illustrative material flow</span><span className="font-semibold text-primary tabular-nums">{stations.length} processes · Demo counters</span></div>
     </div>
   );
 }
