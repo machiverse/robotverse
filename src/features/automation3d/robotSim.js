@@ -19,6 +19,19 @@ export const STATION_NAMES = {
   pallet: "Pallet",
   vision: "Vision camera",
   weld: "Welding table",
+  carton: "Packing carton",
+};
+
+/* Tool operations the robot performs on a part sitting on the work table.
+   Each has its own tool head colour and animation in the simulation. */
+export const TOOL_ACTIONS = {
+  apply: { label: "Apply coating", color: 0x22d3ee },
+  finish: { label: "Polish surface", color: 0xc084fc },
+  assemble: { label: "Assemble components", color: 0x818cf8 },
+  fill: { label: "Fill container", color: 0x38bdf8 },
+  cap: { label: "Cap and seal", color: 0xe879f9 },
+  label: { label: "Apply label", color: 0xa3e635 },
+  operate: { label: "Process part", color: 0xf59e0b },
 };
 
 export const PRESETS = {
@@ -28,13 +41,21 @@ export const PRESETS = {
   "Pick and place": "Pick part from conveyor\nInspect with camera\nPlace on work table",
   Welding:
     "Pick part from conveyor\nPlace on welding table\nWeld seam\nPick from welding table\nStack on pallet",
+  Painting: "Pick part from conveyor\nPlace on work table\nSpray paint the surface\nPick from work table\nStack on pallet",
+  Dispensing: "Pick part from conveyor\nPlace on work table\nDispense adhesive bead\nPick from work table\nStack on pallet",
+  Polishing: "Pick part from conveyor\nPlace on work table\nPolish and deburr surface\nPick from work table\nStack on pallet",
+  Assembly: "Pick part from conveyor\nPlace on work table\nScrew and fasten components\nPick from work table\nStack on pallet",
+  "Filling & capping": "Pick container from conveyor\nPlace on work table\nFill container\nCap and seal container\nPick from work table\nPack into carton",
+  Labeling: "Pick product from conveyor\nPlace on work table\nApply label\nPick from work table\nPack into carton",
+  Packing: "Pick product from conveyor\nInspect with camera\nPack into carton",
 };
 
 /* Text -> process steps */
 
 function detectStation(c) {
-  if (/weld/.test(c)) return "weld";
+  if (/weld|solder/.test(c)) return "weld";
   if (/conveyor|belt|infeed/.test(c)) return "conveyor";
+  if (/carton|\bpack\w*|boxing|\bbox(es)?\b/.test(c) && !/pallet/.test(c)) return "carton";
   if (/\bcnc\b|machine|lathe|\bmill|\bvmc\b|press/.test(c)) return "cnc";
   if (/pallet|\bbox\b|\bbin\b|carton|stack/.test(c)) return "pallet";
   if (/table|fixture|\bjig\b|tray|bench/.test(c)) return "table";
@@ -43,6 +64,18 @@ function detectStation(c) {
 }
 
 const DEFAULT_STATION = { pick: "conveyor", place: "pallet", inspect: "vision", weld: "weld", process: "cnc", wait: null };
+
+// Keyword -> tool action. Checked in order, so more specific trades come first.
+const TOOL_PATTERNS = [
+  ["fill", /\b(fill\w*|dos(e|ing)|pour\w*|liquid)\b/],
+  ["cap", /\b(cap|capp\w*|stopper\w*|lid|seal(?!ant)\w*|crimp\w*)\b/],
+  ["label", /\b(label\w*|mark\w*|engrav\w*|coding|print\w*|serialis\w*|serializ\w*|tag\w*)\b/],
+  ["apply", /\b(paint\w*|coat\w*|spray\w*|dispens\w*|glu\w*|adhesive|sealant|bead|primer|varnish\w*|lacquer\w*)\b/],
+  ["finish", /\b(polish\w*|grind\w*|sand\w*|deburr\w*|buff\w*|finish\w*|clean\w*|blast\w*)\b/],
+  ["assemble", /\b(assembl\w*|screw\w*|fasten\w*|bolt\w*|rivet\w*|mount\w*|insert component|press[- ]fit|join\w*|nut)\b/],
+];
+
+const capitalise = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 export function stepLabel(step) {
   const n = STATION_NAMES[step.station] || "";
@@ -60,34 +93,72 @@ export function stepLabel(step) {
     case "weld":
       return "Weld seam";
     default:
+      if (TOOL_ACTIONS[step.action]) return step.text ? capitalise(step.text) : TOOL_ACTIONS[step.action].label;
       return "Wait";
   }
 }
 
 export function parseProcess(text) {
   const clauses = String(text || "")
-    .toLowerCase()
-    .split(/\n|→|->|,|;|\band then\b|\bthen\b|\.(?=\s|$)/)
+    .split(/\n|→|->|,|;|\band then\b|\bthen\b|\.(?=\s|$)/i)
     .map((s) => s.trim())
     .filter(Boolean);
 
   const steps = [];
   const notes = [];
   let holding = false;
+  let onTable = false; // a part is sitting on the work table
 
-  for (const c of clauses) {
+  const push = (step, auto) => {
+    step.label = step.label || stepLabel(step);
+    if (auto) {
+      step.auto = true;
+      notes.push(`Added "${step.label}" so the cycle flows.`);
+    }
+    if (step.action === "pick") holding = true;
+    if (step.action === "place") holding = false;
+    if (step.action === "place" && step.station === "table") onTable = true;
+    if (step.action === "pick" && step.station === "table") onTable = false;
+    steps.push(step);
+  };
+
+  for (const clause of clauses) {
+    // Optional display name in brackets: "Polish surface [Surface Polishing]"
+    const named = clause.match(/^(.*?)\s*\[(.+)\]\s*$/);
+    const raw = named ? named[2].trim() : clause;
+    const c = (named ? named[1] : clause).toLowerCase();
     let action = null;
     if (/\bunload/.test(c)) action = "pick";
-    else if (/\bload\b|\binsert/.test(c)) action = "place";
-    else if (/\bweld/.test(c) && !/(on|onto|to) (the )?weld/.test(c) && !/from (the )?weld/.test(c)) action = "weld";
-    else if (/\b(pick|take|grab|lift|collect|get)\b/.test(c)) action = "pick";
-    else if (/\b(place|put|drop|stack|palleti[sz]e|deliver|transfer|set down)\b/.test(c)) action = "place";
-    else if (/\b(inspect|check|scan|measure|camera|vision|quality)\b/.test(c)) action = "inspect";
-    else if (/\b(machin\w*|process|cut|drill|turn|cycle)\b/.test(c)) action = "process";
+    else if (/\bload\b|\binsert\b(?! component)/.test(c) && !/\b(pick|take|grab|collect)\b/.test(c)) action = "place";
+    else if (/\b(weld|solder)/.test(c) && !/(on|onto|to|from) (the )?(weld|solder)/.test(c)) action = "weld";
+    else if (/\b(pick|take|grab|lift|collect|get|receive)\b/.test(c)) action = "pick";
+    else if (/\b(pack|box|carton|bag)\w*\b/.test(c) && !/pallet/.test(c) && !/\b(form|erect|fold)\w*/.test(c)) action = "place";
+    else if (/\b(place|put|drop|stack|palleti[sz]e|deliver|transfer|set down|move|carry|transport|sort|store)\b/.test(c)) action = "place";
+    else if (/\b(inspect|check|scan|measure|camera|vision|quality|test|verif\w*|weigh\w*)\b/.test(c)) action = "inspect";
+    else if (/\b(cnc|machin\w*|mill\w*|lathe|turn\w*|drill\w*|cut\w*|bend\w*|press\w*|cycle)\b/.test(c)) action = "process";
     else if (/\b(wait|pause|hold)\b/.test(c)) action = "wait";
-
     if (!action) {
-      notes.push(`Not understood, skipped: "${c}"`);
+      const tool = TOOL_PATTERNS.find(([, re]) => re.test(c));
+      // Anything else still runs as a generic tool operation on the work table.
+      action = tool ? tool[0] : "operate";
+    }
+    // Tool keywords win over generic verbs like "apply" / "move" and over nouns
+    // like "the weld" in "grind the weld".
+    if (
+      (action === "weld" || action === "process" || ((action === "place" || action === "inspect") && !/\b(pack|carton|box|pallet|table|conveyor|stack)\b/.test(c)))
+    ) {
+      const tool = TOOL_PATTERNS.find(([, re]) => re.test(c));
+      if (tool) action = tool[0];
+    }
+
+    if (TOOL_ACTIONS[action]) {
+      // Tool work happens on a part resting on the work table, with the gripper free.
+      if (holding) push({ action: "place", station: "table" }, true);
+      else if (!onTable) {
+        push({ action: "pick", station: "conveyor" }, true);
+        push({ action: "place", station: "table" }, true);
+      }
+      push({ action, station: "table", text: raw });
       continue;
     }
 
@@ -96,20 +167,70 @@ export function parseProcess(text) {
     if (action === "process") station = "cnc";
     if (action === "weld") station = "weld";
     if (action === "place" && station === "vision") station = null;
+    if (action === "pick" && !station && onTable) station = "table";
     if (!station) station = DEFAULT_STATION[action];
 
-    if (action === "pick" && holding) notes.push(`"${c}": the robot is already holding a part here.`);
-    if (action === "place" && !holding) notes.push(`"${c}": nothing is being held at this point, so this step will be skipped.`);
-    if (action === "pick") holding = true;
-    if (action === "place") holding = false;
-
+    if (action === "pick" && holding) {
+      notes.push(`"${raw}": the robot is already holding a part here.`);
+    }
+    if (action === "inspect" && !holding) {
+      push({ action: "pick", station: onTable ? "table" : "conveyor" }, true);
+    }
+    if (action === "place" && !holding) {
+      if (onTable && station !== "table") push({ action: "pick", station: "table" }, true);
+      else push({ action: "pick", station: "conveyor" }, true);
+    }
     const step = { action, station };
-    step.label = stepLabel(step);
-    steps.push(step);
+    if (action === "place" && station === "carton") step.label = "Pack into carton";
+    if (named) step.label = raw;
+    push(step);
   }
 
-  if (!steps.length) notes.push("No steps found. Try lines like: Pick part from conveyor, Load CNC, Stack on pallet.");
+  // Finish the cycle: send the finished part to the pallet (or carton if packing).
+  if (steps.length) {
+    const packs = steps.some((s) => s.station === "carton");
+    if (onTable && !holding) push({ action: "pick", station: "table" }, true);
+    if (holding) push({ action: "place", station: packs ? "carton" : "pallet", label: packs ? "Pack into carton" : undefined }, true);
+  }
+
+  if (!steps.length) notes.push("No steps found. Try lines like: Pick part from conveyor, Paint the surface, Stack on pallet.");
   return { steps, notes };
+}
+
+/**
+ * Build a robot-cell process description for a detected process
+ * (used by Automation Studio to simulate a user's own analysed line).
+ */
+export function processToText(kind, name) {
+  const n = name ? ` [${name.replace(/[[\]\n]/g, " ")}]` : "";
+  switch (kind) {
+    case "welding":
+      return `Pick part from conveyor\nPlace on welding table\nWeld seam${n}\nPick from welding table\nStack on pallet`;
+    case "machining":
+      return `Pick part from conveyor\nLoad CNC\nRun machining cycle${n}\nUnload CNC\nInspect with camera\nStack on pallet`;
+    case "inspection":
+      return `Pick part from conveyor\nInspect with camera${n}\nStack on pallet`;
+    case "palletizing":
+      return `Pick case from conveyor\nStack on pallet${n}`;
+    case "packing":
+      return `Pick product from conveyor\nPack into carton${n}`;
+    case "transport":
+      return `Pick crate from conveyor\nDeliver to pallet${n}`;
+    case "finishing":
+      return `Pick part from conveyor\nPlace on work table\nPolish surface${n}\nPick from work table\nStack on pallet`;
+    case "coating":
+      return `Pick part from conveyor\nPlace on work table\nApply coating${n}\nPick from work table\nStack on pallet`;
+    case "assembly":
+      return `Pick part from conveyor\nPlace on work table\nAssemble and fasten components${n}\nPick from work table\nStack on pallet`;
+    case "filling":
+      return `Pick container from conveyor\nPlace on work table\nFill container${n}\nCap container\nPick from work table\nPack into carton`;
+    case "sealing":
+      return `Pick container from conveyor\nPlace on work table\nCap and seal container${n}\nPick from work table\nPack into carton`;
+    case "labeling":
+      return `Pick product from conveyor\nPlace on work table\nApply label${n}\nPick from work table\nPack into carton`;
+    default:
+      return `Pick part from conveyor${n}\nPlace on work table\nPick from work table\nStack on pallet`;
+  }
 }
 
 /* Simulation */
@@ -394,6 +515,54 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     stations.vision = { group: g, point: new THREE.Vector3(0.95, 1.08, pz), cone };
   }
 
+  {
+    // Packing carton on a low stand, next to the work table.
+    const g = new THREE.Group();
+    const cx = -1.05, cz = 0.95, standY = 0.3;
+    const card = new THREE.MeshStandardMaterial({ color: 0xc49a6c, metalness: 0, roughness: 0.9 });
+    const stand = box(0.5, standY, 0.4, M.frame);
+    stand.position.set(cx, standY / 2, cz);
+    g.add(stand);
+    const W = 0.4, D = 0.3, H = 0.18, t = 0.012;
+    const bottom = box(W, t, D, card);
+    bottom.position.set(cx, standY + t / 2, cz);
+    g.add(bottom);
+    for (const [dx, dz, w, d] of [
+      [0, -D / 2, W, t],
+      [0, D / 2, W, t],
+      [-W / 2, 0, t, D],
+      [W / 2, 0, t, D],
+    ]) {
+      const wall = box(w, H, d, card);
+      wall.position.set(cx + dx, standY + H / 2, cz + dz);
+      g.add(wall);
+    }
+    const lid = box(W + 0.01, t, D + 0.01, card);
+    lid.position.set(cx, standY + H + t / 2, cz);
+    lid.visible = false;
+    g.add(lid);
+    const tape = box(W + 0.012, t * 1.2, 0.05, M.amber);
+    tape.position.set(cx, standY + H + t, cz);
+    tape.visible = false;
+    g.add(tape);
+    const lbl = makeLabel(STATION_NAMES.carton);
+    lbl.position.set(cx - 0.3, standY + H + 0.12, cz + 0.2);
+    g.add(lbl);
+    scene.add(g);
+    const slots = [];
+    for (const dx of [-0.09, 0.09]) for (const dz of [-0.065, 0.065])
+      slots.push(new THREE.Vector3(cx + dx, standY + t + PART.h / 2, cz + dz));
+    stations.carton = { group: g, slots, parts: [], point: slots[0], lid, tape, closeT: 0 };
+  }
+
+  // Liquid stream used by the filling operation.
+  const stream = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.008, 0.008, 1, 12),
+    new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75, roughness: 0.1 })
+  );
+  stream.visible = false;
+  scene.add(stream);
+
   const sparkCount = 60;
   const sparkGeo = new THREE.BufferGeometry();
   sparkGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(sparkCount * 3), 3));
@@ -496,8 +665,21 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     tip.position.x = TOOL_LEN;
     j6.add(tip);
 
+    // Process tool (nozzle / spindle / driver) shown only during tool operations.
+    const toolMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.4, roughness: 0.35, emissive: 0x000000 });
+    const toolHead = new THREE.Group();
+    const toolBody = cyl(0.028, 0.1, toolMat);
+    toolBody.rotation.z = Math.PI / 2;
+    toolBody.position.x = 0.09;
+    const toolTip = cyl(0.012, 0.06, M.steel);
+    toolTip.rotation.z = Math.PI / 2;
+    toolTip.position.x = 0.15;
+    toolHead.add(toolBody, toolTip);
+    toolHead.visible = false;
+    j6.add(toolHead);
+
     scene.add(root);
-    return { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers, dims, q: [0, 0, 0, 0, 0, 0] };
+    return { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers, dims, q: [0, 0, 0, 0, 0, 0], toolHead, toolMat };
   }
 
   function disposeRobot() {
@@ -564,6 +746,15 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
   const partMats = {
     raw: new THREE.MeshStandardMaterial({ color: 0x9aa7b5, metalness: 0.6, roughness: 0.4 }),
     machined: new THREE.MeshStandardMaterial({ color: 0xcfe0f2, metalness: 0.8, roughness: 0.22 }),
+    coated: new THREE.MeshStandardMaterial({ color: 0x2f80ed, metalness: 0.3, roughness: 0.35 }),
+    polished: new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.08 }),
+  };
+  const addOn = (part, geo, color, pos, extra = {}) => {
+    const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, metalness: 0.3, roughness: 0.5, ...extra }));
+    m.position.copy(pos);
+    m.castShadow = true;
+    part.add(m);
+    return m;
   };
   const parts = new Set();
   function spawnPart(pos) {
@@ -738,6 +929,10 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       const pal = stations.pallet;
       return pal.slots[pal.parts.length % pal.slots.length];
     }
+    if (st === "carton") {
+      const ct = stations.carton;
+      return ct.slots[ct.parts.length % ct.slots.length];
+    }
     return stations[st].point;
   }
 
@@ -813,6 +1008,15 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
                 pal.parts.forEach(removePart);
                 pal.parts = [];
               }
+            } else if (s === "carton") {
+              const ct = stations.carton;
+              ct.parts.push(part);
+              if (ct.parts.length >= ct.slots.length) {
+                log("Carton full, sealed and replaced");
+                ct.lid.visible = true;
+                ct.tape.visible = true;
+                ct.closeT = 0.9;
+              }
             } else if (s === "conveyor") {
               removePart(part);
             } else {
@@ -871,7 +1075,12 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
         );
         out.push(jointMove(() => above(A), "weld"));
         out.push(linearMove(() => A, "weld", 0.3));
-        out.push(dwell(0.01, () => (sparks.visible = true)));
+        out.push(
+          dwell(0.01, () => {
+            setSparkColor(0xffd27a);
+            sparks.visible = true;
+          })
+        );
         out.push(
           linearMove(() => B, "weld", 0.05, (P) => {
             emitSparks(P);
@@ -887,12 +1096,169 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
         break;
       }
       default:
-        out.push(dwell(1));
+        if (TOOL_ACTIONS[step.action]) out.push(...toolSegments(step));
+        else out.push(dwell(1));
     }
     return out;
   }
 
-  function emitSparks(P) {
+  /* Tool operations on the part resting on the work table. */
+  function toolSegments(step) {
+    const w = stations.table;
+    const a = step.action;
+    const top = () => new THREE.Vector3(w.point.x, w.topY + PART.h + 0.006, w.point.z);
+    const at = (dx, dz, dy = 0) => () => top().add(new THREE.Vector3(dx, dy, dz));
+    const partOnTable = () => w.part || (w.part = spawnPart(w.point));
+    const out = [];
+    const spin = (k, turns) => (robot.joints[5].rotation.x = k * Math.PI * 2 * turns);
+
+    out.push(
+      dwell(0.25, () => {
+        partOnTable();
+        robot.toolHead.visible = true;
+        robot.toolMat.color.setHex(TOOL_ACTIONS[a].color);
+        robot.fingers.forEach((f) => (f.visible = false));
+      })
+    );
+    out.push(jointMove(() => above(top()), "table"));
+
+    if (a === "apply") {
+      let n = 0;
+      const beadGeo = new THREE.BoxGeometry(0.012, 0.004, 0.012);
+      for (const dz of [-0.03, 0, 0.03]) {
+        out.push(linearMove(at(-0.045, dz, 0.02), "table", 0.3));
+        out.push(dwell(0.01, () => setSparkColor(0x9be7ff)));
+        out.push(
+          linearMove(at(0.045, dz, 0.02), "table", 0.06, (P) => {
+            sparks.visible = true;
+            emitSparks(P, 0.35);
+            if (n++ % 3 === 0 && w.part) {
+              const local = w.part.worldToLocal(new THREE.Vector3(P.x, top().y - 0.004, P.z));
+              addOn(w.part, beadGeo, 0x1f6fd1, local);
+            }
+          })
+        );
+      }
+      out.push(
+        dwell(0.01, () => {
+          sparks.visible = false;
+          if (w.part) w.part.material = partMats.coated;
+        })
+      );
+    } else if (a === "finish") {
+      for (const dz of [-0.03, 0.01, 0.03, -0.01]) {
+        out.push(linearMove(at(-0.045, dz), "table", 0.3));
+        out.push(dwell(0.01, () => setSparkColor(0xffc56b)));
+        out.push(
+          linearMove(at(0.045, dz), "table", 0.09, (P, k) => {
+            sparks.visible = true;
+            emitSparks(P, 0.6);
+            spin(k, 6);
+          })
+        );
+      }
+      out.push(
+        dwell(0.01, () => {
+          sparks.visible = false;
+          if (w.part) w.part.material = partMats.polished;
+        })
+      );
+    } else if (a === "assemble") {
+      const screwGeo = new THREE.CylinderGeometry(0.009, 0.009, 0.012, 12);
+      for (const [dx, dz] of [
+        [-0.03, -0.03],
+        [0.03, -0.03],
+        [0, 0.03],
+      ]) {
+        out.push(linearMove(at(dx, dz, 0.05), "table", 0.3));
+        out.push(linearMove(at(dx, dz), "table", 0.15));
+        out.push(
+          dwell(
+            0.55,
+            null,
+            () => {
+              if (w.part) addOn(w.part, screwGeo, 0x475569, new THREE.Vector3(dx, PART.h / 2 + 0.006, dz), { metalness: 0.8 });
+            },
+            (k) => spin(k, 4)
+          )
+        );
+        out.push(linearMove(at(dx, dz, 0.05), "table", 0.2));
+      }
+    } else if (a === "fill") {
+      out.push(linearMove(at(0, 0, 0.1), "table", 0.2));
+      out.push(
+        dwell(
+          1.6,
+          () => (stream.visible = true),
+          () => {
+            stream.visible = false;
+            if (w.part) addOn(w.part, new THREE.BoxGeometry(PART.w * 0.8, 0.006, PART.d * 0.8), 0x38bdf8, new THREE.Vector3(0, PART.h / 2 + 0.003, 0), { transparent: true, opacity: 0.85, roughness: 0.1 });
+          },
+          () => {
+            const from = tipWorld();
+            const to = top();
+            const len = Math.max(0.01, from.y - to.y);
+            stream.scale.set(1, len, 1);
+            stream.position.set(to.x, to.y + len / 2, to.z);
+          }
+        )
+      );
+    } else if (a === "cap") {
+      out.push(linearMove(at(0, 0, 0.012), "table", 0.12));
+      out.push(
+        dwell(
+          0.7,
+          null,
+          () => {
+            if (w.part) addOn(w.part, new THREE.CylinderGeometry(0.032, 0.032, 0.02, 24), 0xc026d3, new THREE.Vector3(0, PART.h / 2 + 0.01, 0));
+          },
+          (k) => spin(k, 3)
+        )
+      );
+    } else if (a === "label") {
+      out.push(linearMove(at(-0.035, 0), "table", 0.2));
+      out.push(linearMove(at(0.035, 0), "table", 0.08));
+      out.push(
+        dwell(0.2, null, () => {
+          if (w.part) {
+            addOn(w.part, new THREE.BoxGeometry(0.075, 0.003, 0.055), 0xffffff, new THREE.Vector3(0, PART.h / 2 + 0.002, 0));
+            addOn(w.part, new THREE.BoxGeometry(0.075, 0.0035, 0.012), 0x84cc16, new THREE.Vector3(0, PART.h / 2 + 0.0025, -0.018));
+          }
+        })
+      );
+    } else {
+      // Generic process: circle over the part with the tool running.
+      for (const [dx, dz] of [
+        [-0.03, 0],
+        [0, 0.03],
+        [0.03, 0],
+        [0, -0.03],
+      ]) {
+        out.push(linearMove(at(dx, dz, 0.01), "table", 0.12, (P, k) => spin(k, 2)));
+      }
+      out.push(
+        dwell(0.6, null, () => {
+          if (w.part) w.part.material = partMats.machined;
+        })
+      );
+    }
+
+    out.push(linearMove(() => above(top()), "table", 0.35));
+    out.push(
+      dwell(0.2, null, () => {
+        robot.toolHead.visible = false;
+        robot.fingers.forEach((f) => (f.visible = true));
+        robot.joints[5].rotation.x = 0;
+      })
+    );
+    return out;
+  }
+
+  function setSparkColor(hex) {
+    sparks.material.color.setHex(hex);
+  }
+
+  function emitSparks(P, spread = 1) {
     const pos = sparkGeo.attributes.position.array;
     for (let i = 0; i < sparkCount; i++) {
       if (sparkLife[i] <= 0) {
@@ -900,7 +1266,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
         pos[i * 3] = P.x;
         pos[i * 3 + 1] = P.y - TOOL_LEN * 0.05;
         pos[i * 3 + 2] = P.z;
-        sparkVel[i].set((Math.random() - 0.5) * 1.6, Math.random() * 1.4, (Math.random() - 0.5) * 1.6);
+        sparkVel[i].set((Math.random() - 0.5) * 1.6 * spread, Math.random() * 1.4 * spread, (Math.random() - 0.5) * 1.6 * spread);
       }
     }
   }
@@ -950,8 +1316,21 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     }
   }
 
+  function updateCarton(dt) {
+    const ct = stations.carton;
+    if (ct.closeT > 0) {
+      ct.closeT -= dt;
+      if (ct.closeT <= 0) {
+        ct.parts.forEach(removePart);
+        ct.parts = [];
+        ct.lid.visible = false;
+        ct.tape.visible = false;
+      }
+    }
+  }
+
   const VIEWS = {
-    iso: [new THREE.Vector3(3.4, 2.7, 3.4), new THREE.Vector3(0, 0.7, 0)],
+    iso: [new THREE.Vector3(3.7, 2.95, 3.9), new THREE.Vector3(-0.1, 0.65, 0.1)],
     front: [new THREE.Vector3(4.6, 1.5, 0.05), new THREE.Vector3(0, 0.8, 0.05)],
     top: [new THREE.Vector3(0.01, 6.2, 0.01), new THREE.Vector3(0, 0, 0)],
     side: [new THREE.Vector3(0.1, 1.6, 4.6), new THREE.Vector3(0, 0.8, 0)],
@@ -971,6 +1350,15 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     stations.weld.part = null;
     stations.cnc.part = null;
     stations.pallet.parts = [];
+    stations.carton.parts = [];
+    stations.carton.lid.visible = false;
+    stations.carton.tape.visible = false;
+    stations.carton.closeT = 0;
+    stream.visible = false;
+    if (robot) {
+      robot.toolHead.visible = false;
+      robot.fingers.forEach((f) => (f.visible = true));
+    }
     stations.cnc.door.position.y = stations.cnc.doorY;
     stations.vision.cone.material.opacity = 0;
     stations.cnc.beacon.material.emissive.setHex(0x000000);
@@ -1031,13 +1419,15 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
   let lastT = performance.now();
   function frame(now) {
     raf = requestAnimationFrame(frame);
-    let dt = Math.min(0.05, (now - lastT) / 1000);
+    // Clamp: a frame timestamp can precede the start time, which would run time backwards.
+    let dt = clamp((now - lastT) / 1000, 0, 0.05);
     lastT = now;
     if (playing && steps.length) {
       dt *= speed;
       simTime += dt;
       updateConveyor(dt);
       updateSparks(dt);
+      updateCarton(dt);
       let guard = 0;
       let remaining = dt;
       while (guard++ < 8) {
@@ -1110,7 +1500,10 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     checkReach(stepsToCheck) {
       const out = new Set();
       for (const s of stepsToCheck || steps) {
-        const pts = s.station === "pallet" ? stations.pallet.slots : [stations[s.station] && stations[s.station].point];
+        const pts =
+          s.station === "pallet" || s.station === "carton"
+            ? stations[s.station].slots
+            : [stations[s.station] && stations[s.station].point];
         for (const p of pts) {
           if (p && (!solveIK(p).reachable || !solveIK(above(p)).reachable)) out.add(s.station);
         }

@@ -43,6 +43,9 @@ import {
   Cable,
   Play,
   Pause,
+  Box,
+  Maximize2,
+  RotateCcw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -57,6 +60,18 @@ import { FactoryLayoutSvg, MaterialFlowSvg } from "@/components/automation-studi
 import type { VisualStation } from "@/components/automation-studio/visualTypes";
 
 const ProcessLine3D = lazy(() => import("@/features/automation3d/ProcessLine3D"));
+const RobotCell3D = lazy(() => import("@/features/automation3d/AutomationStudio3D"));
+import { processKind, PROCESS_PROFILES } from "@/features/automation3d/processProfiles";
+import { processToText, PRESETS } from "@/features/automation3d/robotSim.js";
+
+const simLink = (text: string, title?: string) =>
+  `/automation-studio/3d?process=${encodeURIComponent(text)}${title ? `&title=${encodeURIComponent(title)}` : ""}`;
+
+const SimFallback = () => (
+  <div className="flex h-[480px] items-center justify-center rounded-xl border border-border bg-[#1a2433] text-sm text-white/70">
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading 3D robot cell…
+  </div>
+);
 
 /* ---------------------------------- data --------------------------------- */
 
@@ -105,7 +120,7 @@ const ACCEPT = ".jpg,.jpeg,.png,.mp4,.pdf,.doc,.docx";
 /* ------------------------------ step indicator ---------------------------- */
 
 const StepIndicator = ({ step }: { step: number }) => (
-  <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
+  <div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
     {STEPS.map((label, i) => {
       const n = i + 1;
       const done = step > n;
@@ -130,7 +145,7 @@ const StepIndicator = ({ step }: { step: number }) => (
           >
             {label}
           </span>
-          {n < STEPS.length && <span className="h-px w-4 bg-border sm:w-8" />}
+          {n < STEPS.length && <span className={cn("h-px w-4 sm:w-10 lg:w-20", done ? "bg-emerald-500" : "bg-border")} />}
         </div>
       );
     })}
@@ -175,7 +190,8 @@ export default function AutomationStudio() {
   const [industry, setIndustry] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [msgIndex, setMsgIndex] = useState(0);
-  const [visualTab, setVisualTab] = useState("cell");
+  const [visualTab, setVisualTab] = useState("robot");
+  const [simIndex, setSimIndex] = useState(0);
   const [visualPlaying, setVisualPlaying] = useState(true);
   const [visualSpeed, setVisualSpeed] = useState<"0.5" | "1" | "2">("1");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -233,32 +249,68 @@ export default function AutomationStudio() {
       <div className="min-h-screen bg-background">
         <EnhancedHeader />
         <main>
-          <section className="border-b border-border bg-card/40">
-            <div className="container mx-auto px-4 py-16 text-center">
-              <Badge variant="secondary" className="mb-4 gap-1">
-                <Sparkles className="h-3 w-3" /> New
-              </Badge>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">Automation Studio</h1>
-              <p className="mx-auto mt-4 max-w-[58ch] text-base text-muted-foreground sm:text-lg">
-                Upload your factory process. See the automation before you build it.
-              </p>
-              <Button
-                size="lg"
-                className="mt-8 whitespace-normal min-w-fit w-auto"
-                onClick={() => navigate("/auth?redirect=/automation-studio")}
-              >
-                Sign In to Start
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+          <section className="border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
+            <div className="container mx-auto grid gap-8 px-4 py-12 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div>
+                <Badge variant="secondary" className="mb-4 gap-1">
+                  <Sparkles className="h-3 w-3" /> AI + 3D simulation
+                </Badge>
+                <h1 className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">Automation Studio</h1>
+                <p className="mt-3 max-w-[60ch] text-base text-muted-foreground sm:text-lg">
+                  Upload or describe your factory process. Get every station matched to a robot and tooling, a factory
+                  layout, ROI, and a live 3D robot cell that runs your process before you buy anything.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Button size="lg" onClick={() => navigate("/auth?redirect=/automation-studio")}>
+                    Sign In to Analyze My Process <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  <Button size="lg" variant="outline" asChild>
+                    <Link to="/automation-studio/3d">
+                      <Box className="mr-2 h-4 w-4" /> Try the 3D Simulator
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-center lg:w-[360px]">
+                {[
+                  ["13", "process types simulated"],
+                  ["6-axis", "robot with live IK"],
+                  ["Free", "no install needed"],
+                ].map(([v, l]) => (
+                  <div key={l} className="rounded-lg border border-border bg-card p-3">
+                    <p className="text-xl font-bold text-foreground">{v}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{l}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
-          <section className="container mx-auto px-4 py-12">
+          <section className="container mx-auto px-4 py-10">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold">Live robot cell demo</h2>
+                <p className="text-sm text-muted-foreground">
+                  Pick a template or type your own steps. The robot runs it in real time.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/automation-studio/3d">
+                  <Maximize2 className="mr-2 h-4 w-4" /> Full screen
+                </Link>
+              </Button>
+            </div>
+            <Suspense fallback={<SimFallback />}>
+              <RobotCell3D variant="embedded" initialProcess={PRESETS["Painting"]} />
+            </Suspense>
+          </section>
+
+          <section className="container mx-auto px-4 pb-12">
             <div className="grid gap-6 md:grid-cols-3">
               {[
                 { icon: Sparkles, title: "AI Process Analysis", body: "Share photos, videos or drawings of your line and get each station broken down into automatable steps." },
                 { icon: Bot, title: "Robot & EOAT Matching", body: "Every station is matched to real robot models with payload, reach, controller and the end-of-arm tooling required." },
-                { icon: LayoutGrid, title: "Visual Factory Layout", body: "See a proposed cell layout, material flow and an inventory list you can quote from right away." },
+                { icon: Box, title: "3D Robot Cell Simulation", body: "Watch welding, painting, polishing, assembly, filling, labeling, packing and palletizing run in a live 3D cell." },
               ].map((f) => (
                 <Card key={f.title}>
                   <CardHeader>
@@ -284,11 +336,7 @@ export default function AutomationStudio() {
             </Card>
 
             <div className="mt-10 text-center">
-              <Button
-                size="lg"
-                className="whitespace-normal min-w-fit w-auto"
-                onClick={() => navigate("/auth?redirect=/automation-studio")}
-              >
+              <Button size="lg" onClick={() => navigate("/auth?redirect=/automation-studio")}>
                 Sign In to Use Automation Studio
               </Button>
             </div>
@@ -305,21 +353,40 @@ export default function AutomationStudio() {
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
       <main className="container mx-auto max-w-[1400px] px-4 py-8">
-        <div className="mb-8 text-center">
-          <h1 className="flex items-center justify-center gap-2 text-2xl font-bold sm:text-3xl">
-            <Sparkles className="h-6 w-6 text-primary" /> Automation Studio
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Upload your factory process. See the automation before you build it.
-          </p>
-          <Button asChild variant="outline" className="mt-4 whitespace-normal min-w-fit w-auto">
-            <Link to="/automation-studio/3d">Open 3D simulation</Link>
-          </Button>
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="flex items-center gap-2 text-3xl font-bold text-primary">
+              <Sparkles className="h-6 w-6" /> Automation Studio
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Upload your factory process. See the automation, robots, ROI and a live 3D robot cell before you build it.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {step > 1 && (
+              <Button variant="outline" onClick={reset}>
+                <RotateCcw className="mr-2 h-4 w-4" /> New analysis
+              </Button>
+            )}
+            <Button asChild variant={step === 1 ? "default" : "outline"}>
+              <Link to="/automation-studio/3d">
+                <Box className="mr-2 h-4 w-4" /> 3D Robot Cell Simulator
+              </Link>
+            </Button>
+          </div>
         </div>
 
-        <div className="mb-10">
-          <StepIndicator step={step} />
-        </div>
+        <Card className="mb-8">
+          <CardContent className="space-y-3 p-4">
+            <StepIndicator step={step} />
+            <div className="h-1 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-500"
+                style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Step 1 */}
         {step === 1 && (
@@ -584,6 +651,11 @@ export default function AutomationStudio() {
                         ))}
                       </div>
                     </div>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link to={simLink(processToText(processKind(p), p.name), p.name)}>
+                        <Box className="mr-2 h-4 w-4" /> Simulate this station in 3D
+                      </Link>
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -661,10 +733,66 @@ export default function AutomationStudio() {
                 </div>
                 <Tabs value={visualTab} onValueChange={setVisualTab}>
                   <TabsList className="h-auto flex-wrap">
+                    <TabsTrigger value="robot" className="gap-1.5">
+                      <Box className="h-3.5 w-3.5" /> Robot Cell 3D
+                    </TabsTrigger>
                     <TabsTrigger value="layout">Factory Layout</TabsTrigger>
                     <TabsTrigger value="flow">Material Flow</TabsTrigger>
                     <TabsTrigger value="cell">3D Production Line ({processes.length})</TabsTrigger>
                   </TabsList>
+                  <TabsContent value="robot" className="mt-4 space-y-3">
+                    {processes.length > 0 && (() => {
+                      const current = processes[Math.min(simIndex, processes.length - 1)];
+                      const kind = processKind(current);
+                      const text = processToText(kind, current.name);
+                      return (
+                        <>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm text-muted-foreground">
+                              Choose a station to watch the robot run it. Every detected process can be simulated.
+                            </p>
+                            <Button variant="outline" size="sm" asChild>
+                              <Link to={simLink(text, current.name)}>
+                                <Maximize2 className="mr-2 h-4 w-4" /> Open full screen
+                              </Link>
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Station to simulate">
+                            {processes.map((p, i) => {
+                              const k = processKind(p);
+                              const active = i === Math.min(simIndex, processes.length - 1);
+                              return (
+                                <button
+                                  key={p.index}
+                                  role="tab"
+                                  aria-selected={active}
+                                  onClick={() => setSimIndex(i)}
+                                  className={cn(
+                                    "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-left text-xs transition-colors",
+                                    active ? "border-primary bg-primary/10 text-foreground" : "border-border hover:border-primary/50",
+                                  )}
+                                >
+                                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: PROCESS_PROFILES[k].color }} />
+                                  <span className="font-semibold">{String(i + 1).padStart(2, "0")}</span>
+                                  <span className="max-w-[180px] truncate">{p.name}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <Suspense fallback={<SimFallback />}>
+                            <RobotCell3D
+                              key={`${simIndex}-${current.name}`}
+                              variant="embedded"
+                              showEditor={false}
+                              initialProcess={text}
+                              title={`Station ${String(simIndex + 1).padStart(2, "0")}: ${current.name}`}
+                              subtitle={`${PROCESS_PROFILES[kind].label} · ${current.robot.model} · ${current.eoat[0] ?? "EOAT"}`}
+                            />
+                          </Suspense>
+                        </>
+                      );
+                    })()}
+                  </TabsContent>
                   <TabsContent value="layout" className="mt-4">
                     <FactoryLayoutSvg stations={stations} playing={visualPlaying} speed={visualSpeed} active={visualTab === "layout"} />
                   </TabsContent>
