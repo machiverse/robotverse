@@ -153,14 +153,22 @@ async function analyze(image: string): Promise<PosterInfo> {
   return cleanInfo(JSON.parse(s >= 0 && e > s ? raw.slice(s, e + 1) : raw));
 }
 
-function decodeImage(dataUrl: string): { bytes: Uint8Array; type: string; ext: string } {
-  const m = /^data:(image\/(jpeg|png|webp));base64,(.+)$/.exec(dataUrl);
+// Native decoding (fetch on a data: URL) instead of a JS byte loop over megabytes
+// of base64 — that loop was exhausting the worker's CPU budget.
+async function decodeImage(dataUrl: string): Promise<{ bytes: Uint8Array; type: string; ext: string }> {
+  const m = /^data:(image\/(jpeg|png|webp));base64,/.exec(dataUrl.slice(0, 40));
   if (!m) throw new Error("Please upload a JPG, PNG or WebP image.");
-  const bin = atob(m[3]);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const bytes = new Uint8Array(await (await fetch(dataUrl)).arrayBuffer());
   return { bytes, type: m[1], ext: m[2] === "jpeg" ? "jpg" : m[2] };
 }
+
+// Run slow work (SMTP) after the response so it doesn't hold the request open.
+const background = (p: Promise<unknown>) => {
+  // deno-lint-ignore no-explicit-any
+  const rt = (globalThis as any).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(p);
+  else p.catch(() => {});
+};
 
 async function listPosters() {
   const sb = admin();
