@@ -25,6 +25,10 @@ type Job = {
   payload: Record<string, unknown>;
 };
 
+// Untyped service-role client: seo_jobs/seo_metadata are not in generated types.
+// deno-lint-ignore no-explicit-any
+type Admin = any;
+
 // ── source loaders ────────────────────────────────────────────────────────
 const SOURCE: Record<
   string,
