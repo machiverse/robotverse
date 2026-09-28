@@ -308,7 +308,7 @@ async function claimJobs(admin: Admin, limit: number): Promise<Job[]> {
     .order("created_at", { ascending: true })
     .limit(limit);
 
-  const ids = (pending ?? []).map((r) => r.id);
+  const ids = (pending ?? []).map((r: { id: string }) => r.id);
   if (ids.length === 0) return [];
 
   const { data: claimed, error } = await admin
