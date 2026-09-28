@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { pushEvent } from '@/lib/analytics';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -319,7 +320,7 @@ export const LockedContactCard = ({
               size="sm"
               variant="outline"
               className="shrink-0"
-              onClick={() => window.open(`tel:${sellerProfile.mobile_number || sellerProfile.phone}`)}
+              onClick={() => { pushEvent('contact_seller', { item_id: itemId, item_type: itemType === 'spare_part' ? 'part' : itemType, method: 'phone' }); window.open(`tel:${sellerProfile.mobile_number || sellerProfile.phone}`); }}
             >
               <Phone className="w-3 h-3 mr-1" />
               Call

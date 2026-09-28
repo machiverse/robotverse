@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pushEvent } from '@/lib/analytics';
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -830,6 +831,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           .single();
 
         if (error) throw error;
+        pushEvent('add_listing', { item_type: 'robot' });
 
         // Insert custom fields for new robot
         if (customFields.length > 0 && robotData?.id) {

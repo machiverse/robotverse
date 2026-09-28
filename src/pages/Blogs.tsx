@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
+import { BLOG_CATEGORIES, blogCategoryOf } from "@/utils/blogCategories";
 import { useSearchParams } from "react-router-dom";
 import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
@@ -8,6 +10,9 @@ import { usePostInteractions } from "@/hooks/usePostInteractions";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Search, 
@@ -19,7 +24,9 @@ import {
   BookOpen,
   Video,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  SlidersHorizontal,
+  Rss,
 } from "lucide-react";
 import {
   Select,
@@ -36,6 +43,11 @@ import SEOMetaTags from "@/components/SEOMetaTags";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
+// RSS feed of every published RoboBook article (edge function robobook-rss).
+const RSS_URL = `${import.meta.env.VITE_SUPABASE_URL || "https://cmahwgetrqczytnijbuk.supabase.co"}/functions/v1/robobook-rss`;
+const rssFor = (category: string) => (category && category !== "all" ? `${RSS_URL}?category=${encodeURIComponent(category)}` : RSS_URL);
+const CATEGORY_BLURB = Object.fromEntries(BLOG_CATEGORIES.map((c) => [c.name, c.blurb]));
+
 interface CommunityPost {
   id: string;
   post_type: 'blog' | 'video' | 'short_post' | 'media';
@@ -46,6 +58,9 @@ interface CommunityPost {
   media_type?: string;
   video_duration?: number;
   tags: string[];
+  category?: string | null;
+  /** Author's category, or one worked out from the post text */
+  display_category?: string;
   view_count: number;
   like_count: number;
   comment_count: number;
@@ -75,7 +90,8 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useDebouncedUrlParam("search", "", 400);
   const [sortBy, setSortBy] = useUrlParam<string>("sort", "latest");
-  const [filterType, setFilterType] = useUrlParam<string>("category", "all");
+  const [filterType, setFilterType] = useUrlParam<string>("type", "all");
+  const [category, setCategory] = useUrlParam<string>("category", "all");
   const [selectedTag, setSelectedTag] = useUrlParam<string>("tag", "all");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [tab, setTab] = useState<"published" | "scheduled" | "drafts">("published");
@@ -87,7 +103,7 @@ const Community = () => {
 
   useEffect(() => {
     if (posts.length > 0) {
-      const tags = Array.from(new Set(posts.flatMap(post => post.tags)));
+      const tags = Array.from(new Set(posts.flatMap(post => post.tags || []))).filter(Boolean);
       setAvailableTags(tags);
     }
   }, [posts]);
@@ -114,8 +130,10 @@ const Community = () => {
         communityQuery = communityQuery.eq('post_type', filterType);
       }
 
-      const { data: communityData, error: communityError } = await communityQuery;
-      if (communityError) throw communityError;
+      // Community posts and older blogs load independently: one failing never hides the other.
+      const { data: communityRows, error: communityError } = await communityQuery;
+      if (communityError) console.error('Error fetching community posts:', communityError);
+      const communityData = communityRows || [];
 
       // Fetch old blogs (only if not filtering by specific post type or if filtering by blog)
       let blogData: any[] = [];
@@ -125,7 +143,7 @@ const Community = () => {
           .select('*')
           .eq('status', 'published');
 
-        if (blogError) throw blogError;
+        if (blogError) console.error('Error fetching blogs:', blogError);
 
         // Transform old blogs to match new community post format
         blogData = (oldBlogs || []).map(blog => ({
@@ -138,24 +156,28 @@ const Community = () => {
         }));
       }
 
-      // Combine both data sources
-      const allPosts = [...(communityData || []), ...blogData];
+      // Combine both data sources. Older posts can have no tags or category: normalise them.
+      const allPosts = [...communityData, ...blogData].map((post) => ({
+        ...post,
+        tags: Array.isArray(post.tags) ? post.tags.filter(Boolean) : [],
+        category: typeof post.category === 'string' && post.category.trim() ? post.category.trim() : null,
+      })).map((post) => ({ ...post, display_category: blogCategoryOf(post) }));
 
-      // Fetch author profiles for all posts
-      const postsWithProfiles = await Promise.all(
-        allPosts.map(async (post) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name, company_name, avatar_url')
-            .eq('user_id', post.author_id)
-            .maybeSingle();
-          
-          return {
-            ...post,
-            profiles: profile
-          };
-        })
-      );
+      // Fetch author profiles for all posts in one request
+      const authorIds = Array.from(new Set(allPosts.map((p) => p.author_id).filter(Boolean)));
+      type AuthorProfile = { user_id: string; full_name: string; company_name?: string; avatar_url?: string };
+      const profileMap = new Map<string, AuthorProfile>();
+      for (let i = 0; i < authorIds.length; i += 200) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, company_name, avatar_url')
+          .in('user_id', authorIds.slice(i, i + 200));
+        (profiles as AuthorProfile[] | null)?.forEach((pr) => profileMap.set(pr.user_id, pr));
+      }
+      const postsWithProfiles = allPosts.map((post) => ({
+        ...post,
+        profiles: profileMap.get(post.author_id) ?? null,
+      }));
 
       // Apply sorting
       let sortedPosts = [...postsWithProfiles];
@@ -234,6 +256,17 @@ const Community = () => {
 
   const isMine = (post: CommunityPost) => !!user && post.author_id === user.id;
 
+  // Categories with post counts (published posts only), largest first
+  const categoryOf = (post: CommunityPost) => post.display_category || "General";
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    posts
+      .filter((p) => !p.status || p.status === "published")
+      .forEach((p) => counts.set(categoryOf(p), (counts.get(categoryOf(p)) || 0) + 1));
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [posts]);
+  const publishedCount = categories.reduce((n, [, c]) => n + c, 0);
+
   const myScheduledCount = posts.filter(p => isMine(p) && p.status === 'scheduled').length;
   const myDraftsCount = posts.filter(p => isMine(p) && p.status === 'draft').length;
 
@@ -251,13 +284,15 @@ const Community = () => {
       post.title,
       post.content,
       post.excerpt,
-      ...post.tags
+      post.category,
+      ...(post.tags || [])
     ].filter(Boolean).join(' ').toLowerCase();
 
     const matchesSearch = searchContent.includes(searchTerm.toLowerCase());
-    const matchesTag = selectedTag === "all" || post.tags.includes(selectedTag);
+    const matchesTag = selectedTag === "all" || (post.tags || []).includes(selectedTag);
+    const matchesCategory = category === "all" || categoryOf(post) === category;
 
-    return matchesSearch && matchesTag;
+    return matchesSearch && matchesTag && matchesCategory;
   });
 
 
@@ -330,6 +365,144 @@ const Community = () => {
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
+  const hasFilters = !!searchTerm || (selectedTag && selectedTag !== "all") || filterType !== "all" || category !== "all";
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterType("all");
+    setSelectedTag("all");
+    setCategory("all");
+  };
+
+  const filterPanel = (
+          <div className="flex flex-col gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search posts by content, title, or tags..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 font-medium"
+              />
+            </div>
+
+            {categories.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold mb-2">Categories</p>
+                <div className="space-y-0.5 max-h-72 overflow-y-auto pr-1">
+                  {[["all", publishedCount] as [string, number], ...categories].map(([name, count]) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => setCategory(name)}
+                      title={CATEGORY_BLURB[name] || undefined}
+                      className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                        category === name ? "bg-primary/10 font-semibold text-primary" : "hover:bg-muted"
+                      }`}
+                    >
+                      <span className="truncate">{name === "all" ? "All articles" : name}</span>
+                      <span className="ml-2 text-xs tabular-nums text-muted-foreground">{count}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs font-semibold -mb-2">Post Type</p>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full font-medium">
+                <SelectValue placeholder="Post type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    All Types
+                  </div>
+                </SelectItem>
+                <SelectItem value="short_post">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Short Posts
+                  </div>
+                </SelectItem>
+                <SelectItem value="blog">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Blog Articles
+                  </div>
+                </SelectItem>
+                <SelectItem value="video">
+                  <div className="flex items-center gap-2">
+                    <Video className="h-4 w-4" />
+                    Videos
+                  </div>
+                </SelectItem>
+                <SelectItem value="media">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Media
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <p className="text-xs font-semibold -mb-2">Sort By</p>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full font-medium">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="latest">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Latest
+                  </div>
+                </SelectItem>
+                <SelectItem value="trending">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Trending
+                  </div>
+                </SelectItem>
+                <SelectItem value="most_viewed">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    Most Viewed
+                  </div>
+                </SelectItem>
+                <SelectItem value="most_liked">
+                  <div className="flex items-center gap-2">
+                    <Heart className="h-4 w-4" />
+                    Most Liked
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {availableTags.length > 0 && <p className="text-xs font-semibold -mb-2">Tag</p>}
+            {availableTags.length > 0 && (
+              <Select value={selectedTag} onValueChange={setSelectedTag}>
+                <SelectTrigger className="w-full font-medium">
+                  <SelectValue placeholder="Filter by tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Tags</SelectItem>
+                  {availableTags.map(tag => (
+                    <SelectItem key={tag} value={tag}>
+                      #{tag}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {hasFilters && (
+              <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={clearFilters}>
+                Clear All Filters
+              </Button>
+            )}
+          </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <SEOMetaTags 
@@ -367,6 +540,12 @@ const Community = () => {
           }
         }}
       />
+      <Helmet>
+        <link rel="alternate" type="application/rss+xml" title="RoboBook: all articles | RobotVerse" href={RSS_URL} />
+        {category !== "all" && (
+          <link rel="alternate" type="application/rss+xml" title={`RoboBook: ${category} | RobotVerse`} href={rssFor(category)} />
+        )}
+      </Helmet>
       <EnhancedHeader />
       <BackButton fallbackPath="/" label="Back" />
 
@@ -376,11 +555,19 @@ const Community = () => {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight text-primary">RoboBook</h1>
-              <p className="text-lg text-muted-foreground mt-2">
+              <h1 className="text-3xl font-bold tracking-tight text-primary">RoboBook</h1>
+              <p className="text-muted-foreground mt-2">
                 Learn, share, and connect - your knowledge hub for industrial robotics and automation technology
               </p>
-              <div className="mt-3"><CopySearchLinkButton /></div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <CopySearchLinkButton />
+                <Button variant="outline" size="sm" asChild>
+                  <a href={rssFor(category)} target="_blank" rel="noopener noreferrer" title="Subscribe in any feed reader">
+                    <Rss className="w-4 h-4 mr-2 text-orange-500" />
+                    RSS feed{category !== "all" ? `: ${category}` : ""}
+                  </a>
+                </Button>
+              </div>
             </div>
             
             <CreatePostModal onPostCreated={fetchPosts} />
@@ -398,108 +585,102 @@ const Community = () => {
 
 
 
-          {/* Search and Filters */}
-          <div className="flex flex-col md:flex-row gap-4 bg-card p-6 rounded-lg shadow-sm border">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search posts by content, title, or tags..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 font-medium"
-              />
-            </div>
-
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full md:w-48 font-medium">
-                <SelectValue placeholder="Post type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    All Types
-                  </div>
-                </SelectItem>
-                <SelectItem value="short_post">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Short Posts
-                  </div>
-                </SelectItem>
-                <SelectItem value="blog">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Blog Articles
-                  </div>
-                </SelectItem>
-                <SelectItem value="video">
-                  <div className="flex items-center gap-2">
-                    <Video className="h-4 w-4" />
-                    Videos
-                  </div>
-                </SelectItem>
-                <SelectItem value="media">
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4" />
-                    Media
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full md:w-48 font-medium">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="latest">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Latest
-                  </div>
-                </SelectItem>
-                <SelectItem value="trending">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" />
-                    Trending
-                  </div>
-                </SelectItem>
-                <SelectItem value="most_viewed">
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-4 w-4" />
-                    Most Viewed
-                  </div>
-                </SelectItem>
-                <SelectItem value="most_liked">
-                  <div className="flex items-center gap-2">
-                    <Heart className="h-4 w-4" />
-                    Most Liked
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            {availableTags.length > 0 && (
-              <Select value={selectedTag} onValueChange={setSelectedTag}>
-                <SelectTrigger className="w-full md:w-48 font-medium">
-                  <SelectValue placeholder="Filter by tag" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tags</SelectItem>
-                  {availableTags.map(tag => (
-                    <SelectItem key={tag} value={tag}>
-                      #{tag}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
         </div>
 
+        <div className="flex flex-col lg:flex-row gap-6">
+        {/* LEFT FILTER COLUMN (sticky) */}
+        <aside className="w-72 flex-shrink-0 hidden lg:block">
+          <div className="sticky top-20 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Search className="w-4 h-4" />
+                  Filter Posts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>{filterPanel}</CardContent>
+            </Card>
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm font-semibold mb-1">Share your knowledge</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Post articles, videos and tips for the robotics community.
+                </p>
+                <CreatePostModal onPostCreated={fetchPosts} />
+              </CardContent>
+            </Card>
+          </div>
+        </aside>
+
         {/* Feed Layout - Professional Social Platform Style */}
-        <div className="max-w-4xl mx-auto">
+        <div className="flex-1 min-w-0 w-full max-w-4xl space-y-6">
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex gap-2 lg:hidden">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search posts..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                    aria-label="Search posts"
+                  />
+                </div>
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="shrink-0">
+                      <SlidersHorizontal className="w-4 h-4 mr-2" />
+                      Filters
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-80 overflow-y-auto">
+                    <SheetHeader className="mb-4">
+                      <SheetTitle>Filter Posts</SheetTitle>
+                    </SheetHeader>
+                    {filterPanel}
+                  </SheetContent>
+                </Sheet>
+              </div>
+              {categories.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Blog categories">
+                  {[["all", publishedCount] as [string, number], ...categories].map(([name, count]) => (
+                    <button
+                      key={name}
+                      type="button"
+                      role="tab"
+                      aria-selected={category === name}
+                      onClick={() => setCategory(name)}
+                      className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                        category === name
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border hover:border-primary/60"
+                      }`}
+                    >
+                      {name === "all" ? "All articles" : name}
+                      <span className="ml-1.5 opacity-70 tabular-nums">{count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-muted-foreground">
+                  {loading ? "Loading…" : (
+                    <>
+                      Showing <span className="font-semibold text-foreground">{filteredPosts.length}</span> posts
+                      {category !== "all" && <> in <span className="font-semibold text-foreground">{category}</span></>}
+                    </>
+                  )}
+                </div>
+                {hasFilters && (
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {loading ? (
             <div className="space-y-6">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -536,7 +717,7 @@ const Community = () => {
               </div>
               <h3 className="text-2xl font-bold mb-3">Start the Conversation</h3>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
-                {searchTerm || (selectedTag && selectedTag !== "all") || filterType !== "all"
+                {hasFilters
                   ? "No posts match your criteria. Try adjusting your filters to discover more content." 
                   : "Be the first to share your insights and connect with the robotics community. Your voice matters!"
                 }
@@ -566,6 +747,7 @@ const Community = () => {
               </div>
             </>
           )}
+        </div>
         </div>
       </main>
     </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { pushEvent } from '@/lib/analytics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -316,6 +317,7 @@ const SupplierQuoteForm = ({ onClose, supplierInfo, itemInfo, robotInfo }: Suppl
 
       if (error) throw error;
 
+      pushEvent('generate_lead', { item_id: itemInfo.id, item_type: itemInfo.type === 'spare_part' ? 'part' : itemInfo.type === 'robot' ? 'robot' : 'service', currency: 'INR' });
       toast({
         title: "Quote Request Sent",
         description: `Your quote request has been sent to ${supplierInfo.company || supplierInfo.name}`

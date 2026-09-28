@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import LandingPageLayout from "@/components/landing/LandingPageLayout";
 import { Card } from "@/components/ui/card";
+import { brandFaq, type FaqItem } from "@/lib/seo/seoText";
 
 const titleCase = (s: string) =>
   s.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -12,6 +13,28 @@ export default function BrandRobots() {
   const brandLabel = titleCase(brand);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [faq, setFaq] = useState<FaqItem[]>([]);
+
+  // FAQ is built only from real active listings (same builder as seo-render).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("robots")
+        .select("brand, model, location, payload_capacity, condition, updated_at")
+        .eq("availability", "available")
+        .order("updated_at", { ascending: false })
+        .limit(500);
+      if (cancelled) return;
+      const slugOf = (v: unknown) =>
+        String(v ?? "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      const rows = (data ?? []).filter((r: any) => slugOf(r.brand) === slugOf(brand));
+      setFaq(brandFaq(String(rows[0]?.brand || brandLabel), rows as any));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [brand, brandLabel]);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,20 +74,7 @@ export default function BrandRobots() {
       { title: "Full specs", text: "Payload, reach, axes, controller, year, and condition documented." },
       { title: "Direct contact", text: "Request a quote without paying for leads." },
     ],
-    faq: [
-      {
-        question: `Are ${brandLabel} robots good for Indian manufacturing?`,
-        answer: `${brandLabel} robots are widely deployed in Indian auto, electronics, and metal-fabrication plants. Spare parts, controllers, and trained integrators are available from authorised partners listed on RobotVerse.`,
-      },
-      {
-        question: `What is the typical price of a used ${brandLabel} robot?`,
-        answer: `Prices vary by model, year, payload, and condition. Browse the grid above for live prices on currently-listed ${brandLabel} robots.`,
-      },
-      {
-        question: `Can I get installation support for a ${brandLabel} robot?`,
-        answer: `Yes — RobotVerse service partners cover installation, programming, and AMC for ${brandLabel} robots in major Indian cities.`,
-      },
-    ],
+    faq,
   };
 
   return (

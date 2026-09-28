@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { pushEvent } from '@/lib/analytics';
 import { Button } from "@/components/ui/button";
 import { Mail, MessageCircle } from "lucide-react";
 
@@ -28,6 +29,7 @@ export const ContactMethodDialog = ({
     const message = `Hi! I'm interested in ${robotName}. Could you please share the latest price and availability details? Thank you!`;
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     
+    pushEvent('contact_seller', { item_name: robotName, item_type: 'robot', method: 'whatsapp' });
     window.open(whatsappUrl, '_blank');
     onContactMethodSelected('whatsapp');
     onOpenChange(false);

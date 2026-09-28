@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { RobotComparisonProvider } from "@/contexts/RobotComparisonContext";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
 import { usePageTracking } from "@/hooks/usePageTracking";
+import { useCanonicalHead } from "@/hooks/useCanonicalHead";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -18,7 +20,6 @@ import RobotDetails from "./pages/RobotDetails";
 import Parts from "./pages/Parts";
 import SparePartDetails from "./pages/SparePartDetails";
 import Services from "./pages/Services";
-import ServiceDetails from "./pages/ServiceDetails";
 import Logistics from "./pages/Logistics";
 import LogisticsDetails from "./pages/LogisticsDetails";
 import Financing from "./pages/Financing";
@@ -43,7 +44,7 @@ import UsedBrandRobots from "./pages/landing/UsedBrandRobots";
 import ApplicationRobots from "./pages/landing/ApplicationRobots";
 import BrandParts from "./pages/landing/BrandParts";
 import CategoryParts from "./pages/landing/CategoryParts";
-import CityServices from "./pages/landing/CityServices";
+import ServiceRoute from "./pages/ServiceRoute";
 import CompareRobots from "./pages/landing/CompareRobots";
 import SEODashboard from "./pages/dashboard/admin/SEODashboard";
 
@@ -65,6 +66,9 @@ import MyRequests from "./pages/dashboard/MyRequests";
 import ApiKeys from "./pages/dashboard/ApiKeys";
 import ApiDocs from "./pages/ApiDocs";
 import Contact from "./pages/Contact";
+// Loaded on demand so the Directory adds nothing to the main bundle
+const Directory = lazy(() => import("./pages/Directory"));
+const TrainingPosterPage = lazy(() => import("./pages/TrainingPosterPage"));
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
 import BuyerGuide from "./pages/BuyerGuide";
@@ -85,6 +89,8 @@ import TalentPostJob from "./pages/TalentPostJob";
 import TalentSeekerProfile from "./pages/TalentSeekerProfile";
 import TalentPostTraining from "./pages/TalentPostTraining";
 import TalentEmployerDashboard from "./pages/TalentEmployerDashboard";
+import AutomationStudio from "./pages/AutomationStudio";
+import AutomationStudio3DPage from "./pages/AutomationStudio3DPage";
 import Auctions from "./pages/Auctions";
 import AuctionDetail from "./pages/AuctionDetail";
 import CreateAuction from "./pages/CreateAuction";
@@ -118,6 +124,12 @@ const PageTracker = () => {
   return null;
 };
 
+// Keeps title/description/canonical/robots identical to the seo-render snapshot
+const HeadSync = () => {
+  useCanonicalHead();
+  return null;
+};
+
 const AppLoadingFallback = () => (
   <div style={{
     display: 'flex',
@@ -148,6 +160,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <PageTracker />
+            <HeadSync />
             <AIAssistantProvider>
               <GlobalEmailVerificationHandler />
               <AutoSignInPopup />
@@ -167,7 +180,7 @@ const App = () => (
               <Route path="/robots/:id" element={<RobotDetails />} />
               <Route path="/parts/brand/:brand" element={<BrandParts />} />
               <Route path="/parts/category/:cat" element={<CategoryParts />} />
-              <Route path="/services/:city/:type" element={<CityServices />} />
+              {/* Removed: /services/:city/:serviceCombo doorway pages (now 404 + noindex) */}
               <Route path="/compare/:slug" element={<CompareRobots />} />
               <Route path="/dashboard/admin/seo" element={<SEODashboard />} />
               <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
@@ -177,7 +190,7 @@ const App = () => (
             <Route path="/spares/:category/:subcategory" element={<Parts />} />
             <Route path="/spares/:category/:subcategory/:componentType" element={<Parts />} />
             <Route path="/services" element={<Services />} />
-            <Route path="/services/:id" element={<ServiceDetails />} />
+            <Route path="/services/:id" element={<ServiceRoute />} />
             <Route path="/logistics" element={<Logistics />} />
             <Route path="/logistics/:id" element={<LogisticsDetails />} />
             <Route path="/test-image-migration" element={<TestImageMigration />} />
@@ -194,9 +207,9 @@ const App = () => (
             <Route path="/blogs/:id" element={<RedirectWithId base="/blog" />} />
             <Route path="/blog/:id" element={<BlogDetails />} />
 
-            <Route path="/marketplace/robots" element={<Robots />} />
-            <Route path="/marketplace/parts" element={<Parts />} />
-            <Route path="/marketplace/services" element={<Services />} />
+            <Route path="/marketplace/robots" element={<Navigate to="/robots" replace />} />
+            <Route path="/marketplace/parts" element={<Navigate to="/parts" replace />} />
+            <Route path="/marketplace/services" element={<Navigate to="/services" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/dashboard/analytics" element={<Analytics />} />
             <Route path="/dashboard/reports" element={<Reports />} />
@@ -219,6 +232,8 @@ const App = () => (
             <Route path="/profile-settings" element={<ProfileSettings />} />
             <Route path="/settings" element={<ProfileSettings />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/directory" element={<Suspense fallback={null}><Directory /></Suspense>} />
+            <Route path="/directory/training/poster/:id" element={<Suspense fallback={null}><TrainingPosterPage /></Suspense>} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/seller-guide" element={<SellerGuide />} />
             <Route path="/buyer-guide" element={<BuyerGuide />} />
@@ -238,6 +253,8 @@ const App = () => (
               <Route path="/robot-talent/seeker-profile" element={<TalentSeekerProfile />} />
               <Route path="/robot-talent/post-training" element={<TalentPostTraining />} />
               <Route path="/robot-talent/employer-dashboard" element={<TalentEmployerDashboard />} />
+              <Route path="/automation-studio" element={<AutomationStudio />} />
+              <Route path="/automation-studio/3d" element={<AutomationStudio3DPage />} />
               <Route path="/auctions" element={<Auctions />} />
               <Route path="/auctions/:id" element={<AuctionDetail />} />
               <Route path="/auctions/create" element={<CreateAuction />} />

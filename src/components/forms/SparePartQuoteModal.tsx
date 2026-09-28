@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { pushEvent } from '@/lib/analytics';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,6 +110,7 @@ const SparePartQuoteModal = ({ isOpen, onClose, part, userEmail, userName }: Spa
         }
       }
 
+      pushEvent('generate_lead', { item_id: part.id, item_type: 'part', value: part.price || undefined, currency: 'INR' });
       toast({
         title: "Quote Request Sent",
         description: `Your request for ${part.name} has been sent to the seller.`,

@@ -86,7 +86,7 @@ import { ListingRatingSummary } from "@/components/reviews/ListingRatingSummary"
 import { SEOHead } from "@/components/SEOHead";
 import { generateProductSchema } from "@/utils/seoSchemas";
 import { AEOContentBlock } from "@/components/SEO/AEOContentBlock";
-import { generateRobotFAQs } from "@/utils/seo/programmaticSEO";
+import { robotFaq } from "@/lib/seo/seoText";
 import { generateBreadcrumbSchema } from "@/utils/seo/modernSchemas";
 import { useRobotComparison } from "@/contexts/RobotComparisonContext";
 
@@ -1596,7 +1596,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               robot.condition && { title: "Condition", text: String(robot.condition) },
               robot.location && { title: "Location", text: String(robot.location) },
             ].filter(Boolean) as { title: string; text: string }[]}
-            faq={generateRobotFAQs(robot)}
+            faq={robotFaq(robot as any)}
             jsonld={generateBreadcrumbSchema([
               { name: "Home", url: "https://robotverse.in/" },
               { name: "Industrial Robots", url: "https://robotverse.in/robots" },

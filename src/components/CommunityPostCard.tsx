@@ -58,6 +58,7 @@ interface CommunityPost {
   media_items?: any;
   video_duration?: number;
   tags: string[];
+  display_category?: string;
   view_count: number;
   like_count: number;
   comment_count?: number;
@@ -316,6 +317,12 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
             </Badge>
           )}
 
+          {post.display_category && post.display_category !== "General" && (
+            <Badge variant="secondary" className="hidden text-xs font-medium sm:inline-flex">
+              {post.display_category}
+            </Badge>
+          )}
+
           {/* Post Type Badge */}
           <Badge variant="outline" className="border-none bg-gradient-to-r from-primary/10 to-accent/10 text-primary hover:from-primary/20 hover:to-accent/20 transition-all">
             <div className="flex items-center gap-1">
@@ -400,7 +407,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
       </Link>
 
       {/* Tags */}
-      {post.tags.length > 0 && (
+      {(post.tags?.length ?? 0) > 0 && (
         <div className="px-4 py-3 border-t border-border/50">
           <div className="flex flex-wrap gap-2">
             {post.tags.slice(0, 4).map((tag) => (

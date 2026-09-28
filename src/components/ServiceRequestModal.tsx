@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { pushEvent } from '@/lib/analytics';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
@@ -204,6 +205,7 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
         // Email is non-blocking
       }
 
+      pushEvent('generate_lead', { item_id: service.id, item_type: 'service', currency: 'INR' });
       toast({
         title: "Service Request Sent Successfully!",
         description: `Your request has been sent to ${service.provider}. They will be notified in their dashboard.`,
