@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { BLOG_CATEGORIES, blogCategoryOf } from "@/utils/blogCategories";
+import IndustryNewsStrip from "@/components/robobook/IndustryNewsStrip";
 import { useSearchParams } from "react-router-dom";
 import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
@@ -92,6 +93,17 @@ const Community = () => {
   const [sortBy, setSortBy] = useUrlParam<string>("sort", "latest");
   const [filterType, setFilterType] = useUrlParam<string>("type", "all");
   const [category, setCategory] = useUrlParam<string>("category", "all");
+  // Older links used ?category=<post type> (blog, video, short_post, media): read them as the type.
+  useEffect(() => {
+    if (["blog", "video", "short_post", "media"].includes(category)) {
+      // One URL update: two separate param setters in a row would overwrite each other.
+      const next = new URLSearchParams(searchParams);
+      next.delete("category");
+      next.set("type", category);
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]);
   const [selectedTag, setSelectedTag] = useUrlParam<string>("tag", "all");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [tab, setTab] = useState<"published" | "scheduled" | "drafts">("published");
@@ -585,6 +597,10 @@ const Community = () => {
 
 
 
+        </div>
+
+        <div className="mb-6">
+          <IndustryNewsStrip />
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
