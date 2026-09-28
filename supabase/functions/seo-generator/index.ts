@@ -68,7 +68,7 @@ const SOURCE: Record<
 };
 
 async function loadSource(
-  admin: ReturnType<typeof createClient>,
+  admin: Admin,
   contentType: string,
   contentId: string,
 ) {
@@ -215,7 +215,7 @@ async function callGateway(prompt: string, model: string) {
 }
 
 // ── job processor ─────────────────────────────────────────────────────────
-async function processJob(admin: ReturnType<typeof createClient>, job: Job) {
+async function processJob(admin: Admin, job: Job) {
   if (job.action === "delete") {
     await admin.from("seo_metadata")
       .delete()
@@ -297,7 +297,7 @@ async function processJob(admin: ReturnType<typeof createClient>, job: Job) {
 }
 
 // ── queue drain ───────────────────────────────────────────────────────────
-async function claimJobs(admin: ReturnType<typeof createClient>, limit: number): Promise<Job[]> {
+async function claimJobs(admin: Admin, limit: number): Promise<Job[]> {
   // claim pending (and stale failed with attempts < 3) jobs
   const { data: pending } = await admin
     .from("seo_jobs")
@@ -331,7 +331,7 @@ async function claimJobs(admin: ReturnType<typeof createClient>, limit: number):
 }
 
 async function finalize(
-  admin: ReturnType<typeof createClient>,
+  admin: Admin,
   job: Job,
   outcome: { status: "completed" | "skipped" } | { status: "failed"; error: string },
 ) {
