@@ -80,12 +80,13 @@ Deno.serve(async (req) => {
     if (community.error) console.error("robobook-rss community_posts", community.error.message);
     if (blogs.error) console.error("robobook-rss blogs", blogs.error.message);
 
-    let posts: Row[] = [
-      ...(community.data ?? []).map((p: Row) => ({ ...p, _path: `/robobook/${p.slug || p.id}`, _type: p.post_type || "blog" })),
-      ...(blogs.data ?? []).map((p: Row) => ({ ...p, _path: `/blog/${p.slug || p.id}`, _type: "blog" })),
-    ]
+    const mapped: Row[] = [
+      ...(community.data ?? []).map((p: Row): Row => ({ ...p, _path: `/robobook/${p.slug || p.id}`, _type: p.post_type || "blog" })),
+      ...(blogs.data ?? []).map((p: Row): Row => ({ ...p, _path: `/blog/${p.slug || p.id}`, _type: "blog" })),
+    ];
+    let posts = mapped
       .filter((p) => !suppressed.has(p.author_id))
-      .map((p) => ({ ...p, _category: blogCategoryOf(p), _date: new Date(p.published_at || p.created_at || Date.now()) }));
+      .map((p: Row): Row => ({ ...p, _category: blogCategoryOf(p), _date: new Date(p.published_at || p.created_at || Date.now()) }));
 
     if (url.searchParams.get("list") === "categories") {
       const counts = new Map<string, number>();
