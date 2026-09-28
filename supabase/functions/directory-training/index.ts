@@ -233,7 +233,7 @@ serve(async (req) => {
       if (upMeta.error) throw upMeta.error;
 
       const imageUrl = sb.storage.from(BUCKET).getPublicUrl(`${FOLDER}/${id}.${ext}`).data.publicUrl;
-      await sendEmail(
+      background(sendEmail(
         `New training poster: ${info.title}`,
         wrap(
           "New training poster added to the Directory",
@@ -261,7 +261,7 @@ serve(async (req) => {
             `<p style="color:#64748b;font-size:13px">The poster is live in the Directory carousel (newest ${MAX_POSTERS} are shown). To remove it, delete <b>${esc(`${FOLDER}/${id}`)}</b> (.${esc(ext)} and .json) in Supabase Storage → ${BUCKET}.</p>`,
         ),
         user.email ?? undefined,
-      );
+      ));
       return json({ ok: true, id, image: imageUrl });
     }
 
