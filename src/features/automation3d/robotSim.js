@@ -271,7 +271,7 @@ const BELT_TOP = 0.78;
  * Only the stations a cell's steps use are built, so the scene shows just
  * the machines the process needs.
  */
-export function createSimulation({ THREE, OrbitControls, container, onUpdate }) {
+export function createSimulation({ THREE, OrbitControls, RoomEnvironment, container, onUpdate }) {
   const LIGHT_K = Number(THREE.REVISION) >= 155 ? Math.PI : 1;
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -283,9 +283,22 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
   renderer.domElement.style.width = "100%";
   renderer.domElement.style.height = "100%";
 
+  // Physically based look: sRGB output, filmic tone mapping, soft image-based lighting.
+  if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a2433);
-  scene.fog = new THREE.Fog(0x1a2433, 9, 30);
+  scene.background = new THREE.Color(0x1b2430);
+  scene.fog = new THREE.Fog(0x1b2430, 12, 36);
+  let envTexture = null;
+  if (RoomEnvironment) {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = envTexture;
+    if ("environmentIntensity" in scene) scene.environmentIntensity = 0.45;
+    pmrem.dispose();
+  }
 
   const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 90);
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -294,11 +307,13 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
   controls.minDistance = 1.2;
   controls.maxDistance = 45;
 
-  scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x2a3240, 0.75 * LIGHT_K));
+  scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x2a3240, (RoomEnvironment ? 0.45 : 0.75) * LIGHT_K));
   const sun = new THREE.DirectionalLight(0xffffff, 0.95 * LIGHT_K);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.02;
+  sun.shadow.radius = 3;
   scene.add(sun, sun.target);
   const rim = new THREE.DirectionalLight(0x8fb6ff, 0.35 * LIGHT_K);
   rim.position.set(-4, 3, -3);
@@ -330,16 +345,79 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     return m;
   };
 
+  const floorTex = (() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 256;
+    const g = c.getContext("2d");
+    g.fillStyle = "#6b7280";
+    g.fillRect(0, 0, 256, 256);
+    // Mottled concrete.
+    for (let i = 0; i < 2600; i++) {
+      const v = 95 + Math.floor(Math.random() * 30);
+      g.fillStyle = `rgba(${v},${v + 4},${v + 10},0.22)`;
+      const r = 1 + Math.random() * 3;
+      g.fillRect(Math.random() * 256, Math.random() * 256, r, r);
+    }
+    // 1 m tile joints.
+    g.strokeStyle = "rgba(40,46,56,0.55)";
+    g.lineWidth = 2;
+    g.strokeRect(0, 0, 256, 256);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(60, 30);
+    t.anisotropy = 8;
+    if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })();
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(60, 30),
-    new THREE.MeshStandardMaterial({ color: 0x243041, metalness: 0.1, roughness: 0.9 })
+    new THREE.MeshStandardMaterial({ map: floorTex, color: 0x747c86, metalness: 0.05, roughness: 0.6 })
   );
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
   const grid = new THREE.GridHelper(60, 120, 0x33445a, 0x2a384a);
   grid.position.y = 0.001;
+  grid.visible = false; // tile joints are in the floor texture
   scene.add(grid);
+
+  const building = new THREE.Group();
+  {
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x3b4655, metalness: 0.35, roughness: 0.55 });
+    const ribMat = new THREE.MeshStandardMaterial({ color: 0x2f3946, metalness: 0.4, roughness: 0.5 });
+    const colMat = new THREE.MeshStandardMaterial({ color: 0x1f6fb2, metalness: 0.45, roughness: 0.45 });
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4dc, emissiveIntensity: 1.6 });
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(60, 7), wallMat);
+    wall.position.set(0, 3.5, -7.2);
+    wall.receiveShadow = true;
+    building.add(wall);
+    for (let x = -29; x <= 29; x += 1.2) {
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.06, 7, 0.06), ribMat);
+      rib.position.set(x, 3.5, -7.15);
+      building.add(rib);
+    }
+    const dado = new THREE.Mesh(new THREE.BoxGeometry(60, 1.1, 0.08), new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.8 }));
+    dado.position.set(0, 0.55, -7.1);
+    building.add(dado);
+    for (let x = -24; x <= 24; x += 6) {
+      const col = new THREE.Mesh(new THREE.BoxGeometry(0.35, 7, 0.35), colMat);
+      col.position.set(x, 3.5, -6.8);
+      col.castShadow = true;
+      building.add(col);
+      const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.35, 0.12, 20), lampMat);
+      lamp.position.set(x + 3, 5.6, -1.5);
+      building.add(lamp);
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.4, 6), ribMat);
+      rod.position.set(x + 3, 6.3, -1.5);
+      building.add(rod);
+    }
+    // Yellow walkway line along the front of the line.
+    const walk = new THREE.Mesh(new THREE.PlaneGeometry(60, 0.1), new THREE.MeshStandardMaterial({ color: 0xf2b705, roughness: 0.6 }));
+    walk.rotation.x = -Math.PI / 2;
+    walk.position.set(0, 0.003, 3.4);
+    building.add(walk);
+  }
+  scene.add(building);
 
   function makeLabel(text, color = "#e6ecf3") {
     const c = document.createElement("canvas");
@@ -443,7 +521,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     const bounds = new THREE.Box3();
     const tmp = new THREE.Box3();
     for (const o of scene.children) {
-      if (o === floor || o === grid || o === refGroup || o === overlayGroup || o.isLight || o === sun.target || !o.visible) continue;
+      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o.isLight || o === sun.target || !o.visible) continue;
       if (o.isSprite) continue;
       tmp.setFromObject(o);
       if (!tmp.isEmpty()) bounds.union(tmp);
@@ -853,6 +931,10 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       dims.dTool = dims.d6 + TOOL_LEN;
       const root = new THREE.Group();
       root.position.x = X;
+      // Painted like a real robot: industrial yellow, or white with blue trim for a cobot (see setPaint).
+      const paint = new (THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial)({ color: 0xf2b705, metalness: 0.15, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.18 });
+      const trim = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.55, roughness: 0.35 });
+      const cable = new THREE.MeshStandardMaterial({ color: 0x111418, metalness: 0.1, roughness: 0.7 });
 
       const base = cyl(0.22 * s, 0.12 * s, M.dark);
       base.position.y = 0.06 * s;
@@ -861,10 +943,10 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       const j1 = new THREE.Group();
       j1.position.y = 0.12 * s;
       root.add(j1);
-      const turret = cyl(0.19 * s, 0.18 * s, M.body);
+      const turret = cyl(0.19 * s, 0.18 * s, paint);
       turret.position.y = 0.09 * s;
       j1.add(turret);
-      const shoulderBlock = box(0.3 * s, dims.h1 - 0.12 * s - 0.18 * s + 0.12 * s, 0.3 * s, M.body);
+      const shoulderBlock = box(0.3 * s, dims.h1 - 0.12 * s - 0.18 * s + 0.12 * s, 0.3 * s, paint);
       shoulderBlock.position.set(dims.a1 * 0.6, 0.18 * s + (dims.h1 - 0.12 * s - 0.18 * s) / 2, 0);
       j1.add(shoulderBlock);
 
@@ -874,13 +956,17 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       const m2 = cyl(0.12 * s, 0.34 * s, M.dark);
       m2.rotation.x = Math.PI / 2;
       j2.add(m2);
-      const cap2 = cyl(0.07 * s, 0.36 * s, M.accent);
+      const cap2 = cyl(0.07 * s, 0.36 * s, trim);
       cap2.rotation.x = Math.PI / 2;
       j2.add(cap2);
-      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.085 * s, dims.L2 - 0.17 * s, 8, 20), M.body);
+      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.085 * s, dims.L2 - 0.17 * s, 8, 20), paint);
       upper.castShadow = true;
       upper.position.y = dims.L2 / 2;
       j2.add(upper);
+
+      const harness2 = cyl(0.022 * s, dims.L2 * 0.8, cable, 10);
+      harness2.position.set(-0.07 * s, dims.L2 / 2, 0.11 * s);
+      j2.add(harness2);
 
       const j3 = new THREE.Group();
       j3.position.set(0, dims.L2, 0);
@@ -888,22 +974,27 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       const m3 = cyl(0.1 * s, 0.28 * s, M.dark);
       m3.rotation.x = Math.PI / 2;
       j3.add(m3);
-      const rear = box(0.2 * s, 0.16 * s, 0.2 * s, M.body);
+      const rear = box(0.2 * s, 0.16 * s, 0.2 * s, paint);
       rear.position.x = -0.12 * s;
       j3.add(rear);
-      const fore1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.075 * s, dims.L3 * 0.5 - 0.1 * s, 8, 20), M.body);
+      const fore1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.075 * s, dims.L3 * 0.5 - 0.1 * s, 8, 20), paint);
       fore1.castShadow = true;
       fore1.rotation.z = -Math.PI / 2;
       fore1.position.x = dims.L3 * 0.25;
       j3.add(fore1);
 
+      const harness3 = cyl(0.018 * s, dims.L3 * 0.42, cable, 10);
+      harness3.rotation.z = Math.PI / 2;
+      harness3.position.set(dims.L3 * 0.24, 0.085 * s, 0.05 * s);
+      j3.add(harness3);
+
       const j4 = new THREE.Group();
       j4.position.set(dims.L3 * 0.5, 0, 0);
       j3.add(j4);
-      const ring = cyl(0.078 * s, 0.03 * s, M.accent);
+      const ring = cyl(0.078 * s, 0.03 * s, trim);
       ring.rotation.z = Math.PI / 2;
       j4.add(ring);
-      const fore2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.06 * s, dims.L3 * 0.5 - 0.1 * s, 8, 20), M.body);
+      const fore2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.06 * s, dims.L3 * 0.5 - 0.1 * s, 8, 20), paint);
       fore2.castShadow = true;
       fore2.rotation.z = -Math.PI / 2;
       fore2.position.x = dims.L3 * 0.25;
@@ -919,7 +1010,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       const j6 = new THREE.Group();
       j6.position.set(dims.d6, 0, 0);
       j5.add(j6);
-      const flange = cyl(0.05, 0.02, M.accent);
+      const flange = cyl(0.05, 0.02, trim);
       flange.rotation.z = Math.PI / 2;
       j6.add(flange);
       const gBody = box(0.07, 0.09, 0.16, M.dark);
@@ -950,13 +1041,15 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       j6.add(toolHead);
 
       scene.add(root);
-      return { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers, dims, q: [0, 0, 0, 0, 0, 0], toolHead, toolMat };
+      return { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers, dims, q: [0, 0, 0, 0, 0, 0], toolHead, toolMat, paint, trim };
     }
 
     function disposeRobot() {
       if (!robot) return;
       scene.remove(robot.root);
       robot.root.traverse((o) => o.geometry && o.geometry.dispose());
+      robot.paint.dispose();
+      robot.trim.dispose();
       robot = null;
     }
 
@@ -1543,6 +1636,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       }
     }
 
+    let paintIndustrial = true;
     const cell = {
       title,
       steps,
@@ -1567,9 +1661,16 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
         return !!held;
       },
       unreachable,
+      setPaint(industrial) {
+        paintIndustrial = industrial;
+        if (!robot) return;
+        robot.paint.color.set(industrial ? 0xf2b705 : 0xeef1f5);
+        robot.trim.color.set(industrial ? 0x1f2937 : 0x2f7de1);
+      },
       buildRobot(scale) {
         disposeRobot();
         robot = buildRobot(scale);
+        cell.setPaint(paintIndustrial);
       },
       reset() {
         clearParts();
@@ -1734,7 +1835,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     const bounds = new THREE.Box3();
     const tmp = new THREE.Box3();
     for (const o of scene.children) {
-      if (o === floor || o === grid || o === refGroup || o === overlayGroup || o.isLight || o === sun.target || !o.visible || o.isSprite) continue;
+      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o.isLight || o === sun.target || !o.visible || o.isSprite) continue;
       tmp.setFromObject(o);
       if (!tmp.isEmpty()) bounds.union(tmp);
     }
@@ -2083,6 +2184,8 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     /** Fence the industrial robot cells: true / false for all, or one flag per cell. */
     setFencing(on) {
       fenceCells = Array.isArray(on) ? on.map(Boolean) : cells.map(() => !!on);
+      // Industrial robots (fenced) in yellow; cobots in white and blue.
+      cells.forEach((c, i) => c.setPaint(!!fenceCells[i]));
       placeFence();
       if (overlay === "layout") setOverlay(overlay);
     },
@@ -2115,6 +2218,12 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       clearFence();
       disposeLine();
       controls.dispose();
+      if (envTexture) envTexture.dispose();
+      floorTex.dispose();
+      building.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) o.material.dispose();
+      });
       renderer.dispose();
       renderer.domElement.remove();
     },

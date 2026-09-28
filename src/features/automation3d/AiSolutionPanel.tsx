@@ -1,4 +1,4 @@
-import { AlertTriangle, Boxes, Cpu, Gauge, HelpCircle, Layers, Loader2, Play, RefreshCw, ShieldCheck, Sparkles, Wrench } from "lucide-react";
+import { AlertTriangle, BookOpenCheck, Boxes, Brain, Cpu, Gauge, HelpCircle, Layers, Loader2, Play, RefreshCw, ShieldCheck, Sparkles, Wrench } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -134,6 +134,29 @@ export default function AiSolutionPanel({
         </div>
       </div>
 
+      {/* How it was designed */}
+      {(s.reasoning?.length ?? 0) > 0 && (
+        <details open className="group rounded-lg border border-border p-4">
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold">
+            <Brain className="h-4 w-4 text-primary" aria-hidden />
+            How the studio thought it through
+            <span className="ml-auto text-xs font-normal text-muted-foreground group-open:hidden">Show</span>
+          </summary>
+          <ol className="mt-3 space-y-0 border-l border-border pl-4">
+            {s.reasoning!.map((r, i) => (
+              <li key={i} className="relative pb-3 last:pb-0">
+                <span aria-hidden className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-primary bg-background" />
+                <p className="text-sm font-medium">
+                  <span className="mr-1.5 font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                  {r.title}
+                </p>
+                {r.detail && <p className="text-sm text-muted-foreground">{r.detail}</p>}
+              </li>
+            ))}
+          </ol>
+        </details>
+      )}
+
       {/* Stations */}
       {s.stations.length > 0 && (
         <Block icon={<Boxes className="h-4 w-4" />} title={`Stations (${s.stations.length})`}>
@@ -252,6 +275,21 @@ export default function AiSolutionPanel({
           <List title="KPIs to track" items={s.kpis} />
         </Block>
       </div>
+
+      {((s.standards?.length ?? 0) > 0 || (s.industry_notes?.length ?? 0) > 0) && (
+        <Block icon={<BookOpenCheck className="h-4 w-4" />} title="Standards & industry rules applied">
+          {(s.standards?.length ?? 0) > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {s.standards!.map((x) => (
+                <Badge key={x} variant="outline" className="font-normal">
+                  {x}
+                </Badge>
+              ))}
+            </div>
+          )}
+          <List items={s.industry_notes ?? []} />
+        </Block>
+      )}
 
       {(s.assumptions.length > 0 || s.questions.length > 0) && (
         <Block icon={<HelpCircle className="h-4 w-4" />} title="Assumptions & questions that would sharpen the design">

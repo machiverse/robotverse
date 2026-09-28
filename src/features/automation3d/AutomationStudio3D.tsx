@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -198,6 +199,7 @@ export default function AutomationStudio3D({
     const sim = createSimulation({
       THREE,
       OrbitControls,
+      RoomEnvironment,
       container: stageRef.current,
       onUpdate: (s: SimState) => setState(s),
     });

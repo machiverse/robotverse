@@ -26,6 +26,12 @@ export interface AiStation {
 export interface AiSolution {
   /** "engine" = RobotVerse built-in knowledge engine, "ai" = AI engineer. */
   source?: "engine" | "ai";
+  /** The design decisions in order, with the rule or reason behind each. */
+  reasoning?: { title: string; detail: string }[];
+  /** Standards the design follows. */
+  standards?: string[];
+  /** Industry-specific design rules that apply. */
+  industry_notes?: string[];
   title: string;
   understanding: string;
   feasibility: "high" | "medium" | "low";

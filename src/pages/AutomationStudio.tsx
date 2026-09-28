@@ -67,6 +67,7 @@ import { processToText, PRESETS } from "@/features/automation3d/robotSim.js";
 import AiSolutionPanel from "@/features/automation3d/AiSolutionPanel";
 import { requestSolution, solutionProcesses, type AiSolution } from "@/features/automation3d/aiSolution";
 import { engineSolution } from "@/features/automation3d/solutionEngine";
+import BriefAssistant from "@/features/automation3d/BriefAssistant";
 
 const simLink = (text: string, title?: string) =>
   `/automation-studio/3d?process=${encodeURIComponent(text)}${title ? `&title=${encodeURIComponent(title)}` : ""}`;
@@ -541,6 +542,7 @@ export default function AutomationStudio() {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />
+                    <BriefAssistant value={description} onChange={setDescription} />
                   </div>
                 </CardContent>
               </Card>
@@ -588,26 +590,43 @@ export default function AutomationStudio() {
             <div className="flex min-h-[340px] flex-col items-center justify-center text-center">
               <Loader2 className="mb-6 h-10 w-10 animate-spin text-primary" />
               <p className="text-lg font-semibold" aria-live="polite">
-                {ANALYSIS_MESSAGES[msgIndex]}
+                {engine?.reasoning?.length ? "Designing your automation solution…" : ANALYSIS_MESSAGES[msgIndex]}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
                 This usually takes a few seconds. Please keep this page open.
               </p>
               <Badge variant="secondary" className="mt-4 gap-1.5">
-                <Bot className="h-3.5 w-3.5" /> Powered by RobotVerse AI
+                <Bot className="h-3.5 w-3.5" /> RobotVerse solution engine + AI
               </Badge>
-              <ul className="mt-8 space-y-2 text-left">
-                {ANALYSIS_MESSAGES.map((m, i) => (
-                  <li key={m} className="flex items-center gap-2 text-sm">
-                    {i < msgIndex ? (
-                      <Check className="h-4 w-4 text-emerald-600" />
-                    ) : (
-                      <span className="h-4 w-4 rounded-full border border-border" />
-                    )}
-                    <span className={i <= msgIndex ? "text-foreground" : "text-muted-foreground"}>{m}</span>
+              {engine?.reasoning?.length ? (
+                <ol className="mt-8 w-full max-w-2xl space-y-2 text-left">
+                  {engine.reasoning.slice(0, Math.min(engine.reasoning.length, msgIndex * 2 + 2)).map((r, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <span>
+                        <span className="font-medium">{r.title}</span>
+                        <span className="block text-muted-foreground">{r.detail}</span>
+                      </span>
+                    </li>
+                  ))}
+                  <li className="flex items-center gap-2 text-sm text-primary">
+                    <Loader2 className="h-4 w-4 animate-spin" /> AI engineer refining the design for your brief…
                   </li>
-                ))}
-              </ul>
+                </ol>
+              ) : (
+                <ul className="mt-8 space-y-2 text-left">
+                  {ANALYSIS_MESSAGES.map((m, i) => (
+                    <li key={m} className="flex items-center gap-2 text-sm">
+                      {i < msgIndex ? (
+                        <Check className="h-4 w-4 text-emerald-600" />
+                      ) : (
+                        <span className="h-4 w-4 rounded-full border border-border" />
+                      )}
+                      <span className={i <= msgIndex ? "text-foreground" : "text-muted-foreground"}>{m}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </StepShell>
         )}

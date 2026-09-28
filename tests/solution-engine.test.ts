@@ -38,4 +38,21 @@ assert.ok((engineSolution("palletize 40 kg sacks").stations.at(-1)?.payload_kg ?
 assert.match(engineSolution("Load and unload a CNC lathe with 5 kg shafts, cobot next to operator").architecture.type, /cobot/i);
 // Unmatched briefs still get a usable answer that asks for details.
 assert.equal(engineSolution("I want to automate my factory").feasibility, "medium");
+// Knowledge base: grippers, vision, robot type, industry standards and a visible reasoning trace.
+{
+  const sacks = engineSolution("Palletize 50 kg cement bags coming on a conveyor, 400 bags per hour");
+  assert.match(sacks.stations.map((s) => s.tooling).join(" "), /sack gripper/i);
+  assert.ok(!sacks.industry_notes!.some((x) => /Construction/.test(x)), "cement bags are not construction");
+  const bin = engineSolution("Pick random steel shafts from a bin and load a CNC lathe");
+  assert.match(bin.stations.flatMap((s) => s.sensors).join(" "), /3D vision/i);
+  const food = engineSolution("Pack chocolate bars into cartons, food grade, 2 shifts");
+  assert.ok(food.standards!.some((x) => /FSSAI/.test(x)), "food standards");
+  assert.ok(food.industry_notes!.some((x) => /IP69K|washdown/i.test(x)));
+  const scara = engineSolution("Screw small PCB assemblies with 4 screws each");
+  assert.match(scara.stations.map((s) => s.equipment).join(" "), /SCARA/);
+  for (const r of [sacks, bin, food, scara]) {
+    assert.ok((r.reasoning?.length ?? 0) >= 6, "reasoning trace");
+    assert.ok(r.standards!.some((x) => /ISO 10218/.test(x)));
+  }
+}
 console.log("solution engine: ok");

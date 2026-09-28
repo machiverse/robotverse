@@ -66,8 +66,11 @@ Return JSON:
   "roi": { "labour_saved": "", "quality_gain": "", "payback_months": "" },
   "kpis": ["how to measure success"],
   "assumptions": ["..."],
-  "questions": ["clarifying questions (max 4)"]
-}`;
+  "questions": ["clarifying questions (max 4)"],
+  "reasoning": [ { "title": "short step name", "detail": "the decision and why (1 sentence)" } ],
+  "standards": ["standards the design follows, e.g. ISO 10218-2, ISO 13849-1, ATEX"]
+}
+"reasoning" lists 6-10 steps of how you designed it: facts read from the brief, process choice, gripper, vision, robot type & sizing, cycle/throughput, safety, budget.`;
 }
 
 function parseJson(raw: string) {
@@ -186,6 +189,8 @@ serve(async (req) => {
       kpis: strs(r.kpis, 6),
       assumptions: strs(r.assumptions, 6),
       questions: strs(r.questions, 4),
+      reasoning: (Array.isArray(r.reasoning) ? r.reasoning : []).slice(0, 12).map((x: Record<string, unknown>) => ({ title: str(x?.title, 80), detail: str(x?.detail, 400) })),
+      standards: strs(r.standards, 10, 120),
     });
   } catch (e) {
     console.error("automation-solution", e);

@@ -51,6 +51,7 @@ export function processToText(kind: string, name?: string): string;
 export function createSimulation(opts: {
   THREE: typeof import("three");
   OrbitControls: unknown;
+  RoomEnvironment?: unknown;
   container: HTMLElement;
   onUpdate?: (s: SimUpdate) => void;
 }): Simulation;

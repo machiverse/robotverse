@@ -18,6 +18,7 @@ import { processKind, type ProcessKind } from "./processProfiles";
 import { planLine, STRATEGIES, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, payback } from "./solutionCost";
 import type { AiSolution, AiStation } from "./aiSolution";
+import { GENERAL_STANDARDS, GRIPPER_RULES, INDUSTRY_RULES, matchAll, matchFirst, ROBOT_TYPE_RULES, VISION_RULES } from "./automationKnowledge";
 
 /* ---------------------------------------------------------------- facts */
 
@@ -53,8 +54,11 @@ const MATERIALS: [RegExp, string][] = [
 
 const PER: Record<string, number> = { s: 3600, sec: 3600, second: 3600, min: 60, minute: 60, h: 1, hr: 1, hour: 1, shift: 1 / 8, day: 1 / 24 };
 
+/** "cement bags", "rice sacks": the product is the bag, not the construction material or food process. */
+const bagged = (t: string) => t.replace(/\b(cement|sand|rice|flour|sugar|grain|feed|fertili[sz]er|chemical|powder)\s+(bags?|sacks?)\b/g, "bags");
+
 export function extractFacts(brief: string): BriefFacts {
-  const t = ` ${brief.toLowerCase().replace(/\s+/g, " ")} `;
+  const t = bagged(` ${brief.toLowerCase().replace(/\s+/g, " ")} `);
   let weightKg: number | null = null;
   const w = t.match(/(\d+(?:\.\d+)?)\s*(kg|kgs|kilo(?:gram)?s?|tons?|tonnes?|t\b|g\b|grams?)/);
   if (w) {
@@ -183,6 +187,8 @@ export function engineSolution(brief: string, industry: string | null = null, st
     const kind = processKind({ name });
     if (highSpeed && (kind === "packing" || kind === "handling" || kind === "inspection")) return 1.2;
     if (highSpeed && kind === "palletizing") return 7 / 12;
+    // Heavy parts move slower (acceleration and settling).
+    if ((facts.weightKg ?? 0) > 25 && (kind === "palletizing" || kind === "handling")) return CYCLE[kind] + 3;
     return CYCLE[kind];
   };
   const robotCycle = (r: { tasks: { name: string }[] }) => r.tasks.reduce((n, t) => n + cycleOf(t.name), 0) + 3 * Math.max(0, r.tasks.length - 1);
@@ -207,6 +213,14 @@ export function engineSolution(brief: string, industry: string | null = null, st
   const cobots = plan.robots.filter((r) => r.collaborative).length;
   const kinds = new Set(processes.map((p) => processKind(p)));
 
+  // Knowledge base: gripper, vision, robot type and industry rules for this brief.
+  const low_ = bagged(` ${brief.toLowerCase()} `);
+  const gripper = matchFirst(GRIPPER_RULES, low_);
+  const visions = matchAll(VISION_RULES, low_);
+  const robotType = concrete ? null : matchFirst(ROBOT_TYPE_RULES, low_);
+  const industries = INDUSTRY_RULES.filter((r) => r.when.test(low_));
+  const HANDLES: ProcessKind[] = ["handling", "transport", "machining", "palletizing", "packing", "inspection"];
+
   // Stations sized from the part weight in the brief (part + tool, 25 % margin).
   const stations: AiStation[] = processes.map((p) => {
     const kind = processKind(p);
@@ -222,11 +236,13 @@ export function engineSolution(brief: string, industry: string | null = null, st
         ? "3-axis gantry printer or 6-axis robot on a track with concrete pump system"
         : highSpeed && kind !== "palletizing"
           ? "Delta / high-speed picker with multi-pick gripper; fits: ABB IRB 360 FlexPicker, FANUC M-2iA / M-3iA, Yaskawa MPP3H"
+        : robotType && !/cobot/i.test(robotType.pick) && (HANDLES.includes(kind) || /SCARA/.test(robotType.pick) && kind === "assembly")
+          ? `${robotType.pick}; or ${cobot ? "cobot" : "6-axis robot"}: ${robotExamples(payload ?? 10, cobot)}`
         : `${cobot ? "Collaborative robot" : "Industrial robot"}; fits: ${robotExamples(payload ?? 10, cobot)}`,
       payload_kg: payload,
       reach_mm: kg(p.robot.reach),
-      tooling: p.eoat.join(", "),
-      sensors: SENSORS[kind],
+      tooling: gripper && HANDLES.includes(kind) ? `${gripper.pick} (${p.eoat.slice(1).join(", ") || p.eoat[0]})` : p.eoat.join(", "),
+      sensors: [...new Set([...SENSORS[kind], ...visions.filter(() => HANDLES.includes(kind) || kind === "inspection").map((v) => v.pick)])],
       cycle_s: briefCycle ?? Math.round(cycleOf(p.name) * 10) / 10,
       notes: p.integrationNote,
     };
@@ -361,8 +377,44 @@ export function engineSolution(brief: string, industry: string | null = null, st
     ? `You want to automate: ${matchedNames.join(", ")}. ${facts.weightKg != null ? `Parts weigh about ${facts.weightKg} kg. ` : ""}${facts.partsPerHour != null ? `Target ${facts.partsPerHour} parts/hour. ` : ""}The line below plans the robots, tooling, safety and controls for exactly these tasks.`
     : "The brief does not name a specific process, so this starts from a general robotic handling cell. Name the tasks (weld, grind, paint, assemble, pack, palletize…) or answer the questions below for a precise design.";
 
+  // How the studio thought it through: every decision and the rule behind it.
+  const fmt = (n: number) => `₹${(n / 1e5).toFixed(1)} L`;
+  const reasoning: { title: string; detail: string }[] = [
+    {
+      title: "Read the brief",
+      detail: [
+        facts.weightKg != null ? `part ${facts.weightKg} kg` : "part weight not given",
+        facts.partsPerHour != null ? `${facts.partsPerHour} parts/h` : "rate not given",
+        facts.shifts != null ? `${facts.shifts} shifts` : "",
+        facts.operators != null ? `${facts.operators} operators` : "",
+        facts.material ?? "",
+        facts.variants ? "several variants" : "",
+      ].filter(Boolean).join(" · "),
+    },
+    {
+      title: "Matched processes",
+      detail: matched ? `${matchedNames.join(" → ")} (from ${processes.length} skill${processes.length > 1 ? "s" : ""} in the library)` : "No specific process named: starting from a general handling cell",
+    },
+    ...(industries.length ? [{ title: "Industry rules", detail: industries.map((i) => `${i.industry}: ${i.notes[0]}`).join(" · ") }] : []),
+    ...(gripper ? [{ title: "Gripper", detail: `${gripper.pick} — ${gripper.why}` }] : []),
+    ...visions.map((v) => ({ title: "Vision", detail: `${v.pick} — ${v.why}` })),
+    ...(robotType ? [{ title: "Robot type", detail: `${robotType.pick} — ${robotType.why}` }] : []),
+    {
+      title: "Robot plan",
+      detail: `${STRATEGIES[strategy].label}: ${plan.robots.length} robot${plan.robots.length > 1 ? "s" : ""}${cobots ? ` (${cobots} cobot)` : ""}; ${plan.robots.map((r, i) => `${r.title} ${Math.round(cycles[i])} s`).join(", ")}`,
+    },
+    { title: "Sizing", detail: facts.weightKg != null ? `(part ${facts.weightKg} kg + tool) × 1.25 margin → ${stations.map((x) => `${x.payload_kg} kg`).join(" / ")}` : "Payload from the skill minimums; confirm the part weight" },
+    { title: "Throughput", detail: throughputNote },
+    { title: "Safety concept", detail: industrial ? "Fenced cell, interlocked door, light curtain at load point, PL d safety" : "Collaborative operation with speed & separation monitoring" },
+    { title: "Budget & payback", detail: `${fmt(low)} – ${fmt(high)} from the priced bill of materials · payback ${months || "n/a"}` },
+  ];
+  const standards = [...GENERAL_STANDARDS, ...(cobots ? ["ISO/TS 15066 (collaborative robots)"] : []), ...industries.flatMap((i) => i.standards)];
+
   return {
     source: "engine",
+    reasoning,
+    standards,
+    industry_notes: industries.flatMap((i) => i.notes.map((n) => `${i.industry}: ${n}`)),
     title: `${archType} for ${matchedNames.slice(0, 3).join(", ")}${matchedNames.length > 3 ? "…" : ""}`,
     understanding,
     feasibility: !matched ? "medium" : facts.variants || heavy ? "medium" : "high",
