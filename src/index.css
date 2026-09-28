@@ -204,6 +204,23 @@ All colors MUST be HSL.
   }
 }
 
+/* Home hero "console" palette: always dark, whatever the site theme. */
+:root {
+  --rv-console-bg: 222 47% 6%;
+  --rv-console-ink: 210 60% 92%;
+  --rv-console-line: 210 60% 92% / 0.22;
+}
+
+/* Chapter progress in the hero console bar (runs for one slide). */
+@keyframes rv-console-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 
 
 
