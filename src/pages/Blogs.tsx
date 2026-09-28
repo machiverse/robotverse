@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
@@ -50,6 +50,7 @@ interface CommunityPost {
   media_type?: string;
   video_duration?: number;
   tags: string[];
+  category?: string | null;
   view_count: number;
   like_count: number;
   comment_count: number;
@@ -79,7 +80,8 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useDebouncedUrlParam("search", "", 400);
   const [sortBy, setSortBy] = useUrlParam<string>("sort", "latest");
-  const [filterType, setFilterType] = useUrlParam<string>("category", "all");
+  const [filterType, setFilterType] = useUrlParam<string>("type", "all");
+  const [category, setCategory] = useUrlParam<string>("category", "all");
   const [selectedTag, setSelectedTag] = useUrlParam<string>("tag", "all");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [tab, setTab] = useState<"published" | "scheduled" | "drafts">("published");
@@ -91,7 +93,7 @@ const Community = () => {
 
   useEffect(() => {
     if (posts.length > 0) {
-      const tags = Array.from(new Set(posts.flatMap(post => post.tags)));
+      const tags = Array.from(new Set(posts.flatMap(post => post.tags || []))).filter(Boolean);
       setAvailableTags(tags);
     }
   }, [posts]);
@@ -118,8 +120,10 @@ const Community = () => {
         communityQuery = communityQuery.eq('post_type', filterType);
       }
 
-      const { data: communityData, error: communityError } = await communityQuery;
-      if (communityError) throw communityError;
+      // Community posts and older blogs load independently: one failing never hides the other.
+      const { data: communityRows, error: communityError } = await communityQuery;
+      if (communityError) console.error('Error fetching community posts:', communityError);
+      const communityData = communityRows || [];
 
       // Fetch old blogs (only if not filtering by specific post type or if filtering by blog)
       let blogData: any[] = [];
@@ -129,7 +133,7 @@ const Community = () => {
           .select('*')
           .eq('status', 'published');
 
-        if (blogError) throw blogError;
+        if (blogError) console.error('Error fetching blogs:', blogError);
 
         // Transform old blogs to match new community post format
         blogData = (oldBlogs || []).map(blog => ({
@@ -142,24 +146,28 @@ const Community = () => {
         }));
       }
 
-      // Combine both data sources
-      const allPosts = [...(communityData || []), ...blogData];
+      // Combine both data sources. Older posts can have no tags or category: normalise them.
+      const allPosts = [...communityData, ...blogData].map((post) => ({
+        ...post,
+        tags: Array.isArray(post.tags) ? post.tags.filter(Boolean) : [],
+        category: typeof post.category === 'string' && post.category.trim() ? post.category.trim() : null,
+      }));
 
-      // Fetch author profiles for all posts
-      const postsWithProfiles = await Promise.all(
-        allPosts.map(async (post) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name, company_name, avatar_url')
-            .eq('user_id', post.author_id)
-            .maybeSingle();
-          
-          return {
-            ...post,
-            profiles: profile
-          };
-        })
-      );
+      // Fetch author profiles for all posts in one request
+      const authorIds = Array.from(new Set(allPosts.map((p) => p.author_id).filter(Boolean)));
+      type AuthorProfile = { user_id: string; full_name: string; company_name?: string; avatar_url?: string };
+      const profileMap = new Map<string, AuthorProfile>();
+      for (let i = 0; i < authorIds.length; i += 200) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, company_name, avatar_url')
+          .in('user_id', authorIds.slice(i, i + 200));
+        (profiles as AuthorProfile[] | null)?.forEach((pr) => profileMap.set(pr.user_id, pr));
+      }
+      const postsWithProfiles = allPosts.map((post) => ({
+        ...post,
+        profiles: profileMap.get(post.author_id) ?? null,
+      }));
 
       // Apply sorting
       let sortedPosts = [...postsWithProfiles];
@@ -238,6 +246,17 @@ const Community = () => {
 
   const isMine = (post: CommunityPost) => !!user && post.author_id === user.id;
 
+  // Categories with post counts (published posts only), largest first
+  const categoryOf = (post: CommunityPost) => post.category || "General";
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    posts
+      .filter((p) => !p.status || p.status === "published")
+      .forEach((p) => counts.set(categoryOf(p), (counts.get(categoryOf(p)) || 0) + 1));
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [posts]);
+  const publishedCount = categories.reduce((n, [, c]) => n + c, 0);
+
   const myScheduledCount = posts.filter(p => isMine(p) && p.status === 'scheduled').length;
   const myDraftsCount = posts.filter(p => isMine(p) && p.status === 'draft').length;
 
@@ -255,13 +274,15 @@ const Community = () => {
       post.title,
       post.content,
       post.excerpt,
-      ...post.tags
+      post.category,
+      ...(post.tags || [])
     ].filter(Boolean).join(' ').toLowerCase();
 
     const matchesSearch = searchContent.includes(searchTerm.toLowerCase());
-    const matchesTag = selectedTag === "all" || post.tags.includes(selectedTag);
+    const matchesTag = selectedTag === "all" || (post.tags || []).includes(selectedTag);
+    const matchesCategory = category === "all" || categoryOf(post) === category;
 
-    return matchesSearch && matchesTag;
+    return matchesSearch && matchesTag && matchesCategory;
   });
 
 
@@ -334,11 +355,12 @@ const Community = () => {
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
-  const hasFilters = !!searchTerm || (selectedTag && selectedTag !== "all") || filterType !== "all";
+  const hasFilters = !!searchTerm || (selectedTag && selectedTag !== "all") || filterType !== "all" || category !== "all";
   const clearFilters = () => {
     setSearchTerm("");
     setFilterType("all");
     setSelectedTag("all");
+    setCategory("all");
   };
 
   const filterPanel = (
@@ -352,6 +374,27 @@ const Community = () => {
                 className="pl-10 font-medium"
               />
             </div>
+
+            {categories.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold mb-2">Categories</p>
+                <div className="space-y-0.5 max-h-72 overflow-y-auto pr-1">
+                  {[["all", publishedCount] as [string, number], ...categories].map(([name, count]) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => setCategory(name)}
+                      className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                        category === name ? "bg-primary/10 font-semibold text-primary" : "hover:bg-muted"
+                      }`}
+                    >
+                      <span className="truncate">{name === "all" ? "All articles" : name}</span>
+                      <span className="ml-2 text-xs tabular-nums text-muted-foreground">{count}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <p className="text-xs font-semibold -mb-2">Post Type</p>
             <Select value={filterType} onValueChange={setFilterType}>
@@ -574,11 +617,33 @@ const Community = () => {
                   </SheetContent>
                 </Sheet>
               </div>
+              {categories.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Blog categories">
+                  {[["all", publishedCount] as [string, number], ...categories].map(([name, count]) => (
+                    <button
+                      key={name}
+                      type="button"
+                      role="tab"
+                      aria-selected={category === name}
+                      onClick={() => setCategory(name)}
+                      className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                        category === name
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border hover:border-primary/60"
+                      }`}
+                    >
+                      {name === "all" ? "All articles" : name}
+                      <span className="ml-1.5 opacity-70 tabular-nums">{count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="text-sm text-muted-foreground">
                   {loading ? "Loading…" : (
                     <>
                       Showing <span className="font-semibold text-foreground">{filteredPosts.length}</span> posts
+                      {category !== "all" && <> in <span className="font-semibold text-foreground">{category}</span></>}
                     </>
                   )}
                 </div>
@@ -627,7 +692,7 @@ const Community = () => {
               </div>
               <h3 className="text-2xl font-bold mb-3">Start the Conversation</h3>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
-                {searchTerm || (selectedTag && selectedTag !== "all") || filterType !== "all"
+                {hasFilters
                   ? "No posts match your criteria. Try adjusting your filters to discover more content." 
                   : "Be the first to share your insights and connect with the robotics community. Your voice matters!"
                 }

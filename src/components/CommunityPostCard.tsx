@@ -400,7 +400,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
       </Link>
 
       {/* Tags */}
-      {post.tags.length > 0 && (
+      {(post.tags?.length ?? 0) > 0 && (
         <div className="px-4 py-3 border-t border-border/50">
           <div className="flex flex-wrap gap-2">
             {post.tags.slice(0, 4).map((tag) => (
