@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,11 @@ import SolutionReport from "./SolutionReport";
 import SkillsLibrary from "./SkillsLibrary";
 import MediaAnalyzer from "./MediaAnalyzer";
 import type { MediaAnalysis } from "./mediaAnalysis";
+
+// Construction 3D concrete printing is a whole system (printer, material plant, PLC, HMI),
+// not a robot station, so it opens its own simulator.
+const ConstructionPrintStudio = lazy(() => import("./concrete/ConstructionPrintStudio"));
+const CONCRETE_PRINTING = "Construction 3D Concrete Printing";
 
 type Step = { action: string; station: string; label: string; auto?: boolean };
 type SimState = {
@@ -130,6 +135,13 @@ export default function AutomationStudio3D({
   const [allTemplates, setAllTemplates] = useState(false);
   const [reference, setReference] = useState<string | undefined>(referenceImage);
   const [media, setMedia] = useState<MediaAnalysis | null>(mediaAnalysis ?? null);
+  const [special, setSpecial] = useState(false);
+
+  function openSpecial(desc?: string) {
+    simRef.current?.pause();
+    if (desc) setDescription(desc);
+    setSpecial(true);
+  }
 
   useEffect(() => {
     simRef.current?.setReference(reference ?? null, "Your reference: manual process today");
@@ -160,6 +172,7 @@ export default function AutomationStudio3D({
   }, []);
 
   function runLine(input: LineInput, planNotes: string[] = [], option: Strategy = strategy) {
+    if (input.some((p) => p.name === CONCRETE_PRINTING)) return openSpecial();
     setLineInput(input);
     runPlan(planLine(input, option), planNotes);
   }
@@ -204,7 +217,8 @@ export default function AutomationStudio3D({
     const isStepList = /\n|->|→/.test(src.trim());
     if (!isStepList && src.trim()) {
       setDescription(src.trim());
-      if (matchTemplateIds(src).length > 0) runLine(analyzeDescription(src, null));
+      if (matchTemplateIds(src).includes("concrete3dp")) openSpecial(src.trim());
+      else if (matchTemplateIds(src).length > 0) runLine(analyzeDescription(src, null));
       else
         // Every request still gets a solution: a general pick-and-place cell.
         runLine([{ name: "Pick & Place Handling" }], [
@@ -264,10 +278,25 @@ export default function AutomationStudio3D({
   const options = useMemo(() => (lineInput ? compareOptions(lineInput, catalog) : []), [lineInput, catalog]);
 
   return (
+    <>
+    {special && (
+      <div className={cn(embedded && "overflow-hidden rounded-xl border border-border")}>
+        <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Loading the construction printing cell…</div>}>
+          <ConstructionPrintStudio
+            description={description}
+            onExit={() => {
+              setSpecial(false);
+              simRef.current?.play();
+            }}
+          />
+        </Suspense>
+      </div>
+    )}
     <div
       className={cn(
         "flex flex-col bg-background text-foreground",
         embedded ? "overflow-hidden rounded-xl border border-border" : "min-h-[calc(100vh-8rem)]",
+        special && "hidden",
       )}
     >
       {/* Toolbar */}
@@ -744,5 +773,6 @@ export default function AutomationStudio3D({
         }}
       />
     </div>
+    </>
   );
 }
