@@ -14,6 +14,7 @@ import { Search } from "lucide-react";
 import HeroImageSlider, { useHeroSlides } from "@/components/hero/HeroImageSlider";
 import HeroWeldSparks from "@/components/hero/HeroWeldSparks";
 import HeroEmbers from "@/components/hero/HeroEmbers";
+import HeroDepthSlider from "@/components/hero/HeroDepthSlider";
 import { Bevel, CornerMarks, DecodeText, PixelArrow, PixelDot } from "@/components/hero/HeroConsole";
 import { HERO_SLIDE_MS } from "@/components/hero/HeroImageSlider";
 
@@ -152,6 +153,7 @@ const EnhancedHero = () => {
         }}
       >
         <HeroImageSlider index={slideIndex} reducedMotion={reducedMotion} />
+        {!reducedMotion && <HeroDepthSlider index={slideIndex} />}
 
         {/* Readability: navy tint rather than black, stronger on the copy side */}
         <div aria-hidden className="pointer-events-none absolute inset-0 z-10 bg-[hsl(222_47%_6%/0.62)] lg:hidden" />
