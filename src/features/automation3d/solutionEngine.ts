@@ -225,7 +225,12 @@ export function engineSolution(brief: string, industry: string | null = null, st
   const stations: AiStation[] = processes.map((p) => {
     const kind = processKind(p);
     const robot = plan.robots.find((r) => r.tasks.some((t) => t.name === p.name));
-    const need = facts.weightKg != null ? Math.ceil((facts.weightKg + TOOL_KG[kind]) * 1.25) : null;
+    // A robot that carries the part is sized for part + tool; one that carries a process tool
+    // (torch, gun, spindle, driver) against a fixtured part is sized for the tool only.
+    const carriesPart = ["handling", "transport", "machining", "palletizing", "packing", "inspection"].includes(kind);
+    const need = carriesPart
+      ? facts.weightKg != null ? Math.ceil((facts.weightKg + TOOL_KG[kind]) * 1.25) : null
+      : Math.max(4, Math.ceil(TOOL_KG[kind] * 1.25) + 1);
     const payload = concrete ? 150 : need ?? robot?.minPayload ?? kg(p.robot.payload);
     const cobot = !!robot?.collaborative;
     return {
@@ -403,7 +408,7 @@ export function engineSolution(brief: string, industry: string | null = null, st
       title: "Robot plan",
       detail: `${STRATEGIES[strategy].label}: ${plan.robots.length} robot${plan.robots.length > 1 ? "s" : ""}${cobots ? ` (${cobots} cobot)` : ""}; ${plan.robots.map((r, i) => `${r.title} ${Math.round(cycles[i])} s`).join(", ")}`,
     },
-    { title: "Sizing", detail: facts.weightKg != null ? `(part ${facts.weightKg} kg + tool) × 1.25 margin → ${stations.map((x) => `${x.payload_kg} kg`).join(" / ")}` : "Payload from the skill minimums; confirm the part weight" },
+    { title: "Sizing", detail: `Part-carrying robots: (part${facts.weightKg != null ? ` ${facts.weightKg} kg` : ""} + gripper) × 1.25; tool-carrying robots (torch, gun, spindle, driver): tool × 1.25 → ${stations.map((x) => `${x.name} ${x.payload_kg} kg`).join(" · ")}` },
     { title: "Throughput", detail: throughputNote },
     { title: "Safety concept", detail: industrial ? "Fenced cell, interlocked door, light curtain at load point, PL d safety" : "Collaborative operation with speed & separation monitoring" },
     { title: "Budget & payback", detail: `${fmt(low)} – ${fmt(high)} from the priced bill of materials · payback ${months || "n/a"}` },

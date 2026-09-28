@@ -21,6 +21,7 @@ import MediaAnalyzer from "./MediaAnalyzer";
 import type { MediaAnalysis } from "./mediaAnalysis";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AiSolutionPanel from "./AiSolutionPanel";
+import EquipmentPicker from "./EquipmentPicker";
 import { requestSolution, solutionProcesses, type AiSolution } from "./aiSolution";
 import { engineSolution } from "./solutionEngine";
 
@@ -841,6 +842,9 @@ export default function AutomationStudio3D({
             }
             compact
           />
+          {(((ai.brief === description && ai.solution) || engine)?.stations.length ?? 0) > 0 && (
+            <EquipmentPicker key={description} stations={((ai.brief === description && ai.solution) || engine)!.stations} briefKey={description ?? ""} />
+          )}
         </DialogContent>
       </Dialog>
       <SkillsLibrary

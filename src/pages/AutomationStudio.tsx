@@ -68,6 +68,7 @@ import AiSolutionPanel from "@/features/automation3d/AiSolutionPanel";
 import { requestSolution, solutionProcesses, type AiSolution } from "@/features/automation3d/aiSolution";
 import { engineSolution } from "@/features/automation3d/solutionEngine";
 import BriefAssistant from "@/features/automation3d/BriefAssistant";
+import EquipmentPicker from "@/features/automation3d/EquipmentPicker";
 
 const simLink = (text: string, title?: string) =>
   `/automation-studio/3d?process=${encodeURIComponent(text)}${title ? `&title=${encodeURIComponent(title)}` : ""}`;
@@ -657,6 +658,11 @@ export default function AutomationStudio() {
                     }, 50);
                   }}
                 />
+                {((aiCurrent?.solution ?? engine)?.stations.length ?? 0) > 0 && (
+                  <div className="mt-6">
+                    <EquipmentPicker key={description.trim()} stations={(aiCurrent?.solution ?? engine)!.stations} briefKey={description.trim()} />
+                  </div>
+                )}
               </div>
             )}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
