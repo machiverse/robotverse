@@ -154,12 +154,12 @@ async function analyze(image: string): Promise<PosterInfo> {
   return cleanInfo(JSON.parse(s >= 0 && e > s ? raw.slice(s, e + 1) : raw));
 }
 
-function decodeImage(dataUrl: string): { bytes: Uint8Array; type: string; ext: string } {
-  const m = /^data:(image\/(jpeg|png|webp));base64,(.+)$/.exec(dataUrl);
+// Native decoding (fetch on a data: URL) instead of a JS byte loop over megabytes
+// of base64 — that loop was exhausting the worker's CPU budget.
+async function decodeImage(dataUrl: string): Promise<{ bytes: Uint8Array; type: string; ext: string }> {
+  const m = /^data:(image\/(jpeg|png|webp));base64,/.exec(dataUrl.slice(0, 40));
   if (!m) throw new Error("Please upload a JPG, PNG or WebP image.");
-  const bin = atob(m[3]);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const bytes = new Uint8Array(await (await fetch(dataUrl)).arrayBuffer());
   return { bytes, type: m[1], ext: m[2] === "jpeg" ? "jpg" : m[2] };
 }
 
@@ -170,6 +170,14 @@ async function readPoster(sb: ReturnType<typeof admin>, id: string) {
   const image = sb.storage.from(BUCKET).getPublicUrl(`${FOLDER}/${meta.image}`).data.publicUrl;
   return { id, image, info: cleanInfo(meta.info), submittedAt: meta.submittedAt, company: clip(meta.company, 120) };
 }
+
+// Run slow work (SMTP) after the response so it doesn't hold the request open.
+const background = (p: Promise<unknown>) => {
+  // deno-lint-ignore no-explicit-any
+  const rt = (globalThis as any).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(p);
+  else p.catch(() => {});
+};
 
 async function listPosters() {
   const sb = admin();
@@ -230,7 +238,7 @@ serve(async (req) => {
 
       const image = String(body.image || "");
       if (image.length > MAX_IMAGE_CHARS) return json({ error: "Poster image is too large (max 2 MB)." }, 413);
-      const { bytes, type, ext } = decodeImage(image);
+      const { bytes, type, ext } = await decodeImage(image);
       const info = cleanInfo(body.info);
       if (!info.title) return json({ error: "Please add the training title." }, 400);
       const contact = body.contact ?? {};
@@ -245,7 +253,7 @@ serve(async (req) => {
       if (upMeta.error) throw upMeta.error;
 
       const imageUrl = sb.storage.from(BUCKET).getPublicUrl(`${FOLDER}/${id}.${ext}`).data.publicUrl;
-      await sendEmail(
+      background(sendEmail(
         `New training poster: ${info.title}`,
         wrap(
           "New training poster added to the Directory",
@@ -273,7 +281,7 @@ serve(async (req) => {
             `<p style="color:#64748b;font-size:13px">The poster is live in the Directory carousel (newest ${MAX_POSTERS} are shown). To remove it, delete <b>${esc(`${FOLDER}/${id}`)}</b> (.${esc(ext)} and .json) in Supabase Storage → ${BUCKET}.</p>`,
         ),
         user.email ?? undefined,
-      );
+      ));
       return json({ ok: true, id, image: imageUrl });
     }
 
