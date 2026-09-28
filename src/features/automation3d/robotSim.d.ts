@@ -35,6 +35,7 @@ export interface Simulation {
   setSpeed(v: number): void;
   setRobotSize(key: string): void;
   setView(name: string): void;
+  setOverlay(name: "none" | "layout" | "flow"): void;
   setJoint(i: number, deg: number | string): void;
   checkReach(steps?: SimStep[]): string[];
   dispose(): void;

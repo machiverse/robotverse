@@ -58,10 +58,9 @@ import {
   buildStats,
   getBlueprint,
 } from "@/data/automationStudioIndustries";
-import { FactoryLayoutSvg, MaterialFlowSvg } from "@/components/automation-studio/StudioVisualizations";
+import { FactoryLayoutSvg } from "@/components/automation-studio/StudioVisualizations";
 import type { VisualStation } from "@/components/automation-studio/visualTypes";
 
-const ProcessLine3D = lazy(() => import("@/features/automation3d/ProcessLine3D"));
 const RobotCell3D = lazy(() => import("@/features/automation3d/AutomationStudio3D"));
 import { processKind, PROCESS_PROFILES } from "@/features/automation3d/processProfiles";
 import { processToText, PRESETS } from "@/features/automation3d/robotSim.js";
@@ -195,8 +194,6 @@ export default function AutomationStudio() {
   const [visualTab, setVisualTab] = useState("robot");
   // -1 = the whole line with every robot; otherwise one station
   const [simIndex, setSimIndex] = useState(-1);
-  const [visualPlaying, setVisualPlaying] = useState(true);
-  const [visualSpeed, setVisualSpeed] = useState<"0.5" | "1" | "2">("1");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const blueprint = getBlueprint(industry);
@@ -731,34 +728,9 @@ export default function AutomationStudio() {
                 <CardTitle className="text-base">Automation preview</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="whitespace-normal min-w-fit w-auto gap-2"
-                    onClick={() => setVisualPlaying((value) => !value)}
-                    aria-pressed={!visualPlaying}
-                  >
-                    {visualPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                    {visualPlaying ? "Pause" : "Play"}
-                  </Button>
-                  <div className="flex items-center gap-1 rounded-md border border-border bg-card p-1" aria-label="Animation speed">
-                    {(["1", "2", "0.5"] as const).map((speed) => (
-                      <Button
-                        key={speed}
-                        type="button"
-                        variant={visualSpeed === speed ? "default" : "ghost"}
-                        size="sm"
-                        className="h-7 min-w-10 px-2 text-xs"
-                        onClick={() => setVisualSpeed(speed)}
-                        aria-pressed={visualSpeed === speed}
-                      >
-                        {speed}x
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  All four views show the same robot line: the same robots, stations and conveyors, seen as the working cells, as a factory floor plan, with the material path, and as the full production line.
+                </p>
                 <Tabs value={visualTab} onValueChange={setVisualTab}>
                   <TabsList className="h-auto flex-wrap">
                     <TabsTrigger value="robot" className="gap-1.5">
@@ -848,17 +820,33 @@ export default function AutomationStudio() {
                       );
                     })()}
                   </TabsContent>
-                  <TabsContent value="layout" className="mt-4">
-                    <FactoryLayoutSvg stations={stations} playing={visualPlaying} speed={visualSpeed} active={visualTab === "layout"} />
-                  </TabsContent>
-                  <TabsContent value="flow" className="mt-4">
-                    <MaterialFlowSvg stations={stations} playing={visualPlaying} speed={visualSpeed} active={visualTab === "flow"} />
-                  </TabsContent>
-                  <TabsContent value="cell" className="mt-4">
-                    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading 3D production line…</div>}>
-                      <ProcessLine3D processes={processes} playing={visualPlaying && visualTab === "cell"} speed={visualSpeed} />
-                    </Suspense>
-                  </TabsContent>
+                  {(
+                    [
+                      ["layout", "layout", "top", "Factory layout", "Floor plan of your line: robot zones, operator aisle, material in/out and overall dimensions"],
+                      ["flow", "flow", "iso", "Material flow", "The path each part takes from raw material in, through every robot, to finished goods out"],
+                      ["cell", "none", "iso", "3D production line", `${processes.length} tasks · every robot running its cycle on one line`],
+                    ] as const
+                  ).map(([tab, overlay, view, title, subtitle]) => (
+                    <TabsContent key={tab} value={tab} className="mt-4">
+                      {processes.length > 0 && (
+                        <Suspense fallback={<SimFallback />}>
+                          <RobotCell3D
+                            key={`${tab}-${processes.map((p) => p.name).join("|")}`}
+                            variant="embedded"
+                            showEditor={false}
+                            processes={processes}
+                            description={description.trim() || undefined}
+                            referenceImage={media?.frame}
+                            mediaAnalysis={media && description === media.text ? media.result : null}
+                            overlay={overlay}
+                            initialView={view}
+                            title={title}
+                            subtitle={subtitle}
+                          />
+                        </Suspense>
+                      )}
+                    </TabsContent>
+                  ))}
                 </Tabs>
               </CardContent>
             </Card>

@@ -292,7 +292,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
   controls.enableDamping = true;
   controls.maxPolarAngle = Math.PI * 0.495;
   controls.minDistance = 1.2;
-  controls.maxDistance = 30;
+  controls.maxDistance = 45;
 
   scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x2a3240, 0.75 * LIGHT_K));
   const sun = new THREE.DirectionalLight(0xffffff, 0.95 * LIGHT_K);
@@ -443,7 +443,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     const bounds = new THREE.Box3();
     const tmp = new THREE.Box3();
     for (const o of scene.children) {
-      if (o === floor || o === grid || o === refGroup || o.isLight || o === sun.target || !o.visible) continue;
+      if (o === floor || o === grid || o === refGroup || o === overlayGroup || o.isLight || o === sun.target || !o.visible) continue;
       if (o.isSprite) continue;
       tmp.setFromObject(o);
       if (!tmp.isEmpty()) bounds.union(tmp);
@@ -1696,7 +1696,221 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     // Push the fog back so a long line stays clear.
     scene.fog.near = 9 + span * 1.2;
     scene.fog.far = 30 + span * 2;
-    setView(currentView);
+    setOverlay(overlay);
+    if (overlay === "none") setView(currentView);
+  }
+
+  /* ------------------------------------------------------------------
+   * Presentation overlays on the same live line:
+   *   "layout" – factory plan: station zones, aisle, in/out, dimensions
+   *   "flow"   – material flow: animated path of the part through every station
+   * Both are built from the real station and conveyor positions.
+   * ------------------------------------------------------------------ */
+  let overlay = "none";
+  let overlayGroup = null;
+  let flowTex = null;
+  let flowCurve = null;
+  let flowTokens = [];
+  let flowT = 0;
+  const ZONE_COLORS = [0x38bdf8, 0xa78bfa, 0x34d399, 0xfbbf24, 0xf472b6, 0x60a5fa, 0xfb923c, 0x2dd4bf, 0xc084fc, 0xa3e635];
+
+  function clearOverlay() {
+    if (!overlayGroup) return;
+    scene.remove(overlayGroup);
+    overlayGroup.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        if (o.material.map) o.material.map.dispose();
+        o.material.dispose();
+      }
+    });
+    overlayGroup = null;
+    flowTex = null;
+    flowCurve = null;
+    flowTokens = [];
+  }
+
+  function lineBounds() {
+    const bounds = new THREE.Box3();
+    const tmp = new THREE.Box3();
+    for (const o of scene.children) {
+      if (o === floor || o === grid || o === refGroup || o === overlayGroup || o.isLight || o === sun.target || !o.visible || o.isSprite) continue;
+      tmp.setFromObject(o);
+      if (!tmp.isEmpty()) bounds.union(tmp);
+    }
+    return bounds;
+  }
+
+  function floorRect(x0, z0, x1, z1, color, opacity) {
+    const g = new THREE.Group();
+    const fill = new THREE.Mesh(
+      new THREE.PlaneGeometry(x1 - x0, z1 - z0),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false })
+    );
+    fill.rotation.x = -Math.PI / 2;
+    fill.position.set((x0 + x1) / 2, 0.006, (z0 + z1) / 2);
+    const edge = new THREE.LineLoop(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x0, 0.01, z0), new THREE.Vector3(x1, 0.01, z0),
+        new THREE.Vector3(x1, 0.01, z1), new THREE.Vector3(x0, 0.01, z1),
+      ]),
+      new THREE.LineBasicMaterial({ color })
+    );
+    g.add(fill, edge);
+    return g;
+  }
+
+  const bigLabel = (text, color) => {
+    const l = makeLabel(text, color);
+    l.scale.multiplyScalar(2.2);
+    return l;
+  };
+
+  function dimension(a, b, text, offset) {
+    const g = new THREE.Group();
+    const mat = new THREE.LineBasicMaterial({ color: 0xe2e8f0 });
+    const pts = [a, b].map((p) => p.clone().add(offset));
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+    const perp = new THREE.Vector3().subVectors(b, a).normalize().cross(new THREE.Vector3(0, 1, 0)).multiplyScalar(0.12);
+    for (const p of pts) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([p.clone().add(perp), p.clone().sub(perp)]), mat));
+    const lbl = bigLabel(text, "#e2e8f0");
+    lbl.position.copy(pts[0].clone().add(pts[1]).multiplyScalar(0.5)).add(new THREE.Vector3(0, 0.25, 0));
+    g.add(lbl);
+    return g;
+  }
+
+  function buildLayoutOverlay() {
+    const b = lineBounds();
+    if (b.isEmpty()) return;
+    const g = new THREE.Group();
+    const z0 = b.min.z - 0.25, z1 = b.max.z + 0.25;
+    const half = cells.length > 1 ? CELL_SPACING / 2 : Math.max(2.2, (b.max.x - b.min.x) / 2 + 0.25);
+    cells.forEach((c, i) => {
+      const X = i * CELL_SPACING;
+      const x0 = cells.length > 1 ? (i === 0 ? Math.min(b.min.x - 0.25, X - half) : X - half) : b.min.x - 0.25;
+      const x1 = cells.length > 1 ? (i === cells.length - 1 ? Math.max(b.max.x + 0.25, X + half) : X + half) : b.max.x + 0.25;
+      g.add(floorRect(x0 + 0.04, z0, x1 - 0.04, z1, ZONE_COLORS[i % ZONE_COLORS.length], 0.12));
+      // Short label; the full task list is already on the robot's own title.
+      const name = c.title ? String(c.title).split(":")[0] : `Robot ${i + 1}`;
+      const lbl = bigLabel(`Zone ${String(i + 1).padStart(2, "0")} · ${name}`, "#f8fafc");
+      lbl.position.set((x0 + x1) / 2, 0.25, z1 - 0.35);
+      g.add(lbl);
+    });
+    const xa = Math.min(b.min.x - 0.25, -half), xb = Math.max(b.max.x + 0.25, (cells.length - 1) * CELL_SPACING + half);
+    // Operator / forklift aisle along the front of the line.
+    const aisle = floorRect(xa, z1 + 0.15, xb, z1 + 1.35, 0x22c55e, 0.1);
+    g.add(aisle);
+    const al = bigLabel("Operator & forklift aisle · 1.2 m", "#86efac");
+    al.position.set((xa + xb) / 2, 0.2, z1 + 0.75);
+    g.add(al);
+    // Material in / out.
+    const inf = conveyors[0];
+    const start = inf && inf.group.visible ? inf.startPoint : cells[0].stations.in?.startPoint || new THREE.Vector3(xa, 0, 0);
+    const inl = bigLabel("▶ Raw material in", "#67e8f9");
+    inl.position.set(start.x - 0.3, 1.5, start.z);
+    g.add(inl);
+    const last = cells[cells.length - 1].stations;
+    const outP = (last.pallet || last.carton || last.table || {}).point || new THREE.Vector3(xb, 0, 0);
+    const outl = bigLabel("Finished goods out ▶", "#fcd34d");
+    outl.position.set(outP.x, 1.6, outP.z);
+    g.add(outl);
+    // Dimensions.
+    const L = xb - xa, D = z1 + 1.35 - z0;
+    g.add(dimension(new THREE.Vector3(xa, 0.02, z1 + 1.35), new THREE.Vector3(xb, 0.02, z1 + 1.35), `Line length ${L.toFixed(1)} m`, new THREE.Vector3(0, 0, 0.55)));
+    g.add(dimension(new THREE.Vector3(xb, 0.02, z0), new THREE.Vector3(xb, 0.02, z1 + 1.35), `Depth ${D.toFixed(1)} m`, new THREE.Vector3(0.55, 0, 0)));
+    const area = bigLabel(`Floor area ≈ ${(L * D).toFixed(0)} m² · ${cells.length} robot zone${cells.length > 1 ? "s" : ""}`, "#fbbf24");
+    area.position.set((xa + xb) / 2, 0.3, z0 - 0.45);
+    g.add(area);
+    overlayGroup = g;
+    scene.add(g);
+  }
+
+  function flowPoints() {
+    const pts = [];
+    const push = (p, lift = 0.28) => {
+      if (!p) return;
+      const v = new THREE.Vector3(p.x, Math.max(p.y, 0.5) + lift, p.z);
+      const last = pts[pts.length - 1];
+      if (!last || last.distanceTo(v) > 0.08) pts.push(v);
+    };
+    const inf = conveyors[0];
+    if (inf && inf.group.visible) {
+      push(inf.startPoint);
+      push(inf.point);
+    }
+    cells.forEach((c) => {
+      for (const s of c.steps) {
+        const st = c.stations[s.station];
+        if (!st) continue;
+        if (s.station === "out") {
+          push(st.startPoint);
+          push(st.point);
+        } else push(st.point);
+      }
+    });
+    return pts;
+  }
+
+  function buildFlowOverlay() {
+    const pts = flowPoints();
+    if (pts.length < 2) return;
+    const g = new THREE.Group();
+    const path = new THREE.CurvePath();
+    for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
+    const len = path.getLength();
+    const c = document.createElement("canvas");
+    c.width = 128;
+    c.height = 32;
+    const x = c.getContext("2d");
+    x.fillStyle = "#0e7490";
+    x.fillRect(0, 0, 128, 32);
+    x.fillStyle = "#67e8f9";
+    x.beginPath();
+    x.moveTo(40, 4); x.lineTo(84, 16); x.lineTo(40, 28); x.lineTo(56, 16);
+    x.closePath();
+    x.fill();
+    flowTex = new THREE.CanvasTexture(c);
+    flowTex.wrapS = THREE.RepeatWrapping;
+    flowTex.repeat.set(Math.max(2, Math.round(len / 0.35)), 1);
+    const tube = new THREE.Mesh(
+      new THREE.TubeGeometry(path, Math.max(40, pts.length * 24), 0.045, 8, false),
+      new THREE.MeshBasicMaterial({ map: flowTex, transparent: true, opacity: 0.95, depthTest: false })
+    );
+    tube.renderOrder = 5;
+    g.add(tube);
+    flowCurve = path;
+    for (let k = 0; k < 6; k++) {
+      const tok = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.12), new THREE.MeshBasicMaterial({ color: 0xfbbf24, depthTest: false }));
+      tok.renderOrder = 6;
+      g.add(tok);
+      flowTokens.push(tok);
+    }
+    const inl = makeLabel("IN · raw parts", "#67e8f9");
+    inl.position.copy(pts[0]).add(new THREE.Vector3(0, 0.35, 0));
+    const outl = makeLabel("OUT · finished goods", "#fcd34d");
+    outl.position.copy(pts[pts.length - 1]).add(new THREE.Vector3(0, 0.35, 0));
+    g.add(inl, outl);
+    const total = makeLabel(`Part travel ${len.toFixed(1)} m through ${cells.length} robot${cells.length > 1 ? "s" : ""}`, "#e2e8f0");
+    const span = (cells.length - 1) * CELL_SPACING;
+    total.position.set(span / 2, 3.0, -1.6);
+    g.add(total);
+    overlayGroup = g;
+    scene.add(g);
+  }
+
+  function setOverlay(name) {
+    overlay = name || "none";
+    clearOverlay();
+    if (overlay === "layout") buildLayoutOverlay();
+    else if (overlay === "flow") buildFlowOverlay();
+    if (cells.length) setView(currentView);
+  }
+
+  function updateOverlay(dt) {
+    if (!flowCurve) return;
+    flowTex.offset.x -= dt * 1.2;
+    flowT = (flowT + dt * 0.035) % 1;
+    flowTokens.forEach((t, k) => t.position.copy(flowCurve.getPointAt((flowT + k / flowTokens.length) % 1)));
   }
 
   let currentView = "iso";
@@ -1726,6 +1940,23 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       VIEWS.top = [at(0.001, 1, 0.001), new THREE.Vector3(cx, 0, -0.2)];
     }
     const v = VIEWS[name] || VIEWS.iso;
+    if (overlay !== "none") {
+      // Plan and flow views: frame the whole line plus its overlay (aisle, dimensions, in/out).
+      const box = lineBounds();
+      if (overlayGroup) box.union(new THREE.Box3().setFromObject(overlayGroup));
+      if (!box.isEmpty()) {
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        // Top view: square to the line, material flowing left to right.
+        const dir = name === "top" ? new THREE.Vector3(0, 1, 0.0001) : v[0].clone().sub(v[1]).normalize();
+        const vfov = (camera.fov * Math.PI) / 180;
+        const hfov = 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect);
+        const dist = (sphere.radius / Math.sin(Math.min(vfov, hfov) / 2)) * (name === "top" ? 0.8 : 0.72);
+        camera.position.copy(sphere.center).addScaledVector(dir, dist);
+        controls.target.copy(sphere.center);
+        controls.update();
+        return;
+      }
+    }
     camera.position.copy(v[0]);
     controls.target.copy(v[1]);
     controls.update();
@@ -1794,6 +2025,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       simTime += dt;
       conveyors.forEach((c) => c.update(dt));
       cells.forEach((c) => c.update(dt));
+      updateOverlay(dt);
     }
     controls.update();
     renderer.render(scene, camera);
@@ -1846,10 +2078,13 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     },
     setRobotSize,
     setView,
+    /** "layout" (factory plan), "flow" (material flow) or "none" on the same live line. */
+    setOverlay,
     /** Fence the industrial robot cells: true / false for all, or one flag per cell. */
     setFencing(on) {
       fenceCells = Array.isArray(on) ? on.map(Boolean) : cells.map(() => !!on);
       placeFence();
+      if (overlay === "layout") setOverlay(overlay);
     },
     /** Show a photo of the user's manual process behind the line (null hides it). */
     setReference(url, label) {

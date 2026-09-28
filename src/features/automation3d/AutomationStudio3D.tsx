@@ -78,6 +78,10 @@ const VIEWS: [string, string][] = [
 
 interface Props {
   initialProcess?: string;
+  /** Same live line shown as a factory plan ("layout") or with the material path ("flow"). */
+  overlay?: "none" | "layout" | "flow";
+  /** Camera to start from: iso, front, top or side. */
+  initialView?: string;
   /** Shown in the toolbar, e.g. the user's process name */
   title?: string;
   subtitle?: string;
@@ -104,6 +108,8 @@ const Panel = ({ title, children, className }: { title: string; children: React.
 
 export default function AutomationStudio3D({
   initialProcess,
+  overlay = "none",
+  initialView = "iso",
   title = "Robot Cell Simulator",
   subtitle = "Describe any process and watch a 6-axis robot cell run it in 3D",
   variant = "page",
@@ -119,7 +125,7 @@ export default function AutomationStudio3D({
   const [steps, setSteps] = useState<Step[]>([]);
   const [notes, setNotes] = useState<string[]>([]);
   const [size, setSize] = useState("medium");
-  const [view, setView] = useState("iso");
+  const [view, setView] = useState(initialView);
   const [speed, setSpeed] = useState(1);
   const [state, setState] = useState<SimState | null>(null);
   const [unreachable, setUnreachable] = useState<string[]>([]);
@@ -167,6 +173,8 @@ export default function AutomationStudio3D({
     if (reference) sim.setReference(reference, "Your reference: manual process today");
     if (processes?.length) runLine(processes);
     else build(text);
+    sim.setOverlay(overlay);
+    if (initialView !== "iso") sim.setView(initialView);
     return () => sim.dispose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
