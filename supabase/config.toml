@@ -112,3 +112,6 @@ verify_jwt = false
 
 [functions.robot-news]
 verify_jwt = false
+
+[functions.automation-solution]
+verify_jwt = false

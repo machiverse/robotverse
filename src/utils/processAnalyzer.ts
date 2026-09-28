@@ -618,6 +618,9 @@ export const matchTemplateIds = (description: string): string[] => {
     .toLowerCase()
     // "…on pallets for dispatch" states a purpose, not an extra station.
     .replace(/\b(ready )?for (dispatch|despatch|shipping|shipment|delivery|sale|storage)\b/g, " ")
+    // Quality words, not processes: "food grade" is not grading; "iron castings" are parts, not die casting.
+    .replace(/\b(food|pharma|medical|industrial|export)[ -]grade\b/g, " ")
+    .replace(/\b(?<!die )(aluminium|aluminum|iron|steel|zinc|brass|sand)?\s*castings\b/g, " parts")
     // Picking parts off a conveyor is machine loading, not warehouse order picking.
     .replace(/\bpick(s|ed|ing)?\b((?: [a-z]+){0,3}) from (the )?(conveyor|belt|line)/g, "load$2 from the $4")
     .replace(/[^a-z0-9 ]+/g, " ")

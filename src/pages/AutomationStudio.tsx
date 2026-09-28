@@ -64,6 +64,9 @@ import type { VisualStation } from "@/components/automation-studio/visualTypes";
 const RobotCell3D = lazy(() => import("@/features/automation3d/AutomationStudio3D"));
 import { processKind, PROCESS_PROFILES } from "@/features/automation3d/processProfiles";
 import { processToText, PRESETS } from "@/features/automation3d/robotSim.js";
+import AiSolutionPanel from "@/features/automation3d/AiSolutionPanel";
+import { requestSolution, solutionProcesses, type AiSolution } from "@/features/automation3d/aiSolution";
+import { engineSolution } from "@/features/automation3d/solutionEngine";
 
 const simLink = (text: string, title?: string) =>
   `/automation-studio/3d?process=${encodeURIComponent(text)}${title ? `&title=${encodeURIComponent(title)}` : ""}`;
@@ -199,13 +202,33 @@ export default function AutomationStudio() {
   const blueprint = getBlueprint(industry);
   // AI reading of uploaded photos / video: its tasks are used while the description it wrote is unchanged.
   const [media, setMedia] = useState<{ result: MediaAnalysis; frame: string; text: string } | null>(null);
+  // AI solution engineer's answer for the current brief (any kind of automation work).
+  const [ai, setAi] = useState<{ brief: string; solution: AiSolution | null; loading: boolean; error: string | null }>({
+    brief: "", solution: null, loading: false, error: null,
+  });
+  const aiCurrent = ai.brief === description.trim() ? ai : null;
+  const runAi = useCallback((brief: string, ind: string | null) => {
+    const text = brief.trim();
+    if (text.length < 8) return Promise.resolve();
+    setAi({ brief: text, solution: null, loading: true, error: null });
+    return requestSolution(text, ind).then(
+      (solution) => setAi((cur) => (cur.brief === text ? { brief: text, solution, loading: false, error: null } : cur)),
+      (e: Error) => setAi((cur) => (cur.brief === text ? { brief: text, solution: null, loading: false, error: e.message } : cur)),
+    );
+  }, []);
+  // Built-in solution engine: instant, offline answer for the same brief.
+  const engine = useMemo(() => (description.trim().length >= 8 ? engineSolution(description, industry) : null), [description, industry]);
   const processes = useMemo(() => {
+    if (aiCurrent?.solution) {
+      const fromAi = solutionProcesses(aiCurrent.solution);
+      if (fromAi.length) return fromAi;
+    }
     if (media && description === media.text) {
       const fromMedia = processesFromSkills(media.result.tasks);
       if (fromMedia.length) return fromMedia;
     }
     return analyzeDescription(description, industry);
-  }, [description, industry, media]);
+  }, [description, industry, media, aiCurrent?.solution]);
   const inventory = buildInventory({ ...blueprint, processes });
   const stats = buildStats({ ...blueprint, processes });
   const stations: VisualStation[] = processes.map((process, index) => ({
@@ -229,18 +252,33 @@ export default function AutomationStudio() {
     setFiles((prev) => [...prev, ...next]);
   }, []);
 
-  // Step 2 simulated analysis
+  // Step 2: the AI solution engineer designs the solution for the brief; the
+  // skills-library plan is the fallback if it is slow or unavailable.
   useEffect(() => {
     if (step !== 2) return;
     setMsgIndex(0);
+    let live = true;
     const interval = window.setInterval(() => {
       setMsgIndex((i) => Math.min(i + 1, ANALYSIS_MESSAGES.length - 1));
     }, 1300);
-    const done = window.setTimeout(() => setStep(3), 8000);
-    return () => {
-      window.clearInterval(interval);
-      window.clearTimeout(done);
+    const started = Date.now();
+    const finish = () => {
+      if (!live) return;
+      // Keep the analysis screen up for a moment so the steps read naturally.
+      window.setTimeout(() => live && setStep(3), Math.max(0, 2500 - (Date.now() - started)));
     };
+    const cap = window.setTimeout(finish, 45000);
+    const text = description.trim();
+    if (text.length >= 8) {
+      const ready = ai.brief === text && (ai.solution || ai.loading);
+      (ready && ai.solution ? Promise.resolve() : runAi(text, industry)).finally(finish);
+    } else window.setTimeout(finish, 6000);
+    return () => {
+      live = false;
+      window.clearInterval(interval);
+      window.clearTimeout(cap);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   const reset = () => {
@@ -577,6 +615,31 @@ export default function AutomationStudio() {
         {/* Step 3 */}
         {step === 3 && (
           <StepShell>
+            {description.trim().length >= 8 && (
+              <div className="mb-6">
+                <AiSolutionPanel
+                  solution={aiCurrent?.solution ?? null}
+                  fallback={engine}
+                  loading={aiCurrent?.loading}
+                  error={aiCurrent?.error ?? (!aiCurrent ? "The brief changed since the last analysis." : null)}
+                  onRetry={() => runAi(description, industry)}
+                  onBuild={() => {
+                    setSimIndex(-1);
+                    setVisualTab("robot");
+                    setStep(4);
+                  }}
+                  onAsk={(q) => {
+                    setDescription((d) => `${d.trim()} ${q} Answer: `);
+                    setStep(1);
+                    window.setTimeout(() => {
+                      const el = document.getElementById("as-description") as HTMLTextAreaElement | null;
+                      el?.focus();
+                      el?.setSelectionRange(el.value.length, el.value.length);
+                    }, 50);
+                  }}
+                />
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {stats.map((s) => (
                 <Card key={s.label}>

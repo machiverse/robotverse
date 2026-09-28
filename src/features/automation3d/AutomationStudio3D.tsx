@@ -18,6 +18,10 @@ import SolutionReport from "./SolutionReport";
 import SkillsLibrary from "./SkillsLibrary";
 import MediaAnalyzer from "./MediaAnalyzer";
 import type { MediaAnalysis } from "./mediaAnalysis";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AiSolutionPanel from "./AiSolutionPanel";
+import { requestSolution, solutionProcesses, type AiSolution } from "./aiSolution";
+import { engineSolution } from "./solutionEngine";
 
 // Construction 3D concrete printing is a whole system (printer, material plant, PLC, HMI),
 // not a robot station, so it opens its own simulator.
@@ -142,6 +146,34 @@ export default function AutomationStudio3D({
   const [reference, setReference] = useState<string | undefined>(referenceImage);
   const [media, setMedia] = useState<MediaAnalysis | null>(mediaAnalysis ?? null);
   const [special, setSpecial] = useState(false);
+  // Solution for the current brief: built-in engine instantly, AI engineer refines it.
+  const [solutionOpen, setSolutionOpen] = useState(false);
+  const [ai, setAi] = useState<{ brief: string; solution: AiSolution | null; loading: boolean; error: string | null }>({
+    brief: "", solution: null, loading: false, error: null,
+  });
+  const genericLine = useRef(false);
+  const engine = useMemo(() => (description && description.length >= 8 ? engineSolution(description) : null), [description]);
+  const runAi = (brief: string) => {
+    setAi({ brief, solution: null, loading: true, error: null });
+    requestSolution(brief).then(
+      (solution) => {
+        setAi((cur) => (cur.brief === brief ? { brief, solution, loading: false, error: null } : cur));
+        // The keywords found nothing: build the line the AI engineer designed instead of the generic cell.
+        if (genericLine.current) {
+          const procs = solutionProcesses(solution);
+          if (procs.length) {
+            genericLine.current = false;
+            runLine(procs);
+          }
+        }
+      },
+      (e: Error) => setAi((cur) => (cur.brief === brief ? { brief, solution: null, loading: false, error: e.message } : cur)),
+    );
+  };
+  useEffect(() => {
+    if (description && description.length >= 8 && ai.brief !== description) runAi(description);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [description]);
 
   function openSpecial(desc?: string) {
     simRef.current?.pause();
@@ -227,11 +259,13 @@ export default function AutomationStudio3D({
       setDescription(src.trim());
       if (matchTemplateIds(src).includes("concrete3dp")) openSpecial(src.trim());
       else if (matchTemplateIds(src).length > 0) runLine(analyzeDescription(src, null));
-      else
-        // Every request still gets a solution: a general pick-and-place cell.
+      else {
+        // Every request still gets a solution: a general pick-and-place cell until the AI engineer answers.
+        genericLine.current = true;
         runLine([{ name: "Pick & Place Handling" }], [
-          "No specific process was recognised, so this is a general pick-and-place robot cell. Name the tasks (weld, grind, paint, glue, assemble, screw, machine tending, press, moulding, inspect, measure, label, pack, palletize…) or open the Skills library for a detailed plan.",
+          "No specific process was recognised yet, so this starts as a general pick-and-place cell. The AI solution engineer is reading your brief and will rebuild the line it designs; open Solution for the full engineering proposal.",
         ]);
+      }
       return;
     }
     setDescription(undefined);
@@ -345,6 +379,12 @@ export default function AutomationStudio3D({
             <Button size="sm" onClick={() => setReportOpen(true)} className="bg-amber-500 text-black hover:bg-amber-400">
               <FileText className="h-4 w-4" />
               <span className="ml-1.5">Solution report</span>
+            </Button>
+          )}
+          {engine && (
+            <Button size="sm" variant="outline" onClick={() => setSolutionOpen(true)} aria-label="Engineered solution">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="ml-1.5">Solution</span>
             </Button>
           )}
           <Button size="sm" variant="outline" onClick={() => setSkillsOpen(true)} aria-label="Skills library">
@@ -772,6 +812,35 @@ export default function AutomationStudio3D({
           options={options}
         />
       )}
+      <Dialog open={solutionOpen} onOpenChange={setSolutionOpen}>
+        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Engineered solution</DialogTitle>
+            <DialogDescription className="line-clamp-2">{description}</DialogDescription>
+          </DialogHeader>
+          <AiSolutionPanel
+            solution={ai.brief === description ? ai.solution : null}
+            fallback={engine}
+            loading={ai.brief === description && ai.loading}
+            error={ai.brief === description ? ai.error : null}
+            onRetry={() => description && runAi(description)}
+            onBuild={() => {
+              const sol = (ai.brief === description && ai.solution) || engine;
+              if (sol) runLine(solutionProcesses(sol));
+              setSolutionOpen(false);
+            }}
+            onAsk={
+              showEditor
+                ? (q) => {
+                    setText((t) => `${t.trim()} ${q} Answer: `);
+                    setSolutionOpen(false);
+                  }
+                : undefined
+            }
+            compact
+          />
+        </DialogContent>
+      </Dialog>
       <SkillsLibrary
         open={skillsOpen}
         onOpenChange={setSkillsOpen}
