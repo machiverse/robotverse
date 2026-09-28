@@ -6,6 +6,8 @@ import { Loader2, MapPin, Building2, Filter } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Toggle } from "@/components/ui/toggle";
 import "leaflet/dist/leaflet.css";
+import { CornerMarks } from "@/components/hero/HeroConsole";
+import { BevelBox, Readout, SectionHead } from "@/components/console/ConsoleUI";
 
 // Fix default marker icon issue with bundlers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -308,66 +310,46 @@ const CitiesCoveredMap = () => {
   const getCategoryLabel = (key: CategoryKey) => CATEGORIES.find((c) => c.key === key)?.label || key;
 
   return (
-    <section className="py-10 md:py-14 bg-background relative overflow-hidden">
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
-      </div>
+    <section className="relative overflow-hidden border-t border-border bg-muted/30 py-14 md:py-20">
+      <div className="container relative z-10 mx-auto px-4">
+        <SectionHead
+          index="004"
+          label="India coverage"
+          title="Serving industrial hubs across India"
+          subtitle="Robot sellers, spare parts suppliers and service providers, city by city."
+        />
 
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-semibold mb-5 tracking-wide uppercase">
-            <MapPin className="w-4 h-4" />
-            India Coverage
-          </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground">
-            Serving Industrial Hubs{" "}
-            <span className="text-primary">
-              Across India
-            </span>
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-            Connecting buyers with robot sellers, spare parts suppliers, and service providers across India
-          </p>
-        </div>
-
-        {/* Stats */}
-        <div className="flex flex-wrap items-center justify-center gap-6 mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{cityData.length}+</p>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Cities</p>
-            </div>
-          </div>
+        {/* Stats readout */}
+        <BevelBox className="mb-6" innerClassName="grid grid-cols-2 gap-px bg-border md:grid-cols-4 [&>*]:bg-card">
+          <Readout label="Cities" value={`${cityData.length}+`} />
           {CATEGORIES.map((cat) => (
-            <div key={cat.key} className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-              <div>
-                <p className="text-xl font-bold text-foreground">{totals[cat.key]}+</p>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{cat.label}</p>
-              </div>
-            </div>
+            <Readout
+              key={cat.key}
+              label={cat.label}
+              value={
+                <span className="inline-flex items-center gap-2">
+                  <span aria-hidden className="h-2 w-2" style={{ backgroundColor: cat.color }} />
+                  {totals[cat.key]}+
+                </span>
+              }
+            />
           ))}
-        </div>
+        </BevelBox>
 
         {/* Filters */}
-        <div className="flex items-center justify-center gap-3 mb-6 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mr-2">
-            <Filter className="w-4 h-4" />
-            <span className="font-medium">Filter:</span>
-          </div>
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <span className="mr-2 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            <Filter className="h-3.5 w-3.5" aria-hidden />
+            Filter
+          </span>
           {CATEGORIES.map((cat) => (
             <Toggle
               key={cat.key}
               pressed={activeFilters.has(cat.key)}
               onPressedChange={() => toggleFilter(cat.key)}
-              className="gap-2 data-[state=on]:bg-accent border border-border px-4 py-2 rounded-full text-sm font-medium"
+              className="h-9 gap-2 rounded-none border border-border bg-background px-3 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground data-[state=on]:border-foreground/40 data-[state=on]:bg-card data-[state=on]:text-foreground"
             >
-              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: cat.color }} />
+              <span aria-hidden className="inline-block h-2 w-2" style={{ backgroundColor: cat.color }} />
               {cat.label}
             </Toggle>
           ))}
@@ -376,7 +358,8 @@ const CitiesCoveredMap = () => {
         {/* Map + Table */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Map */}
-          <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-border shadow-lg bg-card" style={{ height: 500 }}>
+          <div className="relative overflow-hidden border border-border bg-card lg:col-span-3" style={{ height: 500 }}>
+            <CornerMarks inset={8} className="z-[500] [&>span]:bg-foreground/70" />
             <MapContainer
               center={[22.5, 78.9]}
               zoom={5}
@@ -421,52 +404,45 @@ const CitiesCoveredMap = () => {
           </div>
 
           {/* Table */}
-          <div className="lg:col-span-2 rounded-2xl border border-border shadow-lg bg-card overflow-hidden" style={{ height: 500 }}>
-            <div className="p-4 border-b border-border bg-primary/5">
-              <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-primary" />
-                Cities Covered ({cityData.length})
-              </h3>
+          <div className="overflow-hidden border border-border bg-card lg:col-span-2" style={{ height: 500 }}>
+            <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.02em] text-foreground">Cities covered</h3>
+              <span className="font-mono text-xs tabular-nums text-muted-foreground">{String(cityData.length).padStart(3, "0")}</span>
             </div>
-            <div className="overflow-auto" style={{ height: "calc(500px - 60px)" }}>
+            <div className="overflow-auto" style={{ height: "calc(500px - 50px)" }}>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wide">#</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wide">City</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-center">
-                      <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1" />RS
+                    <TableHead className="font-mono text-[10px] font-normal uppercase tracking-[0.14em]">#</TableHead>
+                    <TableHead className="font-mono text-[10px] font-normal uppercase tracking-[0.14em]">City</TableHead>
+                    <TableHead className="text-center font-mono text-[10px] font-normal uppercase tracking-[0.14em]">
+                      <span aria-hidden className="mr-1.5 inline-block h-2 w-2" style={{ backgroundColor: CATEGORIES[0].color }} />RS
                     </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-center">
-                      <span className="inline-block w-2 h-2 rounded-full bg-primary mr-1" />SP
+                    <TableHead className="text-center font-mono text-[10px] font-normal uppercase tracking-[0.14em]">
+                      <span aria-hidden className="mr-1.5 inline-block h-2 w-2" style={{ backgroundColor: CATEGORIES[1].color }} />SP
                     </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-center">
-                      <span className="inline-block w-2 h-2 rounded-full bg-success mr-1" />IS
+                    <TableHead className="text-center font-mono text-[10px] font-normal uppercase tracking-[0.14em]">
+                      <span aria-hidden className="mr-1.5 inline-block h-2 w-2" style={{ backgroundColor: CATEGORIES[2].color }} />IS
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {cityData.map((city, index) => (
-                    <TableRow key={city.city} className="hover:bg-primary/5">
-                      <TableCell className="text-muted-foreground text-sm font-mono">{index + 1}</TableCell>
-                      <TableCell className="font-medium text-foreground text-sm">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                          {city.city}
-                        </div>
-                      </TableCell>
+                    <TableRow key={city.city} className="hover:bg-muted/50">
+                      <TableCell className="font-mono text-xs tabular-nums text-muted-foreground">{String(index + 1).padStart(2, "0")}</TableCell>
+                      <TableCell className="text-sm font-medium text-foreground">{city.city}</TableCell>
                       <TableCell className="text-center">
-                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 text-sm font-semibold">
+                        <span className="font-mono text-sm tabular-nums text-foreground">
                           {city.robot_seller}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                        <span className="font-mono text-sm tabular-nums text-foreground">
                           {city.spare_parts_eoat}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-success/10 text-success text-sm font-semibold">
+                        <span className="font-mono text-sm tabular-nums text-foreground">
                           {city.integrator_service}
                         </span>
                       </TableCell>

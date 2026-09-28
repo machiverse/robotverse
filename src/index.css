@@ -617,3 +617,36 @@ All colors MUST be HSL.
     display: none;
   }
 }
+
+@layer components {
+/*
+ * Cut-corner ("bevel") frame used across the home page sections.
+ * The outer box paints the 1px edge, the inner box the fill; both share one clip.
+ * Set --cut, --rv-edge and --rv-fill per use. Hover lifts the edge to the accent.
+ */
+.rv-bevel {
+  --cut: 10px;
+  --rv-edge: hsl(var(--border));
+  --rv-fill: hsl(var(--card));
+  position: relative;
+  padding: 1px;
+  background-color: var(--rv-edge);
+  clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut));
+  transition: background-color 150ms ease-out;
+}
+.rv-bevel-in {
+  height: 100%;
+  background-color: var(--rv-fill);
+  clip-path: polygon(calc(var(--cut) - 0.4px) 0, calc(100% - var(--cut) + 0.4px) 0, 100% calc(var(--cut) - 0.4px), 100% calc(100% - var(--cut) + 0.4px), calc(100% - var(--cut) + 0.4px) 100%, calc(var(--cut) - 0.4px) 100%, 0 calc(100% - var(--cut) + 0.4px), 0 calc(var(--cut) - 0.4px));
+}
+.group:hover > .rv-bevel,
+.group:focus-visible > .rv-bevel,
+.rv-bevel.rv-bevel-hover:hover {
+  --rv-edge: hsl(var(--primary) / 0.7);
+}
+/* Dark console bands reuse the hero palette. */
+.rv-bevel.rv-bevel-console {
+  --rv-edge: hsl(var(--rv-console-line));
+  --rv-fill: hsl(var(--rv-console-bg));
+}
+}
