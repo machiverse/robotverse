@@ -218,7 +218,7 @@ serve(async (req) => {
 
       const image = String(body.image || "");
       if (image.length > MAX_IMAGE_CHARS) return json({ error: "Poster image is too large (max 2 MB)." }, 413);
-      const { bytes, type, ext } = decodeImage(image);
+      const { bytes, type, ext } = await decodeImage(image);
       const info = cleanInfo(body.info);
       if (!info.title) return json({ error: "Please add the training title." }, 400);
       const contact = body.contact ?? {};
