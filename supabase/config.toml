@@ -103,3 +103,6 @@ verify_jwt = false
 
 [functions.robobook-rss]
 verify_jwt = false
+
+[functions.directory-training]
+verify_jwt = false

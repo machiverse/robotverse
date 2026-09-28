@@ -18,17 +18,15 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { TRAINING_LISTINGS, type TrainingListing } from "@/data/directoryTraining";
-import { listTrainingMailto, mailto } from "./directoryTypes";
+import { listTrainingMailto } from "./directoryTypes";
+import TrainingPosters from "./TrainingPosters";
+import TrainingEnquiryDialog, { type EnquiryListing } from "./TrainingEnquiryDialog";
 
 const ALL = "all";
 const KINDS = ["OEM Academy", "Online Course", "Program", "Workshop"] as const;
 const MODES = ["Online", "Classroom", "Online + Classroom"] as const;
 
-const enquireMailto = (t: TrainingListing) =>
-  mailto(
-    `Training enquiry: ${t.title} (${t.id})`,
-    `Hello RobotVerse team,\n\nI'm interested in "${t.title}" by ${t.provider} (RobotVerse ID ${t.id}).\n\nName:\nPhone:\nPreferred mode (online / classroom):\nCity:\n\nThank you.`,
-  );
+const toEnquiry = (t: TrainingListing): EnquiryListing => ({ id: t.id, title: t.title, provider: t.provider, location: t.location });
 
 const learnMoreUrl = (t: TrainingListing) =>
   t.link ?? `https://www.google.com/search?q=${encodeURIComponent(`${t.title} ${t.provider} training`)}`;
@@ -37,6 +35,7 @@ const TrainingDirectory = () => {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<string>(ALL);
   const [mode, setMode] = useState<string>(ALL);
+  const [enquiry, setEnquiry] = useState<EnquiryListing | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -137,6 +136,8 @@ const TrainingDirectory = () => {
       </aside>
 
       <div className="w-full min-w-0 flex-1 space-y-6">
+        <TrainingPosters onEnquire={setEnquiry} />
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -243,11 +244,9 @@ const TrainingDirectory = () => {
                     ))}
                   </div>
                   <div className="mt-auto grid grid-cols-2 gap-2 border-t pt-3">
-                    <Button size="sm" asChild>
-                      <a href={enquireMailto(t)}>
-                        <Mail className="mr-1 h-3 w-3" />
-                        Enquire
-                      </a>
+                    <Button size="sm" onClick={() => setEnquiry(toEnquiry(t))}>
+                      <Mail className="mr-1 h-3 w-3" />
+                      Enquire
                     </Button>
                     <Button size="sm" variant="outline" asChild>
                       <a href={learnMoreUrl(t)} target="_blank" rel="noopener noreferrer">
@@ -262,6 +261,7 @@ const TrainingDirectory = () => {
           </div>
         )}
       </div>
+      <TrainingEnquiryDialog listing={enquiry} onOpenChange={(open) => !open && setEnquiry(null)} />
     </div>
   );
 };
