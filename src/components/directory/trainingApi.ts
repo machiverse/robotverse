@@ -76,7 +76,7 @@ export const sendEnquiry = (
 ) => call<{ ok: boolean }>({ action: "enquire", listing, contact, message });
 
 /** Poster photo shrunk to at most 1600 px as a JPEG data URL (keeps uploads small). */
-export function posterToDataUrl(file: File, maxSide = 1600): Promise<string> {
+export function posterToDataUrl(file: File, maxSide = 1280): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith("image/")) return reject(new Error("Please choose an image (JPG, PNG or WebP)."));
     const url = URL.createObjectURL(file);
@@ -91,7 +91,7 @@ export function posterToDataUrl(file: File, maxSide = 1600): Promise<string> {
       ctx.fillRect(0, 0, c.width, c.height);
       ctx.drawImage(img, 0, 0, c.width, c.height);
       URL.revokeObjectURL(url);
-      resolve(c.toDataURL("image/jpeg", 0.85));
+      resolve(c.toDataURL("image/jpeg", 0.8));
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
