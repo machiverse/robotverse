@@ -68,6 +68,7 @@ import ApiDocs from "./pages/ApiDocs";
 import Contact from "./pages/Contact";
 // Loaded on demand so the Directory adds nothing to the main bundle
 const Directory = lazy(() => import("./pages/Directory"));
+const TrainingPosterPage = lazy(() => import("./pages/TrainingPosterPage"));
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
 import BuyerGuide from "./pages/BuyerGuide";
@@ -232,6 +233,7 @@ const App = () => (
             <Route path="/settings" element={<ProfileSettings />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/directory" element={<Suspense fallback={null}><Directory /></Suspense>} />
+            <Route path="/directory/training/poster/:id" element={<Suspense fallback={null}><TrainingPosterPage /></Suspense>} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/seller-guide" element={<SellerGuide />} />
             <Route path="/buyer-guide" element={<BuyerGuide />} />

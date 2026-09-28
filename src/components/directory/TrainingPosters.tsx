@@ -11,6 +11,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import {
   CalendarDays,
   CheckCircle2,
+  Eye,
   Clock,
   ImagePlus,
   IndianRupee,
@@ -24,7 +25,18 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { analyzePoster, EMPTY_INFO, listPosters, posterToDataUrl, submitPoster, type PosterInfo, type TrainingPoster } from "./trainingApi";
+import {
+  analyzePoster,
+  EMPTY_INFO,
+  listPosters,
+  posterPath,
+  posterShareUrl,
+  posterToDataUrl,
+  submitPoster,
+  type PosterInfo,
+  type TrainingPoster,
+} from "./trainingApi";
+import PosterShare from "./PosterShare";
 import type { EnquiryListing } from "./TrainingEnquiryDialog";
 
 const MAX_POSTERS = 5;
@@ -208,7 +220,13 @@ function PosterDetails({ poster, onEnquire }: { poster: TrainingPoster; onEnquir
             </a>
           </Button>
         )}
+        <Button variant="outline" asChild>
+          <Link to={posterPath(poster.id)}>
+            <Eye className="mr-1.5 h-4 w-4" /> View & share
+          </Link>
+        </Button>
       </div>
+      <PosterShare poster={poster} compact />
     </div>
   );
 }
@@ -234,10 +252,12 @@ function AddPosterDialog({ open, onOpenChange, onPublished }: { open: boolean; o
   const [phase, setPhase] = useState<"idle" | "reading" | "ready" | "publishing" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
+  const [publishedId, setPublishedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) return;
     setImage(null);
+    setPublishedId(null);
     setInfo(EMPTY_INFO);
     setPhase("idle");
     setError(null);
@@ -267,12 +287,13 @@ function AddPosterDialog({ open, onOpenChange, onPublished }: { open: boolean; o
     setPhase("publishing");
     setError(null);
     try {
-      await submitPoster(image, info, {
+      const res = await submitPoster(image, info, {
         name: (user?.user_metadata?.full_name as string) || "",
         email: user?.email ?? "",
         phone,
         company: info.organizer,
       });
+      setPublishedId(res.id);
       setPhase("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -296,6 +317,20 @@ function AddPosterDialog({ open, onOpenChange, onPublished }: { open: boolean; o
             <CheckCircle2 className="h-10 w-10 text-emerald-500" />
             <p className="font-semibold">Your poster is live</p>
             <p className="text-sm text-muted-foreground">The RobotVerse team has been notified at support@robotverse.in.</p>
+            {publishedId && (
+              <div className="mt-2 w-full max-w-md space-y-2">
+                <p className="text-xs font-semibold">Share link for your poster</p>
+                <div className="flex gap-2">
+                  <Input readOnly value={posterShareUrl(publishedId)} onFocus={(e) => e.currentTarget.select()} className="h-9 text-xs" />
+                  <Button size="sm" variant="outline" onClick={() => navigator.clipboard?.writeText(posterShareUrl(publishedId))}>
+                    Copy
+                  </Button>
+                </div>
+                <Button size="sm" variant="link" asChild>
+                  <Link to={posterPath(publishedId)}>Open poster page</Link>
+                </Button>
+              </div>
+            )}
             <Button className="mt-2" onClick={onPublished}>
               See it in the carousel
             </Button>

@@ -66,6 +66,10 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
 }
 
 export const listPosters = () => call<{ posters: TrainingPoster[] }>({ action: "list" }).then((r) => r.posters ?? []);
+export const getPoster = (id: string) => call<{ poster: TrainingPoster }>({ action: "get", id }).then((r) => r.poster);
+export const posterPath = (id: string) => `/directory/training/poster/${id}`;
+export const posterShareUrl = (id: string) =>
+  `${typeof window !== "undefined" ? window.location.origin : "https://www.robotverse.in"}${posterPath(id)}`;
 export const analyzePoster = (image: string) => call<{ info: PosterInfo }>({ action: "analyze", image }).then((r) => r.info);
 export const submitPoster = (image: string, info: PosterInfo, contact: Partial<EnquiryContact>) =>
   call<{ ok: boolean; id: string; image: string }>({ action: "submit", image, info, contact });

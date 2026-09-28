@@ -5,6 +5,7 @@
 //   POST { action: "analyze", image }                 -> details read from a poster (AI vision)
 //   POST { action: "submit", image, info, contact }   -> signed-in users add a poster; support is emailed
 //   POST { action: "list" }                           -> the 5 newest posters for the carousel
+//   POST { action: "get", id }                        -> one poster, for its shareable page
 //   POST { action: "enquire", listing, contact, message } -> enquiry emailed to support@robotverse.in
 //
 // No database tables are read or written. Posters are stored as files in the
@@ -162,6 +163,14 @@ function decodeImage(dataUrl: string): { bytes: Uint8Array; type: string; ext: s
   return { bytes, type: m[1], ext: m[2] === "jpeg" ? "jpg" : m[2] };
 }
 
+async function readPoster(sb: ReturnType<typeof admin>, id: string) {
+  const { data: blob } = await sb.storage.from(BUCKET).download(`${FOLDER}/${id}.json`);
+  if (!blob) return null;
+  const meta = JSON.parse(await blob.text());
+  const image = sb.storage.from(BUCKET).getPublicUrl(`${FOLDER}/${meta.image}`).data.publicUrl;
+  return { id, image, info: cleanInfo(meta.info), submittedAt: meta.submittedAt, company: clip(meta.company, 120) };
+}
+
 async function listPosters() {
   const sb = admin();
   const { data, error } = await sb.storage.from(BUCKET).list(FOLDER, { limit: 200, sortBy: { column: "name", order: "desc" } });
@@ -191,6 +200,17 @@ serve(async (req) => {
     if (action === "list") {
       return new Response(JSON.stringify({ posters: await listPosters() }), {
         headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=60" },
+      });
+    }
+
+    if (action === "get") {
+      const id = String(body.id || "");
+      // Poster ids are "<timestamp>-<8 hex>"; anything else is not a poster.
+      if (!/^\d{13}-[0-9a-f]{8}$/.test(id)) return json({ error: "Poster not found." }, 404);
+      const poster = await readPoster(admin(), id).catch(() => null);
+      if (!poster) return json({ error: "Poster not found." }, 404);
+      return new Response(JSON.stringify({ poster }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=300" },
       });
     }
 
