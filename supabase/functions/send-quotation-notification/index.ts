@@ -156,12 +156,16 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    const client = new SmtpClient();
-    await client.connectTLS({
-      hostname: smtpHost,
-      port: smtpPort,
-      username: smtpUser,
-      password: smtpPass,
+    const client = new SmtpClient({
+      connection: {
+        hostname: smtpHost,
+        port: smtpPort,
+        tls: true,
+        auth: {
+          username: smtpUser,
+          password: smtpPass,
+        },
+      },
     });
 
     await client.send({
