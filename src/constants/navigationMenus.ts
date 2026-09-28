@@ -174,10 +174,13 @@ export const NAVIGATION_CONFIG = {
   robobook: {
     label: "RoboBook",
     href: "/robobook",
-    subItems: ROBOBOOK_CATEGORIES.map(cat => ({
-      label: ROBOBOOK_CATEGORY_LABELS[cat] || cat,
-      href: `/robobook?category=${encodeURIComponent(cat)}`,
-    })),
+    subItems: [
+      { label: "Industry News", href: "/robobook/news" },
+      ...ROBOBOOK_CATEGORIES.map(cat => ({
+        label: ROBOBOOK_CATEGORY_LABELS[cat] || cat,
+        href: `/robobook?type=${encodeURIComponent(cat)}`,
+      })),
+    ],
   },
 } as const;
 

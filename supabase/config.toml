@@ -109,3 +109,6 @@ verify_jwt = false
 
 [functions.directory-image]
 verify_jwt = false
+
+[functions.robot-news]
+verify_jwt = false

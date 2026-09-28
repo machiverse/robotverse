@@ -69,6 +69,7 @@ import Contact from "./pages/Contact";
 // Loaded on demand so the Directory adds nothing to the main bundle
 const Directory = lazy(() => import("./pages/Directory"));
 const TrainingPosterPage = lazy(() => import("./pages/TrainingPosterPage"));
+const RobotNews = lazy(() => import("./pages/RobotNews"));
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
 import BuyerGuide from "./pages/BuyerGuide";
@@ -197,6 +198,7 @@ const App = () => (
             <Route path="/financing" element={<Financing />} />
             <Route path="/financing/:id" element={<FinancingDetails />} />
             <Route path="/robobook" element={<Blogs />} />
+            <Route path="/robobook/news" element={<Suspense fallback={null}><RobotNews /></Suspense>} />
             <Route path="/community" element={<Navigate to="/robobook" replace />} />
             <Route path="/blogs" element={<Navigate to="/robobook" replace />} />
             <Route path="/robobook/:id" element={<CommunityPostDetails />} />

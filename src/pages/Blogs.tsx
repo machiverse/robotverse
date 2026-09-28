@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { BLOG_CATEGORIES, blogCategoryOf } from "@/utils/blogCategories";
+import NewsLeadCarousel from "@/components/robobook/NewsLeadCarousel";
+import ArticleCard from "@/components/robobook/ArticleCard";
 import { useSearchParams } from "react-router-dom";
 import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
@@ -27,6 +29,8 @@ import {
   Image as ImageIcon,
   SlidersHorizontal,
   Rss,
+  LayoutGrid,
+  Rows3,
 } from "lucide-react";
 import {
   Select,
@@ -46,6 +50,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // RSS feed of every published RoboBook article (edge function robobook-rss).
 const RSS_URL = `${import.meta.env.VITE_SUPABASE_URL || "https://cmahwgetrqczytnijbuk.supabase.co"}/functions/v1/robobook-rss`;
 const rssFor = (category: string) => (category && category !== "all" ? `${RSS_URL}?category=${encodeURIComponent(category)}` : RSS_URL);
+const PAGE_SIZE = 12;
 const CATEGORY_BLURB = Object.fromEntries(BLOG_CATEGORIES.map((c) => [c.name, c.blurb]));
 
 interface CommunityPost {
@@ -92,7 +97,20 @@ const Community = () => {
   const [sortBy, setSortBy] = useUrlParam<string>("sort", "latest");
   const [filterType, setFilterType] = useUrlParam<string>("type", "all");
   const [category, setCategory] = useUrlParam<string>("category", "all");
+  // Older links used ?category=<post type> (blog, video, short_post, media): read them as the type.
+  useEffect(() => {
+    if (["blog", "video", "short_post", "media"].includes(category)) {
+      // One URL update: two separate param setters in a row would overwrite each other.
+      const next = new URLSearchParams(searchParams);
+      next.delete("category");
+      next.set("type", category);
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]);
   const [selectedTag, setSelectedTag] = useUrlParam<string>("tag", "all");
+  const [view, setView] = useUrlParam<"grid" | "feed">("view", "grid");
+  const [visible, setVisible] = useState(PAGE_SIZE);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [tab, setTab] = useState<"published" | "scheduled" | "drafts">("published");
 
@@ -366,6 +384,8 @@ const Community = () => {
   };
 
   const hasFilters = !!searchTerm || (selectedTag && selectedTag !== "all") || filterType !== "all" || category !== "all";
+  // A new filter or sort starts again from the first page of cards.
+  useEffect(() => setVisible(PAGE_SIZE), [category, filterType, selectedTag, searchTerm, sortBy, tab]);
   const clearFilters = () => {
     setSearchTerm("");
     setFilterType("all");
@@ -550,205 +570,205 @@ const Community = () => {
       <BackButton fallbackPath="/" label="Back" />
 
       
-      <main className="container mx-auto px-4 py-8">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-primary">RoboBook</h1>
-              <p className="text-muted-foreground mt-2">
-                Learn, share, and connect - your knowledge hub for industrial robotics and automation technology
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <CopySearchLinkButton />
-                <Button variant="outline" size="sm" asChild>
-                  <a href={rssFor(category)} target="_blank" rel="noopener noreferrer" title="Subscribe in any feed reader">
-                    <Rss className="w-4 h-4 mr-2 text-orange-500" />
-                    RSS feed{category !== "all" ? `: ${category}` : ""}
-                  </a>
-                </Button>
-              </div>
-            </div>
-            
+      <main className="container mx-auto px-4 pb-16 pt-6">
+        {/* Masthead */}
+        <header className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-[65ch]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">RobotVerse knowledge hub</p>
+            <h1 className="mt-1 text-4xl font-semibold leading-tight tracking-[-0.03em] text-foreground sm:text-5xl">RoboBook</h1>
+            <p className="mt-3 text-base leading-relaxed text-foreground/65">
+              Articles, videos and industry news on industrial robots and automation, from engineers, integrators and the wider industry.
+            </p>
+            <p className="mt-2 text-xs tabular-nums text-foreground/45">
+              {publishedCount} community posts · {categories.length} topics · news refreshed every 4 hours
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <CreatePostModal onPostCreated={fetchPosts} />
+            <Button variant="ghost" size="sm" asChild>
+              <a href={rssFor(category)} target="_blank" rel="noopener noreferrer" title="Subscribe in any feed reader">
+                <Rss className="mr-1.5 h-4 w-4 text-orange-500" />
+                RSS
+              </a>
+            </Button>
+            <CopySearchLinkButton />
           </div>
+        </header>
 
-          {user && (
-            <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-4">
-              <TabsList>
-                <TabsTrigger value="published">Published</TabsTrigger>
-                <TabsTrigger value="scheduled">My Scheduled ({myScheduledCount})</TabsTrigger>
-                <TabsTrigger value="drafts">My Drafts ({myDraftsCount})</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
+        <NewsLeadCarousel />
 
-
-
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-6">
-        {/* LEFT FILTER COLUMN (sticky) */}
-        <aside className="w-72 flex-shrink-0 hidden lg:block">
-          <div className="sticky top-20 space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Search className="w-4 h-4" />
-                  Filter Posts
-                </CardTitle>
-              </CardHeader>
-              <CardContent>{filterPanel}</CardContent>
-            </Card>
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="p-4 text-center">
-                <p className="text-sm font-semibold mb-1">Share your knowledge</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Post articles, videos and tips for the robotics community.
-                </p>
-                <CreatePostModal onPostCreated={fetchPosts} />
-              </CardContent>
-            </Card>
-          </div>
-        </aside>
-
-        {/* Feed Layout - Professional Social Platform Style */}
-        <div className="flex-1 min-w-0 w-full max-w-4xl space-y-6">
-          <Card>
-            <CardContent className="p-4 space-y-4">
-              <div className="flex gap-2 lg:hidden">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search posts..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
-                    aria-label="Search posts"
-                  />
-                </div>
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" className="shrink-0">
-                      <SlidersHorizontal className="w-4 h-4 mr-2" />
-                      Filters
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-80 overflow-y-auto">
-                    <SheetHeader className="mb-4">
-                      <SheetTitle>Filter Posts</SheetTitle>
-                    </SheetHeader>
-                    {filterPanel}
-                  </SheetContent>
-                </Sheet>
-              </div>
-              {categories.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Blog categories">
-                  {[["all", publishedCount] as [string, number], ...categories].map(([name, count]) => (
-                    <button
-                      key={name}
-                      type="button"
-                      role="tab"
-                      aria-selected={category === name}
-                      onClick={() => setCategory(name)}
-                      className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                        category === name
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border hover:border-primary/60"
-                      }`}
-                    >
-                      {name === "all" ? "All articles" : name}
-                      <span className="ml-1.5 opacity-70 tabular-nums">{count}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-sm text-muted-foreground">
-                  {loading ? "Loading…" : (
-                    <>
-                      Showing <span className="font-semibold text-foreground">{filteredPosts.length}</span> posts
-                      {category !== "all" && <> in <span className="font-semibold text-foreground">{category}</span></>}
-                    </>
-                  )}
-                </div>
-                {hasFilters && (
-                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={clearFilters}>
-                    Clear filters
-                  </Button>
+        {/* Community posts */}
+        <section className="mt-12" aria-labelledby="community-heading">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="community-heading" className="text-2xl font-semibold tracking-[-0.02em]">
+                From the community
+              </h2>
+              <p className="mt-1 text-sm tabular-nums text-foreground/55">
+                {loading ? "Loading…" : (
+                  <>
+                    {filteredPosts.length} {filteredPosts.length === 1 ? "post" : "posts"}
+                    {category !== "all" && <> in {category}</>}
+                  </>
                 )}
+              </p>
+            </div>
+            {user && (
+              <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+                <TabsList>
+                  <TabsTrigger value="published">Published</TabsTrigger>
+                  <TabsTrigger value="scheduled">Scheduled ({myScheduledCount})</TabsTrigger>
+                  <TabsTrigger value="drafts">Drafts ({myDraftsCount})</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+          </div>
+
+          {/* Toolbar: search, sort, filters, layout, topics */}
+          <div className="sticky top-16 z-20 -mx-4 mb-6 border-y border-border/60 bg-background/90 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[200px] flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+                <Input
+                  placeholder="Search articles, topics, tags…"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-9 pl-9"
+                  aria-label="Search posts"
+                />
               </div>
-            </CardContent>
-          </Card>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="h-9 w-[150px]" aria-label="Sort posts">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="latest">Latest</SelectItem>
+                  <SelectItem value="trending">Trending</SelectItem>
+                  <SelectItem value="most_viewed">Most viewed</SelectItem>
+                  <SelectItem value="most_liked">Most liked</SelectItem>
+                </SelectContent>
+              </Select>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9">
+                    <SlidersHorizontal className="mr-1.5 h-4 w-4" />
+                    Filters
+                    {(filterType !== "all" || (selectedTag && selectedTag !== "all")) && (
+                      <span className="ml-1.5 h-1.5 w-1.5 rounded-full bg-primary" aria-label="Filters active" />
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-80 overflow-y-auto">
+                  <SheetHeader className="mb-4">
+                    <SheetTitle>Filter posts</SheetTitle>
+                  </SheetHeader>
+                  {filterPanel}
+                </SheetContent>
+              </Sheet>
+              <div className="flex rounded-md border border-border p-0.5" role="group" aria-label="Layout">
+                {(["grid", "feed"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    aria-pressed={view === v}
+                    onClick={() => setView(v)}
+                    title={v === "grid" ? "Card grid" : "Full posts with likes and comments"}
+                    className={`inline-flex h-7 items-center gap-1.5 rounded-[4px] px-2.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                      view === v ? "bg-foreground/[0.08] text-foreground" : "text-foreground/55 hover:text-foreground"
+                    }`}
+                  >
+                    {v === "grid" ? <LayoutGrid className="h-3.5 w-3.5" /> : <Rows3 className="h-3.5 w-3.5" />}
+                    {v === "grid" ? "Grid" : "Feed"}
+                  </button>
+                ))}
+              </div>
+              {hasFilters && (
+                <Button variant="ghost" size="sm" className="h-9 text-foreground/60" onClick={clearFilters}>
+                  Clear
+                </Button>
+              )}
+            </div>
+            {categories.length > 0 && (
+              <div className="-mb-1 mt-3 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Topics">
+                {[["all", publishedCount] as [string, number], ...categories].map(([name, count]) => (
+                  <button
+                    key={name}
+                    type="button"
+                    role="tab"
+                    aria-selected={category === name}
+                    title={CATEGORY_BLURB[name] || undefined}
+                    onClick={() => setCategory(name)}
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                      category === name
+                        ? "bg-foreground text-background"
+                        : "bg-foreground/[0.05] text-foreground/70 hover:bg-foreground/[0.09] hover:text-foreground"
+                    }`}
+                  >
+                    {name === "all" ? "All topics" : name}
+                    <span className="ml-1.5 tabular-nums opacity-60">{count}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {loading ? (
-            <div className="space-y-6">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-card rounded-xl border p-6 space-y-4 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-muted rounded-full"></div>
-                      <div className="space-y-2">
-                        <div className="h-4 bg-muted rounded w-32"></div>
-                        <div className="h-3 bg-muted rounded w-20"></div>
-                      </div>
-                    </div>
-                    <div className="aspect-video bg-muted rounded-lg"></div>
-                    <div className="space-y-3">
-                      <div className="h-6 bg-muted rounded w-3/4"></div>
-                      <div className="h-4 bg-muted rounded w-full"></div>
-                      <div className="h-4 bg-muted rounded w-2/3"></div>
-                      <div className="flex justify-between pt-4">
-                        <div className="flex gap-6">
-                          <div className="h-8 bg-muted rounded w-16"></div>
-                          <div className="h-8 bg-muted rounded w-20"></div>
-                          <div className="h-8 bg-muted rounded w-16"></div>
-                        </div>
-                      </div>
-                    </div>
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="overflow-hidden rounded-xl border border-border/70">
+                  <div className="aspect-[16/9] animate-pulse bg-muted" />
+                  <div className="space-y-2 p-5">
+                    <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                    <div className="h-5 w-4/5 animate-pulse rounded bg-muted" />
+                    <div className="h-4 w-full animate-pulse rounded bg-muted" />
                   </div>
                 </div>
               ))}
             </div>
           ) : filteredPosts.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="bg-primary/5 rounded-full p-8 w-32 h-32 mx-auto mb-6 flex items-center justify-center">
-                <BookOpen className="h-16 w-16 text-primary" />
-              </div>
-              <h3 className="text-2xl font-bold mb-3">Start the Conversation</h3>
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
-                {hasFilters
-                  ? "No posts match your criteria. Try adjusting your filters to discover more content." 
-                  : "Be the first to share your insights and connect with the robotics community. Your voice matters!"
-                }
+            <div className="mx-auto max-w-md py-20 text-center">
+              <BookOpen className="mx-auto mb-4 h-10 w-10 text-foreground/30" strokeWidth={1.5} />
+              <h3 className="text-lg font-semibold">{hasFilters ? "No posts match these filters" : "No posts yet"}</h3>
+              <p className="mb-6 mt-1 text-sm text-foreground/60">
+                {hasFilters ? "Try another topic or clear the filters." : "Share an article, video or tip with the robotics community."}
               </p>
-              <CreatePostModal onPostCreated={fetchPosts} />
+              {hasFilters ? (
+                <Button variant="outline" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              ) : (
+                <CreatePostModal onPostCreated={fetchPosts} />
+              )}
+            </div>
+          ) : view === "feed" ? (
+            <div className="mx-auto max-w-3xl space-y-6">
+              {filteredPosts.slice(0, visible).map((post) => (
+                <CommunityPostCard
+                  key={post.id}
+                  post={post}
+                  onLikeUpdate={handleLikeUpdate}
+                  onCommentUpdate={handleCommentUpdate}
+                  onPostDeleted={handlePostDeleted}
+                />
+              ))}
             </div>
           ) : (
-            <>
-              <div className="space-y-6">
-                {filteredPosts.map((post) => (
-                  <CommunityPostCard
-                    key={post.id}
-                    post={post}
-                    onLikeUpdate={handleLikeUpdate}
-                    onCommentUpdate={handleCommentUpdate}
-                    onPostDeleted={handlePostDeleted}
-                  />
-                ))}
-              </div>
-              
-              {/* Load More Section */}
-              <div className="text-center py-8">
-                <p className="text-muted-foreground text-sm">
-                  You've reached the end of the feed. Share something new!
-                </p>
-                <CreatePostModal onPostCreated={fetchPosts} />
-              </div>
-            </>
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {filteredPosts.slice(0, visible).map((post, i) => (
+                <ArticleCard key={post.id} post={post} featured={i === 0 && !hasFilters && filteredPosts.length > 2} />
+              ))}
+            </div>
           )}
-        </div>
-        </div>
+
+          {!loading && filteredPosts.length > visible && (
+            <div className="mt-10 text-center">
+              <Button variant="outline" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+                Show more posts
+                <span className="ml-1.5 tabular-nums text-foreground/50">{filteredPosts.length - visible}</span>
+              </Button>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );
