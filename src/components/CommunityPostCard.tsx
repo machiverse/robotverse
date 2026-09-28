@@ -58,6 +58,7 @@ interface CommunityPost {
   media_items?: any;
   video_duration?: number;
   tags: string[];
+  display_category?: string;
   view_count: number;
   like_count: number;
   comment_count?: number;
@@ -313,6 +314,12 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
             <Badge variant="outline" className="border-success/30 bg-success/10 text-success dark:text-success">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               <span className="text-xs font-medium">Published</span>
+            </Badge>
+          )}
+
+          {post.display_category && post.display_category !== "General" && (
+            <Badge variant="secondary" className="hidden text-xs font-medium sm:inline-flex">
+              {post.display_category}
             </Badge>
           )}
 

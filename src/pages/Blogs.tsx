@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
+import { BLOG_CATEGORIES, blogCategoryOf } from "@/utils/blogCategories";
 import { useSearchParams } from "react-router-dom";
 import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
@@ -24,6 +26,7 @@ import {
   FileText,
   Image as ImageIcon,
   SlidersHorizontal,
+  Rss,
 } from "lucide-react";
 import {
   Select,
@@ -40,6 +43,11 @@ import SEOMetaTags from "@/components/SEOMetaTags";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
+// RSS feed of every published RoboBook article (edge function robobook-rss).
+const RSS_URL = `${import.meta.env.VITE_SUPABASE_URL || "https://cmahwgetrqczytnijbuk.supabase.co"}/functions/v1/robobook-rss`;
+const rssFor = (category: string) => (category && category !== "all" ? `${RSS_URL}?category=${encodeURIComponent(category)}` : RSS_URL);
+const CATEGORY_BLURB = Object.fromEntries(BLOG_CATEGORIES.map((c) => [c.name, c.blurb]));
+
 interface CommunityPost {
   id: string;
   post_type: 'blog' | 'video' | 'short_post' | 'media';
@@ -51,6 +59,8 @@ interface CommunityPost {
   video_duration?: number;
   tags: string[];
   category?: string | null;
+  /** Author's category, or one worked out from the post text */
+  display_category?: string;
   view_count: number;
   like_count: number;
   comment_count: number;
@@ -151,7 +161,7 @@ const Community = () => {
         ...post,
         tags: Array.isArray(post.tags) ? post.tags.filter(Boolean) : [],
         category: typeof post.category === 'string' && post.category.trim() ? post.category.trim() : null,
-      }));
+      })).map((post) => ({ ...post, display_category: blogCategoryOf(post) }));
 
       // Fetch author profiles for all posts in one request
       const authorIds = Array.from(new Set(allPosts.map((p) => p.author_id).filter(Boolean)));
@@ -247,7 +257,7 @@ const Community = () => {
   const isMine = (post: CommunityPost) => !!user && post.author_id === user.id;
 
   // Categories with post counts (published posts only), largest first
-  const categoryOf = (post: CommunityPost) => post.category || "General";
+  const categoryOf = (post: CommunityPost) => post.display_category || "General";
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
     posts
@@ -384,6 +394,7 @@ const Community = () => {
                       key={name}
                       type="button"
                       onClick={() => setCategory(name)}
+                      title={CATEGORY_BLURB[name] || undefined}
                       className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                         category === name ? "bg-primary/10 font-semibold text-primary" : "hover:bg-muted"
                       }`}
@@ -529,6 +540,12 @@ const Community = () => {
           }
         }}
       />
+      <Helmet>
+        <link rel="alternate" type="application/rss+xml" title="RoboBook: all articles | RobotVerse" href={RSS_URL} />
+        {category !== "all" && (
+          <link rel="alternate" type="application/rss+xml" title={`RoboBook: ${category} | RobotVerse`} href={rssFor(category)} />
+        )}
+      </Helmet>
       <EnhancedHeader />
       <BackButton fallbackPath="/" label="Back" />
 
@@ -542,7 +559,15 @@ const Community = () => {
               <p className="text-muted-foreground mt-2">
                 Learn, share, and connect - your knowledge hub for industrial robotics and automation technology
               </p>
-              <div className="mt-3"><CopySearchLinkButton /></div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <CopySearchLinkButton />
+                <Button variant="outline" size="sm" asChild>
+                  <a href={rssFor(category)} target="_blank" rel="noopener noreferrer" title="Subscribe in any feed reader">
+                    <Rss className="w-4 h-4 mr-2 text-orange-500" />
+                    RSS feed{category !== "all" ? `: ${category}` : ""}
+                  </a>
+                </Button>
+              </div>
             </div>
             
             <CreatePostModal onPostCreated={fetchPosts} />
