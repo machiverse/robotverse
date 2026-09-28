@@ -26,16 +26,26 @@ export const SUPPORT_EMAIL = "support@robotverse.in";
 // ({ "RVRobot0001": "https://…" }). They take priority over the product renders.
 export type PhotoMap = Record<string, string>;
 
-const RENDER_HOST = "https://cdn.robodk.com";
+// Every image is served from RobotVerse's own storage. The directory-image edge
+// function copies an image there the first time it is needed (a real OEM photo
+// when photos.json has one, otherwise the product render), then storage serves it.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://cmahwgetrqczytnijbuk.supabase.co";
 
-export const renderUrl = (kind: CatalogKind, file: string) =>
-  kind === "tools" ? `${RENDER_HOST}/robotlib/tools/${file}` : `${RENDER_HOST}/robot/img/${file}`;
+export const storedImageUrl = (kind: CatalogKind, id: string, small: boolean) =>
+  `${SUPABASE_URL}/storage/v1/object/public/robot-images/directory/${kind}/${id}${small ? "-sm" : ""}`;
 
-/** Image candidates in priority order: real OEM photo, then product render. */
-export const imageCandidates = (kind: CatalogKind, item: CatalogItem, photo: string | undefined, large: boolean) => {
-  const renders = (large ? [item.img, item.th] : [item.th, item.img]).filter(Boolean) as string[];
-  return [photo, ...renders.map((f) => renderUrl(kind, f))].filter(Boolean) as string[];
+export const imageFunctionUrl = (kind: CatalogKind, item: CatalogItem, small: boolean) => {
+  const file = small ? item.th || item.img : item.img || item.th;
+  const q = new URLSearchParams({ kind, id: item.id, size: small ? "sm" : "lg" });
+  if (file) q.set("file", file);
+  return `${SUPABASE_URL}/functions/v1/directory-image?${q}`;
 };
+
+/** Image candidates in priority order: our stored copy, then copy-on-demand. */
+export const imageCandidates = (kind: CatalogKind, item: CatalogItem, _photo: string | undefined, large: boolean) => [
+  storedImageUrl(kind, item.id, !large),
+  imageFunctionUrl(kind, item, !large),
+];
 
 export const oemPhotoSearchUrl = (item: CatalogItem) =>
   `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${item.n} official product photo`)}`;
