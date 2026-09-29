@@ -257,8 +257,37 @@ async function download(url: string) {
   const mime = (r.headers.get("content-type") ?? "").split(";")[0].trim();
   if (!/^image\/(jpeg|jpg|png|webp)$/.test(mime)) return null;
   const buf = new Uint8Array(await r.arrayBuffer());
-  if (buf.length < 12_000 || buf.length > 8_000_000) return null;
+  if (buf.length < 12_000 || buf.length > 5_000_000) return null;
+  // Decoding a huge photo runs the function out of memory, so skip anything over ~16 megapixels.
+  const px = pixels(buf);
+  if (px && px > 16_000_000) return null;
   return { buf, mime };
+}
+
+/** Width x height from a JPEG/PNG/WebP header without decoding it (null when unknown). */
+function pixels(b: Uint8Array): number | null {
+  if (b[0] === 0x89 && b[1] === 0x50) {
+    const v = new DataView(b.buffer, b.byteOffset);
+    return v.getUint32(16) * v.getUint32(20);
+  }
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) return null;
+      const marker = b[i + 1];
+      const len = (b[i + 2] << 8) | b[i + 3];
+      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+        return ((b[i + 5] << 8) | b[i + 6]) * ((b[i + 7] << 8) | b[i + 8]);
+      }
+      i += 2 + len;
+    }
+    return null;
+  }
+  if (b[8] === 0x57 && b[9] === 0x45 && b[12] === 0x56 && b[15] === 0x58) {
+    // WebP extended (VP8X): 24-bit width-1 and height-1
+    return ((b[24] | (b[25] << 8) | (b[26] << 16)) + 1) * ((b[27] | (b[28] << 8) | (b[29] << 16)) + 1);
+  }
+  return null;
 }
 
 /** Large (≤ 1000 px) and card (≤ 420 px) JPEG copies; falls back to the original if it cannot be decoded. */
@@ -430,10 +459,23 @@ async function runBatch(sb: ReturnType<typeof service>, kind: string, opts: Batc
       });
   const batch = wanted.slice(0, limit);
   const results: { id: string; name: string; status: string; image: string | null; note: string }[] = [];
-  // Two at a time; deep search can take several seconds per model. Unfinished items are picked up next batch.
-  for (let i = 0; i < batch.length && Date.now() < deadline - 20_000; i += 2) {
+  // One at a time (less memory). Each model is marked as tried before its search starts, so a model
+  // that crashes the function is not picked first again on the next batch.
+  for (let i = 0; i < batch.length && Date.now() < deadline - 20_000; i += 1) {
+    const item = batch[i];
+    const prior = state.get(item.id);
+    const tries = ((prior?.attempts as number) ?? 0) + 1;
+    const now = new Date().toISOString();
+    if (prior && (prior.status === "found" || prior.status === "manual")) {
+      await sb.from(TABLE).update({ updated_at: now }).eq("catalog_id", item.id);
+    } else {
+      await sb.from(TABLE).upsert({
+        catalog_id: item.id, kind, brand: item.b, model: item.m, name: item.n, status: "error",
+        verify_note: "search did not finish (will retry)", attempts: tries, updated_at: now,
+      });
+    }
     const part = await Promise.all(
-      batch.slice(i, i + 2).map((item) =>
+      [item].map((item) =>
         harvestOne(sb, kind, item, deadline).catch((e) => ({
           catalog_id: item.id, kind, brand: item.b, model: item.m, name: item.n, status: "error",
           verify_note: String(e?.message ?? e).slice(0, 300), updated_at: new Date().toISOString(),
