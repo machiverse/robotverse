@@ -289,7 +289,7 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
                   </>
                 )}
 
-                <DropdownMenuItem onClick={() => navigate('/help')} className="px-4 py-3 cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/dashboard/help')} className="px-4 py-3 cursor-pointer">
                   <HelpCircle className="w-4 h-4 mr-3" />
                   <span>Help & Support</span>
                 </DropdownMenuItem>
