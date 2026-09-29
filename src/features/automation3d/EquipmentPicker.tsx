@@ -12,7 +12,7 @@ import {
   type Match, type Source,
 } from "./equipmentMatch";
 
-type Choice = { robot?: Match; tool?: Match };
+export type Choice = { robot?: Match; tool?: Match };
 type Data = {
   oemRobots: Awaited<ReturnType<typeof loadDirectoryRobots>>;
   oemTools: Awaited<ReturnType<typeof loadDirectoryTools>>;
@@ -27,7 +27,16 @@ const STORE = "rv-studio-equipment:";
  * from RobotVerse marketplace listings or direct from the OEM directory.
  * Matches are sized to the station (payload, reach, application, cobot/SCARA/delta).
  */
-export default function EquipmentPicker({ stations, briefKey }: { stations: AiStation[]; briefKey: string }) {
+export default function EquipmentPicker({
+  stations,
+  briefKey,
+  onChange,
+}: {
+  stations: AiStation[];
+  briefKey: string;
+  /** Called with the current choices per station index (e.g. to show them in 3D). */
+  onChange?: (choices: Record<number, Choice>) => void;
+}) {
   const [data, setData] = useState<Data | null>(null);
   const key = STORE + briefKey.slice(0, 200);
   const [choices, setChoices] = useState<Record<number, Choice>>(() => {
@@ -54,6 +63,8 @@ export default function EquipmentPicker({ stations, briefKey }: { stations: AiSt
     } catch {
       /* private mode */
     }
+    onChange?.(choices);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, choices]);
 
   const matches = useMemo(() => {

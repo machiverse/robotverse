@@ -21,7 +21,7 @@ import MediaAnalyzer from "./MediaAnalyzer";
 import type { MediaAnalysis } from "./mediaAnalysis";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AiSolutionPanel from "./AiSolutionPanel";
-import EquipmentPicker from "./EquipmentPicker";
+import EquipmentPicker, { type Choice } from "./EquipmentPicker";
 import { requestSolution, solutionProcesses, type AiSolution } from "./aiSolution";
 import { engineSolution } from "./solutionEngine";
 
@@ -150,6 +150,8 @@ export default function AutomationStudio3D({
   const [special, setSpecial] = useState(false);
   // Solution for the current brief: built-in engine instantly, AI engineer refines it.
   const [solutionOpen, setSolutionOpen] = useState(false);
+  // Equipment the user chose per solution station; shown on the matching robot cell in 3D.
+  const [equipment, setEquipment] = useState<{ stations: string[]; choices: Record<number, Choice> } | null>(null);
   const [ai, setAi] = useState<{ brief: string; solution: AiSolution | null; loading: boolean; error: string | null }>({
     brief: "", solution: null, loading: false, error: null,
   });
@@ -172,6 +174,53 @@ export default function AutomationStudio3D({
       (e: Error) => setAi((cur) => (cur.brief === brief ? { brief, solution: null, loading: false, error: e.message } : cur)),
     );
   };
+  // Which robot cell performs each station's task; the chosen equipment goes on that cell.
+  const perCell = useMemo(() => {
+    const map = new Map<number, { robot?: Choice["robot"]; tool?: Choice["tool"] }>();
+    if (!plan || !equipment) return map;
+    equipment.stations.forEach((name, i) => {
+      const c = equipment.choices[i];
+      if (!c?.robot && !c?.tool) return;
+      const lower = name.toLowerCase();
+      const cellIdx = plan.robots.findIndex((r) => r.tasks.some((t) => t.name.toLowerCase() === lower));
+      const idx = cellIdx >= 0 ? cellIdx : 0;
+      const prev = map.get(idx) ?? {};
+      map.set(idx, { robot: c.robot ?? prev.robot, tool: c.tool ?? prev.tool });
+    });
+    return map;
+  }, [equipment, plan]);
+
+  useEffect(() => {
+    const sim = simRef.current;
+    if (!sim || !plan) return;
+    plan.robots.forEach((r, i) => {
+      const eq = perCell.get(i);
+      sim.setEquipment(
+        i,
+        eq
+          ? {
+              robot: eq.robot
+                ? { name: eq.robot.name, brand: eq.robot.brand, reachMm: eq.robot.reach, payloadKg: eq.robot.payload, collaborative: r.collaborative || /cobot|collaborative/i.test(`${eq.robot.type} ${eq.robot.name}`) }
+                : undefined,
+              eoat: eq.tool ? { name: `${eq.tool.name} ${eq.tool.type ?? ""}` } : undefined,
+            }
+          : null,
+      );
+    });
+    setUnreachable(sim.checkReach() || []);
+  }, [perCell, plan]);
+
+  // Restore choices saved for this brief (the picker stores them per brief) without opening the dialog.
+  useEffect(() => {
+    if (!engine || !description) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem("rv-studio-equipment:" + description.slice(0, 200)) || "null");
+      if (saved && typeof saved === "object") setEquipment({ stations: engine.stations.map((s) => s.skill || s.name), choices: saved });
+    } catch {
+      /* no saved choices */
+    }
+  }, [engine, description]);
+
   useEffect(() => {
     if (description && description.length >= 8 && ai.brief !== description) runAi(description);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -573,9 +622,15 @@ export default function AutomationStudio3D({
                   </span>
                 </button>
               )}
+              {engine && (
+                <Button size="sm" variant="outline" className="mb-2 w-full" onClick={() => setSolutionOpen(true)}>
+                  <Bot className="mr-1.5 h-3.5 w-3.5" /> Choose robots & tools (marketplace / OEM)
+                </Button>
+              )}
               <div className="space-y-2">
                 {plan.robots.map((r, i) => {
                   const recs = recommendRobots(r, catalog);
+                  const chosen = perCell.get(i);
                   const cell = state?.cells?.[i];
                   return (
                     <button
@@ -625,10 +680,26 @@ export default function AutomationStudio3D({
                         {r.tools.length ? r.tools.join(" + ") : r.tasks[0].skill.toolName}
                         {" · "}min {r.minPayload} kg
                       </span>
-                      {recs.length > 0 && (
-                        <span className="mt-1 block text-[11px] text-muted-foreground">
-                          Suitable: <span className="text-foreground">{recs.map((m) => m.n).join(", ")}</span>
+                      {chosen?.robot || chosen?.tool ? (
+                        <span className="mt-1.5 block rounded bg-primary/10 px-1.5 py-1 text-[11px]">
+                          {chosen.robot && (
+                            <span className="block">
+                              <b>Robot:</b> {chosen.robot.name}{" "}
+                              <span className="text-muted-foreground">({chosen.robot.source === "market" ? "RobotVerse listing" : "OEM"})</span>
+                            </span>
+                          )}
+                          {chosen.tool && (
+                            <span className="block">
+                              <b>EOAT:</b> {chosen.tool.name}
+                            </span>
+                          )}
                         </span>
+                      ) : (
+                        recs.length > 0 && (
+                          <span className="mt-1 block text-[11px] text-muted-foreground">
+                            Suitable: <span className="text-foreground">{recs.map((m) => m.n).join(", ")}</span>
+                          </span>
+                        )
                       )}
                       {cell?.step && focus !== i && (
                         <span className="mt-1 block truncate text-[11px] text-amber-600">Now: {cell.step.label}</span>
@@ -820,6 +891,7 @@ export default function AutomationStudio3D({
           <DialogHeader>
             <DialogTitle>Engineered solution</DialogTitle>
             <DialogDescription className="line-clamp-2">{description}</DialogDescription>
+            <p className="text-xs text-primary">Robots and tools you choose below replace the robots in the 3D view — close this window to see them.</p>
           </DialogHeader>
           <AiSolutionPanel
             solution={ai.brief === description ? ai.solution : null}
@@ -843,7 +915,14 @@ export default function AutomationStudio3D({
             compact
           />
           {(((ai.brief === description && ai.solution) || engine)?.stations.length ?? 0) > 0 && (
-            <EquipmentPicker key={description} stations={((ai.brief === description && ai.solution) || engine)!.stations} briefKey={description ?? ""} />
+            <EquipmentPicker
+              key={description}
+              stations={((ai.brief === description && ai.solution) || engine)!.stations}
+              briefKey={description ?? ""}
+              onChange={(choices) =>
+                setEquipment({ stations: ((ai.brief === description && ai.solution) || engine)!.stations.map((s) => s.skill || s.name), choices })
+              }
+            />
           )}
         </DialogContent>
       </Dialog>

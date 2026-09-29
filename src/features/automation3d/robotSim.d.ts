@@ -36,6 +36,13 @@ export interface Simulation {
   setRobotSize(key: string): void;
   setView(name: string): void;
   setOverlay(name: "none" | "layout" | "flow"): void;
+  setEquipment(
+    cell: number,
+    eq: {
+      robot?: { name: string; brand?: string; reachMm?: number | null; payloadKg?: number | null; collaborative?: boolean };
+      eoat?: { name: string; kind?: string };
+    } | null,
+  ): void;
   setJoint(i: number, deg: number | string): void;
   checkReach(steps?: SimStep[]): string[];
   dispose(): void;
@@ -46,6 +53,8 @@ export const STATION_NAMES: Record<string, string>;
 export const TOOL_ACTIONS: Record<string, { label: string; color: number }>;
 export const PRESETS: Record<string, string>;
 export function stepLabel(step: SimStep): string;
+export function brandPaint(brand: string, collaborative?: boolean): [number, number];
+export function eoatKind(text: string): string;
 export function parseProcess(text: string): { steps: SimStep[]; notes: string[] };
 export function processToText(kind: string, name?: string): string;
 export function createSimulation(opts: {

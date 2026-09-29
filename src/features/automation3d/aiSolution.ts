@@ -78,11 +78,58 @@ export function requestSolution(brief: string, industry?: string | null): Promis
       throw new Error(reason || "the AI service is not reachable");
     }
     if (!data || data.error) throw new Error(data?.error || "No solution returned.");
-    return { ...(data as AiSolution), source: "ai" as const };
+    return normalize(data);
   })();
   cache.set(k, p);
   p.catch(() => cache.delete(k));
   return p;
+}
+
+const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+
+/** Accept only a real solution, with every list present, so the UI never reads a missing field. */
+function normalize(data: unknown): AiSolution {
+  const d = obj(data);
+  const stations = arr<Record<string, unknown>>(d.stations).filter((x) => x && typeof x === "object");
+  if (!stations.length && !arr(d.tasks).length) throw new Error("the AI answer had no stations");
+  const arch = obj(d.architecture);
+  const controls = obj(d.controls);
+  const layout = obj(d.layout);
+  const budget = obj(d.budget_inr);
+  const roi = obj(d.roi);
+  const text = (v: unknown) => (typeof v === "string" ? v : "");
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  return {
+    source: "ai",
+    reasoning: arr<{ title: string; detail: string }>(d.reasoning),
+    standards: arr<string>(d.standards),
+    industry_notes: arr<string>(d.industry_notes),
+    title: text(d.title),
+    understanding: text(d.understanding),
+    feasibility: (["high", "medium", "low"].includes(d.feasibility as string) ? d.feasibility : "medium") as AiSolution["feasibility"],
+    automation_level: (["full", "semi", "assist"].includes(d.automation_level as string) ? d.automation_level : "semi") as AiSolution["automation_level"],
+    workpiece: d.workpiece ? (d.workpiece as AiSolution["workpiece"]) : null,
+    throughput: { target: text(obj(d.throughput).target), takt_s: n(obj(d.throughput).takt_s) },
+    tasks: arr<string>(d.tasks),
+    stations: stations.map((x) => ({
+      name: text(x.name), skill: text(x.skill), what: text(x.what), equipment: text(x.equipment),
+      payload_kg: n(x.payload_kg), reach_mm: n(x.reach_mm), tooling: text(x.tooling),
+      sensors: arr<string>(x.sensors), cycle_s: n(x.cycle_s), notes: text(x.notes),
+    })),
+    architecture: { type: text(arch.type), why: text(arch.why), alternatives: arr(arch.alternatives) },
+    material_flow: text(d.material_flow),
+    controls: { plc: text(controls.plc), hmi: text(controls.hmi), communication: text(controls.communication), safety: arr(controls.safety), interlocks: arr(controls.interlocks) },
+    layout: { footprint_m: text(layout.footprint_m), notes: arr(layout.notes) },
+    utilities: arr(d.utilities),
+    risks: arr(d.risks),
+    implementation: arr(d.implementation),
+    budget_inr: { low: n(budget.low), high: n(budget.high), notes: text(budget.notes) },
+    roi: { labour_saved: text(roi.labour_saved), quality_gain: text(roi.quality_gain), payback_months: text(roi.payback_months) },
+    kpis: arr(d.kpis),
+    assumptions: arr(d.assumptions),
+    questions: arr(d.questions),
+  };
 }
 
 /** Process cards for the 3D line: the AI's tasks, else its stations matched to the closest skill. */
