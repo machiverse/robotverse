@@ -545,7 +545,7 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (!job) return json({ ok: true, running: false });
       const quiet = Date.now() - new Date(job.updated_at).getTime();
-      if (quiet < 4 * 60_000) return json({ ok: true, running: true, restarted: false });
+      if (quiet < 2 * 60_000) return json({ ok: true, running: true, restarted: false });
       await sb.from(JOBS).update({ updated_at: new Date().toISOString(), last_note: "restarted after a stalled batch" }).eq("id", job.id);
       await kick(job.id, job.token, job.step);
       return json({ ok: true, running: true, restarted: true });
