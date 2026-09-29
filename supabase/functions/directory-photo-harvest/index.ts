@@ -6,7 +6,11 @@
 //
 // POST JSON:
 //   { action: "status", kind? }                          -> counts per status (anyone)
-//   { action: "run", kind?, offset?, limit?, retry?, ids? } -> harvest a batch (admin)
+//   { action: "run", kind?, limit?, retry?, ids? }       -> harvest a batch now (admin)
+//   { action: "start", kind?, retry? }                   -> harvest everything in the background (admin)
+//   { action: "stop", kind? }                            -> stop the background job (admin)
+//   { action: "job", kind? }                             -> latest background job progress (anyone)
+//   { action: "continue", job, token, step }             -> next background batch (internal, needs the job token)
 //   { action: "manual", kind?, id, imageUrl, pageUrl? }  -> store a photo the admin picked (admin)
 //   { action: "reject", kind?, id }                      -> hide a wrong photo (admin)
 //   { action: "list", kind?, status?, limit? }           -> recent rows for review (anyone)
@@ -373,6 +377,101 @@ async function isAdmin(req: Request) {
   return !b.error && b.data === true;
 }
 
+/* ------------------------------------------------------- batches + jobs */
+
+const JOBS = "directory_harvest_jobs";
+const FN_URL = `${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/directory-photo-harvest`;
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
+const background = (p: Promise<unknown>) => {
+  const safe = p.catch((e) => console.error("directory-photo-harvest background", e));
+  if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(safe);
+};
+
+type BatchOpts = { limit?: unknown; retry?: unknown; ids?: unknown };
+
+async function runBatch(sb: ReturnType<typeof service>, kind: string, opts: BatchOpts, deadline: number) {
+  const items = await catalogue(kind);
+  const { data: done } = await sb.from(TABLE).select("catalog_id,status,attempts").eq("kind", kind).limit(10000);
+  const state = new Map((done ?? []).map((r) => [r.catalog_id, r]));
+  const limit = Math.max(1, Math.min(6, Number(opts.limit) || 3));
+  const ids = Array.isArray(opts.ids) ? (opts.ids as string[]) : [];
+  const wanted = ids.length
+    ? items.filter((i) => ids.includes(i.id))
+    : items.filter((i) => {
+        const s = state.get(i.id);
+        if (!s) return true;
+        return opts.retry ? ["not_found", "rejected", "error"].includes(s.status) && (s.attempts ?? 0) < 3 : false;
+      });
+  const batch = wanted.slice(0, limit);
+  const results: { id: string; name: string; status: string; image: string | null; note: string }[] = [];
+  // Two at a time; deep search can take several seconds per model. Unfinished items are picked up next batch.
+  for (let i = 0; i < batch.length && Date.now() < deadline - 20_000; i += 2) {
+    const part = await Promise.all(
+      batch.slice(i, i + 2).map((item) =>
+        harvestOne(sb, kind, item, deadline).catch((e) => ({
+          catalog_id: item.id, kind, brand: item.b, model: item.m, name: item.n, status: "error",
+          verify_note: String(e?.message ?? e).slice(0, 300), updated_at: new Date().toISOString(),
+        })),
+      ),
+    );
+    for (const row of part) {
+      const attempts = ((state.get(row.catalog_id)?.attempts as number) ?? 0) + 1;
+      await sb.from(TABLE).upsert({ ...row, attempts });
+      results.push({ id: row.catalog_id, name: row.name, status: row.status, image: (row as any).thumb_url ?? null, note: (row as any).verify_note ?? "" });
+    }
+  }
+  return { processed: results.length, remaining: Math.max(0, wanted.length - results.length), results };
+}
+
+/** Starts the next link of a background job (returns as soon as that link has accepted it). */
+async function kick(job: string, token: string, step: number) {
+  const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const r = await fetch(FN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: anon, Authorization: `Bearer ${anon}` },
+    body: JSON.stringify({ action: "continue", job, token, step }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  await r.body?.cancel();
+  if (!r.ok) throw new Error(`next batch did not start (${r.status})`);
+}
+
+async function continueJob(sb: ReturnType<typeof service>, job: any, step: number) {
+  let status = "running";
+  let retry = job.retry as boolean;
+  let note = "";
+  let processed = 0;
+  let found = 0;
+  try {
+    const res = await runBatch(sb, job.kind, { limit: 6, retry }, Date.now() + 110_000);
+    processed = res.processed;
+    found = res.results.filter((r) => r.status === "found").length;
+    note = res.results.map((r) => `${r.name}: ${r.status}`).join(" · ").slice(0, 500);
+    if (res.remaining === 0) {
+      // First pass finished: one more pass over the models without a photo, then stop.
+      if (!retry) retry = true;
+      else status = "done";
+    } else if (res.processed === 0) {
+      status = "error";
+      note = "no progress in this batch";
+    }
+  } catch (e) {
+    note = `batch failed: ${e instanceof Error ? e.message : String(e)}`.slice(0, 500);
+  }
+  const { data: cur } = await sb.from(JOBS).select("status, processed, found").eq("id", job.id).single();
+  if (cur?.status !== "running") status = cur?.status ?? "stopped";
+  await sb.from(JOBS).update({
+    status, retry, last_note: note, processed: (cur?.processed ?? 0) + processed, found: (cur?.found ?? 0) + found,
+    updated_at: new Date().toISOString(),
+  }).eq("id", job.id);
+  if (status !== "running") return;
+  try {
+    await kick(job.id, job.token, step);
+  } catch (e) {
+    await sb.from(JOBS).update({ status: "error", last_note: String(e instanceof Error ? e.message : e).slice(0, 300) }).eq("id", job.id);
+  }
+}
+
 /* ------------------------------------------------------------ server */
 
 Deno.serve(async (req) => {
@@ -401,41 +500,40 @@ Deno.serve(async (req) => {
       return json({ rows: data });
     }
 
+    if (action === "job") {
+      const { data } = await sb.from(JOBS).select("id, kind, status, retry, step, processed, found, last_note, created_at, updated_at")
+        .eq("kind", kind).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      return json({ job: data ?? null });
+    }
+
+    if (action === "continue") {
+      // One link of the background chain: answer at once, work in the background, then call the next link.
+      const { data: job } = await sb.from(JOBS).select("*").eq("id", String(body.job ?? "")).maybeSingle();
+      if (!job || job.token !== body.token) return json({ error: "Unknown job" }, 403);
+      if (job.status !== "running" || job.step !== Number(body.step)) return json({ ok: true, skipped: true });
+      const next = job.step + 1;
+      await sb.from(JOBS).update({ step: next, updated_at: new Date().toISOString() }).eq("id", job.id);
+      background(continueJob(sb, job, next));
+      return json({ ok: true, step: next }, 202);
+    }
+
     if (!(await isAdmin(req))) return json({ error: "Admins only." }, 403);
 
     if (action === "run") {
-      const items = await catalogue(kind);
-      const { data: done } = await sb.from(TABLE).select("catalog_id,status,attempts").eq("kind", kind).limit(10000);
-      const state = new Map((done ?? []).map((r) => [r.catalog_id, r]));
-      const limit = Math.max(1, Math.min(6, Number(body.limit) || 3));
-      // Stay well inside the edge function time limit; unfinished items are picked up next batch.
-      const deadline = Date.now() + 110_000;
-      const wanted = Array.isArray(body.ids) && body.ids.length
-        ? items.filter((i) => body.ids.includes(i.id))
-        : items.filter((i) => {
-            const s = state.get(i.id);
-            if (!s) return true;
-            return body.retry ? ["not_found", "rejected", "error"].includes(s.status) && (s.attempts ?? 0) < 3 : false;
-          });
-      const batch = wanted.slice(0, limit);
-      const results = [];
-      // Two at a time; deep search can take several seconds per model.
-      for (let i = 0; i < batch.length && Date.now() < deadline - 20_000; i += 2) {
-        const part = await Promise.all(
-          batch.slice(i, i + 2).map((item) =>
-            harvestOne(sb, kind, item, deadline).catch((e) => ({
-              catalog_id: item.id, kind, brand: item.b, model: item.m, name: item.n, status: "error",
-              verify_note: String(e?.message ?? e).slice(0, 300), updated_at: new Date().toISOString(),
-            })),
-          ),
-        );
-        for (const row of part) {
-          const attempts = ((state.get(row.catalog_id)?.attempts as number) ?? 0) + 1;
-          await sb.from(TABLE).upsert({ ...row, attempts });
-          results.push({ id: row.catalog_id, name: row.name, status: row.status, image: (row as any).thumb_url ?? null, note: (row as any).verify_note ?? "" });
-        }
-      }
-      return json({ processed: results.length, remaining: Math.max(0, wanted.length - batch.length), results });
+      return json(await runBatch(sb, kind, { limit: body.limit, retry: body.retry, ids: body.ids }, Date.now() + 110_000));
+    }
+
+    if (action === "start") {
+      await sb.from(JOBS).update({ status: "stopped", updated_at: new Date().toISOString() }).eq("kind", kind).eq("status", "running");
+      const { data: job, error } = await sb.from(JOBS).insert({ kind, retry: !!body.retry }).select("id, token, step").single();
+      if (error) throw error;
+      await kick(job.id, job.token, job.step);
+      return json({ ok: true, job: job.id });
+    }
+
+    if (action === "stop") {
+      await sb.from(JOBS).update({ status: "stopped", updated_at: new Date().toISOString() }).eq("kind", kind).eq("status", "running");
+      return json({ ok: true });
     }
 
     if (action === "manual") {

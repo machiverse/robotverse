@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, EyeOff, ImageOff, Loader2, Pause, Play, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, CheckCircle2, EyeOff, ImageOff, Loader2, Pause, Play, RefreshCw, Save, Server, Square } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ type Row = {
   source_page_url: string | null;
   verify_note: string | null;
 };
+type Job = { status: string; retry: boolean; processed: number; found: number; last_note: string | null; updated_at: string } | null;
 type LogLine = { id: string; name: string; status: string; image: string | null; note: string };
 
 const FN = "directory-photo-harvest";
@@ -57,6 +58,8 @@ export default function DirectoryPhotosAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [review, setReview] = useState<{ status: string; rows: Row[] }>({ status: "found", rows: [] });
   const stop = useRef(false);
+  const [job, setJob] = useState<Job>(null);
+  const jobRunning = job?.status === "running";
 
   const refresh = useCallback(async () => {
     try {
@@ -71,6 +74,34 @@ export default function DirectoryPhotosAdmin() {
   useEffect(() => {
     if (isAdmin) refresh();
   }, [isAdmin, refresh]);
+
+  // Background job on the server: poll its progress while it runs.
+  const loadJob = useCallback(async () => {
+    try {
+      setJob((await call<{ job: Job }>({ action: "job", kind })).job);
+    } catch {
+      /* ignore */
+    }
+  }, [kind]);
+  useEffect(() => {
+    if (!isAdmin) return;
+    loadJob();
+    const t = setInterval(() => {
+      loadJob();
+      if (jobRunning) call<Counts>({ action: "status", kind }).then(setCounts).catch(() => {});
+    }, 15000);
+    return () => clearInterval(t);
+  }, [isAdmin, loadJob, jobRunning, kind]);
+
+  const serverJob = async (action: "start" | "stop") => {
+    setError(null);
+    try {
+      await call({ action, kind, retry });
+      await loadJob();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
 
   const start = async () => {
     stop.current = false;
@@ -156,8 +187,17 @@ export default function DirectoryPhotosAdmin() {
               <Pause className="mr-1.5 h-4 w-4" /> Pause after this batch
             </Button>
           ) : (
-            <Button size="sm" onClick={start}>
+            <Button size="sm" onClick={start} disabled={jobRunning}>
               <Play className="mr-1.5 h-4 w-4" /> {done ? "Continue harvesting" : "Start harvesting"}
+            </Button>
+          )}
+          {jobRunning ? (
+            <Button size="sm" variant="outline" onClick={() => serverJob("stop")}>
+              <Square className="mr-1.5 h-4 w-4" /> Stop server run
+            </Button>
+          ) : (
+            <Button size="sm" variant="secondary" disabled={running} onClick={() => serverJob("start")}>
+              <Server className="mr-1.5 h-4 w-4" /> Run all on server
             </Button>
           )}
           <label className="flex items-center gap-1.5 text-sm">
@@ -173,6 +213,15 @@ export default function DirectoryPhotosAdmin() {
             </span>
           )}
         </div>
+        {job && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            {jobRunning && <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />}
+            Server run: <b>{job.status}</b>{job.retry ? " (retry pass)" : ""} · {job.processed} searched · {job.found} photos found · last update{" "}
+            {new Date(job.updated_at).toLocaleTimeString()}
+            {jobRunning ? " — runs by itself, you can close this page." : ""}
+            {job.last_note && <span className="block truncate text-xs">{job.last_note}</span>}
+          </p>
+        )}
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </section>
 
