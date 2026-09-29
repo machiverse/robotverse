@@ -229,7 +229,7 @@ async function verify(item: Item, kind: string, bytes: Uint8Array, mime: string)
           content: [
             {
               type: "text",
-              text: `Is this a REAL CAMERA PHOTOGRAPH of a physical ${what} — for example a used robot photographed in a warehouse, workshop, factory or photo studio (standing on the floor or a pallet, possibly with its controller)? Answer ok=false for CAD or 3D renders, computer-generated catalogue images, illustrations, drawings, collages of several images, screenshots, logos, documents, photos where the robot is tiny or hidden, and other kinds of machines. Reply ONLY JSON: {"ok": true|false, "note": "short reason"}`,
+              text: `Is this a REAL CAMERA PHOTOGRAPH of a physical ${what} — for example a used robot photographed in a warehouse, workshop, factory or photo studio (standing on the floor or a pallet, possibly with its controller)? Answer ok=false if it clearly shows a different brand or a clearly different model (e.g. an ABB robot when ${item.b} was asked for), and for CAD or 3D renders, computer-generated catalogue images, illustrations, drawings, collages of several images, screenshots, logos, documents, photos where the robot is tiny or hidden, and other kinds of machines. Reply ONLY JSON: {"ok": true|false, "note": "short reason"}`,
             },
             { type: "image_url", image_url: { url: dataUrl } },
           ],
