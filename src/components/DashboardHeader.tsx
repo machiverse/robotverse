@@ -255,12 +255,12 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
                   <span>Account Settings</span>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onClick={() => navigate('/dashboard')} className="px-4 py-3 cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/dashboard/analytics')} className="px-4 py-3 cursor-pointer">
                   <BarChart3 className="w-4 h-4 mr-3" />
                   <span>Analytics</span>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onClick={() => navigate('/dashboard')} className="px-4 py-3 cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/dashboard/reports')} className="px-4 py-3 cursor-pointer">
                   <FileText className="w-4 h-4 mr-3" />
                   <span>Reports</span>
                 </DropdownMenuItem>
