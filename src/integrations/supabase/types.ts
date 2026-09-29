@@ -2375,6 +2375,48 @@ export type Database = {
         }
         Relationships: []
       }
+      directory_harvest_jobs: {
+        Row: {
+          created_at: string
+          found: number
+          id: string
+          kind: string
+          last_note: string | null
+          processed: number
+          retry: boolean
+          status: string
+          step: number
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          found?: number
+          id?: string
+          kind?: string
+          last_note?: string | null
+          processed?: number
+          retry?: boolean
+          status?: string
+          step?: number
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          found?: number
+          id?: string
+          kind?: string
+          last_note?: string | null
+          processed?: number
+          retry?: boolean
+          status?: string
+          step?: number
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       directory_robot_images: {
         Row: {
           attempts: number
