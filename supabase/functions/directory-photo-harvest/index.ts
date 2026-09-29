@@ -30,7 +30,6 @@
 // stored in the public "robot-images" bucket at directory/<kind>/<id>-photo[-sm].jpg.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 const SITE_URL = (Deno.env.get("PUBLIC_SITE_URL") ?? "https://www.robotverse.in").replace(/\/$/, "");
 const BUCKET = "robot-images";
@@ -258,17 +257,16 @@ async function download(url: string) {
   if (!/^image\/(jpeg|jpg|png|webp)$/.test(mime)) return null;
   const buf = new Uint8Array(await r.arrayBuffer());
   if (buf.length < 12_000 || buf.length > 5_000_000) return null;
-  // Decoding a huge photo runs the function out of memory, so skip anything over ~16 megapixels.
-  const px = pixels(buf);
-  if (px && px > 16_000_000) return null;
+  const d = dims(buf);
+  if (d && (d.w < 250 || d.h < 180)) return null; // too small to be a product photo
   return { buf, mime };
 }
 
-/** Width x height from a JPEG/PNG/WebP header without decoding it (null when unknown). */
-function pixels(b: Uint8Array): number | null {
+/** Width and height from a JPEG/PNG/WebP header without decoding it (null when unknown). */
+function dims(b: Uint8Array): { w: number; h: number } | null {
   if (b[0] === 0x89 && b[1] === 0x50) {
     const v = new DataView(b.buffer, b.byteOffset);
-    return v.getUint32(16) * v.getUint32(20);
+    return { w: v.getUint32(16), h: v.getUint32(20) };
   }
   if (b[0] === 0xff && b[1] === 0xd8) {
     let i = 2;
@@ -277,7 +275,7 @@ function pixels(b: Uint8Array): number | null {
       const marker = b[i + 1];
       const len = (b[i + 2] << 8) | b[i + 3];
       if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
-        return ((b[i + 5] << 8) | b[i + 6]) * ((b[i + 7] << 8) | b[i + 8]);
+        return { h: (b[i + 5] << 8) | b[i + 6], w: (b[i + 7] << 8) | b[i + 8] };
       }
       i += 2 + len;
     }
@@ -285,29 +283,33 @@ function pixels(b: Uint8Array): number | null {
   }
   if (b[8] === 0x57 && b[9] === 0x45 && b[12] === 0x56 && b[15] === 0x58) {
     // WebP extended (VP8X): 24-bit width-1 and height-1
-    return ((b[24] | (b[25] << 8) | (b[26] << 16)) + 1) * ((b[27] | (b[28] << 8) | (b[29] << 16)) + 1);
+    return { w: (b[24] | (b[25] << 8) | (b[26] << 16)) + 1, h: (b[27] | (b[28] << 8) | (b[29] << 16)) + 1 };
   }
   return null;
 }
 
-/** Large (≤ 1000 px) and card (≤ 420 px) JPEG copies; falls back to the original if it cannot be decoded. */
-async function resize(buf: Uint8Array, mime: string) {
-  try {
-    const img = await Image.decode(buf);
-    if (img.width < 250 || img.height < 180) return null; // too small to be a product photo
-    const fit = (max: number) => {
-      const k = Math.min(1, max / Math.max(img.width, img.height));
-      return img.clone().resize(Math.round(img.width * k), Math.round(img.height * k));
-    };
-    return { large: await fit(1000).encodeJPEG(84), small: await fit(420).encodeJPEG(80), mime: "image/jpeg", ext: "jpg" };
-  } catch {
-    return { large: buf, small: buf, mime, ext: mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg" };
-  }
+/**
+ * Large (≤ 1000 px) and card (≤ 420 px) JPEG copies, made by the free wsrv.nl image service so this
+ * function never decodes big photos itself (that ran it out of memory). Falls back to the original
+ * file when it is small enough to show as is.
+ */
+type Sized = { large: Uint8Array; small: Uint8Array; mime: string; ext: string };
+async function resize(srcUrl: string, file: { buf: Uint8Array; mime: string }): Promise<Sized | null> {
+  const via = async (w: number, q: number) => {
+    const u = `https://wsrv.nl/?url=${encodeURIComponent(srcUrl)}&w=${w}&h=${w}&fit=inside&we&output=jpg&q=${q}`;
+    const r = await get(u, 20000).catch(() => null);
+    if (!r?.ok || !(r.headers.get("content-type") ?? "").startsWith("image/")) return null;
+    const b = new Uint8Array(await r.arrayBuffer());
+    return b.length > 3000 ? b : null;
+  };
+  const [large, small] = await Promise.all([via(1000, 84), via(420, 80)]);
+  if (large && small) return { large, small, mime: "image/jpeg", ext: "jpg" };
+  if (file.buf.length > 1_500_000) return null;
+  const ext = file.mime.includes("png") ? "png" : file.mime.includes("webp") ? "webp" : "jpg";
+  return { large: file.buf, small: file.buf, mime: file.mime, ext };
 }
 
-async function store(sb: ReturnType<typeof service>, kind: string, id: string, buf: Uint8Array, mime: string) {
-  const sized = await resize(buf, mime);
-  if (!sized) return null;
+async function store(sb: ReturnType<typeof service>, kind: string, id: string, sized: Sized) {
   const base = `directory/${kind}/${id}-photo`;
   const up = async (path: string, data: Uint8Array) => {
     const { error } = await sb.storage.from(BUCKET).upload(path, data, { contentType: sized.mime, upsert: true, cacheControl: "31536000" });
@@ -344,12 +346,18 @@ async function harvestOne(sb: ReturnType<typeof service>, kind: string, item: It
         notes.push(`${label}: download failed (${hostOf(c.img)})`);
         continue;
       }
-      const check = await verify(item, kind, file.buf, file.mime);
+      const sized = await resize(c.img, file);
+      if (!sized) {
+        notes.push(`${label}: could not resize (${hostOf(c.img)})`);
+        continue;
+      }
+      // The AI check looks at the small copy: same picture, a fraction of the memory.
+      const check = await verify(item, kind, sized.small, sized.mime);
       if (!check.ok) {
         notes.push(`${label}: vision rejected (${check.note})`);
         continue;
       }
-      const saved = await store(sb, kind, item.id, file.buf, file.mime).catch((e) => {
+      const saved = await store(sb, kind, item.id, sized).catch((e) => {
         notes.push(`store failed: ${e?.message ?? e}`);
         return null;
       });
@@ -628,8 +636,10 @@ Deno.serve(async (req) => {
       const item = items.find((i) => i.id === body.id);
       if (!item) return json({ error: "Unknown catalogue id" }, 400);
       const file = await download(String(body.imageUrl ?? ""));
-      if (!file) return json({ error: "Could not download that image (JPG/PNG/WebP, 12 KB–8 MB)." }, 400);
-      const saved = await store(sb, kind, item.id, file.buf, file.mime);
+      if (!file) return json({ error: "Could not download that image (JPG/PNG/WebP, 12 KB–5 MB)." }, 400);
+      const sized = await resize(String(body.imageUrl), file);
+      if (!sized) return json({ error: "Could not resize that image; try a smaller one." }, 400);
+      const saved = await store(sb, kind, item.id, sized);
       if (!saved) return json({ error: "Image too small to use." }, 400);
       const row = {
         catalog_id: item.id, kind, brand: item.b, model: item.m, name: item.n, ...saved, status: "manual", source: "manual",
