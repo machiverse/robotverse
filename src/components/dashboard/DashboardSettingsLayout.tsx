@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { DashboardSettingsSidebar } from './DashboardSettingsSidebar';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import { ArrowLeft } from 'lucide-react';
@@ -16,14 +16,24 @@ export const DashboardSettingsLayout = ({
   title, 
   description 
 }: DashboardSettingsLayoutProps) => {
+  // Open every settings page at the top and make sure the page can scroll
+  useEffect(() => {
+    document.body.style.overflow = '';
+    document.body.style.overflowY = 'auto';
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    return () => { document.body.style.overflowY = ''; };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
       
       <div className="flex">
-        <DashboardSettingsSidebar />
+        <div className="hidden md:block sticky top-0 h-screen shrink-0 overflow-y-auto">
+          <DashboardSettingsSidebar />
+        </div>
         
-        <main className="flex-1 min-h-[calc(100vh-4rem)]">
+        <main className="flex-1 min-w-0 min-h-[calc(100vh-4rem)]">
           {/* Back to Dashboard & Page Header */}
           <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
             <div className="px-6 py-4">
