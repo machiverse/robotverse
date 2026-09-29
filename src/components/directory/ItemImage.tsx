@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bot, MoveHorizontal, Wrench } from "lucide-react";
-import { imageCandidates, type CatalogItem, type CatalogKind } from "./directoryTypes";
+import { imageCandidates, type CatalogItem, type CatalogKind, type Photo } from "./directoryTypes";
 
 const ICONS = { robots: Bot, tools: Wrench, axes: MoveHorizontal } as const;
 
 interface Props {
   kind: CatalogKind;
   item: CatalogItem;
-  photo?: string;
+  photo?: Photo;
   large?: boolean;
 }
 
@@ -16,6 +16,9 @@ interface Props {
 const ItemImage = ({ kind, item, photo, large = false }: Props) => {
   const candidates = imageCandidates(kind, item, photo, large);
   const [index, setIndex] = useState(0);
+  // The real photo can arrive after the render already failed: start again from the top.
+  const photoSrc = photo ? (large ? photo.img : photo.sm || photo.img) : "";
+  useEffect(() => setIndex(0), [photoSrc]);
   const src = candidates[index];
 
   if (!src) {

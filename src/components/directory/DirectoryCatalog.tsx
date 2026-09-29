@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,9 +74,36 @@ const fetchCatalog = async (kind: CatalogKind): Promise<CatalogItem[]> => {
   return res.json();
 };
 
-const fetchPhotos = async (): Promise<PhotoMap> => {
-  const res = await fetch("/directory/photos.json");
-  return res.ok ? res.json() : {};
+type PhotoRow = { catalog_id: string; image_url: string | null; thumb_url: string | null; source_page_url: string | null };
+
+/** Real photos: harvested rows stored in our database, plus any listed in photos.json. */
+const fetchPhotos = async (kind: CatalogKind): Promise<PhotoMap> => {
+  const map: PhotoMap = {};
+  try {
+    const res = await fetch("/directory/photos.json");
+    const json = res.ok ? ((await res.json()) as Record<string, string>) : {};
+    for (const [id, url] of Object.entries(json)) if (typeof url === "string") map[id] = { img: url };
+  } catch {
+    /* no static photos */
+  }
+  // The table is new; until it exists (or on any error) the renders are shown.
+  // Not in the generated types until Lovable regenerates them after the migration.
+  type Query = {
+    select: (c: string) => Query;
+    eq: (col: string, v: string) => Query;
+    in: (col: string, v: string[]) => Query;
+    limit: (n: number) => Promise<{ data: unknown[] | null }>;
+  };
+  const table = (supabase as unknown as { from: (t: string) => Query }).from("directory_robot_images");
+  const { data } = await table
+    .select("catalog_id, image_url, thumb_url, source_page_url")
+    .eq("kind", kind)
+    .in("status", ["found", "manual"])
+    .limit(5000);
+  for (const r of (data ?? []) as unknown as PhotoRow[]) {
+    if (r.image_url) map[r.catalog_id] = { img: r.image_url, sm: r.thumb_url ?? undefined, page: r.source_page_url };
+  }
+  return map;
 };
 
 const inRange = (v: number | undefined, ranges: Range[], key: string) => {
@@ -131,7 +159,11 @@ const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
     queryFn: () => fetchCatalog(kind),
     staleTime: Infinity,
   });
-  const { data: photos = {} } = useQuery({ queryKey: ["directory", "photos"], queryFn: fetchPhotos, staleTime: Infinity });
+  const { data: photos = {} } = useQuery({
+    queryKey: ["directory", "photos", kind],
+    queryFn: () => fetchPhotos(kind),
+    staleTime: 10 * 60 * 1000,
+  });
 
   const [, setSearchParams] = useSearchParams();
   const [query, setQuery] = useDebouncedUrlParam("q", "");

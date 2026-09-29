@@ -22,9 +22,15 @@ export interface CatalogItem {
 
 export const SUPPORT_EMAIL = "support@robotverse.in";
 
-// Real OEM photos, keyed by RobotVerse ID, live in /public/directory/photos.json
-// ({ "RVRobot0001": "https://…" }). They take priority over the product renders.
-export type PhotoMap = Record<string, string>;
+// Real product photos, keyed by RobotVerse ID. They come from the
+// directory_robot_images table (harvested and stored in our storage) and from
+// /public/directory/photos.json, and take priority over the product renders.
+export interface Photo {
+  img: string;
+  sm?: string;
+  page?: string | null;
+}
+export type PhotoMap = Record<string, Photo>;
 
 // Every image is served from RobotVerse's own storage. The directory-image edge
 // function copies an image there the first time it is needed (a real OEM photo
@@ -41,8 +47,9 @@ export const imageFunctionUrl = (kind: CatalogKind, item: CatalogItem, small: bo
   return `${SUPABASE_URL}/functions/v1/directory-image?${q}`;
 };
 
-/** Image candidates in priority order: our stored copy, then copy-on-demand. */
-export const imageCandidates = (kind: CatalogKind, item: CatalogItem, _photo: string | undefined, large: boolean) => [
+/** Image candidates in priority order: real stored photo, our stored render, then copy-on-demand. */
+export const imageCandidates = (kind: CatalogKind, item: CatalogItem, photo: Photo | undefined, large: boolean) => [
+  ...(photo ? [large ? photo.img : photo.sm || photo.img] : []),
   storedImageUrl(kind, item.id, !large),
   imageFunctionUrl(kind, item, !large),
 ];
