@@ -46,7 +46,7 @@ interface ApiKeyRow {
   revoked_at: string | null;
 }
 
-async function authenticate(req: Request, admin: ReturnType<typeof createClient>): Promise<
+async function authenticate(req: Request, admin: any): Promise<
   { ok: true; key: ApiKeyRow } | { ok: false; res: Response }
 > {
   const raw =
@@ -56,12 +56,13 @@ async function authenticate(req: Request, admin: ReturnType<typeof createClient>
     return { ok: false, res: json({ error: 'Missing or invalid API key. Send `x-api-key: rv_live_...`.' }, 401) };
   }
   const hash = await sha256Hex(raw);
-  const { data: key, error } = await admin
+  const { data: keyData, error } = await admin
     .from('api_keys')
     .select('id,user_id,scopes,is_partner,rate_limit_per_hour,revoked_at')
     .eq('key_hash', hash)
     .maybeSingle();
-  if (error || !key) return { ok: false, res: json({ error: 'Invalid API key' }, 401) };
+  if (error || !keyData) return { ok: false, res: json({ error: 'Invalid API key' }, 401) };
+  const key: ApiKeyRow = keyData as ApiKeyRow;
   if (key.revoked_at) return { ok: false, res: json({ error: 'API key revoked' }, 401) };
 
   // Rate limit check (rolling hour bucket)
@@ -90,7 +91,7 @@ async function authenticate(req: Request, admin: ReturnType<typeof createClient>
     { onConflict: 'api_key_id,hour_bucket' },
   );
   await admin.from('api_keys').update({ last_used_at: new Date().toISOString(), request_count: (0) }).eq('id', key.id);
-  return { ok: true, key: key as ApiKeyRow };
+  return { ok: true, key };
 }
 
 function requireScope(key: ApiKeyRow, scope: string): Response | null {
