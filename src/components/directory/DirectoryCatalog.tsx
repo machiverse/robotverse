@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,9 +73,8 @@ const fetchCatalog = async (kind: CatalogKind): Promise<CatalogItem[]> => {
   return res.json();
 };
 
-type PhotoRow = { catalog_id: string; image_url: string | null; thumb_url: string | null; source_page_url: string | null };
 
-/** Real photos: harvested rows stored in our database, plus any listed in photos.json. */
+/** Real photos listed in photos.json (none yet, so the product renders are shown). */
 const fetchPhotos = async (kind: CatalogKind): Promise<PhotoMap> => {
   const map: PhotoMap = {};
   try {
@@ -85,31 +83,6 @@ const fetchPhotos = async (kind: CatalogKind): Promise<PhotoMap> => {
     for (const [id, url] of Object.entries(json)) if (typeof url === "string") map[id] = { img: url };
   } catch {
     /* no static photos */
-  }
-  // The table is new; until it exists (or on any error) the renders are shown.
-  // Not in the generated types until Lovable regenerates them after the migration.
-  type Query = {
-    select: (c: string) => Query;
-    eq: (col: string, v: string) => Query;
-    in: (col: string, v: string[]) => Query;
-    order: (col: string) => Query;
-    range: (from: number, to: number) => Promise<{ data: unknown[] | null; error: unknown }>;
-  };
-  const table = () => (supabase as unknown as { from: (t: string) => Query }).from("directory_robot_images");
-  // The API returns at most 1000 rows per request, so read the photos page by page.
-  const PAGE = 1000;
-  for (let from = 0; from < 20000; from += PAGE) {
-    const { data, error } = await table()
-      .select("catalog_id, image_url, thumb_url, source_page_url")
-      .eq("kind", kind)
-      .in("status", ["found", "manual"])
-      .order("catalog_id")
-      .range(from, from + PAGE - 1);
-    if (error || !data) break;
-    for (const r of data as unknown as PhotoRow[]) {
-      if (r.image_url) map[r.catalog_id] = { img: r.image_url, sm: r.thumb_url ?? undefined, page: r.source_page_url };
-    }
-    if (data.length < PAGE) break;
   }
   return map;
 };
@@ -170,10 +143,7 @@ const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
   const { data: photos = {} } = useQuery({
     queryKey: ["directory", "photos", kind],
     queryFn: () => fetchPhotos(kind),
-    // New real photos arrive while the harvest runs; pick them up every minute.
-    staleTime: 60 * 1000,
-    refetchInterval: 60 * 1000,
-    refetchOnWindowFocus: true,
+    staleTime: 10 * 60 * 1000,
   });
 
   const [, setSearchParams] = useSearchParams();
