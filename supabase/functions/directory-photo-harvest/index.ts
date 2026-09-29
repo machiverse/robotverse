@@ -7,22 +7,26 @@
 // POST JSON:
 //   { action: "status", kind? }                          -> counts per status (anyone)
 //   { action: "run", kind?, limit?, retry?, ids? }       -> harvest a batch now (admin)
-//   { action: "start", kind?, retry? }                   -> harvest everything in the background (admin)
+//   { action: "start", kind?, retry?, redo? }            -> harvest everything in the background (admin);
+//                                                           redo searches again models that already have a photo
 //   { action: "stop", kind? }                            -> stop the background job (admin)
 //   { action: "job", kind? }                             -> latest background job progress (anyone)
+//   { action: "tick", kind? }  (also GET ?action=tick)   -> restart a stalled background job (anyone)
 //   { action: "continue", job, token, step }             -> next background batch (internal, needs the job token)
 //   { action: "manual", kind?, id, imageUrl, pageUrl? }  -> store a photo the admin picked (admin)
 //   { action: "reject", kind?, id }                      -> hide a wrong photo (admin)
 //   { action: "list", kind?, status?, limit? }           -> recent rows for review (anyone)
 //
-// Search order per model:
-//   1. The manufacturer's own website (Google restricted to the brand's sites, and its product pages)
+// Goal: a real camera photo of the physical robot (like a used robot on a pallet in a
+// warehouse), not a CAD render. Search order per model:
+//   1. Used-robot dealers and machinery marketplaces ("<brand> <model> used robot")
 //   2. Anywhere on the web for the exact model: Google Custom Search (if GOOGLE_CSE_KEY + GOOGLE_CSE_CX
-//      are set), Bing images, DuckDuckGo images, then Wikimedia Commons (free-licence photos)
-//   3. The model series (e.g. M-20iD for M-20iD/25) when the exact variant has no photo anywhere
-// Candidates from the manufacturer's site, or naming the model, rank first.
+//      are set), Bing images and DuckDuckGo images
+//   3. The manufacturer's own website, then Wikimedia Commons
+//   4. The model series (e.g. M-20iD for M-20iD/25) when the exact variant has no photo anywhere
+// Candidates from used-robot dealers, or naming the model, rank first.
 // Each accepted photo is checked with AI vision (LOVABLE_API_KEY) to be a real
-// product photo of that kind of equipment, resized (large + card thumbnail) and
+// photograph of that kind of equipment (renders are refused), resized (large + card thumbnail) and
 // stored in the public "robot-images" bucket at directory/<kind>/<id>-photo[-sm].jpg.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -56,6 +60,10 @@ const OEM_SITES: Record<string, string[]> = {
   "Rainbow Robotics": ["rainbow-robotics.com"], Neuromeka: ["neuromeka.com"], FAIRINO: ["frtech.fr", "fairino.com"], Hanwha: ["hanwharobotics.com"],
   "Delta Electronics": ["deltaww.com"], "Schneider Electric": ["se.com"], Adept: ["omron.com"], "Codian Robotics": ["codian-robotics.com"],
 };
+
+/** Used-robot dealers and machinery marketplaces: real photos of the physical robot. */
+const USED_DEALERS =
+  /exapro|eurobots|robots\.com|globalrobots|imssupply|klema|surplex|machineseeker|maschinensucher|machinio|kitmondo|robotsdoneright|robotworx|hgrinc|used-?robot|robot-?recovery|robotrecovery|bidspotter|troostwijk|resale|second-?hand|gebraucht|werktuigen|robotunits|industrial-?robots?\.(com|net|de)|robot-?direct|kuka-?used|fanuc-?used/i;
 
 type Item = { id: string; b: string; m: string; n: string; t?: string; c?: string };
 type Candidate = { img: string; page?: string; title?: string; source: string };
@@ -186,7 +194,9 @@ function rank(item: Item, cands: Candidate[]) {
     .map((c) => {
       const text = norm(`${c.title ?? ""} ${c.img} ${c.page ?? ""}`);
       let score = 0;
-      if (sites.some((s) => hostOf(c.page).endsWith(s) || hostOf(c.img).endsWith(s))) score += 50;
+      // Real photos of the actual robot come mostly from used-robot dealers; maker sites often show renders.
+      if (USED_DEALERS.test(hostOf(c.page) + " " + hostOf(c.img))) score += 45;
+      if (sites.some((s) => hostOf(c.page).endsWith(s) || hostOf(c.img).endsWith(s))) score += 15;
       if (text.includes(model)) score += 40;
       else if (modelBase.length >= 3 && text.includes(modelBase)) score += 20;
       if (text.includes(norm(item.b))) score += 10;
@@ -220,7 +230,7 @@ async function verify(item: Item, kind: string, bytes: Uint8Array, mime: string)
           content: [
             {
               type: "text",
-              text: `Is this image a real product photo or official product image of a ${what}? It must clearly show the equipment itself (not a logo, chart, drawing, screenshot, document, person-only photo or a different kind of machine). Reply ONLY JSON: {"ok": true|false, "note": "short reason"}`,
+              text: `Is this a REAL CAMERA PHOTOGRAPH of a physical ${what} — for example a used robot photographed in a warehouse, workshop, factory or photo studio (standing on the floor or a pallet, possibly with its controller)? Answer ok=false for CAD or 3D renders, computer-generated catalogue images, illustrations, drawings, collages of several images, screenshots, logos, documents, photos where the robot is tiny or hidden, and other kinds of machines. Reply ONLY JSON: {"ok": true|false, "note": "short reason"}`,
             },
             { type: "image_url", image_url: { url: dataUrl } },
           ],
@@ -324,15 +334,17 @@ async function harvestOne(sb: ReturnType<typeof service>, kind: string, item: It
   };
 
   const sites = OEM_SITES[item.b] ?? [];
+  const used = [`${item.b} ${item.m} used robot`, `"${item.m}" ${item.b} robot for sale`];
   const exact = [`"${item.b}" "${item.m}"`, `${item.b} ${item.m} ${noun}`, `${item.m} industrial ${noun}`];
+  let row = null;
 
-  // Stage 1: the manufacturer's own website.
-  const oemCands = rank(item, [
-    ...(sites.length ? await googleImages(`${item.m}`, sites[0]) : []),
-    ...(await oemPage(item)),
-  ]);
-  let row = await attempt(oemCands, "manufacturer site");
-  if (row) return row;
+  // Stage 1: real photos of this model at used-robot dealers and machinery marketplaces.
+  for (const q of used) {
+    if (Date.now() > deadline) break;
+    const [g, b, d] = await Promise.all([googleImages(q), bingImages(q), ddgImages(q)]);
+    row = await attempt(rank(item, [...g, ...b, ...d]), "used-robot photo");
+    if (row) return row;
+  }
 
   // Stage 2: anywhere on the web, exact model.
   for (const q of exact) {
@@ -341,16 +353,23 @@ async function harvestOne(sb: ReturnType<typeof service>, kind: string, item: It
     row = await attempt(rank(item, [...g, ...b, ...d]), "web search");
     if (row) return row;
   }
+
+  // Stage 3: the manufacturer's own website and Wikimedia Commons.
+  if (Date.now() < deadline) {
+    const oemCands = rank(item, [...(sites.length ? await googleImages(`${item.m}`, sites[0]) : []), ...(await oemPage(item))]);
+    row = await attempt(oemCands, "manufacturer site");
+    if (row) return row;
+  }
   if (Date.now() < deadline) {
     row = await attempt(rank(item, await wikimedia(`${item.b} ${item.m}`)), "Wikimedia Commons");
     if (row) return row;
   }
 
-  // Stage 3: the model series, when this exact variant has no photo anywhere.
+  // Stage 4: the model series, when this exact variant has no photo anywhere.
   const fam = family(item.m);
   if (fam && fam !== item.m && Date.now() < deadline) {
     const famItem = { ...item, m: fam };
-    const q = `${item.b} ${fam} ${noun}`;
+    const q = `${item.b} ${fam} used ${noun}`;
     const [g, b, d, o] = await Promise.all([googleImages(q), bingImages(q), ddgImages(q), oemPage(item, fam)]);
     row = await attempt(rank(famItem, [...o, ...g, ...b, ...d]), `series ${fam}`, true);
     if (row) return row;
@@ -387,19 +406,26 @@ const background = (p: Promise<unknown>) => {
   if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(safe);
 };
 
-type BatchOpts = { limit?: unknown; retry?: unknown; ids?: unknown };
+type BatchOpts = { limit?: unknown; retry?: unknown; ids?: unknown; since?: string };
 
 async function runBatch(sb: ReturnType<typeof service>, kind: string, opts: BatchOpts, deadline: number) {
   const items = await catalogue(kind);
-  const { data: done } = await sb.from(TABLE).select("catalog_id,status,attempts").eq("kind", kind).limit(10000);
-  const state = new Map((done ?? []).map((r) => [r.catalog_id, r]));
+  const done: { catalog_id: string; status: string; attempts: number; updated_at: string }[] = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data } = await sb.from(TABLE).select("catalog_id,status,attempts,updated_at").eq("kind", kind).order("catalog_id").range(from, from + 999);
+    done.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  const state = new Map(done.map((r) => [r.catalog_id, r]));
   const limit = Math.max(1, Math.min(6, Number(opts.limit) || 3));
+  // Redo: every model not searched since the job began counts as new again (admin-picked photos are kept).
+  const stale = (s: { status: string; updated_at: string }) => !!opts.since && s.status !== "manual" && s.updated_at < opts.since;
   const ids = Array.isArray(opts.ids) ? (opts.ids as string[]) : [];
   const wanted = ids.length
     ? items.filter((i) => ids.includes(i.id))
     : items.filter((i) => {
         const s = state.get(i.id);
-        if (!s) return true;
+        if (!s || stale(s)) return true;
         return opts.retry ? ["not_found", "rejected", "error"].includes(s.status) && (s.attempts ?? 0) < 3 : false;
       });
   const batch = wanted.slice(0, limit);
@@ -415,7 +441,14 @@ async function runBatch(sb: ReturnType<typeof service>, kind: string, opts: Batc
       ),
     );
     for (const row of part) {
-      const attempts = ((state.get(row.catalog_id)?.attempts as number) ?? 0) + 1;
+      const prev = state.get(row.catalog_id);
+      const attempts = opts.since && prev && stale(prev) ? 1 : ((prev?.attempts as number) ?? 0) + 1;
+      if (prev && stale(prev) && prev.status === "found" && row.status !== "found") {
+        // Redo found nothing better: keep the photo we already have.
+        await sb.from(TABLE).update({ updated_at: new Date().toISOString(), attempts }).eq("catalog_id", row.catalog_id);
+        results.push({ id: row.catalog_id, name: row.name, status: "found", image: null, note: "kept earlier photo" });
+        continue;
+      }
       await sb.from(TABLE).upsert({ ...row, attempts });
       results.push({ id: row.catalog_id, name: row.name, status: row.status, image: (row as any).thumb_url ?? null, note: (row as any).verify_note ?? "" });
     }
@@ -443,7 +476,7 @@ async function continueJob(sb: ReturnType<typeof service>, job: any, step: numbe
   let processed = 0;
   let found = 0;
   try {
-    const res = await runBatch(sb, job.kind, { limit: 6, retry }, Date.now() + 110_000);
+    const res = await runBatch(sb, job.kind, { limit: 4, retry, since: job.redo ? job.created_at : undefined }, Date.now() + 90_000);
     processed = res.processed;
     found = res.results.filter((r) => r.status === "found").length;
     note = res.results.map((r) => `${r.name}: ${r.status}`).join(" · ").slice(0, 500);
@@ -477,7 +510,7 @@ async function continueJob(sb: ReturnType<typeof service>, job: any, step: numbe
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = req.method === "GET" ? Object.fromEntries(new URL(req.url).searchParams) : await req.json().catch(() => ({}));
     const action = String(body.action ?? "status");
     const kind = ["robots", "tools", "axes"].includes(body.kind) ? body.kind : "robots";
     const sb = service();
@@ -501,9 +534,21 @@ Deno.serve(async (req) => {
     }
 
     if (action === "job") {
-      const { data } = await sb.from(JOBS).select("id, kind, status, retry, step, processed, found, last_note, created_at, updated_at")
+      const { data } = await sb.from(JOBS).select("id, kind, status, retry, redo, step, processed, found, last_note, created_at, updated_at")
         .eq("kind", kind).order("created_at", { ascending: false }).limit(1).maybeSingle();
       return json({ job: data ?? null });
+    }
+
+    if (action === "tick") {
+      // Watchdog: if a running job has gone quiet (a batch was cut off), start its next batch again.
+      const { data: job } = await sb.from(JOBS).select("*").eq("kind", kind).eq("status", "running")
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!job) return json({ ok: true, running: false });
+      const quiet = Date.now() - new Date(job.updated_at).getTime();
+      if (quiet < 4 * 60_000) return json({ ok: true, running: true, restarted: false });
+      await sb.from(JOBS).update({ updated_at: new Date().toISOString(), last_note: "restarted after a stalled batch" }).eq("id", job.id);
+      await kick(job.id, job.token, job.step);
+      return json({ ok: true, running: true, restarted: true });
     }
 
     if (action === "continue") {
@@ -525,7 +570,7 @@ Deno.serve(async (req) => {
 
     if (action === "start") {
       await sb.from(JOBS).update({ status: "stopped", updated_at: new Date().toISOString() }).eq("kind", kind).eq("status", "running");
-      const { data: job, error } = await sb.from(JOBS).insert({ kind, retry: !!body.retry }).select("id, token, step").single();
+      const { data: job, error } = await sb.from(JOBS).insert({ kind, retry: !!body.retry, redo: !!body.redo }).select("id, token, step").single();
       if (error) throw error;
       await kick(job.id, job.token, job.step);
       return json({ ok: true, job: job.id });

@@ -22,7 +22,7 @@ type Row = {
   source_page_url: string | null;
   verify_note: string | null;
 };
-type Job = { status: string; retry: boolean; processed: number; found: number; last_note: string | null; updated_at: string } | null;
+type Job = { status: string; retry: boolean; redo?: boolean; processed: number; found: number; last_note: string | null; updated_at: string } | null;
 type LogLine = { id: string; name: string; status: string; image: string | null; note: string };
 
 const FN = "directory-photo-harvest";
@@ -54,6 +54,7 @@ export default function DirectoryPhotosAdmin() {
   const [counts, setCounts] = useState<Counts | null>(null);
   const [running, setRunning] = useState(false);
   const [retry, setRetry] = useState(false);
+  const [redo, setRedo] = useState(false);
   const [log, setLog] = useState<LogLine[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [review, setReview] = useState<{ status: string; rows: Row[] }>({ status: "found", rows: [] });
@@ -88,7 +89,10 @@ export default function DirectoryPhotosAdmin() {
     loadJob();
     const t = setInterval(() => {
       loadJob();
-      if (jobRunning) call<Counts>({ action: "status", kind }).then(setCounts).catch(() => {});
+      if (jobRunning) {
+        call<Counts>({ action: "status", kind }).then(setCounts).catch(() => {});
+        call({ action: "tick", kind }).catch(() => {});
+      }
     }, 15000);
     return () => clearInterval(t);
   }, [isAdmin, loadJob, jobRunning, kind]);
@@ -96,7 +100,7 @@ export default function DirectoryPhotosAdmin() {
   const serverJob = async (action: "start" | "stop") => {
     setError(null);
     try {
-      await call({ action, kind, retry });
+      await call({ action, kind, retry, redo });
       await loadJob();
     } catch (e) {
       setError((e as Error).message);
@@ -145,7 +149,7 @@ export default function DirectoryPhotosAdmin() {
         <div>
           <h1 className="text-2xl font-semibold">Directory real photos</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Searches deeply for a real product photo of each catalogue model — the manufacturer's own website first, then Google, Bing, DuckDuckGo and Wikimedia Commons, then the model series — checks it with AI vision, stores it in RobotVerse storage and
+            Searches for a real camera photo of each catalogue model, like a used robot photographed in a warehouse — used-robot dealers first, then Google, Bing and DuckDuckGo, the manufacturer's website and Wikimedia Commons, then the model series — checks with AI vision that it is a real photo (not a render), stores it in RobotVerse storage and
             the <code>directory_robot_images</code> table. The Directory shows these photos instead of the CAD renders.
           </p>
         </div>
@@ -204,6 +208,10 @@ export default function DirectoryPhotosAdmin() {
             <input type="checkbox" checked={retry} disabled={running} onChange={(e) => setRetry(e.target.checked)} />
             Retry models not found / rejected (max 3 tries)
           </label>
+          <label className="flex items-center gap-1.5 text-sm">
+            <input type="checkbox" checked={redo} disabled={running || jobRunning} onChange={(e) => setRedo(e.target.checked)} />
+            Server run: search again models that already have a photo
+          </label>
           <Button size="sm" variant="ghost" onClick={refresh} disabled={running}>
             <RefreshCw className="mr-1.5 h-4 w-4" /> Refresh
           </Button>
@@ -216,7 +224,7 @@ export default function DirectoryPhotosAdmin() {
         {job && (
           <p className="mt-2 text-sm text-muted-foreground">
             {jobRunning && <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />}
-            Server run: <b>{job.status}</b>{job.retry ? " (retry pass)" : ""} · {job.processed} searched · {job.found} photos found · last update{" "}
+            Server run: <b>{job.status}</b>{job.redo ? " (searching all again)" : ""}{job.retry ? " (retry pass)" : ""} · {job.processed} searched · {job.found} photos found · last update{" "}
             {new Date(job.updated_at).toLocaleTimeString()}
             {jobRunning ? " — runs by itself, you can close this page." : ""}
             {job.last_note && <span className="block truncate text-xs">{job.last_note}</span>}
