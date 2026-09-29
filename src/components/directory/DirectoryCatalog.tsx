@@ -92,16 +92,24 @@ const fetchPhotos = async (kind: CatalogKind): Promise<PhotoMap> => {
     select: (c: string) => Query;
     eq: (col: string, v: string) => Query;
     in: (col: string, v: string[]) => Query;
-    limit: (n: number) => Promise<{ data: unknown[] | null }>;
+    order: (col: string) => Query;
+    range: (from: number, to: number) => Promise<{ data: unknown[] | null; error: unknown }>;
   };
-  const table = (supabase as unknown as { from: (t: string) => Query }).from("directory_robot_images");
-  const { data } = await table
-    .select("catalog_id, image_url, thumb_url, source_page_url")
-    .eq("kind", kind)
-    .in("status", ["found", "manual"])
-    .limit(5000);
-  for (const r of (data ?? []) as unknown as PhotoRow[]) {
-    if (r.image_url) map[r.catalog_id] = { img: r.image_url, sm: r.thumb_url ?? undefined, page: r.source_page_url };
+  const table = () => (supabase as unknown as { from: (t: string) => Query }).from("directory_robot_images");
+  // The API returns at most 1000 rows per request, so read the photos page by page.
+  const PAGE = 1000;
+  for (let from = 0; from < 20000; from += PAGE) {
+    const { data, error } = await table()
+      .select("catalog_id, image_url, thumb_url, source_page_url")
+      .eq("kind", kind)
+      .in("status", ["found", "manual"])
+      .order("catalog_id")
+      .range(from, from + PAGE - 1);
+    if (error || !data) break;
+    for (const r of data as unknown as PhotoRow[]) {
+      if (r.image_url) map[r.catalog_id] = { img: r.image_url, sm: r.thumb_url ?? undefined, page: r.source_page_url };
+    }
+    if (data.length < PAGE) break;
   }
   return map;
 };
@@ -162,7 +170,10 @@ const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
   const { data: photos = {} } = useQuery({
     queryKey: ["directory", "photos", kind],
     queryFn: () => fetchPhotos(kind),
-    staleTime: 10 * 60 * 1000,
+    // New real photos arrive while the harvest runs; pick them up every minute.
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const [, setSearchParams] = useSearchParams();
