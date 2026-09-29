@@ -2375,6 +2375,69 @@ export type Database = {
         }
         Relationships: []
       }
+      directory_robot_images: {
+        Row: {
+          attempts: number
+          brand: string | null
+          bytes: number | null
+          catalog_id: string
+          created_at: string
+          image_url: string | null
+          kind: string
+          model: string | null
+          name: string | null
+          source: string | null
+          source_image_url: string | null
+          source_page_url: string | null
+          status: string
+          storage_path: string | null
+          thumb_url: string | null
+          updated_at: string
+          verified: boolean
+          verify_note: string | null
+        }
+        Insert: {
+          attempts?: number
+          brand?: string | null
+          bytes?: number | null
+          catalog_id: string
+          created_at?: string
+          image_url?: string | null
+          kind?: string
+          model?: string | null
+          name?: string | null
+          source?: string | null
+          source_image_url?: string | null
+          source_page_url?: string | null
+          status?: string
+          storage_path?: string | null
+          thumb_url?: string | null
+          updated_at?: string
+          verified?: boolean
+          verify_note?: string | null
+        }
+        Update: {
+          attempts?: number
+          brand?: string | null
+          bytes?: number | null
+          catalog_id?: string
+          created_at?: string
+          image_url?: string | null
+          kind?: string
+          model?: string | null
+          name?: string | null
+          source?: string | null
+          source_image_url?: string | null
+          source_page_url?: string | null
+          status?: string
+          storage_path?: string | null
+          thumb_url?: string | null
+          updated_at?: string
+          verified?: boolean
+          verify_note?: string | null
+        }
+        Relationships: []
+      }
       document_uploads: {
         Row: {
           document_type: string
