@@ -535,7 +535,6 @@ async function continueJob(sb: ReturnType<typeof service>, job: any, step: numbe
       if (!retry) retry = true;
       else status = "done";
     } else if (res.processed === 0) {
-      status = "error";
       note = "no progress in this batch";
     }
   } catch (e) {
@@ -551,7 +550,8 @@ async function continueJob(sb: ReturnType<typeof service>, job: any, step: numbe
   try {
     await kick(job.id, job.token, step);
   } catch (e) {
-    await sb.from(JOBS).update({ status: "error", last_note: String(e instanceof Error ? e.message : e).slice(0, 300) }).eq("id", job.id);
+    // The every-minute timer restarts it; keep the job running.
+    await sb.from(JOBS).update({ last_note: `next batch did not start: ${String(e instanceof Error ? e.message : e).slice(0, 200)}` }).eq("id", job.id);
   }
 }
 
@@ -591,12 +591,13 @@ Deno.serve(async (req) => {
 
     if (action === "tick") {
       // Watchdog: if a running job has gone quiet (a batch was cut off), start its next batch again.
-      const { data: job } = await sb.from(JOBS).select("*").eq("kind", kind).eq("status", "running")
+      // A job that hit a hiccup ("error") is picked up again too; only "stopped" and "done" stay put.
+      const { data: job } = await sb.from(JOBS).select("*").eq("kind", kind).in("status", ["running", "error"])
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (!job) return json({ ok: true, running: false });
       const quiet = Date.now() - new Date(job.updated_at).getTime();
       if (quiet < 2 * 60_000) return json({ ok: true, running: true, restarted: false });
-      await sb.from(JOBS).update({ updated_at: new Date().toISOString(), last_note: "restarted after a stalled batch" }).eq("id", job.id);
+      await sb.from(JOBS).update({ status: "running", updated_at: new Date().toISOString(), last_note: "restarted after a stalled batch" }).eq("id", job.id);
       await kick(job.id, job.token, job.step);
       return json({ ok: true, running: true, restarted: true });
     }
