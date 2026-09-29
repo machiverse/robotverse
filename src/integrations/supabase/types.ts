@@ -2383,6 +2383,7 @@ export type Database = {
           kind: string
           last_note: string | null
           processed: number
+          redo: boolean
           retry: boolean
           status: string
           step: number
@@ -2396,6 +2397,7 @@ export type Database = {
           kind?: string
           last_note?: string | null
           processed?: number
+          redo?: boolean
           retry?: boolean
           status?: string
           step?: number
@@ -2409,6 +2411,7 @@ export type Database = {
           kind?: string
           last_note?: string | null
           processed?: number
+          redo?: boolean
           retry?: boolean
           status?: string
           step?: number

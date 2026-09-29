@@ -1,0 +1,1 @@
+ALTER TABLE public.directory_harvest_jobs ADD COLUMN IF NOT EXISTS redo boolean NOT NULL DEFAULT false;
