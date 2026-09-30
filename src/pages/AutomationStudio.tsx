@@ -191,6 +191,7 @@ export default function AutomationStudio() {
   const { toast } = useToast();
 
   const [step, setStep] = useState(1);
+  const [studioMode, setStudioMode] = useState<"configure" | "workflow" | null>(null);
   const [files, setFiles] = useState<StudioFile[]>([]);
   const [description, setDescription] = useState("");
   const [industry, setIndustry] = useState<string | null>(null);
@@ -289,6 +290,44 @@ export default function AutomationStudio() {
     setDescription("");
     setIndustry(null);
   };
+
+  if (studioMode === null || studioMode === "configure") {
+    return (
+      <div className="min-h-screen bg-background">
+        <EnhancedHeader />
+        <main className="container mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold">Automation Studio</h1>
+          <p className="mt-2 text-muted-foreground">Design your robot cell or let RobotVerse analyse your production workflow.</p>
+          {studioMode === null ? (
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader><CardTitle>1. Build your own robot cell</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p>Choose process jobs, robot, EOAT, tool changer, sensors, camera and fencing. Preview your configuration and process in 3D.</p>
+                  <Button onClick={() => setStudioMode("configure")}>Start configuration <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>2. Describe your workflow</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p>Explain your work or share process media. Review proposed stations, tooling, assumptions and equipment, then explore the 3D line.</p>
+                  <Button onClick={() => setStudioMode("workflow")}>Analyse my workflow <Sparkles className="ml-2 h-4 w-4" /></Button>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="mt-6 space-y-4">
+              <Button variant="outline" onClick={() => setStudioMode(null)}><ArrowLeft className="mr-2 h-4 w-4" /> Choose studio mode</Button>
+              <Suspense fallback={<SimFallback />}>
+                <RobotCell3D variant="embedded" initialInputMode="blocks" initialProcess="Pick and place parts" title="Build your robot cell" subtitle="Choose jobs, configure each robot and preview the process" />
+              </Suspense>
+            </div>
+          )}
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   /* ---------------------------- unauthenticated ---------------------------- */
 
@@ -426,6 +465,7 @@ export default function AutomationStudio() {
 
         <Card className="mb-8">
           <CardContent className="space-y-3 p-4">
+            <Button variant="ghost" size="sm" onClick={() => setStudioMode(null)}><ArrowLeft className="mr-2 h-4 w-4" /> Choose studio mode</Button>
             <StepIndicator step={step} />
             <div className="h-1 overflow-hidden rounded-full bg-muted">
               <div
@@ -775,7 +815,7 @@ export default function AutomationStudio() {
             </div>
 
             <Card className="mt-6">
-              <CardHeader><CardTitle className="text-base">Deep Analysis Summary</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">Illustrative planning benchmark</CardTitle><p className="text-sm text-muted-foreground">Example figures only; these are not calculated from your workflow. Use the engineered solution above and validate costs and cycle times before investment.</p></CardHeader>
               <CardContent className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
                 {[
                   ["Est. Investment", "₹1.2Cr — ₹1.8Cr"],
