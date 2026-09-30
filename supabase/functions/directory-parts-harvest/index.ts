@@ -262,6 +262,7 @@ ${page.text}`;
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: "google/gemini-2.5-flash", temperature: 0, max_tokens: 3000, messages: [{ role: "user", content: prompt }] }),
   }).catch(() => null);
+  if (r && (r.status === 402 || r.status === 429)) throw new Error(`AI unavailable (${r.status})`);
   if (!r?.ok) return [];
   try {
     const d = await r.json();
@@ -389,7 +390,7 @@ Deno.serve(async (req) => {
       // Remove weak rows saved before the model check existed (hardware without a model number).
       await sb.from(PARTS).delete().neq("category", "Software").not("model", "match", "[0-9]");
       // A search that found nothing gets one more try later.
-      await sb.from(SEEDS).update({ status: "pending" }).eq("status", "done").eq("found", 0).lt("attempts", 2);
+      await sb.from(SEEDS).update({ status: "pending" }).eq("status", "done").eq("found", 0).lt("attempts", 3);
       const { data: next } = await sb.from(SEEDS).select("*").eq("status", "pending").order("attempts").order("id").limit(PER_TICK * 3);
       const deadline = Date.now() + 100_000;
       // Claim up to PER_TICK seeds (another run may have taken some), then work on them side by side.
@@ -408,7 +409,13 @@ Deno.serve(async (req) => {
             await sb.from(SEEDS).update({ status: "done", found: r.found, note: r.note, updated_at: new Date().toISOString() }).eq("id", seed.id);
             return { id: seed.id, ...r };
           } catch (e) {
-            await sb.from(SEEDS).update({ status: "error", note: String(e instanceof Error ? e.message : e).slice(0, 300), updated_at: new Date().toISOString() }).eq("id", seed.id);
+            const msg = String(e instanceof Error ? e.message : e).slice(0, 300);
+            // No AI credits / rate limited: put the search back in the queue untouched.
+            if (msg.startsWith("AI unavailable")) {
+              await sb.from(SEEDS).update({ status: "pending", attempts: seed.attempts ?? 0, note: msg, updated_at: new Date().toISOString() }).eq("id", seed.id);
+              return { id: seed.id, paused: true };
+            }
+            await sb.from(SEEDS).update({ status: "error", note: msg, updated_at: new Date().toISOString() }).eq("id", seed.id);
             return { id: seed.id, error: true };
           }
         }),

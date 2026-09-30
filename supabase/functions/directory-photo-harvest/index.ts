@@ -209,6 +209,9 @@ function rank(item: Item, cands: Candidate[]) {
 
 /* ------------------------------------------------------- verification */
 
+/** Set when the AI check answers 402/429 (no credits / rate limit): the run pauses without changing anything. */
+let aiDown = false;
+
 async function verify(item: Item, kind: string, bytes: Uint8Array, mime: string): Promise<{ ok: boolean; note: string; checked: boolean }> {
   const key = Deno.env.get("LOVABLE_API_KEY");
   if (!key) return { ok: true, note: "not verified (no AI key)", checked: false };
@@ -237,6 +240,7 @@ async function verify(item: Item, kind: string, bytes: Uint8Array, mime: string)
       ],
     }),
   }).catch(() => null);
+  if (r && (r.status === 402 || r.status === 429)) aiDown = true;
   if (!r?.ok) return { ok: true, note: `not verified (AI ${r?.status ?? "unreachable"})`, checked: false };
   try {
     const d = await r.json();
@@ -471,7 +475,8 @@ async function runBatch(sb: ReturnType<typeof service>, kind: string, opts: Batc
   const results: { id: string; name: string; status: string; image: string | null; note: string }[] = [];
   // One at a time (less memory). Each model is marked as tried before its search starts, so a model
   // that crashes the function is not picked first again on the next batch.
-  for (let i = 0; i < batch.length && Date.now() < deadline - 20_000; i += 1) {
+  aiDown = false;
+  for (let i = 0; i < batch.length && Date.now() < deadline - 20_000 && !aiDown; i += 1) {
     const item = batch[i];
     const prior = state.get(item.id);
     const tries = ((prior?.attempts as number) ?? 0) + 1;
@@ -492,6 +497,8 @@ async function runBatch(sb: ReturnType<typeof service>, kind: string, opts: Batc
         })),
       ),
     );
+    // The AI check was unavailable during this search: leave the saved row exactly as it was.
+    if (aiDown) break;
     for (const row of part) {
       const prev = state.get(row.catalog_id);
       const attempts = opts.since && prev && stale(prev) ? 1 : ((prev?.attempts as number) ?? 0) + 1;
@@ -546,7 +553,11 @@ async function continueJob(sb: ReturnType<typeof service>, job: any, step: numbe
     processed = res.processed;
     found = res.results.filter((r) => r.status === "found").length;
     note = res.results.map((r) => `${r.name}: ${r.status}`).join(" · ").slice(0, 500);
-    if (res.remaining === 0) {
+    if (aiDown) {
+      // No AI credits / rate limited: wait; the every-minute timer tries again, nothing is changed meanwhile.
+      status = "error";
+      note = "paused: AI check unavailable (402/429) — resumes automatically when it answers again";
+    } else if (res.remaining === 0) {
       // First pass finished: one more pass over the models without a photo, then stop.
       if (!retry) retry = true;
       else status = "done";
@@ -612,6 +623,9 @@ Deno.serve(async (req) => {
     }
 
     if (action === "tick") {
+      // Photos hidden only because the AI check was out of credits (402) come back.
+      await sb.from(TABLE).update({ status: "found", verify_note: "restored: hidden while the AI check was unavailable" })
+        .eq("status", "rejected").not("image_url", "is", null).like("verify_note", "%AI 402%");
       // Watchdog: if a running job has gone quiet (a batch was cut off), start its next batch again.
       // A job that hit a hiccup ("error") is picked up again too; only "stopped" and "done" stay put.
       const { data: job } = await sb.from(JOBS).select("*").eq("kind", kind).in("status", ["running", "error"])
