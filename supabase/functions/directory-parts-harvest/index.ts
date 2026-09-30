@@ -18,7 +18,7 @@ const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const BUCKET = "robot-images";
 const PARTS = "directory_parts";
 const SEEDS = "directory_parts_seeds";
-const PER_TICK = 4;
+const PER_TICK = 2;
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -320,14 +320,13 @@ async function processSeed(
   const ranked = [...new Set(urls)].sort((a, b) => Number(hostOf(b).includes(bk)) - Number(hostOf(a).includes(bk))).slice(0, 4);
   let found = 0;
   const notes: string[] = [`${ranked.length} pages`];
-  // Read and extract all pages at once (each is mostly waiting on the network / AI).
-  const results = await Promise.all(
-    ranked.map(async (url) => {
-      const page = await readPage(url).catch(() => null);
-      if (!page) return { url, page: null, products: [] as Product[] };
-      return { url, page, products: Date.now() < deadline ? await extract(seed, page) : [] };
-    }),
-  );
+  // Download all pages at once, then ask the AI about them one at a time (it rate-limits bursts).
+  const pages = await Promise.all(ranked.map((url) => readPage(url).catch(() => null)));
+  const results: { url: string; page: Awaited<ReturnType<typeof readPage>>; products: Product[] }[] = [];
+  for (let i = 0; i < ranked.length; i++) {
+    const page = pages[i];
+    results.push({ url: ranked[i], page, products: page && Date.now() < deadline ? await extract(seed, page) : [] });
+  }
   for (const { url, page, products } of results) {
     if (!page) {
       notes.push(`unreadable ${hostOf(url)}`);
