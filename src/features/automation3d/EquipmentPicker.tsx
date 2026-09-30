@@ -12,7 +12,8 @@ import {
   type Match, type Source,
 } from "./equipmentMatch";
 
-export type Choice = { robot?: Match; tool?: Match };
+/** What the user put on one robot: the arm, the end-of-arm tool and optional wrist accessories. */
+export type Choice = { robot?: Match; tool?: Match; changer?: Match; sensor?: Match; camera?: Match };
 type Data = {
   oemRobots: Awaited<ReturnType<typeof loadDirectoryRobots>>;
   oemTools: Awaited<ReturnType<typeof loadDirectoryTools>>;
@@ -310,69 +311,6 @@ export function Thumb({ m, size = "h-14 w-14" }: { m: Match; size?: string }) {
       ) : (
         <Icon className="h-6 w-6 text-muted-foreground" aria-hidden />
       )}
-    </div>
-  );
-}
-
-/**
- * Robot + end-of-arm tool choice for one robot cell (opened from the robot list in the 3D studio).
- * Options come from RobotVerse marketplace listings and the OEM directory, sized to the cell's job.
- */
-export function CellPicker({ station, value, onChange }: { station: AiStation; value?: Choice; onChange: (c: Choice) => void }) {
-  const [data, setData] = useState<Data | null>(null);
-  useEffect(() => {
-    let live = true;
-    Promise.all([loadDirectoryRobots(), loadDirectoryTools(), loadMarketRobots(), loadMarketTools()]).then(([oemRobots, oemTools, marketRobots, marketTools]) => {
-      if (live) setData({ oemRobots, oemTools, marketRobots, marketTools });
-    });
-    return () => {
-      live = false;
-    };
-  }, []);
-  const m = useMemo(() => {
-    if (!data) return null;
-    const need = needOf(station);
-    const words = `${station.name} ${station.tooling}`;
-    return {
-      need,
-      robots: { market: matchMarketRobots(need, data.marketRobots), oem: matchOemRobots(need, data.oemRobots) },
-      tools: { market: matchMarketTools(need, data.marketTools, words), oem: matchOemTools(need, data.oemTools, words) },
-    };
-  }, [data, station]);
-  const pick = (part: "robot" | "tool", x: Match) => onChange({ ...value, [part]: value?.[part]?.id === x.id ? undefined : x });
-
-  if (!m)
-    return (
-      <p className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Matching robots from the RobotVerse marketplace and the Directory…
-      </p>
-    );
-  return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
-        This job needs ≥ {m.need.payload} kg payload{m.need.cobot ? " · collaborative robot" : ""}
-        {m.need.robotType ? ` · ${m.need.robotType}` : ""}. Only robots that fit are listed.
-        <span className="ml-2 inline-flex items-center gap-1"><Store className="h-3.5 w-3.5 text-emerald-500" aria-hidden /> Marketplace = available to buy on RobotVerse</span>
-        <span className="ml-2 inline-flex items-center gap-1"><Factory className="h-3.5 w-3.5 text-sky-500" aria-hidden /> OEM = Directory model, quote from the maker</span>
-      </p>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Column
-          icon={<Bot className="h-3.5 w-3.5" aria-hidden />}
-          title="Robot"
-          options={m.robots}
-          chosen={value?.robot}
-          onChoose={(x) => pick("robot", x)}
-          emptyMarket={`/robots?search=${encodeURIComponent(station.name.split(" ")[0])}`}
-        />
-        <Column
-          icon={<Wrench className="h-3.5 w-3.5" aria-hidden />}
-          title={`End-of-arm tool${station.tooling ? ` · recommended: ${station.tooling.split(",")[0]}` : ""}`}
-          options={m.tools}
-          chosen={value?.tool}
-          onChoose={(x) => pick("tool", x)}
-          emptyMarket="/parts"
-        />
-      </div>
     </div>
   );
 }

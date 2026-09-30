@@ -41,6 +41,7 @@ export interface Simulation {
     eq: {
       robot?: { name: string; brand?: string; reachMm?: number | null; payloadKg?: number | null; collaborative?: boolean };
       eoat?: { name: string; kind?: string };
+      accessories?: ("changer" | "sensor" | "camera")[];
     } | null,
   ): void;
   setJoint(i: number, deg: number | string): void;

@@ -21,7 +21,8 @@ import MediaAnalyzer from "./MediaAnalyzer";
 import type { MediaAnalysis } from "./mediaAnalysis";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AiSolutionPanel from "./AiSolutionPanel";
-import EquipmentPicker, { CellPicker, Thumb, type Choice } from "./EquipmentPicker";
+import EquipmentPicker, { Thumb, type Choice } from "./EquipmentPicker";
+import RobotConfigurator from "./RobotConfigurator";
 import ProcessBuilder from "./ProcessBuilder";
 import { imageFunctionUrl, storedImageUrl } from "@/components/directory/directoryTypes";
 import type { AiStation } from "./aiSolution";
@@ -183,7 +184,7 @@ export default function AutomationStudio3D({
   };
   // Which robot cell performs each station's task; the chosen equipment goes on that cell.
   const perCell = useMemo(() => {
-    const map = new Map<number, { robot?: Choice["robot"]; tool?: Choice["tool"] }>();
+    const map = new Map<number, Choice>();
     if (!plan) return map;
     equipment?.stations.forEach((name, i) => {
       const c = equipment!.choices[i];
@@ -196,9 +197,9 @@ export default function AutomationStudio3D({
     });
     Object.entries(cellPicks).forEach(([k, c]) => {
       const idx = Number(k);
-      if (!plan.robots[idx] || (!c.robot && !c.tool)) return;
-      const prev = map.get(idx) ?? {};
-      map.set(idx, { robot: c.robot ?? prev.robot, tool: c.tool ?? prev.tool });
+      if (!plan.robots[idx] || !Object.values(c).some(Boolean)) return;
+      // The configurator holds the whole build for this robot.
+      map.set(idx, { ...(map.get(idx) ?? {}), ...c });
     });
     return map;
   }, [equipment, plan, cellPicks]);
@@ -216,6 +217,7 @@ export default function AutomationStudio3D({
                 ? { name: eq.robot.name, brand: eq.robot.brand, reachMm: eq.robot.reach, payloadKg: eq.robot.payload, collaborative: r.collaborative || /cobot|collaborative/i.test(`${eq.robot.type} ${eq.robot.name}`) }
                 : undefined,
               eoat: eq.tool ? { name: `${eq.tool.name} ${eq.tool.type ?? ""}` } : undefined,
+              accessories: [eq.changer && "changer", eq.sensor && "sensor", eq.camera && "camera"].filter(Boolean) as ("changer" | "sensor" | "camera")[],
             }
           : null,
       );
@@ -741,7 +743,7 @@ export default function AutomationStudio3D({
                         {r.tools.length ? r.tools.join(" + ") : r.tasks[0].skill.toolName}
                         {" · "}min {r.minPayload} kg
                       </span>
-                      {chosen?.robot || chosen?.tool ? (
+                      {chosen?.robot || chosen?.tool || chosen?.changer || chosen?.sensor || chosen?.camera ? (
                         <span className="mt-2 grid w-full min-w-0 gap-1.5">
                           {chosen.robot && (
                             <span className="flex min-w-0 items-center gap-2 overflow-hidden rounded-md bg-primary/10 p-1.5">
@@ -766,6 +768,13 @@ export default function AutomationStudio3D({
                               </span>
                             </span>
                           )}
+                          {(chosen.changer || chosen.sensor || chosen.camera) && (
+                            <span className="flex flex-wrap gap-1 text-[10px]">
+                              {[chosen.changer, chosen.sensor, chosen.camera].filter(Boolean).map((a) => (
+                                <span key={a!.id} className="max-w-full truncate rounded bg-muted px-1.5 py-0.5">+ {a!.name}</span>
+                              ))}
+                            </span>
+                          )}
                         </span>
                       ) : (
                         recs.length > 0 && (
@@ -787,7 +796,7 @@ export default function AutomationStudio3D({
                       )}
                     </button>
                     <Button size="sm" variant={chosen?.robot ? "secondary" : "outline"} className="h-7 w-full text-xs" onClick={() => setPickFor(i)}>
-                      <Bot className="mr-1.5 h-3.5 w-3.5" /> {chosen?.robot ? "Change robot & tool" : "Choose robot & tool for this job"}
+                      <Bot className="mr-1.5 h-3.5 w-3.5" /> {chosen?.robot ? "Change robot, tool & accessories" : "Build robot: drag robot, tool & accessories"}
                     </Button>
                     </div>
                   );
@@ -1016,16 +1025,16 @@ export default function AutomationStudio3D({
           {pickFor !== null && plan?.robots[pickFor] && (
             <>
               <DialogHeader>
-                <DialogTitle>Choose the robot for: {plan.robots[pickFor].title}</DialogTitle>
+                <DialogTitle>Build the robot for: {plan.robots[pickFor].title}</DialogTitle>
                 <DialogDescription>
-                  Job: {plan.robots[pickFor].tasks.map((t) => t.name).join(", ")}. Pick an available robot from the RobotVerse marketplace or a Directory model —
-                  it replaces this robot in the 3D cell right away.
+                  Job: {plan.robots[pickFor].tasks.map((t) => t.name).join(", ")}. Drag a robot arm, an end-of-arm tool and any accessories onto your robot — from the
+                  RobotVerse marketplace or the Directory. Each part appears on this robot in the 3D cell right away.
                 </DialogDescription>
               </DialogHeader>
-              <CellPicker
+              <RobotConfigurator
                 key={`${description}-${pickFor}`}
                 station={cellStation(plan.robots[pickFor])}
-                value={cellPicks[pickFor] ?? perCell.get(pickFor)}
+                value={cellPicks[pickFor] ?? perCell.get(pickFor) ?? {}}
                 onChange={(c) => setCellPick(pickFor, c)}
               />
               <div className="flex justify-end">

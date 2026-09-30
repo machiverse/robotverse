@@ -1130,6 +1130,42 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         nz.rotation.z = Math.PI / 2;
         addTool(nz, 0.16);
       }
+      // Accessories the user attached in the configurator: tool changer / force-torque sensor at the
+      // flange, a vision camera on the side of the wrist.
+      const acc = (model && model.accessories) || [];
+      if (acc.includes("changer")) {
+        const plate = cyl(0.058, 0.025, M.steel, 20);
+        plate.rotation.z = Math.PI / 2;
+        plate.position.x = 0.012;
+        j6.add(plate);
+        const ring = cyl(0.06, 0.008, new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.4, roughness: 0.4 }), 20);
+        ring.rotation.z = Math.PI / 2;
+        ring.position.x = 0.026;
+        j6.add(ring);
+      }
+      if (acc.includes("sensor")) {
+        const ft = cyl(0.052, 0.03, new THREE.MeshStandardMaterial({ color: 0x9ca3af, metalness: 0.7, roughness: 0.3 }), 20);
+        ft.rotation.z = Math.PI / 2;
+        ft.position.x = acc.includes("changer") ? 0.045 : 0.018;
+        j6.add(ft);
+        const band = cyl(0.054, 0.006, new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.5 }), 20);
+        band.rotation.z = Math.PI / 2;
+        band.position.x = ft.position.x;
+        j6.add(band);
+      }
+      if (acc.includes("camera")) {
+        const bracket = box(0.05, 0.02, 0.02, M.steel);
+        bracket.position.set(0.02, 0.07, 0);
+        j6.add(bracket);
+        const cam = box(0.06, 0.045, 0.045, new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.5 }));
+        cam.position.set(0.05, 0.095, 0);
+        j6.add(cam);
+        const lens = cyl(0.014, 0.02, new THREE.MeshStandardMaterial({ color: 0x0ea5e9, metalness: 0.6, roughness: 0.2 }), 14);
+        lens.rotation.z = Math.PI / 2;
+        lens.position.set(0.09, 0.095, 0);
+        j6.add(lens);
+      }
+
       const tip = new THREE.Object3D();
       tip.position.x = TOOL_LEN;
       j6.add(tip);
@@ -2313,13 +2349,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     setRobotSize,
     /**
      * Put the user's chosen robot / end-of-arm tool on robot cell i:
-     * robot { name, brand, reachMm, payloadKg, collaborative }, eoat { name, kind? }.
+     * robot { name, brand, reachMm, payloadKg, collaborative }, eoat { name, kind? },
+     * accessories: ["changer" | "sensor" | "camera"].
      * Pass null to go back to the planned robot.
      */
     setEquipment(i, eq) {
       const c = cells[i];
       if (!c) return;
-      if (!eq || (!eq.robot && !eq.eoat)) {
+      if (!eq || (!eq.robot && !eq.eoat && !(eq.accessories && eq.accessories.length))) {
         c.setModel(null);
       } else {
         const r = eq.robot;
@@ -2329,6 +2366,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           paint: r ? brandPaint(r.brand || r.name, r.collaborative) : null,
           label: r ? [r.name, r.payloadKg ? `${r.payloadKg} kg` : "", reachM ? `${Math.round(reachM * 1000)} mm` : ""].filter(Boolean).join(" · ") : eq.eoat ? eq.eoat.name : "",
           eoat: eq.eoat ? eq.eoat.kind || eoatKind(eq.eoat.name) : null,
+          accessories: eq.accessories || [],
         });
       }
       placeFence();
