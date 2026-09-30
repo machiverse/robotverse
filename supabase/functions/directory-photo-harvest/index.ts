@@ -567,9 +567,15 @@ Deno.serve(async (req) => {
 
     if (action === "status") {
       const items = await catalogue(kind);
-      const { data } = await sb.from(TABLE).select("status").eq("kind", kind).limit(10000);
+      // The API returns at most 1000 rows per request, so count page by page.
+      const data: { status: string }[] = [];
+      for (let from = 0; from < 20000; from += 1000) {
+        const { data: page } = await sb.from(TABLE).select("status").eq("kind", kind).order("catalog_id").range(from, from + 999);
+        data.push(...(page ?? []));
+        if (!page || page.length < 1000) break;
+      }
       const counts: Record<string, number> = { total: items.length, pending: items.length };
-      for (const r of data ?? []) {
+      for (const r of data) {
         counts[r.status] = (counts[r.status] ?? 0) + 1;
         counts.pending -= 1;
       }
