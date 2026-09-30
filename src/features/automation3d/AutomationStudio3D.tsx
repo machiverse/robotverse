@@ -21,7 +21,8 @@ import MediaAnalyzer from "./MediaAnalyzer";
 import type { MediaAnalysis } from "./mediaAnalysis";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AiSolutionPanel from "./AiSolutionPanel";
-import EquipmentPicker, { type Choice } from "./EquipmentPicker";
+import EquipmentPicker, { CellPicker, type Choice } from "./EquipmentPicker";
+import type { AiStation } from "./aiSolution";
 import { requestSolution, solutionProcesses, type AiSolution } from "./aiSolution";
 import { engineSolution } from "./solutionEngine";
 
@@ -152,6 +153,9 @@ export default function AutomationStudio3D({
   const [solutionOpen, setSolutionOpen] = useState(false);
   // Equipment the user chose per solution station; shown on the matching robot cell in 3D.
   const [equipment, setEquipment] = useState<{ stations: string[]; choices: Record<number, Choice> } | null>(null);
+  // Robot / tool the user picked directly for a robot cell (from the robot list); wins over the station choices.
+  const [cellPicks, setCellPicks] = useState<Record<number, Choice>>({});
+  const [pickFor, setPickFor] = useState<number | null>(null);
   const [ai, setAi] = useState<{ brief: string; solution: AiSolution | null; loading: boolean; error: string | null }>({
     brief: "", solution: null, loading: false, error: null,
   });
@@ -177,9 +181,9 @@ export default function AutomationStudio3D({
   // Which robot cell performs each station's task; the chosen equipment goes on that cell.
   const perCell = useMemo(() => {
     const map = new Map<number, { robot?: Choice["robot"]; tool?: Choice["tool"] }>();
-    if (!plan || !equipment) return map;
-    equipment.stations.forEach((name, i) => {
-      const c = equipment.choices[i];
+    if (!plan) return map;
+    equipment?.stations.forEach((name, i) => {
+      const c = equipment!.choices[i];
       if (!c?.robot && !c?.tool) return;
       const lower = name.toLowerCase();
       const cellIdx = plan.robots.findIndex((r) => r.tasks.some((t) => t.name.toLowerCase() === lower));
@@ -187,8 +191,14 @@ export default function AutomationStudio3D({
       const prev = map.get(idx) ?? {};
       map.set(idx, { robot: c.robot ?? prev.robot, tool: c.tool ?? prev.tool });
     });
+    Object.entries(cellPicks).forEach(([k, c]) => {
+      const idx = Number(k);
+      if (!plan.robots[idx] || (!c.robot && !c.tool)) return;
+      const prev = map.get(idx) ?? {};
+      map.set(idx, { robot: c.robot ?? prev.robot, tool: c.tool ?? prev.tool });
+    });
     return map;
-  }, [equipment, plan]);
+  }, [equipment, plan, cellPicks]);
 
   useEffect(() => {
     const sim = simRef.current;
@@ -209,6 +219,26 @@ export default function AutomationStudio3D({
     });
     setUnreachable(sim.checkReach() || []);
   }, [perCell, plan]);
+
+  // Per-cell picks are saved per brief too.
+  const cellKey = "rv-studio-cells:" + (description ?? "").slice(0, 200);
+  useEffect(() => {
+    try {
+      setCellPicks(JSON.parse(localStorage.getItem(cellKey) || "{}"));
+    } catch {
+      setCellPicks({});
+    }
+  }, [cellKey]);
+  const setCellPick = (i: number, c: Choice) =>
+    setCellPicks((cur) => {
+      const next = { ...cur, [i]: c };
+      try {
+        localStorage.setItem(cellKey, JSON.stringify(next));
+      } catch {
+        /* private mode */
+      }
+      return next;
+    });
 
   // Restore choices saved for this brief (the picker stores them per brief) without opening the dialog.
   useEffect(() => {
@@ -633,8 +663,8 @@ export default function AutomationStudio3D({
                   const chosen = perCell.get(i);
                   const cell = state?.cells?.[i];
                   return (
+                    <div key={i} className="space-y-1">
                     <button
-                      key={i}
                       onClick={() => focusRobot(i)}
                       aria-pressed={focus === i}
                       className={cn(
@@ -705,6 +735,10 @@ export default function AutomationStudio3D({
                         <span className="mt-1 block truncate text-[11px] text-amber-600">Now: {cell.step.label}</span>
                       )}
                     </button>
+                    <Button size="sm" variant={chosen?.robot ? "secondary" : "outline"} className="h-7 w-full text-xs" onClick={() => setPickFor(i)}>
+                      <Bot className="mr-1.5 h-3.5 w-3.5" /> {chosen?.robot ? "Change robot & tool" : "Choose robot & tool for this job"}
+                    </Button>
+                    </div>
                   );
                 })}
               </div>
@@ -926,6 +960,30 @@ export default function AutomationStudio3D({
           )}
         </DialogContent>
       </Dialog>
+      <Dialog open={pickFor !== null} onOpenChange={(o) => !o && setPickFor(null)}>
+        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+          {pickFor !== null && plan?.robots[pickFor] && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Choose the robot for: {plan.robots[pickFor].title}</DialogTitle>
+                <DialogDescription>
+                  Job: {plan.robots[pickFor].tasks.map((t) => t.name).join(", ")}. Pick an available robot from the RobotVerse marketplace or a Directory model —
+                  it replaces this robot in the 3D cell right away.
+                </DialogDescription>
+              </DialogHeader>
+              <CellPicker
+                key={`${description}-${pickFor}`}
+                station={cellStation(plan.robots[pickFor])}
+                value={cellPicks[pickFor] ?? perCell.get(pickFor)}
+                onChange={(c) => setCellPick(pickFor, c)}
+              />
+              <div className="flex justify-end">
+                <Button size="sm" onClick={() => setPickFor(null)}>Show in 3D</Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       <SkillsLibrary
         open={skillsOpen}
         onOpenChange={setSkillsOpen}
@@ -937,4 +995,21 @@ export default function AutomationStudio3D({
     </div>
     </>
   );
+}
+
+/** The job one robot cell does, in the shape the equipment matcher expects. */
+function cellStation(r: LinePlan["robots"][number]): AiStation {
+  const t = r.tasks[0];
+  return {
+    name: r.tasks.map((x) => x.name).join(" + "),
+    skill: String(t.kind),
+    what: r.tasks.map((x) => x.name).join(", "),
+    equipment: r.collaborative ? "collaborative robot" : "",
+    payload_kg: r.minPayload,
+    reach_mm: null,
+    tooling: r.tools.length ? r.tools.join(", ") : t.skill.toolName,
+    sensors: [],
+    cycle_s: null,
+    notes: "",
+  };
 }
