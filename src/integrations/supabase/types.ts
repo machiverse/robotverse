@@ -2420,6 +2420,102 @@ export type Database = {
         }
         Relationships: []
       }
+      directory_parts: {
+        Row: {
+          applications: string[]
+          brand: string
+          category: string
+          compatible_with: string[]
+          component_type: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          model: string
+          name: string
+          source_url: string | null
+          specs: Json
+          subcategory: string
+          thumb_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          applications?: string[]
+          brand: string
+          category: string
+          compatible_with?: string[]
+          component_type: string
+          created_at?: string
+          description?: string | null
+          id: string
+          image_url?: string | null
+          model: string
+          name: string
+          source_url?: string | null
+          specs?: Json
+          subcategory: string
+          thumb_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applications?: string[]
+          brand?: string
+          category?: string
+          compatible_with?: string[]
+          component_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          model?: string
+          name?: string
+          source_url?: string | null
+          specs?: Json
+          subcategory?: string
+          thumb_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      directory_parts_seeds: {
+        Row: {
+          attempts: number
+          brand: string
+          category: string
+          component_type: string
+          found: number
+          id: string
+          note: string | null
+          status: string
+          subcategory: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          brand: string
+          category: string
+          component_type: string
+          found?: number
+          id: string
+          note?: string | null
+          status?: string
+          subcategory: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          brand?: string
+          category?: string
+          component_type?: string
+          found?: number
+          id?: string
+          note?: string | null
+          status?: string
+          subcategory?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       directory_robot_images: {
         Row: {
           attempts: number
