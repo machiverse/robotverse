@@ -227,13 +227,26 @@ async function readPage(url: string) {
 
 type Product = { model: string; name: string; description?: string; specs?: Record<string, string>; applications?: string[]; compatible_with?: string[] };
 
-async function extract(seed: { component_type: string; brand: string }, page: { url: string; title: string; text: string }): Promise<Product[]> {
+/** A real product model: hardware needs a model number; words that only repeat the product type are not a model. */
+function goodModel(model: string, seed: { component_type: string; category?: string }) {
+  const m = model.trim();
+  if (m.length < 3) return false;
+  const generic = new Set(`${seed.component_type} module modules unit units system systems series product products tip tips coated standard new kit`.toLowerCase().split(/[^a-z]+/).filter(Boolean));
+  const words = m.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  if (words.every((w) => generic.has(w) || generic.has(w.replace(/s$/, "")))) return false;
+  if (seed.category !== "Software" && !/\d/.test(m)) return false;
+  if (/^\d{1,3}$/.test(m.replace(/[.\s]/g, ""))) return false; // "035", "20": sizes, not models
+  return true;
+}
+
+async function extract(seed: { component_type: string; brand: string; category?: string }, page: { url: string; title: string; text: string }): Promise<Product[]> {
   const key = Deno.env.get("LOVABLE_API_KEY");
   if (!key || page.text.length < 300) return [];
   const prompt = `You catalogue industrial automation products for a robotics directory.
 From the web page text below, list the distinct products made by "${seed.brand}" that are of the type "${seed.component_type}".
 Rules:
 - ONLY products whose model name/number is written in the page text. Never invent a model or a spec.
+- "model" is the manufacturer's model name or number (e.g. "EGP 40", "microScan3", "NT 100-DN-CO"), never a generic phrase like "Communication Module".
 - Specs: only values written in the text (e.g. payload, stroke, force, torque, power, speed, resolution, range, protection class, interface, voltage, weight). Keep units.
 - "compatible_with": robot brands/models the text says it fits (else empty).
 - Skip accessories, spare-part numbers without a product name, and other brands' products.
@@ -258,7 +271,7 @@ ${page.text}`;
     // Keep only models that really occur in the page text.
     const hay = page.text.toLowerCase().replace(/\s+/g, " ");
     return arr
-      .filter((p: Product) => typeof p?.model === "string" && p.model.trim().length >= 2 && p.model.length <= 80)
+      .filter((p: Product) => typeof p?.model === "string" && p.model.length <= 80 && goodModel(p.model, seed))
       .filter((p: Product) => hay.includes(p.model.toLowerCase().replace(/\s+/g, " ").trim()))
       .slice(0, 15);
   } catch {
@@ -364,6 +377,8 @@ Deno.serve(async (req) => {
       await sb.from(SEEDS).update({ status: "pending" }).eq("status", "working").lt("updated_at", stale).lt("attempts", 3);
       await sb.from(SEEDS).update({ status: "error", note: "timed out 3 times" }).eq("status", "working").lt("updated_at", stale).gte("attempts", 3);
 
+      // Remove weak rows saved before the model check existed (hardware without a model number).
+      await sb.from(PARTS).delete().neq("category", "Software").not("model", "match", "[0-9]");
       // A search that found nothing gets one more try later.
       await sb.from(SEEDS).update({ status: "pending" }).eq("status", "done").eq("found", 0).lt("attempts", 2);
       const { data: next } = await sb.from(SEEDS).select("*").eq("status", "pending").order("attempts").order("id").limit(PER_TICK * 3);
