@@ -610,7 +610,7 @@ const PROCESS_KEYWORDS: Record<string, keyof typeof TEMPLATES> = {
   pipett: "pipette", "lab sample": "pipette", "test tube": "pipette", vial: "fill",
 };
 
-const MAX_STATIONS = 10;
+export const MAX_STATIONS = 10;
 
 /** Matches keywords in the description and returns unique template ids in order of appearance. */
 export const matchTemplateIds = (description: string): string[] => {
