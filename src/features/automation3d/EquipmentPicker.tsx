@@ -290,7 +290,7 @@ function Column({
   );
 }
 
-function Thumb({ m }: { m: Match }) {
+export function Thumb({ m, size = "h-14 w-14" }: { m: Match; size?: string }) {
   // Marketplace photo, or the directory image from our storage (copied on demand as a fallback).
   const [primary, fallback] = m.file
     ? imageCandidates(m.kind === "robot" ? "robots" : "tools", { id: m.id, ...m.file } as never, undefined, false)
@@ -298,7 +298,7 @@ function Thumb({ m }: { m: Match }) {
   const [src, setSrc] = useState(primary);
   const Icon = m.kind === "robot" ? Bot : Wrench;
   return (
-    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
+    <div className={cn("flex shrink-0 items-center justify-center overflow-hidden rounded bg-muted", size)}>
       {src ? (
         <img
           src={src}

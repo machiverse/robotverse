@@ -21,7 +21,9 @@ import MediaAnalyzer from "./MediaAnalyzer";
 import type { MediaAnalysis } from "./mediaAnalysis";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AiSolutionPanel from "./AiSolutionPanel";
-import EquipmentPicker, { CellPicker, type Choice } from "./EquipmentPicker";
+import EquipmentPicker, { CellPicker, Thumb, type Choice } from "./EquipmentPicker";
+import ProcessBuilder from "./ProcessBuilder";
+import { imageFunctionUrl, storedImageUrl } from "@/components/directory/directoryTypes";
 import type { AiStation } from "./aiSolution";
 import { requestSolution, solutionProcesses, type AiSolution } from "./aiSolution";
 import { engineSolution } from "./solutionEngine";
@@ -156,6 +158,7 @@ export default function AutomationStudio3D({
   // Robot / tool the user picked directly for a robot cell (from the robot list); wins over the station choices.
   const [cellPicks, setCellPicks] = useState<Record<number, Choice>>({});
   const [pickFor, setPickFor] = useState<number | null>(null);
+  const [inputMode, setInputMode] = useState<"blocks" | "words">("blocks");
   const [ai, setAi] = useState<{ brief: string; solution: AiSolution | null; loading: boolean; error: string | null }>({
     brief: "", solution: null, loading: false, error: null,
   });
@@ -375,6 +378,15 @@ export default function AutomationStudio3D({
     else build(words || "pick and place");
   }
 
+  // Point-and-click builder: the chosen jobs, in order, become the robot line.
+  function buildFromBlocks(names: string[]) {
+    const sentence = `Robot line: ${names.join(", then ")}.`;
+    setText(sentence);
+    setDescription(sentence);
+    const procs = processesFromSkills(names);
+    if (procs.length) runLine(procs);
+  }
+
   function changeSize(key: string) {
     setSize(key);
     simRef.current?.setRobotSize(key);
@@ -519,7 +531,24 @@ export default function AutomationStudio3D({
         {/* Left: process */}
         <aside className="order-2 space-y-3 overflow-auto border-border bg-muted/20 p-3 lg:order-1 lg:border-r">
           {showEditor && (
-            <Panel title="Describe the process">
+            <Panel title="Build your process">
+              <div className="mb-3 grid grid-cols-2 overflow-hidden rounded-md border border-border text-xs" role="tablist" aria-label="How to build">
+                {(["blocks", "words"] as const).map((m) => (
+                  <button
+                    key={m}
+                    role="tab"
+                    aria-selected={inputMode === m}
+                    onClick={() => setInputMode(m)}
+                    className={cn("px-2 py-1.5 font-medium", inputMode === m ? "bg-primary text-primary-foreground" : "hover:bg-muted")}
+                  >
+                    {m === "blocks" ? "Tap jobs (easy)" : "Describe in words"}
+                  </button>
+                ))}
+              </div>
+              {inputMode === "blocks" ? (
+                <ProcessBuilder onBuild={buildFromBlocks} />
+              ) : (
+              <>
               <p className="mb-2 text-xs text-muted-foreground">
                 Describe your whole factory in a sentence or two and the studio picks out only the tasks you name, plans
                 the robots and shows the line. Or write one robot step per line: pick, place, weld, paint, polish,
@@ -536,6 +565,8 @@ export default function AutomationStudio3D({
               <Button className="mt-2 w-full" onClick={() => build(text)}>
                 <Play className="mr-2 h-4 w-4" /> Build simulation
               </Button>
+              </>
+              )}
               <p className="mb-1.5 mt-3 text-[11px] font-semibold text-muted-foreground">
                 Or show us the manual work (AI photo / video analysis)
               </p>
@@ -711,23 +742,43 @@ export default function AutomationStudio3D({
                         {" · "}min {r.minPayload} kg
                       </span>
                       {chosen?.robot || chosen?.tool ? (
-                        <span className="mt-1.5 block rounded bg-primary/10 px-1.5 py-1 text-[11px]">
+                        <span className="mt-2 grid w-full min-w-0 gap-1.5">
                           {chosen.robot && (
-                            <span className="block">
-                              <b>Robot:</b> {chosen.robot.name}{" "}
-                              <span className="text-muted-foreground">({chosen.robot.source === "market" ? "RobotVerse listing" : "OEM"})</span>
+                            <span className="flex min-w-0 items-center gap-2 overflow-hidden rounded-md bg-primary/10 p-1.5">
+                              <Thumb m={chosen.robot} size="h-12 w-12" />
+                              <span className="min-w-0 flex-1 text-[11px] leading-tight">
+                                <span className="block text-[9px] uppercase tracking-wide text-muted-foreground">Robot</span>
+                                <b className="block truncate">{chosen.robot.name}</b>
+                                <span className="text-muted-foreground">
+                                  {chosen.robot.source === "market" ? "RobotVerse marketplace" : "Directory · OEM"}
+                                  {chosen.robot.payload ? ` · ${chosen.robot.payload} kg` : ""}
+                                </span>
+                              </span>
                             </span>
                           )}
                           {chosen.tool && (
-                            <span className="block">
-                              <b>EOAT:</b> {chosen.tool.name}
+                            <span className="flex min-w-0 items-center gap-2 overflow-hidden rounded-md bg-muted/60 p-1.5">
+                              <Thumb m={chosen.tool} size="h-12 w-12" />
+                              <span className="min-w-0 flex-1 text-[11px] leading-tight">
+                                <span className="block text-[9px] uppercase tracking-wide text-muted-foreground">Tool (EOAT)</span>
+                                <b className="block truncate">{chosen.tool.name}</b>
+                                <span className="text-muted-foreground">{chosen.tool.source === "market" ? "RobotVerse marketplace" : "Directory · OEM"}</span>
+                              </span>
                             </span>
                           )}
                         </span>
                       ) : (
                         recs.length > 0 && (
-                          <span className="mt-1 block text-[11px] text-muted-foreground">
-                            Suitable: <span className="text-foreground">{recs.map((m) => m.n).join(", ")}</span>
+                          <span className="mt-2 block">
+                            <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">Suitable robots</span>
+                            <span className="mt-1 grid grid-cols-3 gap-1">
+                              {recs.map((m) => (
+                                <span key={m.id} className="min-w-0 rounded border border-border bg-white p-0.5 text-center">
+                                  <SuggestImg id={m.id} img={m.img} th={m.th} />
+                                  <span className="block truncate px-0.5 text-[9px] text-slate-700">{m.n}</span>
+                                </span>
+                              ))}
+                            </span>
                           </span>
                         )
                       )}
@@ -1012,4 +1063,16 @@ function cellStation(r: LinePlan["robots"][number]): AiStation {
     cycle_s: null,
     notes: "",
   };
+}
+
+/** Small Directory robot picture for the suggestions on a robot card. */
+function SuggestImg({ id, img, th }: { id: string; img?: string; th?: string }) {
+  const item = { id, img, th } as never;
+  const srcs = [storedImageUrl("robots", id, true), imageFunctionUrl("robots", item, true)];
+  const [i, setI] = useState(0);
+  return srcs[i] ? (
+    <img src={srcs[i]} alt="" loading="lazy" onError={() => setI((n) => n + 1)} className="mx-auto h-10 w-full object-contain" />
+  ) : (
+    <Bot className="mx-auto h-10 w-6 text-muted-foreground" aria-hidden />
+  );
 }
