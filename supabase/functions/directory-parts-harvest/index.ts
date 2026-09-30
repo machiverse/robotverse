@@ -159,16 +159,41 @@ const hostOf = (u: string) => {
 const decode = (s: string) => s.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ");
 const SKIP_HOSTS = /amazon\.|ebay\.|aliexpress|alibaba|youtube|facebook|linkedin|pinterest|wikipedia|reddit|indiamart|made-in-china|twitter|x\.com/i;
 
-/** Web results (page URLs) from DuckDuckGo HTML and Bing. */
+/** Pages about the query. Bing image results carry the page each image comes from (this works from the
+ * server where plain web-search pages are often blocked); DuckDuckGo HTML and Bing web results add more. */
 async function webSearch(q: string): Promise<string[]> {
   const out: string[] = [];
+  const bi = await get(`https://www.bing.com/images/search?q=${encodeURIComponent(q)}&form=HDRSC2&first=1`).catch(() => null);
+  if (bi?.ok) {
+    for (const m of (await bi.text()).matchAll(/class="iusc"[^>]*\sm="([^"]+)"/g)) {
+      try {
+        const meta = JSON.parse(decode(m[1]));
+        if (meta.purl) out.push(meta.purl);
+      } catch {
+        /* skip */
+      }
+      if (out.length >= 20) break;
+    }
+  }
   const d = await get(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`).catch(() => null);
   if (d?.ok) for (const m of (await d.text()).matchAll(/uddg=([^&"]+)/g)) out.push(decodeURIComponent(m[1]));
-  if (out.length < 3) {
-    const b = await get(`https://www.bing.com/search?q=${encodeURIComponent(q)}&setlang=en`).catch(() => null);
-    if (b?.ok) for (const m of (await b.text()).matchAll(/<li class="b_algo"[\s\S]*?<a[^>]+href="(https?:\/\/[^"]+)"/g)) out.push(decode(m[1]));
+  const b = await get(`https://www.bing.com/search?q=${encodeURIComponent(q)}&setlang=en`).catch(() => null);
+  if (b?.ok) {
+    for (const m of (await b.text()).matchAll(/<h2[^>]*><a[^>]+href="([^"]+)"/g)) {
+      let u = decode(m[1]);
+      // Bing wraps results in /ck/a?...&u=a1<base64url of the real URL>
+      const enc = u.match(/[?&]u=a1([^&]+)/)?.[1];
+      if (enc) {
+        try {
+          u = atob(enc.replace(/-/g, "+").replace(/_/g, "/"));
+        } catch {
+          continue;
+        }
+      }
+      out.push(u);
+    }
   }
-  return [...new Set(out)].filter((u) => /^https?:\/\//.test(u) && !SKIP_HOSTS.test(hostOf(u)) && !/\.pdf($|\?)/i.test(u));
+  return [...new Set(out)].filter((u) => /^https?:\/\//.test(u) && !/bing\.com|duckduckgo\.com/.test(hostOf(u)) && !SKIP_HOSTS.test(hostOf(u)) && !/\.pdf($|\?)/i.test(u));
 }
 
 /** Page text (scripts, styles and markup removed) plus its main image. */
@@ -276,7 +301,7 @@ async function processSeed(sb: SB, seed: Record<string, any>, deadline: number) 
   // The brand's own pages first, then others (distributors) that name the brand.
   const ranked = [...new Set(urls)].sort((a, b) => Number(hostOf(b).includes(bk)) - Number(hostOf(a).includes(bk))).slice(0, 4);
   let found = 0;
-  const notes: string[] = [];
+  const notes: string[] = [`${ranked.length} pages`];
   for (const url of ranked) {
     if (Date.now() > deadline) break;
     const page = await readPage(url);
@@ -328,7 +353,8 @@ Deno.serve(async (req) => {
         counts[s] = count ?? 0;
       }
       const { count: parts } = await sb.from(PARTS).select("id", { count: "exact", head: true });
-      return json({ seeds: counts, parts: parts ?? 0 });
+      const { data: recent } = await sb.from(SEEDS).select("id, status, found, note").neq("status", "pending").order("updated_at", { ascending: false }).limit(8);
+      return json({ seeds: counts, parts: parts ?? 0, recent });
     }
 
     if (action === "tick") {
@@ -338,7 +364,9 @@ Deno.serve(async (req) => {
       await sb.from(SEEDS).update({ status: "pending" }).eq("status", "working").lt("updated_at", stale).lt("attempts", 3);
       await sb.from(SEEDS).update({ status: "error", note: "timed out 3 times" }).eq("status", "working").lt("updated_at", stale).gte("attempts", 3);
 
-      const { data: next } = await sb.from(SEEDS).select("*").eq("status", "pending").order("id").limit(PER_TICK * 3);
+      // A search that found nothing gets one more try later.
+      await sb.from(SEEDS).update({ status: "pending" }).eq("status", "done").eq("found", 0).lt("attempts", 2);
+      const { data: next } = await sb.from(SEEDS).select("*").eq("status", "pending").order("attempts").order("id").limit(PER_TICK * 3);
       const deadline = Date.now() + 100_000;
       const done: unknown[] = [];
       for (const seed of next ?? []) {
