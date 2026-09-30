@@ -18,7 +18,7 @@ const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const BUCKET = "robot-images";
 const PARTS = "directory_parts";
 const SEEDS = "directory_parts_seeds";
-const PER_TICK = 2;
+const PER_TICK = 4;
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -319,14 +319,19 @@ async function processSeed(
   const ranked = [...new Set(urls)].sort((a, b) => Number(hostOf(b).includes(bk)) - Number(hostOf(a).includes(bk))).slice(0, 4);
   let found = 0;
   const notes: string[] = [`${ranked.length} pages`];
-  for (const url of ranked) {
-    if (Date.now() > deadline) break;
-    const page = await readPage(url);
+  // Read and extract all pages at once (each is mostly waiting on the network / AI).
+  const results = await Promise.all(
+    ranked.map(async (url) => {
+      const page = await readPage(url).catch(() => null);
+      if (!page) return { url, page: null, products: [] as Product[] };
+      return { url, page, products: Date.now() < deadline ? await extract(seed, page) : [] };
+    }),
+  );
+  for (const { url, page, products } of results) {
     if (!page) {
       notes.push(`unreadable ${hostOf(url)}`);
       continue;
     }
-    const products = await extract(seed, page);
     notes.push(`${hostOf(url)}: ${products.length}`);
     for (const p of products) {
       const id = `RVPart-${slug(`${seed.brand}-${p.model}`)}`.slice(0, 120);
@@ -387,22 +392,27 @@ Deno.serve(async (req) => {
       await sb.from(SEEDS).update({ status: "pending" }).eq("status", "done").eq("found", 0).lt("attempts", 2);
       const { data: next } = await sb.from(SEEDS).select("*").eq("status", "pending").order("attempts").order("id").limit(PER_TICK * 3);
       const deadline = Date.now() + 100_000;
-      const done: unknown[] = [];
+      // Claim up to PER_TICK seeds (another run may have taken some), then work on them side by side.
+      const mine: Record<string, any>[] = [];
       for (const seed of next ?? []) {
-        if (done.length >= PER_TICK || Date.now() > deadline - 30_000) break;
-        // Claim it; another run may have taken it already.
+        if (mine.length >= PER_TICK) break;
         const { data: claimed } = await sb.from(SEEDS)
           .update({ status: "working", attempts: (seed.attempts ?? 0) + 1, updated_at: new Date().toISOString() })
           .eq("id", seed.id).eq("status", "pending").select("id");
-        if (!claimed?.length) continue;
-        try {
-          const r = await processSeed(sb, seed, deadline);
-          await sb.from(SEEDS).update({ status: "done", found: r.found, note: r.note, updated_at: new Date().toISOString() }).eq("id", seed.id);
-          done.push({ id: seed.id, ...r });
-        } catch (e) {
-          await sb.from(SEEDS).update({ status: "error", note: String(e instanceof Error ? e.message : e).slice(0, 300), updated_at: new Date().toISOString() }).eq("id", seed.id);
-        }
+        if (claimed?.length) mine.push(seed);
       }
+      const done = await Promise.all(
+        mine.map(async (seed) => {
+          try {
+            const r = await processSeed(sb, seed, deadline);
+            await sb.from(SEEDS).update({ status: "done", found: r.found, note: r.note, updated_at: new Date().toISOString() }).eq("id", seed.id);
+            return { id: seed.id, ...r };
+          } catch (e) {
+            await sb.from(SEEDS).update({ status: "error", note: String(e instanceof Error ? e.message : e).slice(0, 300), updated_at: new Date().toISOString() }).eq("id", seed.id);
+            return { id: seed.id, error: true };
+          }
+        }),
+      );
       return json({ ok: true, processed: done });
     }
 
