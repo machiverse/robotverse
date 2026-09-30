@@ -302,7 +302,11 @@ async function storeImage(sb: SB, id: string, src: string) {
 
 /* --------------------------------------------------------------- one seed */
 
-async function processSeed(sb: SB, seed: Record<string, any>, deadline: number) {
+async function processSeed(
+  sb: SB,
+  seed: { component_type: string; brand: string; category?: string; subcategory?: string; [k: string]: unknown },
+  deadline: number,
+) {
   const type = SEED_TYPES.find((t) => t.type === seed.component_type);
   const bk = brandKey(seed.brand);
   const queries = [`${seed.brand} ${type?.hint ?? seed.component_type}`, `${seed.brand} ${seed.component_type} specifications datasheet`];
