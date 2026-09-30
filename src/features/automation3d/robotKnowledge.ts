@@ -174,19 +174,29 @@ function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean): SimSte
  */
 type TaskInput = Pick<ProcessCard, "name"> & Partial<Pick<ProcessCard, "eoat" | "robot">>;
 
-export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"): LinePlan {
+export interface PlanOptions {
+  /** Task names that must start a new robot (the user chose a separate robot for that station). */
+  splitBefore?: string[];
+  /** Exact number of robots the user wants in the line (1 … number of tasks). */
+  robots?: number;
+}
+
+export function planLine(processes: TaskInput[], strategy: Strategy = "balanced", opts: PlanOptions = {}): LinePlan {
   const { maxTools: MAX_TOOLS_PER_ROBOT, maxWork: MAX_WORK_PER_ROBOT, cobot } = STRATEGIES[strategy];
   const groups: PlannedTask[][] = [];
   let cur: PlannedTask[] | null = null;
 
+  const forced = new Set((opts.splitBefore ?? []).map((n) => n.toLowerCase()));
+  const starts = new Set<PlannedTask[]>();
   for (const p of processes) {
     const kind = processKind(p);
     const skill = SKILLS[kind];
     const payload = HEAVY.test(p.name) ? Math.max(skill.minPayload, kg(p.robot?.payload)) : skill.minPayload;
     const task: PlannedTask = { name: p.name, kind, skill, eoat: p.eoat, payload };
-    if (!cur) {
+    if (!cur || forced.has(p.name.toLowerCase())) {
       cur = [task];
       groups.push(cur);
+      if (forced.has(p.name.toLowerCase())) starts.add(cur);
       continue;
     }
     // High throughput: palletizing / packing gets its own robot once the current one does value-adding work.
@@ -218,6 +228,34 @@ export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"
       }
     }
     cur.push(task);
+  }
+
+  // The user asked for an exact robot count: split the busiest robots, or merge the lightest neighbours.
+  const want = opts.robots ? Math.max(1, Math.min(processes.length, Math.round(opts.robots))) : 0;
+  const work = (g: PlannedTask[]) => g.filter(isWork).length * 2 + g.length;
+  while (want && groups.length < want) {
+    let at = -1;
+    groups.forEach((g, i) => g.length > 1 && (at < 0 || work(g) > work(groups[at])) && (at = i));
+    if (at < 0) break;
+    const g = groups[at];
+    // Cut before the second value-adding task, else in the middle.
+    const w = g.findIndex((t, k) => k > 0 && isWork(t));
+    const cut = w > 0 ? w : Math.ceil(g.length / 2);
+    const tail = g.slice(cut);
+    groups.splice(at, 1, g.slice(0, cut), tail);
+  }
+  while (want && groups.length > want) {
+    const pick = (keepChosen: boolean) => {
+      let at = -1;
+      for (let i = 0; i + 1 < groups.length; i++) {
+        // Keep the robots the user chose separately apart where possible.
+        if (keepChosen && starts.has(groups[i + 1])) continue;
+        if (at < 0 || work(groups[i]) + work(groups[i + 1]) < work(groups[at]) + work(groups[at + 1])) at = i;
+      }
+      return at;
+    };
+    const at = Math.max(0, pick(true) >= 0 ? pick(true) : pick(false));
+    groups.splice(at, 2, [...groups[at], ...groups[at + 1]]);
   }
 
   const robots: PlannedRobot[] = groups.map((tasks, i) => {

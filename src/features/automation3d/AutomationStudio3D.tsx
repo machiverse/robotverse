@@ -6,11 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, BookOpen, Bot, CheckCircle2, FileText, Info, Pause, Play, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
+import { AlertTriangle, BookOpen, Bot, CheckCircle2, FileText, Info, Minus, Pause, Play, Plus, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/utils/processAnalyzer";
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation } from "./robotSim.js";
-import { PROCESS_PROFILES, type ProcessKind } from "./processProfiles";
+import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, recommendRobots, STRATEGIES, type DirectoryRobot, type LinePlan, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, inrRange } from "./solutionCost";
 
@@ -155,9 +155,12 @@ export default function AutomationStudio3D({
   // Solution for the current brief: built-in engine instantly, AI engineer refines it.
   const [solutionOpen, setSolutionOpen] = useState(false);
   // Equipment the user chose per solution station; shown on the matching robot cell in 3D.
-  const [equipment, setEquipment] = useState<{ stations: string[]; choices: Record<number, Choice> } | null>(null);
+  const [equipment, setEquipment] = useState<{ brief: string; stations: string[]; choices: Record<number, Choice> } | null>(null);
   // Robot / tool the user picked directly for a robot cell (from the robot list); wins over the station choices.
-  const [cellPicks, setCellPicks] = useState<Record<number, Choice>>({});
+  // Keyed by the robot's first task ("task:<name>") so a pick stays on its job when the line is re-split.
+  const [cellPicks, setCellPicks] = useState<Record<string, Choice>>({});
+  // Robots the user asked for (null = let the planner decide from the solution option).
+  const [robotCount, setRobotCount] = useState<number | null>(null);
   const [pickFor, setPickFor] = useState<number | null>(null);
   const [inputMode, setInputMode] = useState<"blocks" | "words">("blocks");
   const [ai, setAi] = useState<{ brief: string; solution: AiSolution | null; loading: boolean; error: string | null }>({
@@ -182,27 +185,50 @@ export default function AutomationStudio3D({
       (e: Error) => setAi((cur) => (cur.brief === brief ? { brief, solution: null, loading: false, error: e.message } : cur)),
     );
   };
-  // Which robot cell performs each station's task; the chosen equipment goes on that cell.
+  // The line task each solution station stands for: same name, else the same kind of work, else its position.
+  const stationTasks = useMemo(() => {
+    // Choices made for another brief never land on this line.
+    if (!equipment || !lineInput || equipment.brief !== (description ?? "")) return [] as (string | null)[];
+    const used = new Set<string>();
+    return equipment.stations.map((name, i) => {
+      const lower = name.toLowerCase();
+      const kind = processKind({ name });
+      const hit =
+        lineInput.find((t) => !used.has(t.name) && t.name.toLowerCase() === lower) ??
+        lineInput.find((t) => !used.has(t.name) && processKind(t) === kind) ??
+        (equipment.stations.length === lineInput.length ? lineInput[i] : undefined);
+      if (!hit) return null;
+      used.add(hit.name);
+      return hit.name;
+    });
+  }, [equipment, lineInput, description]);
+  // Every station the user gave its own robot starts a robot cell of its own.
+  const splitBefore = useMemo(
+    () => stationTasks.filter((t, i): t is string => !!t && !!equipment?.choices[i]?.robot),
+    [stationTasks, equipment],
+  );
+  const cellOf = (p: LinePlan, task: string) => p.robots.findIndex((r) => r.tasks.some((t) => t.name === task));
+  const pickKey = (r: LinePlan["robots"][number]) => `task:${r.tasks[0]?.name ?? ""}`;
+  // What goes on each robot cell: the station choices, then the robot built in the configurator (wins).
   const perCell = useMemo(() => {
     const map = new Map<number, Choice>();
     if (!plan) return map;
-    equipment?.stations.forEach((name, i) => {
+    equipment?.stations.forEach((_, i) => {
       const c = equipment!.choices[i];
-      if (!c?.robot && !c?.tool) return;
-      const lower = name.toLowerCase();
-      const cellIdx = plan.robots.findIndex((r) => r.tasks.some((t) => t.name.toLowerCase() === lower));
-      const idx = cellIdx >= 0 ? cellIdx : 0;
+      const task = stationTasks[i];
+      if ((!c?.robot && !c?.tool) || !task) return;
+      const idx = cellOf(plan, task);
+      if (idx < 0) return;
       const prev = map.get(idx) ?? {};
-      map.set(idx, { robot: c.robot ?? prev.robot, tool: c.tool ?? prev.tool });
+      map.set(idx, { robot: prev.robot ?? c.robot, tool: prev.tool ?? c.tool });
     });
-    Object.entries(cellPicks).forEach(([k, c]) => {
-      const idx = Number(k);
-      if (!plan.robots[idx] || !Object.values(c).some(Boolean)) return;
+    plan.robots.forEach((r, idx) => {
+      const c = cellPicks[pickKey(r)];
       // The configurator holds the whole build for this robot.
-      map.set(idx, { ...(map.get(idx) ?? {}), ...c });
+      if (c && Object.values(c).some(Boolean)) map.set(idx, { ...(map.get(idx) ?? {}), ...c });
     });
     return map;
-  }, [equipment, plan, cellPicks]);
+  }, [equipment, plan, cellPicks, stationTasks]);
 
   useEffect(() => {
     const sim = simRef.current;
@@ -234,9 +260,9 @@ export default function AutomationStudio3D({
       setCellPicks({});
     }
   }, [cellKey]);
-  const setCellPick = (i: number, c: Choice) =>
+  const setCellPick = (key: string, c: Choice) =>
     setCellPicks((cur) => {
-      const next = { ...cur, [i]: c };
+      const next = { ...cur, [key]: c };
       try {
         localStorage.setItem(cellKey, JSON.stringify(next));
       } catch {
@@ -247,12 +273,13 @@ export default function AutomationStudio3D({
 
   // Restore choices saved for this brief (the picker stores them per brief) without opening the dialog.
   useEffect(() => {
-    if (!engine || !description) return;
+    if (!engine || !description) return setEquipment(null);
     try {
       const saved = JSON.parse(localStorage.getItem("rv-studio-equipment:" + description.slice(0, 200)) || "null");
-      if (saved && typeof saved === "object") setEquipment({ stations: engine.stations.map((s) => s.skill || s.name), choices: saved });
+      // Choices belong to one brief: a new brief starts clean unless it has its own saved choices.
+      setEquipment(saved && typeof saved === "object" ? { brief: description, stations: engine.stations.map((s) => s.skill || s.name), choices: saved } : null);
     } catch {
-      /* no saved choices */
+      setEquipment(null);
     }
   }, [engine, description]);
 
@@ -301,24 +328,47 @@ export default function AutomationStudio3D({
   function runLine(input: LineInput, planNotes: string[] = [], option: Strategy = strategy) {
     if (input.some((p) => p.name === CONCRETE_PRINTING)) return openSpecial();
     setLineInput(input);
+    setRobotCount(null);
     runPlan(planLine(input, option), planNotes);
   }
 
   function chooseOption(option: Strategy) {
     setStrategy(option);
-    if (lineInput) runPlan(planLine(lineInput, option), notes);
+    setRobotCount(null);
+    if (lineInput) runPlan(planLine(lineInput, option, { splitBefore }), notes);
   }
 
-  function runPlan(p: LinePlan, planNotes: string[] = []) {
+  function chooseRobotCount(n: number) {
+    if (!lineInput) return;
+    setRobotCount(n);
+    runPlan(planLine(lineInput, strategy, { splitBefore, robots: n }), notes);
+  }
+
+  // A robot chosen for a station that shares a cell with another robot: give it a cell of its own.
+  // Runs when the choices or the line change, not on every re-plan, so a robot count the user sets later is kept.
+  useEffect(() => {
+    if (!plan || !lineInput || !splitBefore.length) return;
+    const clash = splitBefore.some((t) => {
+      const i = cellOf(plan, t);
+      return i >= 0 && plan.robots[i].tasks[0]?.name !== t;
+    });
+    if (!clash) return;
+    setRobotCount(null);
+    runPlan(planLine(lineInput, strategy, { splitBefore }), notes, focus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [splitBefore.join("|"), lineInput]);
+
+  function runPlan(p: LinePlan, planNotes: string[] = [], keepFocus = 0) {
+    const f = Math.min(keepFocus, p.robots.length - 1);
     setPlan(p);
-    setFocus(0);
+    setFocus(f);
     setAllTemplates(false);
-    setSteps(p.robots[0]?.steps || []);
+    setSteps(p.robots[f]?.steps || []);
     setNotes(planNotes);
     simRef.current?.setPlan(p.sim);
     // Industrial robots work behind a fence; a cobot-only line does not need one.
     simRef.current?.setFencing(p.robots.map((r) => !r.collaborative));
-    simRef.current?.setFocus(0);
+    simRef.current?.setFocus(f);
     simRef.current?.play();
     setUnreachable(simRef.current?.checkReach() || []);
   }
@@ -671,6 +721,35 @@ export default function AutomationStudio3D({
                   <p className="mt-1 text-[10px] text-muted-foreground">{STRATEGIES[strategy].bestFor}.</p>
                 </div>
               )}
+              {lineInput && taskCount > 1 && (
+                <div className="mb-2 flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5">
+                  <span className="min-w-0 flex-1 text-[11px] leading-tight">
+                    <b className="block">Robots in line</b>
+                    <span className="text-muted-foreground">{robotCount ? "Your choice" : splitBefore.length ? "One cell per robot you chose" : "Set by the solution option"} · 1–{taskCount}</span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Fewer robots"
+                    disabled={plan.robots.length <= 1}
+                    onClick={() => chooseRobotCount(plan.robots.length - 1)}
+                    className="rounded border border-border p-1 hover:border-primary disabled:opacity-40"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <b className="w-5 text-center text-sm tabular-nums" aria-live="polite" aria-label="Robots in line">
+                    {plan.robots.length}
+                  </b>
+                  <button
+                    type="button"
+                    aria-label="More robots"
+                    disabled={plan.robots.length >= taskCount}
+                    onClick={() => chooseRobotCount(plan.robots.length + 1)}
+                    className="rounded border border-border p-1 hover:border-primary disabled:opacity-40"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
               {budget && (
                 <button
                   onClick={() => setReportOpen(true)}
@@ -1014,7 +1093,7 @@ export default function AutomationStudio3D({
               stations={((ai.brief === description && ai.solution) || engine)!.stations}
               briefKey={description ?? ""}
               onChange={(choices) =>
-                setEquipment({ stations: ((ai.brief === description && ai.solution) || engine)!.stations.map((s) => s.skill || s.name), choices })
+                setEquipment({ brief: description ?? "", stations: ((ai.brief === description && ai.solution) || engine)!.stations.map((s) => s.skill || s.name), choices })
               }
             />
           )}
@@ -1034,8 +1113,8 @@ export default function AutomationStudio3D({
               <RobotConfigurator
                 key={`${description}-${pickFor}`}
                 station={cellStation(plan.robots[pickFor])}
-                value={cellPicks[pickFor] ?? perCell.get(pickFor) ?? {}}
-                onChange={(c) => setCellPick(pickFor, c)}
+                value={cellPicks[pickKey(plan.robots[pickFor])] ?? perCell.get(pickFor) ?? {}}
+                onChange={(c) => setCellPick(pickKey(plan.robots[pickFor]), c)}
               />
               <div className="flex justify-end">
                 <Button size="sm" onClick={() => setPickFor(null)}>Show in 3D</Button>
