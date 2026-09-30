@@ -5,9 +5,10 @@ import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
-import { Bot, GraduationCap, Mail, MoveHorizontal, Plus, Wrench } from "lucide-react";
+import { Bot, Cpu, GraduationCap, Mail, MoveHorizontal, Plus, Wrench } from "lucide-react";
 import DirectoryCatalog from "@/components/directory/DirectoryCatalog";
 import TrainingDirectory from "@/components/directory/TrainingDirectory";
+import PartsDirectory from "@/components/directory/PartsDirectory";
 import { listTrainingMailto, mailto } from "@/components/directory/directoryTypes";
 import { TRAINING_LISTINGS } from "@/data/directoryTraining";
 
@@ -15,6 +16,7 @@ const TABS = [
   { id: "robots", label: "Industrial Robots", short: "Robots", icon: Bot, count: "1,507" },
   { id: "tools", label: "End-of-Arm Tools", short: "Tools", icon: Wrench, count: "171" },
   { id: "axes", label: "External Axes", short: "Axes", icon: MoveHorizontal, count: "101" },
+  { id: "parts", label: "Parts & Components", short: "Parts", icon: Cpu, count: "OEM" },
   { id: "training", label: "Training & Workshops", short: "Training", icon: GraduationCap, count: String(TRAINING_LISTINGS.length) },
 ] as const;
 
@@ -91,7 +93,7 @@ const Directory = () => {
 
       <div className="container mx-auto px-4 pb-10">
         <Tabs value={tab} onValueChange={changeTab}>
-          <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-1 p-1 md:grid-cols-4">
+          <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-1 p-1 md:grid-cols-5">
             {TABS.map((t) => (
               <TabsTrigger key={t.id} value={t.id} className="flex items-center gap-2 py-2.5">
                 <t.icon className="h-4 w-4 shrink-0" />
@@ -110,6 +112,9 @@ const Directory = () => {
           </TabsContent>
           <TabsContent value="axes">
             <DirectoryCatalog kind="axes" />
+          </TabsContent>
+          <TabsContent value="parts">
+            <PartsDirectory />
           </TabsContent>
           <TabsContent value="training">
             <TrainingDirectory />
