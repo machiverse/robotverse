@@ -352,8 +352,10 @@ async function harvestOne(sb: ReturnType<typeof service>, kind: string, item: It
         continue;
       }
       // The AI check looks at the small copy: same picture, a fraction of the memory.
-      const check = await verify(item, kind, sized.small, sized.mime);
-      if (!check.ok) {
+      let check = await verify(item, kind, sized.small, sized.mime);
+      if (!check.checked) check = await verify(item, kind, sized.small, sized.mime); // one retry
+      // Only photos the AI check actually passed are used (never an unchecked one).
+      if (!check.ok || !check.checked) {
         notes.push(`${label}: vision rejected (${check.note})`);
         continue;
       }
@@ -517,7 +519,7 @@ async function recheckStored(sb: ReturnType<typeof service>, kind: string, item:
   if (!r?.ok) return false;
   const buf = new Uint8Array(await r.arrayBuffer());
   const check = await verify(item, kind, buf, r.headers.get("content-type") ?? "image/jpeg");
-  return check.ok;
+  return check.ok && check.checked;
 }
 
 /** Starts the next link of a background job (returns as soon as that link has accepted it). */
