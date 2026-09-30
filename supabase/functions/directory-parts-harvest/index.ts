@@ -34,7 +34,7 @@ const RP = "Robot Parts", DV = "Devices", TL = "Tools", SW = "Software";
 const SEED_TYPES: SeedType[] = [
   // Robot Parts › Controllers & Drives
   S(RP, "Controllers & Drives", "Main Robot Controller", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki", "Nachi", "Staubli", "Denso", "Epson", "Universal Robots"], "robot controller"),
-  S(RP, "Controllers & Drives", "Servo Drives", ["Yaskawa", "Siemens", "Mitsubishi Electric", "Panasonic", "Delta Electronics", "Beckhoff", "Bosch Rexroth", "Kollmorgen", "Omron", "Schneider Electric", "Allen-Bradley", "Lenze"], "servo drive"),
+  S(RP, "Controllers & Drives", "Servo Drives", ["Yaskawa", "Siemens", "Mitsubishi Electric", "Panasonic", "Delta Electronics", "Beckhoff", "Bosch Rexroth", "Kollmorgen", "Omron", "Schneider Electric", "Allen-Bradley", "Lenze", "FANUC", "ABB", "KUKA"], "servo drive"),
   S(RP, "Controllers & Drives", "PLC Modules", ["Siemens", "Allen-Bradley", "Mitsubishi Electric", "Omron", "Schneider Electric", "Beckhoff", "Delta Electronics", "B&R"], "PLC CPU"),
   S(RP, "Controllers & Drives", "I/O Modules", ["Siemens", "Beckhoff", "WAGO", "Phoenix Contact", "Turck", "Balluff"], "remote I/O module"),
   S(RP, "Controllers & Drives", "Power Supply Units", ["Mean Well", "Phoenix Contact", "PULS", "Siemens", "Omron"], "24V DIN rail power supply"),
@@ -43,7 +43,7 @@ const SEED_TYPES: SeedType[] = [
   S(RP, "Controllers & Drives", "VFDs", ["ABB", "Siemens", "Danfoss", "Yaskawa", "Mitsubishi Electric", "Delta Electronics", "Schneider Electric"], "variable frequency drive"),
   S(RP, "Controllers & Drives", "Communication Modules", ["HMS Anybus", "Siemens", "Hilscher", "Moxa"], "fieldbus gateway module"),
   // Robot Parts › Motors & Gearboxes
-  S(RP, "Motors & Gearboxes", "Servo Motors", ["Yaskawa", "Siemens", "Mitsubishi Electric", "Panasonic", "FANUC", "Delta Electronics", "Beckhoff", "Kollmorgen", "Bosch Rexroth", "Omron", "Allen-Bradley", "Nidec"], "AC servo motor"),
+  S(RP, "Motors & Gearboxes", "Servo Motors", ["Yaskawa", "Siemens", "Mitsubishi Electric", "Panasonic", "FANUC", "Delta Electronics", "Beckhoff", "Kollmorgen", "Bosch Rexroth", "Omron", "Allen-Bradley", "Nidec", "ABB", "KUKA", "Kawasaki", "Nachi"], "AC servo motor"),
   S(RP, "Motors & Gearboxes", "Planetary Gearboxes", ["Neugart", "WITTENSTEIN alpha", "Apex Dynamics", "SEW-EURODRIVE", "Nidec-Shimpo", "Sumitomo Drive"], "planetary gearbox"),
   S(RP, "Motors & Gearboxes", "Cycloidal Reducers", ["Sumitomo Drive", "Nabtesco", "Spinea"], "cycloidal reducer"),
   S(RP, "Motors & Gearboxes", "RV Reducers", ["Nabtesco"], "RV reducer robot joint"),
@@ -59,17 +59,20 @@ const SEED_TYPES: SeedType[] = [
   S(RP, "Robot Arms & Motion", "IMU", ["Bosch Sensortec", "Xsens", "VectorNav", "Analog Devices"], "inertial measurement unit"),
   // Robot Parts › Cabling & Connectivity
   S(RP, "Cabling & Connectivity", "High-Flex Cables", ["igus", "LAPP", "HELUKABEL", "Murrplastik"], "robot high flex cable"),
-  S(RP, "Cabling & Connectivity", "Encoder Cables", ["igus", "LAPP", "Yaskawa", "Siemens"], "encoder cable"),
+  S(RP, "Cabling & Connectivity", "Encoder Cables", ["igus", "LAPP", "Yaskawa", "Siemens", "FANUC", "ABB", "KUKA"], "encoder cable"),
+  S(RP, "Cabling & Connectivity", "Robot Dress Packs", ["igus", "LAPP", "Murrplastik", "LEONI", "Kabelschlepp"], "robot dress pack hose package"),
   S(RP, "Cabling & Connectivity", "Gateways", ["HMS Anybus", "Moxa", "Siemens", "Hilscher"], "industrial protocol gateway"),
   S(RP, "Cabling & Connectivity", "EtherCAT", ["Beckhoff", "Omron", "Delta Electronics"], "EtherCAT coupler"),
   S(RP, "Cabling & Connectivity", "Profinet", ["Siemens", "Phoenix Contact", "Turck"], "PROFINET switch"),
   // Robot Parts › Power & Batteries
+  S(RP, "Power & Batteries", "Encoder Batteries", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki", "Nachi", "Mitsubishi Electric", "Denso", "Epson", "Staubli"], "robot encoder backup battery"),
   S(RP, "Power & Batteries", "UPS", ["Phoenix Contact", "PULS", "Siemens", "APC"], "DIN rail UPS"),
   S(RP, "Power & Batteries", "Chargers", ["Delta-Q", "Fronius", "Wiferion"], "AGV AMR battery charger"),
   // Robot Parts › Safety & Enclosures
   S(RP, "Safety & Enclosures", "Safety Relays", ["Pilz", "SICK", "Schneider Electric", "Omron", "Phoenix Contact"], "safety relay"),
   S(RP, "Safety & Enclosures", "Emergency Stop Units", ["Schneider Electric", "Siemens", "Eaton", "IDEC", "Pilz"], "emergency stop"),
   S(RP, "Safety & Enclosures", "Safety Fencing", ["Axelent", "Troax", "Satech", "Brühl"], "machine guarding safety fence"),
+  S(RP, "Safety & Enclosures", "Robot Protective Covers", ["Roboworld", "Robosuit", "Robo-Jacket"], "robot protective jacket cover"),
   S(RP, "Safety & Enclosures", "Pedestals", ["Bosch Rexroth", "Item", "Güdel"], "robot pedestal riser"),
   // Devices › Sensors & Vision
   S(DV, "Sensors & Vision", "Proximity Sensors", ["SICK", "Omron", "ifm", "Pepperl+Fuchs", "Balluff", "Turck", "Keyence", "Baumer"], "inductive proximity sensor"),
@@ -83,7 +86,7 @@ const SEED_TYPES: SeedType[] = [
   S(DV, "Sensors & Vision", "Safety Laser Scanners", ["SICK", "Keyence", "Omron", "Pilz", "Leuze", "IDEC"], "safety laser scanner"),
   S(DV, "Sensors & Vision", "Safety Light Curtains", ["SICK", "Keyence", "Omron", "Banner", "Leuze", "Pilz"], "safety light curtain"),
   // Devices › HMIs & Teach Devices
-  S(DV, "HMIs & Teach Devices", "Teach Pendants", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki", "Keba"], "robot teach pendant"),
+  S(DV, "HMIs & Teach Devices", "Teach Pendants", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki", "Keba", "Staubli", "Denso", "Epson", "Mitsubishi Electric", "Nachi", "Comau", "Universal Robots"], "robot teach pendant"),
   S(DV, "HMIs & Teach Devices", "HMI Displays", ["Siemens", "Weintek", "Pro-face", "Beijer Electronics", "Omron", "Delta Electronics", "Allen-Bradley"], "HMI touch panel"),
   S(DV, "HMIs & Teach Devices", "Emergency Stop Buttons", ["Schneider Electric", "IDEC", "Eaton", "Siemens"], "emergency stop push button"),
   S(DV, "HMIs & Teach Devices", "Indicators", ["Patlite", "Werma", "Banner", "Schneider Electric"], "signal tower light"),

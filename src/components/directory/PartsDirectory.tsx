@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Cpu, Loader2, Mail, Package, Search } from "lucide-react";
+import { BookOpen, Cpu, LayoutGrid, Loader2, Mail, Package, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { mailto } from "./directoryTypes";
+import { COMPONENT_GUIDE } from "./robotBom";
 
 export interface Part {
   id: string;
@@ -64,10 +66,13 @@ const enquiry = (p: Part) =>
  */
 export default function PartsDirectory() {
   const { data: parts = [], isLoading } = useQuery({ queryKey: ["directory", "parts"], queryFn: fetchParts, staleTime: 5 * 60 * 1000 });
-  const [q, setQ] = useState("");
+  // A robot's component list links here with ?q=<model> or ?type=<component type>.
+  const [params] = useSearchParams();
+  const [q, setQ] = useState(params.get("q") ?? "");
   const [cat, setCat] = useState(ALL);
   const [sub, setSub] = useState(ALL);
-  const [type, setType] = useState(ALL);
+  const [type, setType] = useState(params.get("type") ?? ALL);
+  const [view, setView] = useState<"parts" | "guide">("parts");
   const [brand, setBrand] = useState(ALL);
   const [visible, setVisible] = useState(PAGE);
   const [open, setOpen] = useState<Part | null>(null);
@@ -95,6 +100,11 @@ export default function PartsDirectory() {
       .sort((a, b) => Number(!!b.thumb_url) - Number(!!a.thumb_url) || a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model));
   }, [inType, brand, q]);
 
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    parts.forEach((p) => m.set(p.component_type, (m.get(p.component_type) ?? 0) + 1));
+    return m;
+  }, [parts]);
   const reset = (level: "cat" | "sub" | "type") => {
     if (level === "cat") setSub(ALL);
     if (level !== "type") setType(ALL);
@@ -109,7 +119,62 @@ export default function PartsDirectory() {
       </p>
     );
 
+  const openType = (t: string) => {
+    setCat(ALL);
+    setSub(ALL);
+    setType(t);
+    setBrand(ALL);
+    setQ(counts.get(t) ? "" : t);
+    setVisible(PAGE);
+    setView("parts");
+  };
+
+  const toggle = (
+    <div className="mb-4 inline-flex rounded-md border border-border p-0.5 text-sm" role="tablist" aria-label="Parts view">
+      {([["parts", "Browse parts", LayoutGrid], ["guide", "Robot components A–Z", BookOpen]] as const).map(([k, label, Icon]) => (
+        <button
+          key={k}
+          role="tab"
+          aria-selected={view === k}
+          onClick={() => setView(k)}
+          className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 ${view === k ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+        >
+          <Icon className="h-4 w-4" /> {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (view === "guide")
+    return (
+      <div>
+        {toggle}
+        <p className="mb-4 max-w-3xl text-sm text-muted-foreground">
+          Every major component inside an industrial robot, cobot, SCARA or delta robot — what it does, where it is used and the signs it
+          needs replacing. Open any robot in the Robots tab to see its own component list.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {COMPONENT_GUIDE.map((g) => {
+            const n = counts.get(g.type) ?? 0;
+            return (
+              <button key={g.type} onClick={() => openType(g.type)} className="rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-primary">
+                <span className="flex items-baseline justify-between gap-2">
+                  <b>{g.type}</b>
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">{n ? `${n} OEM parts` : "Being collected"}</span>
+                </span>
+                <span className="mt-1 block text-sm text-muted-foreground">{g.what}</span>
+                <span className="mt-2 block text-xs"><span className="text-muted-foreground">Used in:</span> {g.where}</span>
+                {g.signs && <span className="mt-0.5 block text-xs"><span className="text-muted-foreground">Replace when:</span> {g.signs}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+
   return (
+    <div>
+    {toggle}
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
       <aside className="space-y-4 rounded-lg border border-border p-4 lg:self-start">
         <h2 className="flex items-center gap-2 font-semibold">
@@ -227,6 +292,7 @@ export default function PartsDirectory() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   );
 }

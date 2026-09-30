@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Mail } from "lucide-react";
 import ItemImage from "./ItemImage";
+import RobotComponents from "./RobotComponents";
 import { enquiryMailto, oemPhotoSearchUrl, type CatalogItem, type CatalogKind, type Photo } from "./directoryTypes";
 
 interface Props {
@@ -73,6 +74,8 @@ const DirectoryItemDialog = ({ kind, item, photo, onOpenChange }: Props) => {
             </div>
           </div>
         )}
+
+        {kind === "robots" && <RobotComponents robot={item} />}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button asChild>
