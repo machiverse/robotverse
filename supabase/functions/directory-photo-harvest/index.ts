@@ -229,7 +229,7 @@ async function verify(item: Item, kind: string, bytes: Uint8Array, mime: string)
           content: [
             {
               type: "text",
-              text: `Is this a REAL CAMERA PHOTOGRAPH of a physical ${what} — for example a used robot photographed in a warehouse, workshop, factory or photo studio (standing on the floor or a pallet, possibly with its controller)? Answer ok=false if it clearly shows a different brand or a clearly different model (e.g. an ABB robot when ${item.b} was asked for), and for CAD or 3D renders, computer-generated catalogue images, illustrations, drawings, collages of several images, screenshots, logos, documents, photos where the robot is tiny or hidden, and other kinds of machines. Reply ONLY JSON: {"ok": true|false, "note": "short reason"}`,
+              text: `Is this a REAL CAMERA PHOTOGRAPH of a physical ${what} — for example a used robot photographed in a warehouse, workshop, factory or photo studio (standing on the floor or a pallet, possibly with its controller)? Answer ok=false if the picture has a watermark, a website address, a seller or dealer logo or name, a price, or any other text or graphics added on top of the photo (the maker's own badge painted on the robot is fine). Answer ok=false if it clearly shows a different brand or a clearly different model (e.g. an ABB robot when ${item.b} was asked for), and for CAD or 3D renders, computer-generated catalogue images, illustrations, drawings, collages of several images, screenshots, logos, documents, photos where the robot is tiny or hidden, and other kinds of machines. Reply ONLY JSON: {"ok": true|false, "note": "short reason"}`,
             },
             { type: "image_url", image_url: { url: dataUrl } },
           ],
@@ -494,16 +494,30 @@ async function runBatch(sb: ReturnType<typeof service>, kind: string, opts: Batc
       const prev = state.get(row.catalog_id);
       const attempts = opts.since && prev && stale(prev) ? 1 : ((prev?.attempts as number) ?? 0) + 1;
       if (prev && stale(prev) && prev.status === "found" && row.status !== "found") {
-        // Redo found nothing better: keep the photo we already have.
-        await sb.from(TABLE).update({ updated_at: new Date().toISOString(), attempts }).eq("catalog_id", row.catalog_id);
-        results.push({ id: row.catalog_id, name: row.name, status: "found", image: null, note: "kept earlier photo" });
-        continue;
+        // Redo found nothing new: keep the earlier photo only if it passes today's check (no watermark or logo).
+        const keep = await recheckStored(sb, kind, item);
+        if (keep) {
+          await sb.from(TABLE).update({ updated_at: new Date().toISOString(), attempts }).eq("catalog_id", row.catalog_id);
+          results.push({ id: row.catalog_id, name: row.name, status: "found", image: null, note: "kept earlier photo" });
+          continue;
+        }
       }
       await sb.from(TABLE).upsert({ ...row, attempts });
       results.push({ id: row.catalog_id, name: row.name, status: row.status, image: (row as any).thumb_url ?? null, note: (row as any).verify_note ?? "" });
     }
   }
   return { processed: results.length, remaining: Math.max(0, wanted.length - results.length), results };
+}
+
+/** Checks the photo already stored for a model against today's rules. */
+async function recheckStored(sb: ReturnType<typeof service>, kind: string, item: Item) {
+  const { data } = await sb.from(TABLE).select("thumb_url").eq("catalog_id", item.id).maybeSingle();
+  if (!data?.thumb_url) return false;
+  const r = await get(data.thumb_url, 15000).catch(() => null);
+  if (!r?.ok) return false;
+  const buf = new Uint8Array(await r.arrayBuffer());
+  const check = await verify(item, kind, buf, r.headers.get("content-type") ?? "image/jpeg");
+  return check.ok;
 }
 
 /** Starts the next link of a background job (returns as soon as that link has accepted it). */

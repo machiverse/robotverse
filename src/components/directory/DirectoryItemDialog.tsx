@@ -46,20 +46,6 @@ const DirectoryItemDialog = ({ kind, item, photo, onOpenChange }: Props) => {
             <div className="h-64 overflow-hidden rounded-lg border border-border">
               <ItemImage key={item.id} kind={kind} item={item} photo={photo} large />
             </div>
-            {photo?.page && (
-              <figcaption className="mt-1 text-[11px] text-muted-foreground">
-                Photo source:{" "}
-                <a href={photo.page} target="_blank" rel="noopener noreferrer nofollow" className="underline hover:text-foreground">
-                  {(() => {
-                    try {
-                      return new URL(photo.page).hostname.replace(/^www\./, "");
-                    } catch {
-                      return "manufacturer";
-                    }
-                  })()}
-                </a>
-              </figcaption>
-            )}
           </figure>
 
           <dl>
