@@ -87,6 +87,7 @@ const VIEWS: [string, string][] = [
 ];
 
 interface Props {
+  initialMode?: "guided" | "custom";
   initialProcess?: string;
   /** Same live line shown as a factory plan ("layout") or with the material path ("flow"). */
   overlay?: "none" | "layout" | "flow";
@@ -117,6 +118,7 @@ const Panel = ({ title, children, className }: { title: string; children: React.
 );
 
 export default function AutomationStudio3D({
+  initialMode = "custom",
   initialProcess,
   overlay = "none",
   initialView = "iso",
@@ -162,7 +164,7 @@ export default function AutomationStudio3D({
   // Robots the user asked for (null = let the planner decide from the solution option).
   const [robotCount, setRobotCount] = useState<number | null>(null);
   const [pickFor, setPickFor] = useState<number | null>(null);
-  const [inputMode, setInputMode] = useState<"blocks" | "words">("blocks");
+  const [inputMode, setInputMode] = useState<"blocks" | "words">(initialMode === "guided" ? "words" : "blocks");
   const [ai, setAi] = useState<{ brief: string; solution: AiSolution | null; loading: boolean; error: string | null }>({
     brief: "", solution: null, loading: false, error: null,
   });
@@ -593,7 +595,7 @@ export default function AutomationStudio3D({
                     onClick={() => setInputMode(m)}
                     className={cn("px-2 py-1.5 font-medium", inputMode === m ? "bg-primary text-primary-foreground" : "hover:bg-muted")}
                   >
-                    {m === "blocks" ? "Tap jobs (easy)" : "Describe in words"}
+                    {m === "blocks" ? "Custom design" : "Guided planning"}
                   </button>
                 ))}
               </div>

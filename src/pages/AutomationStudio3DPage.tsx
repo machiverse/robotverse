@@ -37,7 +37,8 @@ export default function AutomationStudio3DPage() {
         </div>
       </div>
       <AutomationStudio3D
-        key={line.length ? `line-${params.get("line")}` : process || "default"}
+        key={line.length ? `line-${params.get("line")}` : process || `default-${params.get("mode")}`}
+        initialMode={params.get("mode") === "guided" ? "guided" : "custom"}
         initialProcess={process}
         processes={line.length ? line : undefined}
         title={line.length ? "Your automated line" : title ? `Robot cell: ${title}` : "Robot Cell Simulator"}

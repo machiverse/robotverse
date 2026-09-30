@@ -1,3 +1,4 @@
+import StudioStart from "@/features/automation3d/StudioStart";
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { analyzeDescription, processesFromSkills } from "@/utils/processAnalyzer";
 import MediaAnalyzer from "@/features/automation3d/MediaAnalyzer";
@@ -296,7 +297,7 @@ export default function AutomationStudio() {
     return (
       <div className="min-h-screen bg-background">
         <EnhancedHeader />
-        <main>
+        <main><div className="container mx-auto px-4"><StudioStart /></div>
           <section className="border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
             <div className="container mx-auto grid gap-8 px-4 py-12 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
@@ -424,6 +425,7 @@ export default function AutomationStudio() {
           </div>
         </div>
 
+        <StudioStart />
         <Card className="mb-8">
           <CardContent className="space-y-3 p-4">
             <StepIndicator step={step} />
