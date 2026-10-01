@@ -566,7 +566,12 @@ Deno.serve(async (req) => {
       if (bad.length) await sb.from(PARTS).delete().in("id", bad);
       // A search that found nothing gets one more try later.
       await sb.from(SEEDS).update({ status: "pending" }).eq("status", "done").eq("found", 0).lt("attempts", 3);
-      const { data: next } = await sb.from(SEEDS).select("*").eq("status", "pending").order("attempts").order("id").limit(PER_TICK * 3);
+      // Software waits for the AI: while a software search was paused in the last 30 minutes, skip software.
+      const { count: swPaused } = await sb.from(SEEDS).select("id", { count: "exact", head: true })
+        .eq("category", "Software").like("note", "AI unavailable%").gte("updated_at", new Date(Date.now() - 30 * 60_000).toISOString());
+      let pick = sb.from(SEEDS).select("*").eq("status", "pending");
+      if (swPaused) pick = pick.neq("category", "Software");
+      const { data: next } = await pick.order("attempts").order("id").limit(PER_TICK * 3);
       const deadline = Date.now() + 100_000;
       // Claim up to PER_TICK seeds (another run may have taken some), then work on them side by side.
       const mine: Record<string, any>[] = [];
