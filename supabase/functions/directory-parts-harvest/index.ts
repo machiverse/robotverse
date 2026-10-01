@@ -320,6 +320,17 @@ function specsFromText(text: string) {
   return specs;
 }
 
+// Titles that are not industrial parts (household covers, tutorials, books...).
+const NOT_A_PART = /socket|switch plate|wall plate|\bgang\b|weatherproof|iphone|phone case|toy|lego|tutorial|course|how to|guide to|book|ebook|training|news|blog|case study/i;
+// Robot model names ("M-20iD/25", "IRB 5500", "CRX-10iA/L") are the robot, not the part number.
+const ROBOT_MODEL = /^(M|R|LR|CR|CRX|SR|P|ARC Mate|IRB|IRBP|KR|LBR|GP|MH|MA|AR|HC|RS|BX|CX|TX2?|RX|TS2?|UR)[\s-]?\d/i;
+const clean = (t: string) => !/[^\x20-\x7E°±µ]/.test(t);
+function partTitleOk(title: string, model: string, seed: { component_type: string }) {
+  if (NOT_A_PART.test(title) || !clean(model)) return false;
+  if (ROBOT_MODEL.test(model) && !/robot|arm|manipulator/i.test(seed.component_type)) return false;
+  return true;
+}
+
 /** Without AI: products from search-result titles and page titles, each with its own photo. */
 function extractWithoutAI(
   seed: { component_type: string; brand: string; category?: string },
@@ -330,7 +341,7 @@ function extractWithoutAI(
   const pageBy = new Map(pages.filter(Boolean).map((p) => [p!.url, p!]));
   const add = (title: string, img: string | undefined, page: string) => {
     const model = modelFromTitle(title, seed.brand, seed);
-    if (!model) return;
+    if (!model || !partTitleOk(title, model, seed)) return;
     const key = model.toLowerCase().replace(/[^a-z0-9]/g, "");
     if (out.has(key)) {
       const cur = out.get(key)!;
@@ -468,7 +479,9 @@ async function processSeed(
     results.push({ url: ranked[i], page, products });
   }
   // Without AI (or when it found nothing), take products from image-search titles and page titles.
-  if (aiDown || results.every((r) => !r.products.length)) {
+  // Software has no model numbers to read from titles; it waits for the AI.
+  if (seed.category === "Software" && aiDown) throw new Error("AI unavailable (software needs AI)");
+  if (seed.category !== "Software" && (aiDown || results.every((r) => !r.products.length))) {
     const hits: ImageHit[] = [];
     for (const q of [`${seed.brand} ${type?.hint ?? seed.component_type}`, `${seed.brand} ${seed.component_type}`]) {
       if (Date.now() > deadline) break;
@@ -544,6 +557,13 @@ Deno.serve(async (req) => {
 
       // Remove weak rows saved before the model check existed (hardware without a model number).
       await sb.from(PARTS).delete().neq("category", "Software").not("model", "match", "[0-9]");
+      // Remove title-only rows that fail the checks above (software without AI details, robot names, non-parts).
+      const { data: recentRows } = await sb.from(PARTS).select("id, name, model, category, component_type, description, specs").gte("created_at", new Date(Date.now() - 2 * 86400_000).toISOString()).limit(2000);
+      const bad = (recentRows ?? []).filter((r) =>
+        (r.category === "Software" && !r.description && !Object.keys(r.specs ?? {}).length) ||
+        !partTitleOk(r.name, r.model, r),
+      ).map((r) => r.id);
+      if (bad.length) await sb.from(PARTS).delete().in("id", bad);
       // A search that found nothing gets one more try later.
       await sb.from(SEEDS).update({ status: "pending" }).eq("status", "done").eq("found", 0).lt("attempts", 3);
       const { data: next } = await sb.from(SEEDS).select("*").eq("status", "pending").order("attempts").order("id").limit(PER_TICK * 3);
