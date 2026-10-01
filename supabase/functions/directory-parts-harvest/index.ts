@@ -282,6 +282,20 @@ async function imageSearch(q: string): Promise<ImageHit[]> {
   return out;
 }
 
+/** DuckDuckGo result titles and pages (used when image search returns nothing, e.g. when Bing blocks the server). */
+async function titleSearch(q: string): Promise<ImageHit[]> {
+  const d = await get(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`).catch(() => null);
+  if (!d?.ok) return [];
+  const out: ImageHit[] = [];
+  for (const m of (await d.text()).matchAll(/class="result__a"[^>]*href="[^"]*uddg=([^&"]+)[^"]*"[^>]*>([\s\S]*?)<\/a>/g)) {
+    const page = decodeURIComponent(m[1]);
+    const title = decode(m[2].replace(/<[^>]+>/g, "")).trim();
+    if (title && /^https?:/.test(page) && !SKIP_HOSTS.test(hostOf(page))) out.push({ title, img: "", page });
+    if (out.length >= 20) break;
+  }
+  return out;
+}
+
 const SPEC_KEYS = /payload|stroke|force|torque|power|speed|voltage|current|weight|mass|resolution|range|protection|ip rating|interface|ratio|reach|accuracy|repeatability|frequency|capacity|output|input|diameter|temperature|pressure|flow|field of view|working distance|frame rate|pixels|channels|memory|storage/i;
 
 /** Model number written right after the brand in a product title, e.g. "FANUC A06B-0235-B605 AC servo motor" → "A06B-0235-B605". */
@@ -487,6 +501,7 @@ async function processSeed(
       if (Date.now() > deadline) break;
       hits.push(...(await imageSearch(q)));
     }
+    if (!hits.length && Date.now() < deadline) hits.push(...(await titleSearch(`${seed.brand} ${type?.hint ?? seed.component_type}`)));
     const fallback = extractWithoutAI(seed, hits, pages);
     notes.push(`${aiDown ? "no AI" : "AI found none"}: ${fallback.length} from titles`);
     const byPage = new Map<string, (Product & { img?: string; fromTitle?: true })[]>();
@@ -504,7 +519,8 @@ async function processSeed(
       const { data: existing } = await sb.from(PARTS).select("id, image_url").eq("id", id).maybeSingle();
       let img: { image_url: string; thumb_url: string } | null = null;
       // The search photo of this product, else the main image of a page about one or two products.
-      const photo = p.img ?? (page.image && products.length <= 2 ? page.image : null);
+      let photo = p.img || (page.image && products.length <= 2 ? page.image : null);
+      if (!photo && p.fromTitle && !existing?.image_url && Date.now() < deadline) photo = (await readPage(url).catch(() => null))?.image ?? null;
       if (!existing?.image_url && photo && Date.now() < deadline) img = await storeImage(sb, id, photo).catch(() => null);
       const row = {
         id, category: seed.category, subcategory: seed.subcategory, component_type: seed.component_type,
@@ -544,8 +560,16 @@ Deno.serve(async (req) => {
         counts[s] = count ?? 0;
       }
       const { count: parts } = await sb.from(PARTS).select("id", { count: "exact", head: true });
+      const { count: zero } = await sb.from(SEEDS).select("id", { count: "exact", head: true }).eq("status", "done").eq("found", 0);
       const { data: recent } = await sb.from(SEEDS).select("id, status, found, note").neq("status", "pending").order("updated_at", { ascending: false }).limit(8);
-      return json({ seeds: counts, parts: parts ?? 0, recent });
+      return json({ seeds: counts, parts: parts ?? 0, doneWithNothing: zero ?? 0, recent });
+    }
+
+    if (action === "reset_zero") {
+      // One more try for hardware searches that found nothing (e.g. while image search was blocked).
+      const { data } = await sb.from(SEEDS).update({ status: "pending", attempts: 2, note: "retry: found nothing before" })
+        .eq("status", "done").eq("found", 0).neq("category", "Software").select("id");
+      return json({ requeued: data?.length ?? 0 });
     }
 
     if (action === "tick") {
