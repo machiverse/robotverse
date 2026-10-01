@@ -13,9 +13,9 @@ import { listTrainingMailto, mailto } from "@/components/directory/directoryType
 import { TRAINING_LISTINGS } from "@/data/directoryTraining";
 
 const TABS = [
-  { id: "robots", label: "Industrial Robots", short: "Robots", icon: Bot, count: "1,507" },
-  { id: "tools", label: "End-of-Arm Tools", short: "Tools", icon: Wrench, count: "171" },
-  { id: "axes", label: "External Axes", short: "Axes", icon: MoveHorizontal, count: "101" },
+  { id: "robots", label: "Industrial Robots", short: "Robots", icon: Bot, count: "1,545" },
+  { id: "tools", label: "End-of-Arm Tools", short: "Tools", icon: Wrench, count: "216" },
+  { id: "axes", label: "External Axes", short: "Axes", icon: MoveHorizontal, count: "107" },
   { id: "parts", label: "Parts & Components", short: "Parts", icon: Cpu, count: "OEM" },
   { id: "training", label: "Training & Workshops", short: "Training", icon: GraduationCap, count: String(TRAINING_LISTINGS.length) },
 ] as const;
