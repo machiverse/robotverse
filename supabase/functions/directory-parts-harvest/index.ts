@@ -33,7 +33,7 @@ const S = (cat: string, sub: string, type: string, brands: string[], hint?: stri
 const RP = "Robot Parts", DV = "Devices", TL = "Tools", SW = "Software";
 const SEED_TYPES: SeedType[] = [
   // Robot Parts › Controllers & Drives
-  S(RP, "Controllers & Drives", "Main Robot Controller", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki", "Nachi", "Staubli", "Denso", "Epson", "Universal Robots"], "robot controller"),
+  S(RP, "Controllers & Drives", "Main Robot Controller", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki", "Nachi", "Staubli", "Denso", "Epson", "Universal Robots", "Comau", "Mitsubishi Electric", "Omron", "Techman Robot", "Doosan Robotics", "Hyundai Robotics", "Estun", "Efort", "Inovance"], "robot controller"),
   S(RP, "Controllers & Drives", "Servo Drives", ["Yaskawa", "Siemens", "Mitsubishi Electric", "Panasonic", "Delta Electronics", "Beckhoff", "Bosch Rexroth", "Kollmorgen", "Omron", "Schneider Electric", "Allen-Bradley", "Lenze", "FANUC", "ABB", "KUKA"], "servo drive"),
   S(RP, "Controllers & Drives", "PLC Modules", ["Siemens", "Allen-Bradley", "Mitsubishi Electric", "Omron", "Schneider Electric", "Beckhoff", "Delta Electronics", "B&R"], "PLC CPU"),
   S(RP, "Controllers & Drives", "I/O Modules", ["Siemens", "Beckhoff", "WAGO", "Phoenix Contact", "Turck", "Balluff"], "remote I/O module"),
@@ -43,12 +43,12 @@ const SEED_TYPES: SeedType[] = [
   S(RP, "Controllers & Drives", "VFDs", ["ABB", "Siemens", "Danfoss", "Yaskawa", "Mitsubishi Electric", "Delta Electronics", "Schneider Electric"], "variable frequency drive"),
   S(RP, "Controllers & Drives", "Communication Modules", ["HMS Anybus", "Siemens", "Hilscher", "Moxa"], "fieldbus gateway module"),
   // Robot Parts › Motors & Gearboxes
-  S(RP, "Motors & Gearboxes", "Servo Motors", ["Yaskawa", "Siemens", "Mitsubishi Electric", "Panasonic", "FANUC", "Delta Electronics", "Beckhoff", "Kollmorgen", "Bosch Rexroth", "Omron", "Allen-Bradley", "Nidec", "ABB", "KUKA", "Kawasaki", "Nachi"], "AC servo motor"),
+  S(RP, "Motors & Gearboxes", "Servo Motors", ["Yaskawa", "Siemens", "Mitsubishi Electric", "Panasonic", "FANUC", "Delta Electronics", "Beckhoff", "Kollmorgen", "Bosch Rexroth", "Omron", "Allen-Bradley", "Nidec", "ABB", "KUKA", "Kawasaki", "Nachi", "Inovance", "Estun", "Lenze", "Schneider Electric"], "AC servo motor"),
   S(RP, "Motors & Gearboxes", "Planetary Gearboxes", ["Neugart", "WITTENSTEIN alpha", "Apex Dynamics", "SEW-EURODRIVE", "Nidec-Shimpo", "Sumitomo Drive"], "planetary gearbox"),
   S(RP, "Motors & Gearboxes", "Cycloidal Reducers", ["Sumitomo Drive", "Nabtesco", "Spinea"], "cycloidal reducer"),
   S(RP, "Motors & Gearboxes", "RV Reducers", ["Nabtesco"], "RV reducer robot joint"),
   S(RP, "Motors & Gearboxes", "Harmonic Drives", ["Harmonic Drive", "Nidec-Shimpo", "Leaderdrive"], "strain wave gear"),
-  S(RP, "Motors & Gearboxes", "Encoders", ["Heidenhain", "Renishaw", "SICK", "Kübler", "Baumer", "Tamagawa", "Nikon"], "rotary encoder"),
+  S(RP, "Motors & Gearboxes", "Encoders", ["Heidenhain", "Renishaw", "SICK", "Kübler", "Baumer", "Tamagawa", "Nikon", "Hengstler", "Pepperl+Fuchs"], "rotary encoder"),
   S(RP, "Motors & Gearboxes", "Brakes", ["Mayr", "Kendrion", "Ogura"], "servo motor holding brake"),
   S(RP, "Motors & Gearboxes", "Couplings", ["R+W", "KTR", "Ruland", "Mayr"], "servo coupling"),
   S(RP, "Motors & Gearboxes", "Lubrication Systems", ["SKF", "Lincoln", "Bijur Delimon"], "automatic lubrication system"),
@@ -78,7 +78,7 @@ const SEED_TYPES: SeedType[] = [
   S(DV, "Sensors & Vision", "Proximity Sensors", ["SICK", "Omron", "ifm", "Pepperl+Fuchs", "Balluff", "Turck", "Keyence", "Baumer"], "inductive proximity sensor"),
   S(DV, "Sensors & Vision", "Laser Sensors", ["Keyence", "SICK", "Banner", "Micro-Epsilon", "Baumer", "Omron"], "laser displacement sensor"),
   S(DV, "Sensors & Vision", "Force/Torque Sensors", ["ATI Industrial Automation", "Robotiq", "OnRobot", "Schunk", "Kistler", "Bota Systems"], "6-axis force torque sensor robot"),
-  S(DV, "Sensors & Vision", "Cameras", ["Basler", "Cognex", "Keyence", "Teledyne FLIR", "IDS Imaging", "Allied Vision", "Hikrobot", "Omron"], "industrial camera"),
+  S(DV, "Sensors & Vision", "Cameras", ["Basler", "Cognex", "Keyence", "Teledyne FLIR", "IDS Imaging", "Allied Vision", "Hikrobot", "Omron", "Sony", "JAI", "Lucid Vision Labs"], "industrial camera"),
   S(DV, "Sensors & Vision", "2D/3D Vision Systems", ["Cognex", "Keyence", "Photoneo", "Zivid", "SICK", "Mech-Mind", "Pickit", "Ensenso", "Omron", "FANUC"], "3D vision system robot"),
   S(DV, "Sensors & Vision", "Barcode Scanners", ["Cognex", "Keyence", "Zebra", "SICK", "Datalogic", "Honeywell"], "fixed industrial barcode reader"),
   S(DV, "Sensors & Vision", "Lighting Systems", ["CCS", "Smart Vision Lights", "Advanced Illumination", "Effilux"], "machine vision light"),
@@ -86,12 +86,12 @@ const SEED_TYPES: SeedType[] = [
   S(DV, "Sensors & Vision", "Safety Laser Scanners", ["SICK", "Keyence", "Omron", "Pilz", "Leuze", "IDEC"], "safety laser scanner"),
   S(DV, "Sensors & Vision", "Safety Light Curtains", ["SICK", "Keyence", "Omron", "Banner", "Leuze", "Pilz"], "safety light curtain"),
   // Devices › HMIs & Teach Devices
-  S(DV, "HMIs & Teach Devices", "Teach Pendants", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki", "Keba", "Staubli", "Denso", "Epson", "Mitsubishi Electric", "Nachi", "Comau", "Universal Robots"], "robot teach pendant"),
+  S(DV, "HMIs & Teach Devices", "Teach Pendants", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki", "Keba", "Staubli", "Denso", "Epson", "Mitsubishi Electric", "Nachi", "Comau", "Universal Robots", "Hyundai Robotics", "Estun", "Doosan Robotics"], "robot teach pendant"),
   S(DV, "HMIs & Teach Devices", "HMI Displays", ["Siemens", "Weintek", "Pro-face", "Beijer Electronics", "Omron", "Delta Electronics", "Allen-Bradley"], "HMI touch panel"),
   S(DV, "HMIs & Teach Devices", "Emergency Stop Buttons", ["Schneider Electric", "IDEC", "Eaton", "Siemens"], "emergency stop push button"),
   S(DV, "HMIs & Teach Devices", "Indicators", ["Patlite", "Werma", "Banner", "Schneider Electric"], "signal tower light"),
   // Tools › End Effectors
-  S(TL, "End Effectors", "Mechanical Grippers", ["Schunk", "Zimmer Group", "Robotiq", "OnRobot", "Festo", "SMC", "Destaco", "Gimatic", "Weiss Robotics"], "electric parallel gripper"),
+  S(TL, "End Effectors", "Mechanical Grippers", ["Schunk", "Zimmer Group", "Robotiq", "OnRobot", "Festo", "SMC", "Destaco", "Gimatic", "Weiss Robotics", "Piab", "Bastian Solutions", "IAI"], "electric parallel gripper"),
   S(TL, "End Effectors", "Vacuum Grippers", ["Schmalz", "Piab", "OnRobot", "Robotiq", "SMC", "Festo", "Schunk"], "vacuum gripper"),
   S(TL, "End Effectors", "Vacuum Cups", ["Schmalz", "Piab", "SMC", "Festo"], "suction cup"),
   S(TL, "End Effectors", "Tool Changers", ["ATI Industrial Automation", "Staubli", "Schunk", "Zimmer Group", "OnRobot", "Destaco"], "robotic tool changer"),
@@ -126,6 +126,43 @@ const SEED_TYPES: SeedType[] = [
   S(SW, "Management & System", "Fleet Management Software", ["MiR", "OTTO Motors", "Locus Robotics", "Formant", "InOrbit"], "robot fleet management"),
   S(SW, "Management & System", "Monitoring & Diagnostics Tools", ["FANUC ZDT", "ABB Ability", "KUKA iiQoT", "Yaskawa Cockpit", "Siemens MindSphere"], "robot condition monitoring"),
   S(SW, "Management & System", "Cloud Platforms", ["Siemens Insights Hub", "AWS IoT", "Microsoft Azure IoT", "PTC ThingWorx"], "industrial IoT platform"),
+  // Remaining Spare Parts menu types (every component type in the menu is searched)
+  S(RP, "Controllers & Drives", "Amplifiers", ["FANUC", "Yaskawa", "Mitsubishi Electric", "Panasonic", "Kawasaki", "ABB", "KUKA", "Nachi", "Siemens"], "servo amplifier"),
+  S(RP, "Controllers & Drives", "CPU Boards", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki", "Mitsubishi Electric", "Siemens"], "robot controller CPU board"),
+  S(RP, "Controllers & Drives", "Memory Cards", ["FANUC", "Siemens", "Mitsubishi Electric", "ABB", "KUKA", "Yaskawa"], "robot controller memory card compact flash"),
+  S(RP, "Motors & Gearboxes", "Gears", ["KHK", "Boston Gear", "Nabtesco", "Harmonic Drive", "Sumitomo Drive", "SEW-EURODRIVE"], "precision gear"),
+  S(RP, "Robot Arms & Motion", "Arm Segments", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki"], "robot arm casting spare"),
+  S(RP, "Robot Arms & Motion", "Wrist Assemblies", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki", "Nachi"], "robot wrist unit assembly"),
+  S(RP, "Robot Arms & Motion", "Joint Components", ["Harmonic Drive", "Nabtesco", "THK", "SKF", "Kollmorgen", "Leaderdrive"], "robot joint module"),
+  S(RP, "Robot Arms & Motion", "Wheels", ["Blickle", "Colson", "Tente", "Rhombus", "AndyMark"], "AGV AMR drive wheel"),
+  S(RP, "Robot Arms & Motion", "Shock Absorbers", ["ACE Controls", "Enidine", "SMC", "Festo", "Weforma"], "industrial shock absorber"),
+  S(RP, "Robot Arms & Motion", "Odometry Sensors", ["SICK", "Kübler", "Baumer", "Pepperl+Fuchs", "Leuze"], "AGV odometry wheel encoder"),
+  S(RP, "Cabling & Connectivity", "Power Cables", ["igus", "LAPP", "HELUKABEL", "FANUC", "ABB", "KUKA", "Yaskawa"], "robot motor power cable"),
+  S(RP, "Cabling & Connectivity", "Teach Pendant Cables", ["FANUC", "ABB", "KUKA", "Yaskawa", "Kawasaki"], "teach pendant cable"),
+  S(RP, "Cabling & Connectivity", "Modbus", ["Schneider Electric", "Moxa", "HMS Anybus", "Advantech", "Red Lion"], "Modbus gateway converter"),
+  S(RP, "Cabling & Connectivity", "Network Cards", ["Hilscher", "HMS Anybus", "Siemens", "Beckhoff", "Molex"], "industrial fieldbus network card"),
+  S(RP, "Power & Batteries", "Li-Ion Batteries", ["Panasonic", "Samsung SDI", "LG Energy Solution", "Saft", "EVE Energy"], "lithium ion battery pack industrial"),
+  S(RP, "Power & Batteries", "LiPo Batteries", ["Tattu", "Gens ace", "Turnigy", "Grepow"], "LiPo battery pack robot"),
+  S(RP, "Power & Batteries", "NiMH Batteries", ["Panasonic", "GP Batteries", "Saft", "Varta"], "NiMH battery pack"),
+  S(RP, "Power & Batteries", "BBU", ["FANUC", "Siemens", "Phoenix Contact", "PULS", "ABB"], "battery backup unit"),
+  S(RP, "Power & Batteries", "BMS", ["Texas Instruments", "Orion BMS", "REC BMS", "Daly", "Analog Devices"], "battery management system"),
+  S(RP, "Power & Batteries", "Power Distribution Boards", ["Phoenix Contact", "Weidmüller", "WAGO", "Eaton", "Rittal"], "power distribution block board"),
+  S(RP, "Safety & Enclosures", "Guards", ["Axelent", "Troax", "Satech", "Rite-Hite", "Brühl"], "robot cell guard panel"),
+  S(RP, "Safety & Enclosures", "Covers", ["Roboworld", "Robosuit", "FANUC", "ABB"], "robot cover jacket"),
+  S(RP, "Safety & Enclosures", "Mounts", ["Bosch Rexroth", "item", "Güdel", "MiniTec"], "robot mounting plate base"),
+  S(RP, "Safety & Enclosures", "Frames", ["item", "Bosch Rexroth", "MiniTec", "80/20"], "aluminium profile machine frame"),
+  S(DV, "HMIs & Teach Devices", "Operator Panels", ["Siemens", "Schneider Electric", "Pro-face", "Omron", "Allen-Bradley", "Weintek"], "operator panel"),
+  S(DV, "HMIs & Teach Devices", "Touchscreens", ["Siemens", "Weintek", "Beijer Electronics", "Advantech", "Pro-face"], "industrial touchscreen panel PC"),
+  S(DV, "HMIs & Teach Devices", "Keypads", ["Schneider Electric", "Siemens", "EAO", "APEM", "IDEC"], "industrial keypad"),
+  S(TL, "Welding Tools", "Nozzles", ["Abicor Binzel", "Tregaskiss", "Fronius", "Lincoln Electric", "TBi Industries"], "welding gas nozzle robotic"),
+  S(TL, "Processing Tools", "Drilling Tools", ["ATI Industrial Automation", "Kessler", "HSD", "Desoutter", "Sandvik Coromant"], "robotic drilling spindle"),
+  S(TL, "Maintenance Tools", "Maintenance Tool Kits", ["FANUC", "ABB", "KUKA", "Wera", "Wiha", "Würth"], "robot maintenance tool kit"),
+  S(TL, "Maintenance Tools", "Warning Labels", ["Brady", "3M", "Accuform", "Phoenix Contact"], "robot safety warning label"),
+  S(SW, "Programming & Simulation", "Robot Programming Licenses", ["FANUC", "ABB", "KUKA", "Yaskawa", "RoboDK"], "robot programming software license"),
+  S(SW, "Vision & Analytics", "Image Analysis Software", ["MVTec HALCON", "Cognex VisionPro", "Matrox Imaging", "Adaptive Vision", "Basler pylon"], "image analysis software"),
+  S(SW, "Management & System", "Firmware Updates", ["FANUC", "ABB", "KUKA", "Yaskawa", "Universal Robots"], "robot controller firmware update"),
+  S(SW, "Management & System", "Configuration Tools", ["Siemens TIA Portal", "Rockwell Studio 5000", "Beckhoff TwinCAT", "CODESYS", "Omron Sysmac Studio"], "automation configuration software"),
+  S(SW, "Management & System", "Licenses", ["Siemens", "Rockwell Automation", "Beckhoff", "CODESYS", "ABB"], "industrial automation software license"),
 ];
 
 const slug = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -224,6 +261,97 @@ async function readPage(url: string) {
   }
   if (image && /logo|icon|favicon|placeholder|default/i.test(image)) image = null;
   return { url, title, text, image };
+}
+
+/** Bing image results: product photo, its page and title — the photos and model numbers work without AI. */
+type ImageHit = { title: string; img: string; page: string };
+async function imageSearch(q: string): Promise<ImageHit[]> {
+  const out: ImageHit[] = [];
+  const bi = await get(`https://www.bing.com/images/search?q=${encodeURIComponent(q)}&form=HDRSC2&first=1`).catch(() => null);
+  if (!bi?.ok) return out;
+  for (const m of (await bi.text()).matchAll(/class="iusc"[^>]*\sm="([^"]+)"/g)) {
+    try {
+      const meta = JSON.parse(decode(m[1]));
+      const title = String(meta.t ?? "").replace(/[]/g, "").trim();
+      if (meta.murl && meta.purl && title && !SKIP_HOSTS.test(hostOf(meta.purl))) out.push({ title, img: meta.murl, page: meta.purl });
+    } catch {
+      /* skip */
+    }
+    if (out.length >= 30) break;
+  }
+  return out;
+}
+
+const SPEC_KEYS = /payload|stroke|force|torque|power|speed|voltage|current|weight|mass|resolution|range|protection|ip rating|interface|ratio|reach|accuracy|repeatability|frequency|capacity|output|input|diameter|temperature|pressure|flow|field of view|working distance|frame rate|pixels|channels|memory|storage/i;
+
+/** Model number written right after the brand in a product title, e.g. "FANUC A06B-0235-B605 AC servo motor" → "A06B-0235-B605". */
+function modelFromTitle(title: string, brand: string, seed: { component_type: string; category?: string }) {
+  const names = [brand, brand.split(/\s+/)[0]].filter((b, i, a) => b.length > 1 && a.indexOf(b) === i);
+  for (const b of names) {
+    const i = title.toLowerCase().indexOf(b.toLowerCase());
+    if (i < 0) continue;
+    const rest = title.slice(i + b.length).replace(/^[\s:®™\-–|,]+/, "");
+    const words = rest.split(/\s+/);
+    const pick: string[] = [];
+    for (const w of words) {
+      const t = w.replace(/[,;:()|]+$/g, "");
+      if (!t || /^[|–\-]$/.test(t)) break;
+      // Stop at ordinary words ("servo", "motor", "for") once something model-like is collected.
+      // First token: has a digit or looks like a name ("FlexPendant", "EGP"); later tokens need a digit ("40-N-N-B").
+      const modelish = /\d/.test(t) || (pick.length === 0 && /^[A-Z][A-Za-z]*[A-Z0-9]/.test(t));
+      if (!modelish) break;
+      pick.push(t);
+      if (pick.length >= 3) break;
+    }
+    const model = pick.join(" ").replace(/[.,]+$/, "");
+    if (model && model.length <= 40 && goodModel(model, seed) && !/^(19|20)\d\d$/.test(model) && !/^\d+(\.\d+)?\s?(v|w|kw|mm|kg|nm|a|hz)$/i.test(model)) return model;
+  }
+  return null;
+}
+
+/** "Key: value" spec lines written on the page (only common technical keys, values with a number). */
+function specsFromText(text: string) {
+  const specs: Record<string, string> = {};
+  for (const line of text.split("\n")) {
+    const m = line.trim().match(/^([A-Za-z][A-Za-z ()/\-.]{2,40}?)\s*[:\t]\s*([^\n]{1,60})$/);
+    if (m && SPEC_KEYS.test(m[1]) && /\d/.test(m[2]) && !specs[m[1].trim()]) specs[m[1].trim()] = m[2].trim();
+    if (Object.keys(specs).length >= 10) break;
+  }
+  return specs;
+}
+
+/** Without AI: products from search-result titles and page titles, each with its own photo. */
+function extractWithoutAI(
+  seed: { component_type: string; brand: string; category?: string },
+  hits: ImageHit[],
+  pages: ({ url: string; title: string; text: string; image: string | null } | null)[],
+) {
+  const out = new Map<string, Product & { img?: string; page: string; fromTitle: true }>();
+  const pageBy = new Map(pages.filter(Boolean).map((p) => [p!.url, p!]));
+  const add = (title: string, img: string | undefined, page: string) => {
+    const model = modelFromTitle(title, seed.brand, seed);
+    if (!model) return;
+    const key = model.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (out.has(key)) {
+      const cur = out.get(key)!;
+      if (!cur.img && img) cur.img = img;
+      return;
+    }
+    const pg = pageBy.get(page);
+    const desc = pg?.text.split("\n").find((l) => l.length > 60 && l.length < 300 && l.toLowerCase().includes(model.toLowerCase()));
+    out.set(key, {
+      model,
+      name: `${seed.brand} ${model} ${seed.component_type.replace(/s$/, "")}`.replace(/\s+/g, " "),
+      description: desc?.trim(),
+      specs: pg ? specsFromText(pg.text) : {},
+      img,
+      page,
+      fromTitle: true,
+    });
+  };
+  for (const h of hits) add(h.title, h.img, h.page);
+  for (const p of pages) if (p) add(p.title, p.image ?? undefined, p.url);
+  return [...out.values()].slice(0, 12);
 }
 
 /* --------------------------------------------------------------- AI extraction */
@@ -325,23 +453,46 @@ async function processSeed(
   const notes: string[] = [`${ranked.length} pages`];
   // Download all pages at once, then ask the AI about them one at a time (it rate-limits bursts).
   const pages = await Promise.all(ranked.map((url) => readPage(url).catch(() => null)));
-  const results: { url: string; page: Awaited<ReturnType<typeof readPage>>; products: Product[] }[] = [];
+  const results: { url: string; page: Awaited<ReturnType<typeof readPage>>; products: (Product & { img?: string; fromTitle?: true })[] }[] = [];
+  let aiDown = false;
   for (let i = 0; i < ranked.length; i++) {
     const page = pages[i];
-    results.push({ url: ranked[i], page, products: page && Date.now() < deadline ? await extract(seed, page) : [] });
+    let products: Product[] = [];
+    if (page && !aiDown && Date.now() < deadline) {
+      try {
+        products = await extract(seed, page);
+      } catch {
+        aiDown = true; // no AI credits / rate limited: use the search titles and photos instead
+      }
+    }
+    results.push({ url: ranked[i], page, products });
+  }
+  // Without AI (or when it found nothing), take products from image-search titles and page titles.
+  if (aiDown || results.every((r) => !r.products.length)) {
+    const hits: ImageHit[] = [];
+    for (const q of [`${seed.brand} ${type?.hint ?? seed.component_type}`, `${seed.brand} ${seed.component_type}`]) {
+      if (Date.now() > deadline) break;
+      hits.push(...(await imageSearch(q)));
+    }
+    const fallback = extractWithoutAI(seed, hits, pages);
+    notes.push(`${aiDown ? "no AI" : "AI found none"}: ${fallback.length} from titles`);
+    const byPage = new Map<string, (Product & { img?: string; fromTitle?: true })[]>();
+    for (const f of fallback) byPage.set(f.page, [...(byPage.get(f.page) ?? []), f]);
+    for (const [url, products] of byPage) results.push({ url, page: pages[ranked.indexOf(url)] ?? { url, title: "", text: "", image: null }, products });
   }
   for (const { url, page, products } of results) {
     if (!page) {
       notes.push(`unreadable ${hostOf(url)}`);
       continue;
     }
-    notes.push(`${hostOf(url)}: ${products.length}`);
+    if (products.length) notes.push(`${hostOf(url)}: ${products.length}`);
     for (const p of products) {
       const id = `RVPart-${slug(`${seed.brand}-${p.model}`)}`.slice(0, 120);
       const { data: existing } = await sb.from(PARTS).select("id, image_url").eq("id", id).maybeSingle();
       let img: { image_url: string; thumb_url: string } | null = null;
-      // A page about one or two products: its main image shows that product.
-      if (!existing?.image_url && page.image && products.length <= 2 && Date.now() < deadline) img = await storeImage(sb, id, page.image).catch(() => null);
+      // The search photo of this product, else the main image of a page about one or two products.
+      const photo = p.img ?? (page.image && products.length <= 2 ? page.image : null);
+      if (!existing?.image_url && photo && Date.now() < deadline) img = await storeImage(sb, id, photo).catch(() => null);
       const row = {
         id, category: seed.category, subcategory: seed.subcategory, component_type: seed.component_type,
         brand: seed.brand, model: p.model.trim(), name: (p.name || `${seed.brand} ${p.model}`).trim().slice(0, 200),
@@ -351,8 +502,10 @@ async function processSeed(
         source_url: url, updated_at: new Date().toISOString(), ...(img ?? {}),
       };
       if (existing) {
-        const { image_url: _i, ...rest } = row as Record<string, unknown>;
-        await sb.from(PARTS).update(img ? row : rest).eq("id", id);
+        // AI details replace earlier ones; a title-only match never overwrites saved details, it only adds a missing photo.
+        const { image_url: _i, thumb_url: _t, ...rest } = row as Record<string, unknown>;
+        if (!p.fromTitle) await sb.from(PARTS).update(img ? row : rest).eq("id", id);
+        else if (img) await sb.from(PARTS).update(img).eq("id", id);
       } else {
         await sb.from(PARTS).insert(row);
         found++;
