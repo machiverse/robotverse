@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } fro
 import { analyzeDescription, processesFromSkills } from "@/utils/processAnalyzer";
 import MediaAnalyzer from "@/features/automation3d/MediaAnalyzer";
 import type { MediaAnalysis } from "@/features/automation3d/mediaAnalysis";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import StudioChooser from "@/components/automation/StudioChooser";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -185,7 +186,13 @@ const previewVisualStations: VisualStation[] = PREVIEW_STATIONS.map((label, inde
 
 /* ---------------------------------- page ---------------------------------- */
 
+/** Entry: choose "build your own cell" or "describe your job" (?mode=ai). */
 export default function AutomationStudio() {
+  const [params] = useSearchParams();
+  return params.get("mode") === "ai" ? <AutomationStudioAI /> : <StudioChooser />;
+}
+
+function AutomationStudioAI() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -309,7 +316,7 @@ export default function AutomationStudio() {
                   layout, ROI, and a live 3D robot cell that runs your process before you buy anything.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Button size="lg" onClick={() => navigate("/auth?redirect=/automation-studio")}>
+                  <Button size="lg" onClick={() => navigate("/auth?redirect=" + encodeURIComponent("/automation-studio?mode=ai"))}>
                     Sign In to Analyze My Process <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   <Button size="lg" variant="outline" asChild>
@@ -384,7 +391,7 @@ export default function AutomationStudio() {
             </Card>
 
             <div className="mt-10 text-center">
-              <Button size="lg" onClick={() => navigate("/auth?redirect=/automation-studio")}>
+              <Button size="lg" onClick={() => navigate("/auth?redirect=" + encodeURIComponent("/automation-studio?mode=ai"))}>
                 Sign In to Use Automation Studio
               </Button>
             </div>

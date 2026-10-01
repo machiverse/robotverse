@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /** Common robot jobs, named exactly like the studio's process templates. */
-const BLOCKS: { name: string; label: string; group: string }[] = [
+export const BLOCKS: { name: string; label: string; group: string }[] = [
   { name: "Loading & Unloading", label: "Pick & place / load", group: "Handling" },
   { name: "Bin Picking", label: "Bin picking", group: "Handling" },
   { name: "Material Transport", label: "Transfer / transport", group: "Handling" },

@@ -27,7 +27,7 @@ const oemMatch = (t: DirTool, reason: string): Match => ({
   source: "oem", kind: "tool", id: t.id, name: t.n, brand: t.b, model: t.m, type: t.c,
   file: { img: t.img, th: t.th }, href: `/directory?tab=tools&q=${encodeURIComponent(t.n)}`, score: 1, reasons: [reason],
 });
-const slotOf = (m: Match): Slot => {
+export const slotOf = (m: Match): Slot => {
   if (m.kind === "robot") return "robot";
   const t = `${m.type ?? ""} ${m.name}`;
   const n = m.name;
