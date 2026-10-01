@@ -422,6 +422,18 @@ const Robots = () => {
     return `${symbol}${price.toLocaleString()}`;
   };
 
+  const toggleCompare = (robot: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!user) {
+      toast({ title: "Sign in required", description: "Please sign in to compare robots", variant: "default" });
+      navigate("/auth");
+      return;
+    }
+    if (isSelected(robot.id)) removeRobot(robot.id);
+    else addRobot(robot);
+  };
+
   const handleAddToWatchlist = async (robot: any, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -1093,24 +1105,7 @@ const Robots = () => {
                                 <Button
                                   variant={isSelected(robot.id) ? "default" : "outline"}
                                   size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    if (!user) {
-                                      toast({
-                                        title: "Sign in required",
-                                        description: "Please sign in to compare robots",
-                                        variant: "default",
-                                      });
-                                      navigate("/auth");
-                                      return;
-                                    }
-                                    if (isSelected(robot.id)) {
-                                      removeRobot(robot.id);
-                                    } else {
-                                      addRobot(robot);
-                                    }
-                                  }}
+                                  onClick={(e) => toggleCompare(robot, e)}
                                 >
                                   {isSelected(robot.id) ? (
                                     <Check className="w-3 h-3 mr-1" />
@@ -1243,8 +1238,8 @@ const Robots = () => {
                                 <ViewCountDisplay targetType="robots" targetId={robot.id} />
                               </div>
                             </div>
-                            <div className="flex items-center justify-between mt-3">
-                              <div className="flex gap-2">
+                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex flex-wrap gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -1256,6 +1251,14 @@ const Robots = () => {
                                 >
                                   <Eye className="w-3 h-3 mr-1" />
                                   Details
+                                </Button>
+                                <Button
+                                  variant={isSelected(robot.id) ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={(e) => toggleCompare(robot, e)}
+                                >
+                                  {isSelected(robot.id) ? <Check className="w-3 h-3 mr-1" /> : <Scale className="w-3 h-3 mr-1" />}
+                                  {isSelected(robot.id) ? "Selected" : "Compare"}
                                 </Button>
                                 <Button
                                   variant="outline"

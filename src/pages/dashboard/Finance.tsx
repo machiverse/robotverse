@@ -6,6 +6,8 @@ import { CreditCard, Plus, Eye, MoreHorizontal, TrendingUp, DollarSign } from "l
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import LoanProductForm from "@/components/forms/LoanProductForm";
 
 const Finance = () => {
   const { user } = useAuth();
@@ -18,6 +20,7 @@ const Finance = () => {
     totalDisbursed: 0
   });
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -96,14 +99,14 @@ const Finance = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Finance Management</h1>
           <p className="text-muted-foreground">
             Manage loan products and track applications
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Loan Product
         </Button>
@@ -194,7 +197,7 @@ const Finance = () => {
           ) : (
             <div className="space-y-4">
               {loanProducts.map((product) => (
-                <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={product.id} className="flex flex-wrap items-center justify-between gap-3 p-4 border rounded-lg">
                   <div className="flex items-start gap-3">
                     <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
@@ -271,7 +274,7 @@ const Finance = () => {
           ) : (
             <div className="space-y-4">
               {applications.map((application) => (
-                <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={application.id} className="flex flex-wrap items-center justify-between gap-3 p-4 border rounded-lg">
                   <div className="flex items-start gap-3">
                     <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
@@ -322,6 +325,20 @@ const Finance = () => {
           )}
         </CardContent>
       </Card>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Loan Product</DialogTitle>
+          </DialogHeader>
+          <LoanProductForm
+            onSuccess={() => {
+              setShowForm(false);
+              fetchLoanProducts();
+            }}
+            onCancel={() => setShowForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

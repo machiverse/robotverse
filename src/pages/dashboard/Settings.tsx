@@ -12,6 +12,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PasswordUpdateModal } from "@/components/PasswordUpdateModal";
+import { mailto } from "@/components/directory/directoryTypes";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -407,16 +412,44 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-0.5">
                 <Label>Delete Account</Label>
                 <p className="text-sm text-muted-foreground">
                   Permanently delete your account and all data
                 </p>
               </div>
-              <Button variant="destructive" size="sm">
-                Delete Account
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    Delete Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete your RobotVerse account?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      We will send a deletion request for {user?.email ?? "your account"} to RobotVerse support. Our team permanently
+                      removes your account, listings and data and confirms by email.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={() => {
+                        window.location.href = mailto(
+                          "Account deletion request",
+                          `Hello RobotVerse team,\n\nPlease permanently delete my RobotVerse account and all my data.\n\nAccount email: ${user?.email ?? ""}\nUser ID: ${user?.id ?? ""}\n\nThank you.`,
+                        );
+                        toast({ title: "Opening your email app", description: "Send the email to confirm your account deletion request." });
+                      }}
+                    >
+                      Request deletion
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </CardContent>
         </Card>

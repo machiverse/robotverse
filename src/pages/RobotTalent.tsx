@@ -165,7 +165,7 @@ const RobotTalent = () => {
       <main className="container mx-auto px-4 py-6">
         {/* Tabs + Context Actions */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-1 bg-card border border-border p-1 rounded-xl w-fit">
+          <div className="flex items-center gap-1 bg-card border border-border p-1 rounded-xl w-fit max-w-full overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.key}

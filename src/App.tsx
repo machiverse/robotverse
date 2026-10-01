@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RobotComparisonProvider } from "@/contexts/RobotComparisonContext";
+import CompareTray from "@/components/CompareTray";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import { useCanonicalHead } from "@/hooks/useCanonicalHead";
@@ -162,6 +163,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <PageTracker />
+            <CompareTray />
             <HeadSync />
             <AIAssistantProvider>
               <GlobalEmailVerificationHandler />

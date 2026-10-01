@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export interface ComparisonRobot {
@@ -34,12 +34,30 @@ interface RobotComparisonContextType {
 }
 
 const MAX_ROBOTS = 3;
+// The selection is kept on the device so it survives reloads and app restarts (mobile / APK).
+const STORAGE_KEY = 'rv-compare-robots';
+const loadSaved = (): ComparisonRobot[] => {
+  try {
+    const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    return Array.isArray(v) ? v.filter((r) => r && typeof r.id === 'string').slice(0, MAX_ROBOTS) : [];
+  } catch {
+    return [];
+  }
+};
 
 const RobotComparisonContext = createContext<RobotComparisonContextType | undefined>(undefined);
 
 export function RobotComparisonProvider({ children }: { children: ReactNode }) {
-  const [selectedRobots, setSelectedRobots] = useState<ComparisonRobot[]>([]);
+  const [selectedRobots, setSelectedRobots] = useState<ComparisonRobot[]>(loadSaved);
   const { toast } = useToast();
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedRobots));
+    } catch {
+      /* storage unavailable (private mode) */
+    }
+  }, [selectedRobots]);
 
   const addRobot = useCallback((robot: ComparisonRobot): boolean => {
     // Check if already selected

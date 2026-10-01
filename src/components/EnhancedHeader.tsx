@@ -1362,8 +1362,20 @@ const EnhancedHeader = () => {
                 <Heart className="h-5 w-5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Wishlist</span>
               </Link>
-              <button className="flex flex-col items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate(user ? "/robots/compare" : "/auth");
+                }}
+                className="relative flex flex-col items-center gap-1"
+              >
                 <Scale className="h-5 w-5 text-muted-foreground" />
+                {comparisonCount > 0 && (
+                  <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                    {comparisonCount}
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground">Compare</span>
               </button>
               {user && (

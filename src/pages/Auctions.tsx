@@ -463,7 +463,7 @@ const Auctions: React.FC = () => {
       <main className="container mx-auto px-4 py-8">
         <Tabs value={tab} onValueChange={setTab}>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <TabsList className="bg-card border border-border">
+            <TabsList className="h-auto flex-wrap justify-start bg-card border border-border">
               <TabsTrigger value="live" className="gap-1.5">
                 <Zap className="w-3.5 h-3.5" />
                 Live

@@ -320,7 +320,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             {isCommissionSeller ? (
@@ -338,7 +338,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
             }
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button
             variant="outline"
             size="sm"
