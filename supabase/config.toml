@@ -121,3 +121,6 @@ verify_jwt = false
 
 [functions.directory-parts-harvest]
 verify_jwt = false
+
+[functions.directory-catalog-sync]
+verify_jwt = false
