@@ -25,6 +25,32 @@ Deno.serve(async (req) => {
         }),
       });
     }
+    if (action === "missing") {
+      // Every library item: {MT:"R"|"E"|..., N, F, I, IS, B, M, T, A, R, P, W, E, AP:[...]}
+      const body = await (await fetch(BUNDLE, { headers: { "User-Agent": "Mozilla/5.0" } })).text();
+      const items: Record<string, unknown>[] = [];
+      for (const m of body.matchAll(/\{MT:"([A-Z]+)",([^{}]*?)\}/g)) {
+        const o: Record<string, unknown> = { MT: m[1] };
+        for (const f of m[2].matchAll(/(\w+):("(?:[^"\\]|\\.)*"|\[[^\]]*\]|-?[\d.]+(?:e-?\d+)?|!0|!1)/g)) {
+          const v = f[2];
+          o[f[1]] = v.startsWith('"') ? JSON.parse(v) : v.startsWith("[") ? JSON.parse(v) : v === "!0" ? true : v === "!1" ? false : Number(v);
+        }
+        items.push(o);
+      }
+      const types: Record<string, number> = {};
+      items.forEach((o) => (types[o.MT as string] = (types[o.MT as string] ?? 0) + 1));
+      const mt = q.get("mt");
+      if (!mt) return json({ total: items.length, types, sample: Object.fromEntries(Object.keys(types).map((t) => [t, items.find((o) => o.MT === t)])) });
+      // Compare with what the site already lists (by image name and by brand + model).
+      const kind = q.get("kind") ?? "robots";
+      const have: { b: string; m: string; img?: string }[] = await (await fetch(`https://www.robotverse.in/directory/${kind}.json`)).json().catch(() => []);
+      const key = (b: unknown, m: unknown) => `${b} ${m}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const imgs = new Set(have.map((h) => h.img).filter(Boolean));
+      const keys = new Set(have.map((h) => key(h.b, h.m)));
+      const missing = items.filter((o) => o.MT === mt && !imgs.has(o.I as string) && !keys.has(key(o.B, o.M)));
+      const off = Number(q.get("offset") ?? 0), lim = Math.min(Number(q.get("limit") ?? 400), 800);
+      return json({ have: have.length, inLibrary: items.filter((o) => o.MT === mt).length, missing: missing.length, rows: missing.slice(off, off + lim).map(({ F: _f, N: _n, ...r }) => r) });
+    }
     return json({ error: "unknown action" }, 400);
   } catch (e) {
     return json({ error: String(e) }, 500);
