@@ -54,6 +54,8 @@ export interface AiSolution {
   questions: string[];
 }
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 const cache = new Map<string, Promise<AiSolution>>();
 const key = (brief: string, industry?: string | null) => `${industry ?? ""}::${brief.trim().replace(/\s+/g, " ").toLowerCase()}`;
 
@@ -63,19 +65,24 @@ export function requestSolution(brief: string, industry?: string | null): Promis
   const hit = cache.get(k);
   if (hit) return hit;
   const p = (async () => {
-    const { data, error } = await supabase.functions.invoke("automation-solution", {
-      body: { brief: brief.trim(), industry: industry ?? undefined, skills: SKILL_LIBRARY.map((s) => s.template.name) },
-    });
-    if (error) {
-      // Prefer the function's own reason over the client's generic status text.
-      let reason = "";
-      try {
-        const ctx = (error as { context?: Response }).context;
-        reason = ctx ? ((await ctx.json())?.error ?? "") : "";
-      } catch {
-        /* body was not JSON */
-      }
-      throw new Error(reason || "the AI service is not reachable");
+    // Plain fetch: an AI refusal (e.g. 402 out of credits) is an expected answer the
+    // page handles by showing the built-in design, not an unhandled client error.
+    let data: { error?: string } | null = null;
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/automation-solution`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${s.session?.access_token ?? SUPABASE_KEY}`,
+        },
+        body: JSON.stringify({ brief: brief.trim(), industry: industry ?? undefined, skills: SKILL_LIBRARY.map((x) => x.template.name) }),
+      });
+      data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `the AI service answered ${res.status}`);
+    } catch (e) {
+      throw new Error(e instanceof Error && e.message ? e.message : "the AI service is not reachable");
     }
     if (!data || data.error) throw new Error(data?.error || "No solution returned.");
     return normalize(data);
