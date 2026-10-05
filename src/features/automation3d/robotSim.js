@@ -2279,6 +2279,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         stepIndex: c.stepIdx,
         step: c.steps[c.stepIdx] || null,
         cycles: c.cycles,
+        lastCycle: c.lastCycle,
       })),
     });
   }

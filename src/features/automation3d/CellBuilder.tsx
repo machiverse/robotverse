@@ -3,19 +3,21 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
-  Bot, Camera, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
+  AlertTriangle, Bot, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { processesFromSkills } from "@/utils/processAnalyzer";
-import { createSimulation, type Simulation, type SimUpdate } from "./robotSim.js";
+import { createSimulation, STATION_NAMES, type Simulation, type SimUpdate } from "./robotSim.js";
 import { planLine, type LinePlan } from "./robotKnowledge";
 import { Thumb, type Choice } from "./EquipmentPicker";
 import { BLOCKS } from "./ProcessBuilder";
 import { slotOf } from "./RobotConfigurator";
 import { loadDirectoryRobots, loadDirectoryTools, loadMarketRobots, loadMarketTools, type DirRobot, type DirTool, type Match } from "./equipmentMatch";
 import { mailto } from "@/components/directory/directoryTypes";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
 
 /* ------------------------------------------------------------------ data */
 
@@ -97,6 +99,12 @@ export default function CellBuilder() {
   const [playing, setPlaying] = useState(true);
   const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle"> | null>(null);
   const lastEmit = useRef(0);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [unreachable, setUnreachable] = useState<string[]>([]);
+  useEffect(() => {
+    if (reportOpen) setUnreachable(simRef.current?.checkReach() ?? []);
+  }, [reportOpen]);
 
   // Catalogue: marketplace listings first (they can be bought now), then the OEM directory.
   useEffect(() => {
@@ -288,6 +296,60 @@ export default function CellBuilder() {
     ].join("\n"),
   );
 
+  /* ------------------------------------------------------------- analysis */
+
+  const checks: CheckItem[][] = cells.map((c, i) => checkCell(c.job, c.choice, plan?.robots[i]?.minPayload, c.fenced, isCobot(c.choice.robot)));
+  const states: CheckState[] = checks.map(cellState);
+  const cycleOf = (i: number) => {
+    const v = sim?.cells?.[i]?.lastCycle;
+    return typeof v === "number" && v > 0 ? v : null;
+  };
+  const cycles = cells.map((_, i) => cycleOf(i));
+  // A cell that has not finished one cycle while another has done three is stuck (reach, size or wrong job).
+  const maxDone = Math.max(0, ...(sim?.cells ?? []).map((c) => c.cycles));
+  const stalled = cells.map((_, i) => !cycles[i] && maxDone >= 3);
+  stalled.forEach((st, i) => {
+    if (st) checks[i].push({ state: "warn", label: "Cycle", detail: "Not completing a cycle — the robot may not reach its stations or is too small for the job" });
+  });
+  checks.forEach((c, i) => (states[i] = cellState(c)));
+  const known = cycles.filter((v): v is number => v != null);
+  const bottleneck = known.length === cells.length && known.length ? Math.max(...known) : null;
+  const perHour = bottleneck ? Math.floor(3600 / bottleneck) : null;
+  const onQuote = chosen.filter((m) => !(m.source === "market" && m.price)).length;
+
+  // The three steps from the Automation Studio start page.
+  const robotsDone = cells.length > 0 && cells.every((c) => c.choice.robot);
+  const toolsDone = robotsDone && cells.every((c) => c.choice.tool);
+  const runDone = toolsDone && bottleneck != null;
+  const STEPS = [
+    { n: 1, label: "Drag a robot", done: robotsDone, hint: "Drag a robot from the list onto the 3D cell — one per station.", go: () => setTab("robots") },
+    { n: 2, label: "Add the tool", done: toolsDone, hint: "Drop a gripper, torch or other tool on each robot, and set the job.", go: () => setTab("tools") },
+    { n: 3, label: "Run in 3D", done: runDone, hint: "Watch the line run, then open the line report for cycle time, checks and cost.", go: () => setReportOpen(true) },
+  ];
+  const current = STEPS.find((st) => !st.done)?.n ?? 4;
+
+  const reportCsv = () => {
+    const q = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [
+      ["Cell", "Job", "Robot", "Tool", "Accessories", "Safety", "Cycle (s)", "Parts / hour", "Status", "Notes"],
+      ...cells.map((c, i) => [
+        i + 1, jobLabel(c.job), c.choice.robot?.name, c.choice.tool?.name,
+        [c.choice.changer, c.choice.sensor, c.choice.camera].filter(Boolean).map((m) => m!.name).join(" + "),
+        c.fenced ? "Fenced" : "Open (cobot)", cycles[i]?.toFixed(1), cycles[i] ? Math.floor(3600 / cycles[i]!) : "",
+        states[i] === "ok" ? "Ready" : states[i] === "warn" ? "Check" : "Incomplete",
+        checks[i].filter((x) => x.state !== "ok").map((x) => `${x.label}: ${x.detail}`).join("; "),
+      ]),
+      [],
+      ["Line", "", "", "", "", "", bottleneck?.toFixed(1) ?? "", perHour ?? "", "", `Marketplace total ${total ? inr(total) : "-"}; ${onQuote} item(s) on quotation`],
+    ];
+    const url = URL.createObjectURL(new Blob([rows.map((r) => r.map(q).join(",")).join("\n")], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "robotverse-robot-cell-report.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const togglePlay = () => {
     const s = simRef.current;
     if (!s) return;
@@ -299,7 +361,36 @@ export default function CellBuilder() {
   /* -------------------------------------------------------------- render */
 
   return (
-    <div className="grid gap-3 p-3 lg:h-[calc(100vh-150px)] lg:grid-cols-[320px_1fr_330px]">
+    <div className="flex flex-col gap-3 p-3">
+    <ol aria-label="Steps" className="grid gap-2 sm:grid-cols-3">
+      {STEPS.map((st) => {
+        const active = st.n === current;
+        return (
+          <li key={st.n}>
+            <button
+              type="button"
+              onClick={st.go}
+              className={cn(
+                "flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/50",
+              )}
+              aria-current={active ? "step" : undefined}
+            >
+              <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold", st.done ? "bg-emerald-500 text-white" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                {st.done ? <CheckCircle2 className="h-4 w-4" /> : st.n}
+              </span>
+              <span className="min-w-0">
+                <b className="block text-sm">{st.label}</b>
+                <span className="block text-xs text-muted-foreground">
+                  {st.done ? (st.n === 3 ? `Line runs · ${perHour} parts/hour — open the report` : "Done") : st.n === 3 && toolsDone ? (stalled.some(Boolean) ? "A cell is not completing its cycle — open the report to see why" : "Measuring cycle time… the first full cycle takes a moment") : st.hint}
+                </span>
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+    <div className="grid gap-3 lg:h-[calc(100vh-235px)] lg:grid-cols-[320px_1fr_330px]">
       {/* Palette */}
       <aside aria-label="Parts" className="flex min-h-0 flex-col rounded-xl border border-border bg-card">
         <div className="grid grid-cols-4 gap-0.5 border-b border-border p-1 text-[11px]" role="tablist">
@@ -468,6 +559,22 @@ export default function CellBuilder() {
           <Button size="sm" variant="secondary" onClick={() => plan && (simRef.current?.setPlan(plan.sim), simRef.current?.play(), setPlaying(true))} disabled={!cells.length}>
             <RotateCcw className="mr-1 h-3.5 w-3.5" /> Restart
           </Button>
+          <select
+            value={speed}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setSpeed(v);
+              simRef.current?.setSpeed(v);
+            }}
+            aria-label="Simulation speed"
+            className="h-8 rounded-md border border-border bg-secondary px-2 text-xs text-secondary-foreground"
+          >
+            {[0.5, 1, 2, 4].map((v) => (
+              <option key={v} value={v}>
+                {v}×
+              </option>
+            ))}
+          </select>
           {(["iso", "front", "top"] as const).map((v) => (
             <Button key={v} size="sm" variant="secondary" onClick={() => simRef.current?.setView(v)}>
               {v === "iso" ? "3D" : v[0].toUpperCase() + v.slice(1)}
@@ -496,8 +603,6 @@ export default function CellBuilder() {
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
           {cells.map((c, i) => {
             const cellSim = sim?.cells?.[i];
-            const need = plan?.robots[i]?.minPayload;
-            const payload = c.choice.robot?.payload;
             return (
               <div
                 key={c.id}
@@ -558,13 +663,17 @@ export default function CellBuilder() {
                   >
                     <ShieldCheck className="h-3 w-3" /> {c.fenced ? "Fenced cell" : "Open (cobot)"}
                   </button>
-                  {payload != null && need != null && (
-                    <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", payload >= need ? "text-emerald-600" : "text-amber-600")}>
-                      {payload >= need ? "✓" : "!"} {payload} kg / needs {need} kg
-                    </Badge>
-                  )}
-                  {cellSim && <span className="ml-auto tabular-nums text-muted-foreground">{cellSim.cycles} parts</span>}
+                  <StateBadge state={states[i]} />
+                  {cycles[i] && <span className="ml-auto tabular-nums text-muted-foreground">{cycles[i]!.toFixed(1)} s · {cellSim?.cycles ?? 0} parts</span>}
                 </div>
+                {checks[i].find((x) => x.state !== "ok") && (
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    {(() => {
+                      const x = checks[i].find((y) => y.state !== "ok")!;
+                      return `${x.label}: ${x.detail}`;
+                    })()}
+                  </p>
+                )}
               </div>
             );
           })}
@@ -586,6 +695,11 @@ export default function CellBuilder() {
               </a>
             </Button>
             {cells.length > 0 && (
+              <Button size="sm" variant="outline" onClick={() => setReportOpen(true)}>
+                <ClipboardList className="mr-1 h-3.5 w-3.5" /> Report
+              </Button>
+            )}
+            {cells.length > 0 && (
               <Button size="sm" variant="outline" onClick={() => (setCells([]), setSelected(0))}>
                 Clear
               </Button>
@@ -594,5 +708,97 @@ export default function CellBuilder() {
         </div>
       </aside>
     </div>
+
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Line report</DialogTitle>
+            <DialogDescription>Your robot cells, checked for the job, with simulated cycle time and the parts to quote.</DialogDescription>
+          </DialogHeader>
+          {!cells.length ? (
+            <p className="text-sm text-muted-foreground">Add a robot first.</p>
+          ) : (
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  [String(cells.length), `robot${cells.length === 1 ? "" : "s"} in the line`],
+                  [bottleneck ? `${bottleneck.toFixed(1)} s` : "—", "line cycle (slowest cell)"],
+                  [perHour ? perHour.toLocaleString("en-IN") : "—", "parts per hour"],
+                  [perHour ? (perHour * 8).toLocaleString("en-IN") : "—", "parts per 8-hour shift"],
+                ].map(([v, l]) => (
+                  <div key={l} className="rounded-xl border border-border p-3">
+                    <p className="text-2xl font-bold tabular-nums tracking-tight">{v}</p>
+                    <p className="text-xs text-muted-foreground">{l}</p>
+                  </div>
+                ))}
+              </div>
+              <ol className="space-y-3">
+                {cells.map((c, i) => (
+                  <li key={c.id} className="rounded-xl border border-border p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">{i + 1}</span>
+                      <b className="text-sm">{jobLabel(c.job)}</b>
+                      <StateBadge state={states[i]} />
+                      <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+                        {cycles[i] ? `${cycles[i]!.toFixed(1)} s cycle · ${Math.floor(3600 / cycles[i]!)} parts/h` : stalled[i] ? "stalled" : "running…"}
+                        {bottleneck && cycles[i] === bottleneck && cells.length > 1 && <b className="ml-1 text-amber-600">bottleneck</b>}
+                      </span>
+                    </div>
+                    <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+                      {checks[i].map((x) => (
+                        <li key={x.label} className="flex gap-1.5 text-xs">
+                          {x.state === "ok" ? <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" /> : x.state === "warn" ? <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" /> : <CircleDashed className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                          <span><b>{x.label}:</b> <span className="text-muted-foreground">{x.detail}</span></span>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ol>
+              {unreachable.length > 0 && (
+                <p className="flex gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                  Out of reach: {[...new Set(unreachable.map((u) => STATION_NAMES[u] ?? u))].join(", ")}. Choose a robot with more reach, or move these stations closer.
+                </p>
+              )}
+              <div className="rounded-xl border border-border p-3 text-sm">
+                <p className="font-semibold">Bill of equipment</p>
+                <ul className="mt-2 divide-y divide-border">
+                  {chosen.map((m, k) => (
+                    <li key={`${m.source}:${m.id}:${k}`} className="flex items-center gap-2 py-1.5 text-xs">
+                      <Thumb m={m} size="h-8 w-8" />
+                      <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                      <span className="text-muted-foreground">{m.source === "market" ? (m.price ? inr(m.price) : "Marketplace") : "Quote from OEM"}</span>
+                    </li>
+                  ))}
+                  {!chosen.length && <li className="py-1.5 text-xs text-muted-foreground">Nothing chosen yet.</li>}
+                </ul>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Marketplace total <b className="text-foreground">{total ? inr(total) : "—"}</b> · {onQuote} item{onQuote === 1 ? "" : "s"} on quotation. Integration, fencing and programming are quoted separately.
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">Cycle times come from the 3D simulation and are indicative; real times depend on part, tooling and programming.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild disabled={!chosen.length}>
+                  <a href={chosen.length ? quote : undefined}><Mail className="mr-1.5 h-4 w-4" /> Request quote</a>
+                </Button>
+                <Button variant="outline" onClick={reportCsv}>
+                  <Download className="mr-1.5 h-4 w-4" /> Download report (CSV)
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
+}
+
+function StateBadge({ state }: { state: CheckState }) {
+  const map = {
+    ok: ["Ready", "border-emerald-500/50 text-emerald-600"],
+    warn: ["Check", "border-amber-500/50 text-amber-600"],
+    missing: ["Incomplete", "border-border text-muted-foreground"],
+  } as const;
+  return <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", map[state][1])}>{map[state][0]}</Badge>;
 }

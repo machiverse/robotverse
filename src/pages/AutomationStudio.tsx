@@ -82,7 +82,7 @@ const SimFallback = () => (
 
 /* ---------------------------------- data --------------------------------- */
 
-const STEPS = ["Upload & Describe", "Analysis", "Results", "Automation Preview"];
+const STEPS = ["Describe the work", "We plan it", "Your plan", "See your cell"];
 
 const ANALYSIS_MESSAGES = [
   "Analyzing uploaded images...",
@@ -781,19 +781,42 @@ function AutomationStudioAI() {
               ))}
             </div>
 
-            <Card className="mt-6">
-              <CardHeader><CardTitle className="text-base">Deep Analysis Summary</CardTitle></CardHeader>
-              <CardContent className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-                {[
-                  ["Est. Investment", "₹1.2Cr — ₹1.8Cr"],
-                  ["Annual Savings", "₹45L — ₹65L"],
-                  ["Manpower", "From 24 workers → 8 operators"],
-                  ["Capacity Increase", "+150% throughput"],
-                  ["Timeline", "12-16 weeks deployment"],
-                  ["Payback Period", "18-30 months"],
-                ].map(([label, value]) => <div key={label} className="bg-card p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold text-foreground">{value}</p></div>)}
-              </CardContent>
-            </Card>
+            {(() => {
+              // Figures from this brief's own plan (AI engineer, else the built-in engine) — never fixed numbers.
+              const sol = aiCurrent?.solution ?? engine;
+              if (!sol) return null;
+              const cr = (v: number) => (v >= 1e7 ? `₹${(v / 1e7).toFixed(2)} Cr` : `₹${Math.round(v / 1e5)} L`);
+              const b = sol.budget_inr;
+              const weeks = sol.implementation
+                .map((ph) => (ph.weeks.match(/\d+/g) ?? []).map(Number))
+                .reduce(([lo, hi], w) => [lo + (w[0] ?? 0), hi + (w[w.length - 1] ?? 0)], [0, 0]);
+              const rows: [string, string][] = [
+                ["Estimated investment", b.low && b.high ? `${cr(b.low)} – ${cr(b.high)}` : "On quotation"],
+                ["Payback", sol.roi.payback_months ? (/month/i.test(sol.roi.payback_months) ? sol.roi.payback_months : `${sol.roi.payback_months} months`) : "—"],
+                ["Labour", sol.roi.labour_saved || "—"],
+                ["Quality", sol.roi.quality_gain || "—"],
+                ["Throughput", [sol.throughput.target, sol.throughput.takt_s ? `takt ${sol.throughput.takt_s} s` : ""].filter(Boolean).join(" · ") || "—"],
+                ["Timeline", weeks[1] ? `${weeks[0]}–${weeks[1]} weeks to production` : "—"],
+              ];
+              return (
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle className="text-base">Your plan in numbers</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Worked out for this brief from {sol.stations.length} station{sol.stations.length === 1 ? "" : "s"}. Indicative — confirm with a site visit and supplier quotes.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+                    {rows.map(([label, value]) => (
+                      <div key={label} className="bg-card p-4">
+                        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             <div className="mt-6 flex justify-center">
               <Button asChild variant="ghost" className="whitespace-normal min-w-fit w-auto">
@@ -980,7 +1003,8 @@ function AutomationStudioAI() {
               </CardContent>
             </Card>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <p className="mt-6 text-xs font-medium uppercase tracking-wide text-muted-foreground">Typical results in this industry</p>
+            <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {roiCards.map((r) => (
                 <Card key={r.label}>
                   <CardContent className="p-5">

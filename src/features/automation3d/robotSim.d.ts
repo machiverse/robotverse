@@ -16,7 +16,7 @@ export interface SimUpdate {
   events: { t: number; msg: string }[];
   /** Index of the robot whose joints/step are reported (multi-robot lines). */
   focus?: number;
-  cells?: { title: string; stepIndex: number; step: SimStep | null; cycles: number }[];
+  cells?: { title: string; stepIndex: number; step: SimStep | null; cycles: number; lastCycle?: number | null }[];
 }
 
 export interface SimPlan {
