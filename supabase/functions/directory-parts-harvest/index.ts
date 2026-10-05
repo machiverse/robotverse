@@ -609,7 +609,7 @@ Deno.serve(async (req) => {
       const done = await Promise.all(
         mine.map(async (seed) => {
           try {
-            const r = await processSeed(sb, seed, deadline);
+            const r = await processSeed(sb, seed as Parameters<typeof processSeed>[1], deadline);
             await sb.from(SEEDS).update({ status: "done", found: r.found, note: r.note, updated_at: new Date().toISOString() }).eq("id", seed.id);
             return { id: seed.id, ...r };
           } catch (e) {
