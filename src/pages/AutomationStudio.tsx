@@ -64,6 +64,7 @@ import type { VisualStation } from "@/components/automation-studio/visualTypes";
 
 const RobotCell3D = lazy(() => import("@/features/automation3d/AutomationStudio3D"));
 import { processKind, PROCESS_PROFILES } from "@/features/automation3d/processProfiles";
+import { KIND_JOB, PLAYBOOK } from "@/features/automation3d/engineerPlaybook";
 import { processToText, PRESETS } from "@/features/automation3d/robotSim.js";
 import AiSolutionPanel from "@/features/automation3d/AiSolutionPanel";
 import { requestSolution, solutionProcesses, type AiSolution } from "@/features/automation3d/aiSolution";
@@ -934,6 +935,43 @@ function AutomationStudioAI() {
                               />
                             )}
                           </Suspense>
+                          {!full && (
+                            <div className="rounded-xl border border-border p-4">
+                              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                <p className="text-sm font-semibold">How an engineer thinks about this station</p>
+                                <span className="text-xs tabular-nums text-muted-foreground">
+                                  typical cycle {PLAYBOOK[kind].cycle[0]}–{PLAYBOOK[kind].cycle[1]} s
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-muted-foreground">{PLAYBOOK[kind].key}</p>
+                              <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+                                {(
+                                  [
+                                    ["Ask first", PLAYBOOK[kind].ask],
+                                    ["Rules of thumb", PLAYBOOK[kind].rules],
+                                    ["Around the robot", PLAYBOOK[kind].around],
+                                  ] as const
+                                ).map(([t, items]) => (
+                                  <div key={t} className="rounded-lg bg-muted/40 p-3">
+                                    <p className="font-semibold">{t}</p>
+                                    <ul className="mt-1.5 list-disc space-y-1 pl-4 text-muted-foreground">
+                                      {items.map((x) => (
+                                        <li key={x}>{x}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                                <Link to={`/automation-studio/build#job=${encodeURIComponent(KIND_JOB[kind])}`} className="font-medium text-primary hover:underline">
+                                  Build this cell with real robots →
+                                </Link>
+                                <Link to="/automation-studio/playbook" className="text-muted-foreground hover:text-primary hover:underline">
+                                  Full engineer's playbook
+                                </Link>
+                              </div>
+                            </div>
+                          )}
                         </>
                       );
                     })()}

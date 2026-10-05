@@ -35,7 +35,8 @@ const NOT_ON_ARM = /cleaning|reamer|station|power source|feeder|proportioner|con
 export function suggest(job: string, needKg: number, raw: Raw, cobot = false): Choice {
   const kind = processKind({ name: job });
   // The 3D cell's stations sit about 1.4 m from the robot, so suggested arms must reach that far.
-  const need: StationNeed = { kind, payload: needKg, reach: CELL_REACH_MM, cobot, robotType: null };
+  // Payload with a 25% margin for acceleration and inertia, as an integrator sizes it.
+  const need: StationNeed = { kind, payload: Math.ceil(needKg * 1.25), reach: CELL_REACH_MM, cobot, robotType: null };
   const robot = matchMarketRobots(need, raw.mr, 1)[0] ?? matchOemRobots(need, raw.dr, 1)[0];
   const tool = [...matchMarketTools(need, raw.mt, job, 3), ...matchOemTools(need, raw.dt, job, 6)].find((t) => !NOT_ON_ARM.test(t.name));
   return { ...(robot ? { robot } : {}), ...(tool ? { tool } : {}) };
@@ -147,7 +148,7 @@ export function decodeLine(code: string): SharedCell[] | null {
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 export function reportHtml(r: {
-  cells: { job: string; choice: Choice; fenced: boolean; cycle: number | null; checks: { state: string; label: string; detail: string }[] }[];
+  cells: { job: string; choice: Choice; fenced: boolean; cycle: number | null; checks: { state: string; label: string; detail: string }[]; thoughts?: { step: string; thought: string }[] }[];
   bottleneck: number | null;
   perHour: number | null;
   budget: Budget | null;
@@ -162,6 +163,9 @@ export function reportHtml(r: {
       <td>${c.checks.filter((x) => x.state !== "ok").map((x) => `${esc(x.label)}: ${esc(x.detail)}`).join("<br>") || "All checks passed"}</td></tr>`,
     )
     .join("");
+  const reasoning = r.cells
+    .map((c, i) => (c.thoughts?.length ? `<h3>Cell ${i + 1} · ${esc(c.job)}</h3><ol>${c.thoughts.map((t) => `<li><b>${esc(t.step)}.</b> ${esc(t.thought)}</li>`).join("")}</ol>` : ""))
+    .join("");
   const bom = r.budget
     ? r.budget.bom.lines.map((l) => `<tr><td>${esc(l.item)}</td><td>${esc(l.scope)}</td><td>${l.qty}</td><td>${rng(l.total)}</td></tr>`).join("")
     : "";
@@ -169,11 +173,12 @@ export function reportHtml(r: {
 <style>body{font:13px/1.5 system-ui,sans-serif;color:#0f172a;margin:32px}h1{font-size:22px;margin:0}h2{font-size:15px;margin:24px 0 8px}
 .sub{color:#475569}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}.kpi{border:1px solid #cbd5e1;border-radius:8px;padding:10px}
 .kpi b{display:block;font-size:20px}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #e2e8f0;padding:6px;text-align:left;vertical-align:top}
-th{font-size:11px;text-transform:uppercase;color:#475569}.note{color:#64748b;font-size:11px;margin-top:16px}</style></head><body>
+h3{font-size:13px;margin:12px 0 4px}ol{margin:0;padding-left:20px}th{font-size:11px;text-transform:uppercase;color:#475569}.note{color:#64748b;font-size:11px;margin-top:16px}</style></head><body>
 <h1>Robot cell report</h1><div class="sub">RobotVerse Automation Studio · ${new Date().toLocaleDateString("en-IN")}</div>
 <div class="kpis"><div class="kpi"><b>${r.cells.length}</b>robots</div><div class="kpi"><b>${r.bottleneck ? r.bottleneck.toFixed(1) + " s" : "—"}</b>line cycle</div>
 <div class="kpi"><b>${r.perHour ?? "—"}</b>parts / hour</div><div class="kpi"><b>${r.perHour ? r.perHour * 8 : "—"}</b>parts / 8-h shift</div></div>
 <h2>Cells</h2><table><tr><th>#</th><th>Job</th><th>Robot</th><th>Tool</th><th>Safety</th><th>Cycle</th><th>Checks</th></tr>${rows}</table>
+${reasoning ? `<h2>Engineer's reasoning</h2>${reasoning}` : ""}
 ${r.budget ? `<h2>Indicative budget</h2><table><tr><th>Item</th><th>For</th><th>Qty</th><th>Estimate</th></tr>${bom}
 <tr><th colspan="3">Total</th><th>${rng(r.budget.bom.total)}</th></tr></table>` : ""}
 ${r.roi ? `<h2>Payback</h2><p>${r.inputs.operators} operator(s) × ${r.inputs.shifts} shift(s) at ${inr(r.inputs.wage)} per month saves about <b>${inr(r.roi.annualSaving)}</b> a year.

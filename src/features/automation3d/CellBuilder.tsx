@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
-  AlertTriangle, Bot, Link2, Printer, Wand2, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
+  AlertTriangle, Bot, Brain, Link2, Printer, Wand2, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
 import { budgetFor, CycleTracker, decodeLine, encodeLine, reportHtml, roi, STARTERS, STEP_GROUP, suggest, type Raw, type StepTime } from "./builderExtras";
 import { inr as inrShort } from "./solutionCost";
+import { thinkCell, type Thought } from "./engineerPlaybook";
 
 /* ------------------------------------------------------------------ data */
 
@@ -273,6 +274,15 @@ export default function CellBuilder() {
     data?.tools.forEach((x) => m.set(`${x.source}:${x.id}`, x));
     return m;
   }, [data]);
+  // Open a job from the engineer's playbook (#job=…) with a suggested robot and tool.
+  useEffect(() => {
+    if (!raw) return;
+    const job = decodeURIComponent(window.location.hash.match(/job=([^&]+)/)?.[1] ?? "");
+    if (!BLOCKS.some((b) => b.name === job)) return;
+    applyStarter([job]);
+    window.history.replaceState(null, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [raw]);
   // Open a shared line (#line=…) once the catalogue is loaded.
   useEffect(() => {
     if (!data) return;
@@ -383,6 +393,14 @@ export default function CellBuilder() {
   const known = cycles.filter((v): v is number => v != null);
   const bottleneck = known.length === cells.length && known.length ? Math.max(...known) : null;
   const perHour = bottleneck ? Math.floor(3600 / bottleneck) : null;
+  // The engineer's reasoning for each cell, with the measured share of each step kind.
+  const thoughts: Thought[][] = cells.map((c, i) => {
+    const b = breakdown[i];
+    const total = b?.reduce((n, x) => n + x.seconds, 0) || 0;
+    const split: Record<string, number> = {};
+    if (b && total) b.forEach((x) => (split[STEP_GROUP(x.action).label] = (split[STEP_GROUP(x.action).label] ?? 0) + x.seconds / total));
+    return thinkCell({ job: c.job, choice: c.choice, needKg: plan?.robots[i]?.minPayload, fenced: c.fenced, cobot: isCobot(c.choice.robot), cycle: cycles[i], checks: checks[i], split });
+  });
   const onQuote = chosen.filter((m) => !(m.source === "market" && m.price)).length;
   const budget = useMemo(() => (plan ? budgetFor(plan, cells.map((c) => c.choice)) : null), [plan, cells]);
   const operators = roiIn.operators || cells.length;
@@ -392,7 +410,7 @@ export default function CellBuilder() {
     if (!w) return;
     w.document.write(
       reportHtml({
-        cells: cells.map((c, i) => ({ job: jobLabel(c.job), choice: c.choice, fenced: c.fenced, cycle: cycles[i], checks: checks[i] })),
+        cells: cells.map((c, i) => ({ job: jobLabel(c.job), choice: c.choice, fenced: c.fenced, cycle: cycles[i], checks: checks[i], thoughts: thoughts[i] })),
         bottleneck, perHour, budget, roi: payback, inputs: { operators, shifts: roiIn.shifts, wage: roiIn.wage },
       }),
     );
@@ -799,6 +817,14 @@ export default function CellBuilder() {
                     })()}
                   </p>
                 )}
+                {selected === i && (
+                  <details className="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-[11px]" onClick={(e) => e.stopPropagation()}>
+                    <summary className="flex cursor-pointer items-center gap-1 font-medium text-primary">
+                      <Brain className="h-3.5 w-3.5" /> How an engineer thinks about this cell
+                    </summary>
+                    <ThoughtList items={thoughts[i]} />
+                  </details>
+                )}
               </div>
             );
           })}
@@ -877,6 +903,12 @@ export default function CellBuilder() {
                         </li>
                       ))}
                     </ul>
+                    <details className="mt-2 text-xs">
+                      <summary className="flex cursor-pointer items-center gap-1 font-medium text-primary">
+                        <Brain className="h-3.5 w-3.5" /> Engineer's reasoning, step by step
+                      </summary>
+                      <ThoughtList items={thoughts[i]} />
+                    </details>
                   </li>
                 ))}
               </ol>
@@ -1023,6 +1055,28 @@ export default function CellBuilder() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function ThoughtList({ items }: { items: Thought[] }) {
+  return (
+    <ol className="mt-1.5 space-y-1.5">
+      {items.map((t, k) => (
+        <li key={t.step} className="flex gap-2">
+          <span
+            className={cn(
+              "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold",
+              t.state === "ok" ? "bg-emerald-500/15 text-emerald-600" : t.state === "warn" ? "bg-amber-500/15 text-amber-600" : "bg-muted text-muted-foreground",
+            )}
+          >
+            {k + 1}
+          </span>
+          <span>
+            <b>{t.step}.</b> <span className="text-muted-foreground">{t.thought}</span>
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
 

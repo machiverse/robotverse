@@ -170,6 +170,13 @@ export default function StudioChooser() {
             Type them into the 3D simulator
           </Link>
         </p>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          <Brain className="mr-1.5 inline h-4 w-4 align-[-3px] text-primary" aria-hidden />
+          New to robot automation?{" "}
+          <Link to="/automation-studio/playbook" className="font-medium text-primary underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none">
+            See how an automation engineer thinks
+          </Link>
+        </p>
       </main>
       <Footer />
     </div>

@@ -69,6 +69,7 @@ import ApiDocs from "./pages/ApiDocs";
 import Contact from "./pages/Contact";
 // Loaded on demand so the Directory adds nothing to the main bundle
 const AutomationStudioBuildPage = lazy(() => import("./pages/AutomationStudioBuildPage"));
+const AutomationPlaybookPage = lazy(() => import("./pages/AutomationPlaybookPage"));
 const Directory = lazy(() => import("./pages/Directory"));
 const TrainingPosterPage = lazy(() => import("./pages/TrainingPosterPage"));
 const DirectoryPhotosAdmin = lazy(() => import("./pages/DirectoryPhotosAdmin"));
@@ -263,6 +264,7 @@ const App = () => (
               <Route path="/automation-studio" element={<AutomationStudio />} />
               <Route path="/automation-studio/3d" element={<AutomationStudio3DPage />} />
               <Route path="/automation-studio/build" element={<Suspense fallback={null}><AutomationStudioBuildPage /></Suspense>} />
+              <Route path="/automation-studio/playbook" element={<Suspense fallback={null}><AutomationPlaybookPage /></Suspense>} />
               <Route path="/auctions" element={<Auctions />} />
               <Route path="/auctions/:id" element={<AuctionDetail />} />
               <Route path="/auctions/create" element={<CreateAuction />} />
