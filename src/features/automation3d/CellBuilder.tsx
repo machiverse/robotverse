@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
-  AlertTriangle, Bot, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
+  AlertTriangle, Bot, Link2, Printer, Wand2, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,8 @@ import { loadDirectoryRobots, loadDirectoryTools, loadMarketRobots, loadMarketTo
 import { mailto } from "@/components/directory/directoryTypes";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
+import { budgetFor, CycleTracker, decodeLine, encodeLine, reportHtml, roi, STARTERS, STEP_GROUP, suggest, type Raw, type StepTime } from "./builderExtras";
+import { inr as inrShort } from "./solutionCost";
 
 /* ------------------------------------------------------------------ data */
 
@@ -101,6 +103,12 @@ export default function CellBuilder() {
   const lastEmit = useRef(0);
   const [reportOpen, setReportOpen] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [raw, setRaw] = useState<Raw | null>(null);
+  const tracker = useRef(new CycleTracker());
+  const stepsRef = useRef<{ label: string; action: string }[][]>([]);
+  const [breakdown, setBreakdown] = useState<(StepTime[] | null)[]>([]);
+  const [roiIn, setRoiIn] = useState({ operators: 0, shifts: 2, wage: 25000 });
+  const [copied, setCopied] = useState(false);
   const [unreachable, setUnreachable] = useState<string[]>([]);
   useEffect(() => {
     if (reportOpen) setUnreachable(simRef.current?.checkReach() ?? []);
@@ -111,6 +119,7 @@ export default function CellBuilder() {
     let live = true;
     Promise.all([loadMarketRobots(), loadDirectoryRobots(), loadMarketTools(), loadDirectoryTools()]).then(([mr, dr, mt, dt]) => {
       if (!live) return;
+      setRaw({ dr, dt, mr, mt });
       setData({
         robots: [...mr.map(marketRobot), ...dr.map(dirRobot)],
         tools: [...mt.map(marketTool), ...dt.filter((t) => !/generic demo/i.test(t.c)).map(dirTool)],
@@ -127,6 +136,7 @@ export default function CellBuilder() {
     const s = createSimulation({
       THREE, OrbitControls, RoomEnvironment, container: stageRef.current,
       onUpdate: (u: SimUpdate) => {
+        if (tracker.current.update(u.simTime, u.cells, stepsRef.current)) setBreakdown([...tracker.current.last]);
         const now = performance.now();
         if (now - lastEmit.current < 250) return;
         lastEmit.current = now;
@@ -162,6 +172,9 @@ export default function CellBuilder() {
       return;
     }
     s.setPlan(plan.sim);
+    stepsRef.current = plan.sim.cells.map((c) => c.steps.map((st) => ({ label: st.label, action: st.action })));
+    tracker.current.reset(plan.sim.cells.length);
+    setBreakdown([]);
     if (playing) s.play();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planKey]);
@@ -183,8 +196,13 @@ export default function CellBuilder() {
           : null,
       );
     });
-    s.setFocus(Math.min(selected, cells.length - 1));
-  }, [cells, plan, selected]);
+    // Equipment changes restart the line, so the cycle measurement starts again too.
+    tracker.current.reset(cells.length);
+    setBreakdown([]);
+  }, [cells, plan]);
+  useEffect(() => {
+    if (cells.length) simRef.current?.setFocus(Math.min(selected, cells.length - 1));
+  }, [selected, cells.length]);
 
   /* ------------------------------------------------------------ actions */
 
@@ -194,6 +212,36 @@ export default function CellBuilder() {
     if (cell.choice.robot && isCobot(cell.choice.robot) && patch.fenced === undefined) cell.fenced = false;
     setCells((cs) => [...cs, cell]);
     setSelected(cells.length);
+  };
+  // Payload each job needs, from the same planner the 3D line uses.
+  const needsFor = (jobs: string[]) => {
+    const input = jobs.map((j) => processesFromSkills([j])[0] ?? { name: j });
+    return planLine(input, "balanced", { splitBefore: input.map((x) => x.name), robots: jobs.length }).robots.map((r) => r.minPayload);
+  };
+  const applyStarter = (jobs: string[]) => {
+    const needs = needsFor(jobs);
+    const next = jobs.map((job, i) => {
+      const choice = raw ? suggest(job, needs[i] ?? 10, raw) : {};
+      return { id: newId(), job, choice, fenced: !isCobot(choice.robot) };
+    });
+    setCells(next);
+    setSelected(0);
+  };
+  const suggestFor = (i: number) => {
+    if (!raw || !cells[i]) return;
+    const need = plan?.robots[i]?.minPayload ?? 10;
+    const pick = suggest(cells[i].job, need, raw);
+    update(i, (c) => ({ ...c, choice: { ...c.choice, ...pick }, fenced: pick.robot ? !isCobot(pick.robot) : c.fenced }));
+  };
+  const share = async () => {
+    const url = `${window.location.origin}/automation-studio/build#line=${encodeLine(cells)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copy this link", url);
+    }
   };
   const update = (i: number, fn: (c: Cell) => Cell) => setCells((cs) => cs.map((c, k) => (k === i ? fn(c) : c)));
   const put = (i: number, m: Match) => {
@@ -224,6 +272,26 @@ export default function CellBuilder() {
     data?.robots.forEach((x) => m.set(`${x.source}:${x.id}`, x));
     data?.tools.forEach((x) => m.set(`${x.source}:${x.id}`, x));
     return m;
+  }, [data]);
+  // Open a shared line (#line=…) once the catalogue is loaded.
+  useEffect(() => {
+    if (!data) return;
+    const code = window.location.hash.match(/line=([\w-]+)/)?.[1];
+    if (!code) return;
+    const shared = decodeLine(code);
+    if (shared?.length) {
+      setCells(
+        shared.map((c) => ({
+          id: newId(),
+          job: BLOCKS.some((b) => b.name === c.j) ? c.j : "Loading & Unloading",
+          fenced: !!c.f,
+          choice: Object.fromEntries(Object.entries(c.s ?? {}).map(([k, key]) => [k, byKey.get(key)]).filter(([, m]) => m)) as Choice,
+        })),
+      );
+      setSelected(0);
+    }
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
   const onDragStart = (e: React.DragEvent, payload: string, kind: "robot" | "tool" | "job" | "fence", slot?: Slot) => {
     e.dataTransfer.setData("text/plain", payload);
@@ -316,6 +384,20 @@ export default function CellBuilder() {
   const bottleneck = known.length === cells.length && known.length ? Math.max(...known) : null;
   const perHour = bottleneck ? Math.floor(3600 / bottleneck) : null;
   const onQuote = chosen.filter((m) => !(m.source === "market" && m.price)).length;
+  const budget = useMemo(() => (plan ? budgetFor(plan, cells.map((c) => c.choice)) : null), [plan, cells]);
+  const operators = roiIn.operators || cells.length;
+  const payback = budget ? roi(budget.bom.total, operators, roiIn.shifts, roiIn.wage) : null;
+  const printReport = () => {
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(
+      reportHtml({
+        cells: cells.map((c, i) => ({ job: jobLabel(c.job), choice: c.choice, fenced: c.fenced, cycle: cycles[i], checks: checks[i] })),
+        bottleneck, perHour, budget, roi: payback, inputs: { operators, shifts: roiIn.shifts, wage: roiIn.wage },
+      }),
+    );
+    w.document.close();
+  };
 
   // The three steps from the Automation Studio start page.
   const robotsDone = cells.length > 0 && cells.every((c) => c.choice.robot);
@@ -442,6 +524,24 @@ export default function CellBuilder() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           {tab === "cell" ? (
             <div className="space-y-3 p-2">
+              <div>
+                <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ready cells</p>
+                <div className="grid grid-cols-2 gap-1">
+                  {STARTERS.map((st) => (
+                    <button
+                      key={st.id}
+                      type="button"
+                      disabled={!raw}
+                      onClick={() => applyStarter(st.jobs)}
+                      title={st.what}
+                      className="rounded-md border border-border px-2 py-1.5 text-left text-[11px] font-medium hover:border-primary disabled:opacity-50"
+                    >
+                      {st.name}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 px-1 text-[10px] text-muted-foreground">Replaces the current line.</p>
+              </div>
               <div>
                 <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Safety</p>
                 {([["fence:on", "Safety fence + interlocked door", "Industrial robots work behind a fence (ISO 10218-2)"], ["fence:off", "Open collaborative cell", "Cobots next to people, speed & force limited"]] as const).map(([k, label, hint]) => (
@@ -581,12 +681,27 @@ export default function CellBuilder() {
             </Button>
           ))}
         </div>
-        {!cells.length && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
-            <div className="max-w-sm rounded-xl bg-background/90 p-5 text-center shadow-lg">
-              <Bot className="mx-auto mb-2 h-8 w-8 text-primary" />
-              <p className="font-semibold">Drag a robot here to start</p>
-              <p className="mt-1 text-sm text-muted-foreground">Then drop its gripper or tool, pick the job and the safety type. Add up to 6 robots for a full line.</p>
+        {!cells.length && !drag && (
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="w-full max-w-md rounded-xl bg-background/95 p-5 shadow-lg">
+              <p className="flex items-center gap-2 font-semibold">
+                <Bot className="h-5 w-5 text-primary" /> Drag a robot here — or start from a ready cell
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {STARTERS.map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    disabled={!raw}
+                    onClick={() => applyStarter(st.jobs)}
+                    className="rounded-lg border border-border p-2.5 text-left transition-colors duration-150 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                  >
+                    <b className="block text-sm">{st.name}</b>
+                    <span className="block text-[11px] text-muted-foreground">{st.what}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] text-muted-foreground">Ready cells come with a matching robot and tool from the marketplace or Directory — change anything after.</p>
             </div>
           </div>
         )}
@@ -629,6 +744,16 @@ export default function CellBuilder() {
                       </option>
                     ))}
                   </select>
+                  <button
+                    type="button"
+                    aria-label={`Suggest robot and tool for cell ${i + 1}`}
+                    title="Suggest the best robot and tool for this job"
+                    disabled={!raw}
+                    onClick={(e) => (e.stopPropagation(), suggestFor(i))}
+                    className="rounded p-1 text-primary hover:bg-primary/10 disabled:opacity-40"
+                  >
+                    <Wand2 className="h-3.5 w-3.5" />
+                  </button>
                   <button type="button" aria-label={`Remove cell ${i + 1}`} onClick={(e) => (e.stopPropagation(), removeCell(i))} className="rounded p-1 text-muted-foreground hover:text-red-600">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -755,6 +880,107 @@ export default function CellBuilder() {
                   </li>
                 ))}
               </ol>
+              <section className="rounded-xl border border-border p-3">
+                <p className="text-sm font-semibold">Where the cycle time goes</p>
+                <p className="text-xs text-muted-foreground">Measured from the last full cycle of each robot in the 3D simulation.</p>
+                <div className="mt-3 space-y-3">
+                  {cells.map((c, i) => {
+                    const b = breakdown[i];
+                    if (!b) return <p key={c.id} className="text-xs text-muted-foreground">Cell {i + 1}: measuring…</p>;
+                    const total = b.reduce((n, x) => n + x.seconds, 0) || 1;
+                    const groups = new Map<string, { label: string; color: string; seconds: number }>();
+                    b.forEach((x) => {
+                      const g = STEP_GROUP(x.action);
+                      const cur = groups.get(g.key) ?? { label: g.label, color: g.color, seconds: 0 };
+                      cur.seconds += x.seconds;
+                      groups.set(g.key, cur);
+                    });
+                    const longest = [...b].sort((x, y) => y.seconds - x.seconds)[0];
+                    return (
+                      <div key={c.id}>
+                        <div className="flex items-baseline justify-between text-xs">
+                          <b>Cell {i + 1} · {jobLabel(c.job)}</b>
+                          <span className="tabular-nums text-muted-foreground">{total.toFixed(1)} s</span>
+                        </div>
+                        <div className="mt-1 flex h-3 overflow-hidden rounded-full bg-muted" role="img" aria-label={[...groups.values()].map((g) => `${g.label} ${g.seconds.toFixed(1)} s`).join(", ")}>
+                          {[...groups.values()].map((g) => (
+                            <span key={g.label} style={{ width: `${(g.seconds / total) * 100}%`, background: g.color }} />
+                          ))}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                          {[...groups.values()].map((g) => (
+                            <span key={g.label} className="inline-flex items-center gap-1">
+                              <span className="h-2 w-2 rounded-full" style={{ background: g.color }} /> {g.label} {Math.round((g.seconds / total) * 100)}%
+                            </span>
+                          ))}
+                          {longest && <span>Longest step: <b className="text-foreground">{longest.label}</b> ({longest.seconds.toFixed(1)} s)</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {budget && payback && (
+                <section className="rounded-xl border border-border p-3">
+                  <p className="text-sm font-semibold">Budget & payback</p>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-3">
+                    {([
+                      ["operators", "Operators replaced per shift", 1, 1],
+                      ["shifts", "Shifts per day", 1, 1],
+                      ["wage", "Cost per operator / month (₹)", 1000, 1000],
+                    ] as const).map(([k, label, min, step]) => (
+                      <label key={k} className="text-xs">
+                        <span className="text-muted-foreground">{label}</span>
+                        <input
+                          type="number"
+                          min={min}
+                          step={step}
+                          value={k === "operators" ? operators : roiIn[k]}
+                          onChange={(e) => setRoiIn((r) => ({ ...r, [k]: Math.max(min, Number(e.target.value) || min) }))}
+                          className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm tabular-nums"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {[
+                      [`${inrShort(budget.bom.total[0])} – ${inrShort(budget.bom.total[1])}`, "turnkey budget"],
+                      [inrShort(payback.annualSaving), "labour saved per year"],
+                      [Number.isFinite(payback.months[0]) ? `${payback.months[0].toFixed(0)}–${payback.months[1].toFixed(0)} mo` : "—", "payback"],
+                      [
+                        payback.fiveYear[1] <= 0
+                          ? "Not within 5 years"
+                          : payback.fiveYear[0] <= 0
+                            ? `up to ${inrShort(payback.fiveYear[1])}`
+                            : `${inrShort(payback.fiveYear[0])} – ${inrShort(payback.fiveYear[1])}`,
+                        "5-year net saving",
+                      ],
+                    ].map(([v, l]) => (
+                      <div key={l} className="rounded-lg bg-muted/50 p-2.5">
+                        <p className="text-sm font-bold tabular-nums">{v}</p>
+                        <p className="text-[11px] text-muted-foreground">{l}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <details className="mt-2 text-xs">
+                    <summary className="cursor-pointer text-primary">What the budget includes ({budget.bom.lines.length} items)</summary>
+                    <ul className="mt-2 divide-y divide-border">
+                      {budget.bom.lines.map((l, k) => (
+                        <li key={k} className="flex justify-between gap-3 py-1">
+                          <span className="min-w-0">{l.item} <span className="text-muted-foreground">· {l.scope}{l.qty > 1 ? ` × ${l.qty}` : ""}</span></span>
+                          <span className="shrink-0 tabular-nums text-muted-foreground">{inrShort(l.total[0])} – {inrShort(l.total[1])}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Indicative Indian market ranges, sized for the robots you chose: arm, controller, tooling, safety, conveyors, PLC/HMI, integration and training.
+                    {budget.listed > 0 && ` Marketplace items you picked are listed at ${inrShort(budget.listed)}.`}
+                  </p>
+                </section>
+              )}
+
               {unreachable.length > 0 && (
                 <p className="flex gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
@@ -782,8 +1008,14 @@ export default function CellBuilder() {
                 <Button asChild disabled={!chosen.length}>
                   <a href={chosen.length ? quote : undefined}><Mail className="mr-1.5 h-4 w-4" /> Request quote</a>
                 </Button>
+                <Button variant="outline" onClick={printReport}>
+                  <Printer className="mr-1.5 h-4 w-4" /> Print / save PDF
+                </Button>
                 <Button variant="outline" onClick={reportCsv}>
-                  <Download className="mr-1.5 h-4 w-4" /> Download report (CSV)
+                  <Download className="mr-1.5 h-4 w-4" /> CSV
+                </Button>
+                <Button variant="outline" onClick={share}>
+                  <Link2 className="mr-1.5 h-4 w-4" /> {copied ? "Link copied" : "Share link"}
                 </Button>
               </div>
             </div>
