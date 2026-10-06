@@ -39,7 +39,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
         description: 'Please log in to start a chat',
         variant: 'destructive',
       });
-      navigate('/auth');
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
       return;
     }
 

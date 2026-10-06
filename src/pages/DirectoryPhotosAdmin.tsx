@@ -65,8 +65,8 @@ export default function DirectoryPhotosAdmin() {
   const refresh = useCallback(async () => {
     try {
       setCounts(await call<Counts>({ action: "status", kind }));
-      const { rows } = await call<{ rows: Row[] }>({ action: "list", kind, status: review.status, limit: 120 });
-      setReview((r) => ({ ...r, rows }));
+      const { rows } = (await call<{ rows?: Row[] }>({ action: "list", kind, status: review.status, limit: 120 })) ?? {};
+      setReview((r) => ({ ...r, rows: Array.isArray(rows) ? rows : [] }));
     } catch (e) {
       setError((e as Error).message);
     }

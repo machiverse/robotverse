@@ -20,7 +20,7 @@ const TalentEmployerDashboard = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  if (!user) { navigate('/auth'); return null; }
+  if (!user) { navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true }); return null; }
 
   const updateAppStatus = async (appId: string, status: string) => {
     const { error } = await supabase.from('job_applications' as any).update({ status }).eq('id', appId);

@@ -137,7 +137,7 @@ const UserProductRequestModal = ({ open, onOpenChange, defaultProductType, initi
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={() => { onOpenChange(false); navigate('/auth'); }}>
+            <Button onClick={() => { onOpenChange(false); navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true }); }}>
               <LogIn className="w-4 h-4 mr-2" /> Sign In / Register
             </Button>
           </DialogFooter>

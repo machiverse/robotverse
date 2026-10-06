@@ -427,7 +427,7 @@ const Robots = () => {
     e.preventDefault();
     if (!user) {
       toast({ title: "Sign in required", description: "Please sign in to compare robots", variant: "default" });
-      navigate("/auth");
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
       return;
     }
     if (isSelected(robot.id)) removeRobot(robot.id);

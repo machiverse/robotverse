@@ -1,3 +1,4 @@
+import { BackIconButton } from "@/components/navigation/BackButton";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,7 +38,7 @@ const CRM = () => {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate("/auth");
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
     }
   }, [user, authLoading, navigate]);
 
@@ -92,6 +93,7 @@ const CRM = () => {
         <main className="flex-1 overflow-auto">
           <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:px-6">
             <SidebarTrigger className="-ml-2" />
+            <BackIconButton fallbackPath="/dashboard" />
             <div className="flex-1">
               <h1 className="text-lg font-semibold capitalize">{activeView === "overview" ? "CRM Dashboard" : activeView}</h1>
             </div>

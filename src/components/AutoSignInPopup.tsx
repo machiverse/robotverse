@@ -92,7 +92,7 @@ export const AutoSignInPopup = () => {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-    navigate("/auth");
+    navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
   };
 
   const handleSignUp = () => {

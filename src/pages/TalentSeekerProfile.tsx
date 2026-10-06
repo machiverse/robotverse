@@ -49,7 +49,7 @@ const TalentSeekerProfile = () => {
     }
   }, [existingProfile]);
 
-  if (!user) { navigate('/auth'); return null; }
+  if (!user) { navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true }); return null; }
 
   const addSkill = (s: string) => {
     if (s && !form.skills.includes(s)) setForm(f => ({ ...f, skills: [...f.skills, s] }));

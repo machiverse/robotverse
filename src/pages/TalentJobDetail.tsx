@@ -110,7 +110,7 @@ const TalentJobDetail = () => {
             </div>
           )}
           {alreadyApplied && <Badge variant="secondary" className="mt-4">✓ Already Applied</Badge>}
-          {!user && <Button onClick={() => navigate('/auth')} className="mt-4">Sign In to Apply</Button>}
+          {!user && <Button onClick={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true })} className="mt-4">Sign In to Apply</Button>}
         </CardContent>
       </Card>
     </TalentPageWrapper>

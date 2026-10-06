@@ -294,7 +294,7 @@ const WatchlistDashboard = () => {
         <div className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-2xl font-bold mb-4">Login Required</h1>
           <p className="text-muted-foreground mb-6">Please log in to view your watchlist.</p>
-          <Button onClick={() => navigate('/auth')}>Login</Button>
+          <Button onClick={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true })}>Login</Button>
         </div>
       </div>
     );

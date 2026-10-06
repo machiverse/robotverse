@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const Chat = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { createOrGetConversation } = useChat();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,16 +34,17 @@ const Chat = () => {
         setError(null);
         setLoading(true);
 
-        // Check user authentication
+        // Check user authentication (after the saved login has loaded)
+        if (authLoading) return;
         if (!user) {
-          navigate("/auth");
+          navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
           return;
         }
 
         // Validate all required parameters
         if (!otherUserId || !itemId || !itemType) {
           setError("Missing required parameters");
-          navigate("/");
+          navigate("/", { replace: true });
           return;
         }
 
@@ -51,7 +52,7 @@ const Chat = () => {
         const validTypes = ["robot", "spare_part", "service"];
         if (!validTypes.includes(itemType)) {
           setError("Invalid item type");
-          navigate("/");
+          navigate("/", { replace: true });
           return;
         }
 
@@ -92,7 +93,7 @@ const Chat = () => {
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, otherUserId, itemId, itemType, itemName, productDetails]);
+  }, [user, authLoading, otherUserId, itemId, itemType, itemName, productDetails]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

@@ -191,7 +191,7 @@ const SpareCategory = () => {
   // Build breadcrumb
   const breadcrumbs = [
     { label: "Home", path: "/" },
-    { label: "Spare Parts", path: "/spares" },
+    { label: "Spare Parts", path: "/parts" },
   ];
   if (menuName && !categoryName) {
     breadcrumbs.push({ label: formattedTitle, path: `/spares/${menu}` });
@@ -324,7 +324,7 @@ const SpareCategory = () => {
                 ? "Try adjusting your filters."
                 : `No ${formattedTitle.toLowerCase()} are currently available.`}
             </p>
-            <Button variant="outline" onClick={() => navigate('/spares')}>Browse All Spare Parts</Button>
+            <Button variant="outline" onClick={() => navigate('/parts')}>Browse All Spare Parts</Button>
           </div>
         ) : (
           <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-4"}>

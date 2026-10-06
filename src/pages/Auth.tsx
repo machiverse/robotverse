@@ -19,6 +19,12 @@ import { SEOHead } from '@/components/SEOHead';
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 type UserTypeEnum = Database['public']['Enums']['user_type_enum'];
 
+/** Where to go after signing in: the ?redirect= page if it is a page of this site. */
+const safeNext = () => {
+  const next = new URLSearchParams(window.location.search).get("redirect");
+  return next && next.startsWith("/") && !next.startsWith("//") && !/^\/(auth|reset-password|account-status)\b/.test(next) ? next : null;
+};
+
 const Auth = () => {
   // Form state
   const [isSignUp, setIsSignUp] = useState(false);
@@ -253,8 +259,9 @@ const Auth = () => {
     const hasToken = urlParams.get('token_hash');
     
     if (user && !isRecoveryFlow && !hasToken) {
-      console.log('✅ User already authenticated, redirecting to home');
-      navigate('/');
+      console.log('✅ User already authenticated, redirecting');
+      // Replace /auth in history so Back does not bounce the user here again.
+      navigate(safeNext() ?? '/', { replace: true });
     }
   }, [user, navigate]);
 
@@ -632,7 +639,7 @@ const Auth = () => {
                 description: "Your account has been verified and profile updated successfully.",
               });
               
-              setTimeout(() => navigate('/dashboard'), 1000);
+              setTimeout(() => navigate(safeNext() ?? '/dashboard', { replace: true }), 1000);
             } else if (!existingProfile) {
               // Create new profile
               console.log('🆕 Creating new profile from saved data...');
@@ -644,7 +651,7 @@ const Auth = () => {
                 description: "Your account has been verified and profile created successfully.",
               });
               
-              setTimeout(() => navigate('/dashboard'), 1000);
+              setTimeout(() => navigate(safeNext() ?? '/dashboard', { replace: true }), 1000);
             } else {
               console.log('✅ Profile already complete, clearing saved data');
               clearSavedUserData(currentUser.id);
@@ -659,7 +666,7 @@ const Auth = () => {
             });
             
             // Don't clear saved data in case of error - user might need to retry
-            setTimeout(() => navigate('/dashboard'), 2000);
+            setTimeout(() => navigate(safeNext() ?? '/dashboard', { replace: true }), 2000);
           }
         } else if (isIncomplete) {
           // No saved data but user needs to complete profile
@@ -1158,7 +1165,7 @@ const Auth = () => {
               title: "Account Created Successfully!",
               description: "Welcome to RobotVerse! Your account is ready to use.",
             });
-            setTimeout(() => navigate('/dashboard'), 1000);
+            setTimeout(() => navigate(safeNext() ?? '/dashboard', { replace: true }), 1000);
             return;
           }
 

@@ -80,7 +80,7 @@ const CreateAuction: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) { navigate('/auth'); return; }
+    if (!user) { navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true }); return; }
 
     const errors: string[] = [];
     if (!form.auction_title.trim()) errors.push('Auction title is required');
@@ -165,7 +165,7 @@ const CreateAuction: React.FC = () => {
   };
 
   if (!user) {
-    navigate('/auth');
+    navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
     return null;
   }
 

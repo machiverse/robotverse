@@ -82,7 +82,7 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
       options.push({
         label: 'Add Loan Product',
         icon: CreditCard,
-        path: '/finance',
+        path: '/financing',
         description: 'Add a new financing option'
       });
     }

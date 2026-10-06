@@ -415,7 +415,7 @@ const AuctionDetail: React.FC = () => {
                           You must be logged in with an approved buyer account to participate in this industrial
                           auction.
                         </p>
-                        <Button className="w-full h-12 text-md font-bold" onClick={() => navigate("/auth")}>
+                        <Button className="w-full h-12 text-md font-bold" onClick={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true })}>
                           Sign In / Register to Bid
                         </Button>
                       </div>

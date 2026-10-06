@@ -221,7 +221,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
 
   const handleRequestQuoteClick = () => {
     if (!user) {
-      navigate("/auth");
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
       return;
     }
     setShowRobotQuoteModal(true);
@@ -904,7 +904,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     variant="default"
                     className="w-full h-10"
                     size="default"
-                    onClick={() => navigate('/auth')}
+                    onClick={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true })}
                   >
                     Login to View Actions
                   </Button>
