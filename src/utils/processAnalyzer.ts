@@ -621,6 +621,14 @@ export const matchTemplateIds = (description: string): string[] => {
     // Quality words, not processes: "food grade" is not grading; "iron castings" are parts, not die casting.
     .replace(/\b(food|pharma|medical|industrial|export)[ -]grade\b/g, " ")
     .replace(/\b(?<!die )(aluminium|aluminum|iron|steel|zinc|brass|sand)?\s*castings\b/g, " parts")
+    // "part weight 4 kg" / "shafts weigh 6 kg" state a mass, not a weighing station.
+    .replace(/\bweigh(t|ts|s)\b/g, " ")
+    .replace(/\bweigh\b(?= (about |around |approx |approximately |up to |upto |max |maximum |only |less than |under )?\d)/g, " ")
+    // Cleaning up after welding is finishing: "grind weld spatter" is not a welding station.
+    .replace(/\bweld(ing)? (spatter|splatter|slag|beads?|seams?|joints?|marks?|scale)\b(?=[^.]*)/g, (m, _i, what, offset, str) =>
+      /\b(grind|grinding|clean|cleaning|remove|removing|polish|polishing|dress|dressing|blend|blending|deburr|deburring|chip|chipping|brush|brushing|sand|sanding)\b[^.]{0,30}$/.test(str.slice(Math.max(0, offset - 40), offset)) ? ` ${what}` : m)
+    // Raw billets going into a machine tool are machining blanks, not forging.
+    .replace(/\bbillets?\b(?=[^.]*\b(cnc|lathe|machining|mill|milling|turning|machine)\b)/g, "blanks")
     // Picking parts off a conveyor is machine loading, not warehouse order picking.
     .replace(/\bpick(s|ed|ing)?\b((?: [a-z]+){0,3}) from (the )?(conveyor|belt|line)/g, "load$2 from the $4")
     .replace(/[^a-z0-9 ]+/g, " ")

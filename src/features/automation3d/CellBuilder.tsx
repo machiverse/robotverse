@@ -20,7 +20,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
 import { budgetFor, CycleTracker, decodeLine, encodeLine, reportHtml, roi, STARTERS, STEP_GROUP, suggest, type Raw, type StepTime } from "./builderExtras";
 import { inr as inrShort } from "./solutionCost";
-import { thinkCell, type Thought } from "./engineerPlaybook";
+import { KIND_JOB, thinkCell, type Thought } from "./engineerPlaybook";
+import { processKind } from "./processProfiles";
 
 /* ------------------------------------------------------------------ data */
 
@@ -348,9 +349,15 @@ export default function CellBuilder() {
   // Open a job from the engineer's playbook (#job=…) with a suggested robot and tool.
   useEffect(() => {
     if (!raw) return;
-    const job = decodeURIComponent(window.location.hash.match(/job=([^&]+)/)?.[1] ?? "");
-    if (!BLOCKS.some((b) => b.name === job)) return;
-    applyStarter([job]);
+    // One job, or a whole line as job|job|job; names outside the builder's list map to their family's job.
+    const wanted = decodeURIComponent(window.location.hash.match(/job=([^&]+)/)?.[1] ?? "");
+    const jobs = wanted
+      .split("|")
+      .filter(Boolean)
+      .slice(0, 6)
+      .map((j) => (BLOCKS.some((b) => b.name === j) ? j : KIND_JOB[processKind({ name: j })]));
+    if (!jobs.length) return;
+    applyStarter(jobs);
     window.history.replaceState(null, "", window.location.pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raw]);

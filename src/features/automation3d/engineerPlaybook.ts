@@ -257,6 +257,8 @@ export function thinkCell(r: {
     });
   } else out.push({ step: "Cycle time", thought: "Run the 3D line to measure the cycle and find the slowest step.", state: "todo" });
 
+  const notes = JOB_NOTES[r.job];
+  if (notes) out.push({ step: `For ${r.job.toLowerCase()}`, thought: notes.join(". ") + ".", state: "todo" });
   out.push({ step: "Avoid", thought: book.mistakes.join(". ") + ".", state: "todo" });
   return out;
 }
@@ -266,4 +268,99 @@ export const KIND_JOB: Record<ProcessKind, string> = {
   handling: "Loading & Unloading", transport: "Material Transport", welding: "MIG/MAG Welding", machining: "CNC Machining",
   finishing: "Grinding & Surface Prep", coating: "Painting & Coating", inspection: "Vision Inspection", palletizing: "Palletizing",
   packing: "Packing & Box Forming", assembly: "Screw Driving", filling: "Filling", sealing: "Capping", labeling: "Labeling & Weighing",
+};
+
+/* ------------------------------------------------- job-specific know-how */
+
+/** Extra rules for each builder job, on top of its family playbook. */
+export const JOB_NOTES: Record<string, string[]> = {
+  "Loading & Unloading": ["Standardise trays or nests so every part sits in the same place", "Put a part-present sensor in the gripper and in each nest"],
+  "Bin Picking": ["Mount a 3D camera above the bin; plan collision-free paths to the bin walls", "Expect 90–98% first-pick success — add a re-grip or drop-back routine", "Typical cycle 6–12 s per part including vision"],
+  "Material Transport": ["Under 2 m: robot arm; along a line: 7th-axis track; between areas: AMR (ISO 3691-4)", "Add buffers so a stop at one station does not stop the line"],
+  "Injection Moulding Tending": ["Top-entry (sprue picker or 3-axis) or side-entry robot, interfaced by Euromap 67/73", "The robot must enter, grip and leave inside the mould-open time (often 1–3 s)", "Plan degating, insert loading and a cooling conveyor"],
+  "CNC Machining": ["Use the machine's door, chuck/vice and cycle-start signals (M-codes or I/O)", "Blow chips off the part and the chuck before every load", "A zero-point or automatic vice makes changeovers fast"],
+  "Press Tending & Stamping": ["Detect double blanks before loading (oiled sheets stick together)", "Part-in-die and press-position signals interlock the robot with the press", "Vacuum or magnetic crossbar tooling; tandem lines run 8–15 strokes/min"],
+  "MIG/MAG Welding": ["Touch sensing finds the joint; through-arc seam tracking follows it", "Two-station turntable or table so loading overlaps welding"],
+  "TIG Welding": ["Tight fit-up (about ±0.2 mm) — TIG cannot bridge gaps like MIG", "Shield cables against high-frequency arc start interference", "Slow travel (100–300 mm/min); plan tungsten grinding and cold-wire feed"],
+  "Spot Welding": ["Servo guns weigh 60–150 kg: robots of 165–270 kg payload are normal", "Tip dressing every 200–300 welds keeps the electrode face clean", "Needs weld controller (MFDC), cooling water and a dress pack along the arm"],
+  "Grinding & Surface Prep": ["Compensate abrasive wear in the program or with force control", "Aluminium dust is explosive — use ATEX-rated extraction"],
+  "Polishing": ["Decide: robot holds the tool, or robot holds the part against a fixed belt/wheel", "Several grit steps; automatic compound application and wheel wear compensation"],
+  "Painting & Coating": ["Electrostatic bells transfer 80–90% of paint vs 30–60% for air spray", "Simulate film thickness offline before painting real parts"],
+  "Adhesive & Sealant Dispensing": ["Flow must follow robot speed (speed-dependent dosing) so the bead stays even in corners", "Temperature-control the material; purge before pot life ends", "Check every bead with vision"],
+  "Assembly": ["Chamfers and compliance (or force control) let parts find each other", "Record force/position of every press-fit for traceability"],
+  "Screw Driving": ["Blow-feed or pick-from-presenter screw feeding", "Monitor torque and angle on every screw to catch cross-threads and missing screws"],
+  "Quality Inspection": ["Gauge R&R: measurement error should be under 10% of the tolerance", "Decide what the robot does with rejects before building"],
+  "Vision Inspection": ["Plan 3–4 pixels across the smallest defect", "Backlight for outlines, dome light for shiny parts, low-angle light for scratches"],
+  "Filling": ["Weigh-check or flow-meter feedback holds dose accuracy", "Hygienic design: no dead corners, easy cleaning"],
+  "Capping": ["Servo capping head with torque monitoring", "Orient caps in a feeder before the robot picks them"],
+  "Labeling & Weighing": ["Verify every label with a code reader", "Checkweighers for sale by weight must meet Legal Metrology rules"],
+  "Packing & Box Forming": ["Above about 60 picks per minute use a delta robot with conveyor tracking", "Carton erector and sealer set the line pace — size them first"],
+  "Palletizing": ["Pattern software builds layers and interlocking from case size", "Plan slip sheets, stretch wrapping and pallet quality checks"],
+};
+
+/* ------------------------------------------------------ core engineering skills */
+
+export interface CoreSkill {
+  name: string;
+  /** What the engineer works out. */
+  goal: string;
+  steps: string[];
+  rule: string;
+}
+
+export const CORE_SKILLS: CoreSkill[] = [
+  { name: "Takt and cycle time", goal: "How fast each robot must work, and how many robots the line needs.", steps: ["Net time = shift time minus breaks", "Takt = net time ÷ parts needed", "Robots = robot cycle ÷ takt, rounded up"], rule: "Design for about 85% of takt to leave room for faults and changeovers." },
+  { name: "Payload and inertia", goal: "A robot that carries the load fast for years.", steps: ["Add part + gripper + fingers + cables", "Add 25% for acceleration and wear", "Check wrist moment (weight × offset) and inertia limits"], rule: "Under-sizing is the main cause of early gearbox failure." },
+  { name: "Reach and layout", goal: "Every station inside the robot's comfortable working zone.", steps: ["Keep stations within about 80% of rated reach", "Avoid wrist singularities and positions behind the base", "Place operator loading outside the robot's zone"], rule: "If one robot cannot reach everything, use a track, a second robot or move the stations." },
+  { name: "Gripper design", goal: "Hold the part safely at full acceleration.", steps: ["Choose principle: fingers, vacuum, magnet, needles", "Calculate holding force with a safety factor", "Add part-present sensing and a plan for power loss"], rule: "Safety factor 2 for lifting; 4 when vacuum or friction carries the part sideways." },
+  { name: "Safety design", goal: "People are protected in every mode: run, teach, maintenance.", steps: ["Risk assessment for every task (ISO 12100)", "Required performance level for each function (ISO 13849)", "Safety distance for guards and light curtains (ISO 13855)"], rule: "Cobots still need a risk assessment; force limits follow ISO/TS 15066." },
+  { name: "Controls and integration", goal: "Robot, machines and line talk reliably.", steps: ["Write the I/O list: ready, start, done, fault, part present", "Choose the fieldbus (PROFINET, EtherNet/IP)", "Define recovery after a fault or power cut"], rule: "Every handshake needs a timeout and a clear alarm text." },
+  { name: "Vision", goal: "The camera finds or checks every part, every time.", steps: ["Field of view and smallest feature decide the resolution", "Pick lighting before the camera", "Test with bad parts, not only good ones"], rule: "3–4 pixels across the smallest feature or defect." },
+  { name: "Simulation and offline programming", goal: "Prove the cell before buying steel.", steps: ["Check reach and collisions for every point", "Measure cycle time and find the bottleneck", "Generate robot programs offline to shorten commissioning"], rule: "Simulated cycle times are usually within 10% of real ones." },
+  { name: "Commissioning and acceptance", goal: "The cell does what was promised, at rate.", steps: ["Agree FAT/SAT criteria at order: cycle, quality, uptime", "Run at rate for several hours with real parts", "Train operators and maintenance; hand over spares list"], rule: "Write acceptance criteria into the purchase order." },
+  { name: "OEE and maintenance", goal: "The cell keeps running after hand-over.", steps: ["OEE = availability × performance × quality", "Plan greasing, battery and cable checks", "Keep critical spares: gripper parts, cables, cups, tips"], rule: "World-class OEE is about 85%; most new cells start near 60–70%." },
+];
+
+/* --------------------------------------------------------------- calculators */
+
+const G = 9.81;
+export const calc = {
+  takt(shiftHours: number, breakMin: number, shifts: number, partsPerDay: number) {
+    const net = Math.max(0, (shiftHours * 60 - breakMin) * 60 * shifts);
+    return partsPerDay > 0 ? net / partsPerDay : 0;
+  },
+  robotsFor(cycleS: number, taktS: number) {
+    return taktS > 0 ? Math.max(1, Math.ceil(cycleS / (taktS * 0.85))) : 0;
+  },
+  payload(partKg: number, toolKg: number, offsetMm: number) {
+    const total = partKg + toolKg;
+    return { total, withMargin: total * 1.25, momentNm: total * G * (offsetMm / 1000) };
+  },
+  /** Vacuum cups: holding force vs. what the part needs. */
+  vacuum(partKg: number, cups: number, cupMm: number, vacuumKPa: number, accel: number, sideways: boolean) {
+    const area = Math.PI * (cupMm / 2000) ** 2;
+    const hold = vacuumKPa * 1000 * area * cups;
+    const sf = sideways ? 4 : 2;
+    const mu = sideways ? 0.5 : 1;
+    const need = (partKg * (G + accel) * sf) / mu;
+    const minCup = cups > 0 && vacuumKPa > 0 ? 2000 * Math.sqrt(need / (vacuumKPa * 1000 * cups * Math.PI)) : 0;
+    return { hold, need, ok: hold >= need, minCup };
+  },
+  /** Friction grip with two or more jaws. */
+  gripForce(partKg: number, accel: number, mu: number, jaws: number, sf = 2) {
+    return mu > 0 && jaws > 0 ? (partKg * (G + accel) * sf) / (mu * jaws) : 0;
+  },
+  /** ISO 13855 minimum distance for a light curtain approached at right angles. */
+  safetyDistance(stopMs: number, deviceMs: number, resolutionMm: number) {
+    const t = (stopMs + deviceMs) / 1000;
+    const c = resolutionMm <= 40 ? Math.max(0, 8 * (resolutionMm - 14)) : 850;
+    let s = 2000 * t + c;
+    if (s > 500) s = Math.max(500, 1600 * t + c);
+    return Math.max(100, s);
+  },
+  /** Camera pixels needed across the field of view. */
+  vision(fovMm: number, featureMm: number, pxPerFeature = 4) {
+    const px = featureMm > 0 ? Math.ceil((fovMm / featureMm) * pxPerFeature) : 0;
+    return { px, mp: (px * px * 0.75) / 1e6 };
+  },
 };

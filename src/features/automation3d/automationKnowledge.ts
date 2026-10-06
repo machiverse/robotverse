@@ -25,9 +25,10 @@ export const GRIPPER_RULES: Rule[] = [
   { when: /\b(fabric|textile|cloth|garment|leather|foam)\b/, pick: "Needle or electro-adhesive gripper", why: "Porous, limp material cannot be held by vacuum or fingers reliably." },
   { when: /\b(pcb|circuit board|electronic|chip|connector)\b/, pick: "ESD-safe vacuum or small parallel gripper", why: "Electronics must be handled without static discharge or edge damage." },
   { when: /\b(tyre|tyres|tire|tires|wheel|wheels)\b/, pick: "Inner-bead expanding clamp", why: "Tyres are gripped from the inside bead without marking the tread." },
-  { when: /\b(pallet|pallets|crate|crates|tote|totes|bin|bins)\b/, pick: "Fork or tote clamp gripper", why: "Rigid carriers are lifted from below or clamped at the rim." },
+  // Only when the carrier itself is handled: "stack parts on a pallet" is a destination, not the part.
+  { when: /\b(lift|lifts|lifting|move|moves|moving|handle|handles|handling|carry|carries|transfer|transfers|destack|destacking)\s+(the\s+|empty\s+|full\s+)?(pallet|pallets|crate|crates|tote|totes|bin|bins)\b|\b(crate|crates|tote|totes)\b/, pick: "Fork or tote clamp gripper", why: "Rigid carriers are lifted from below or clamped at the rim." },
   { when: /\b(wood|timber|plank|board|boards|mdf|plywood)\b/, pick: "Vacuum or needle gripper", why: "Smooth boards take vacuum; rough timber needs needles." },
-  { when: /\b(casting|castings|forging|forgings|shaft|shafts|gear|gears|machined|billet|billets)\b/, pick: "2- or 3-jaw pneumatic gripper with custom jaws (dual for machine tending)", why: "Rigid metal parts are clamped positively; a dual gripper swaps finished and raw parts in one visit." },
+  { when: /\b(casting|castings|forging|forgings|shaft|shafts|gear|gears|machined|billet|billets|bracket|brackets|flange|flanges|housing|housings|steel part|steel parts|metal part|metal parts)\b/, pick: "2- or 3-jaw pneumatic gripper with custom jaws (dual for machine tending)", why: "Rigid metal parts are clamped positively; a dual gripper swaps finished and raw parts in one visit." },
 ];
 
 /** Vision by how parts arrive and what must be checked. All matches apply. */

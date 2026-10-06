@@ -64,7 +64,7 @@ import type { VisualStation } from "@/components/automation-studio/visualTypes";
 
 const RobotCell3D = lazy(() => import("@/features/automation3d/AutomationStudio3D"));
 import { processKind, PROCESS_PROFILES } from "@/features/automation3d/processProfiles";
-import { KIND_JOB, PLAYBOOK } from "@/features/automation3d/engineerPlaybook";
+import { JOB_NOTES, PLAYBOOK } from "@/features/automation3d/engineerPlaybook";
 import { processToText, PRESETS } from "@/features/automation3d/robotSim.js";
 import AiSolutionPanel from "@/features/automation3d/AiSolutionPanel";
 import { requestSolution, solutionProcesses, type AiSolution } from "@/features/automation3d/aiSolution";
@@ -872,11 +872,18 @@ function AutomationStudioAI() {
                             <p className="text-sm text-muted-foreground">
                               Watch your whole line with every robot, or choose one station to see it on its own.
                             </p>
-                            <Button variant="outline" size="sm" asChild>
-                              <Link to={full ? lineHref : simLink(text, current.name)}>
-                                <Maximize2 className="mr-2 h-4 w-4" /> Open full screen
-                              </Link>
-                            </Button>
+                            <div className="flex flex-wrap gap-2">
+                              <Button size="sm" asChild>
+                                <Link to={`/automation-studio/build#job=${encodeURIComponent(processes.slice(0, 6).map((p) => p.name).join("|"))}`}>
+                                  Build this line with real robots
+                                </Link>
+                              </Button>
+                              <Button variant="outline" size="sm" asChild>
+                                <Link to={full ? lineHref : simLink(text, current.name)}>
+                                  <Maximize2 className="mr-2 h-4 w-4" /> Open full screen
+                                </Link>
+                              </Button>
+                            </div>
                           </div>
                           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Station to simulate">
                             <button
@@ -962,8 +969,13 @@ function AutomationStudioAI() {
                                   </div>
                                 ))}
                               </div>
+                              {JOB_NOTES[current.name] && (
+                                <p className="mt-3 text-xs">
+                                  <b>For {current.name.toLowerCase()}:</b> <span className="text-muted-foreground">{JOB_NOTES[current.name].join(". ")}.</span>
+                                </p>
+                              )}
                               <div className="mt-3 flex flex-wrap gap-3 text-xs">
-                                <Link to={`/automation-studio/build#job=${encodeURIComponent(KIND_JOB[kind])}`} className="font-medium text-primary hover:underline">
+                                <Link to={`/automation-studio/build#job=${encodeURIComponent(current.name)}`} className="font-medium text-primary hover:underline">
                                   Build this cell with real robots →
                                 </Link>
                                 <Link to="/automation-studio/playbook" className="text-muted-foreground hover:text-primary hover:underline">

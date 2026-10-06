@@ -5,9 +5,11 @@ import { AlertTriangle, ArrowLeft, ArrowRight, CircleHelp, Cog, Lightbulb, Timer
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { cn } from "@/lib/utils";
-import { PROCESS_PROFILES, type ProcessKind } from "@/features/automation3d/processProfiles";
+import { PROCESS_PROFILES, processKind, type ProcessKind } from "@/features/automation3d/processProfiles";
 import { SKILLS } from "@/features/automation3d/robotKnowledge";
-import { KIND_JOB, PLAYBOOK, PROJECT_STAGES } from "@/features/automation3d/engineerPlaybook";
+import { CORE_SKILLS, JOB_NOTES, KIND_JOB, PLAYBOOK, PROJECT_STAGES } from "@/features/automation3d/engineerPlaybook";
+import { BLOCKS } from "@/features/automation3d/ProcessBuilder";
+import EngineeringCalculators from "@/features/automation3d/EngineeringCalculators";
 
 const KINDS = Object.keys(PLAYBOOK) as ProcessKind[];
 
@@ -120,6 +122,32 @@ export default function AutomationPlaybookPage() {
               ))}
             </div>
 
+            {BLOCKS.some((b) => processKind({ name: b.name }) === kind && JOB_NOTES[b.name]) && (
+              <div className="mt-5">
+                <p className="text-sm font-semibold">Job by job</p>
+                <div className="mt-2 grid gap-3 md:grid-cols-2">
+                  {BLOCKS.filter((b) => processKind({ name: b.name }) === kind && JOB_NOTES[b.name]).map((b) => (
+                    <div key={b.name} className="rounded-xl border border-border p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <b className="text-sm">{b.label}</b>
+                        <Link to={`/automation-studio/build#job=${encodeURIComponent(b.name)}`} className="shrink-0 text-xs font-medium text-primary hover:underline">
+                          Build →
+                        </Link>
+                      </div>
+                      <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                        {JOB_NOTES[b.name].map((x) => (
+                          <li key={x} className="flex gap-2">
+                            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-current" />
+                            {x}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <Link
               to={`/automation-studio/build#job=${encodeURIComponent(KIND_JOB[kind])}`}
               className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
@@ -127,6 +155,38 @@ export default function AutomationPlaybookPage() {
               Build a {prof.label.toLowerCase()} cell <ArrowRight className="h-4 w-4" />
             </Link>
           </article>
+        </section>
+
+        <section aria-labelledby="core" className="mt-12">
+          <h2 id="core" className="text-lg font-semibold">Core skills of an automation engineer</h2>
+          <p className="mt-1 text-sm text-muted-foreground">The checks behind every cell, whatever the job.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {CORE_SKILLS.map((k) => (
+              <div key={k.name} className="rounded-xl border border-border bg-card p-4">
+                <b className="text-sm">{k.name}</b>
+                <p className="mt-1 text-xs text-muted-foreground">{k.goal}</p>
+                <ol className="mt-2 space-y-1 text-sm">
+                  {k.steps.map((x, i) => (
+                    <li key={x} className="flex gap-2">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">{i + 1}</span>
+                      {x}
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-3 border-t border-border pt-2 text-xs">
+                  <span className="font-semibold text-primary">Rule:</span> {k.rule}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section aria-labelledby="calc" className="mt-12">
+          <h2 id="calc" className="text-lg font-semibold">Engineering calculators</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Change any number; results update as you type. Use them as a first check, then confirm with the supplier's data.</p>
+          <div className="mt-4">
+            <EngineeringCalculators />
+          </div>
         </section>
 
         <p className="mt-10 text-xs text-muted-foreground">
