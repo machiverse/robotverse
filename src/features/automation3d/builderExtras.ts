@@ -125,11 +125,11 @@ export function roi(total: [number, number], operators: number, shifts: number, 
 
 /* ----------------------------------------------------------- share link */
 
-type SharedCell = { j: string; f?: boolean; s: Record<string, string> };
+type SharedCell = { j: string; u?: string; f?: boolean; s: Record<string, string> };
 /** Compact, URL-safe description of the line (job, safety, and source:id of each part). */
-export function encodeLine(cells: { job: string; fenced?: boolean; choice: Choice }[]): string {
+export function encodeLine(cells: { job: string; custom?: string; fenced?: boolean; choice: Choice }[]): string {
   const data: SharedCell[] = cells.map((c) => ({
-    j: c.job, f: c.fenced,
+    j: c.job, u: c.custom, f: c.fenced,
     s: Object.fromEntries(Object.entries(c.choice).filter(([, m]) => m).map(([k, m]) => [k, `${(m as Match).source}:${(m as Match).id}`])),
   }));
   return btoa(unescape(encodeURIComponent(JSON.stringify(data)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");

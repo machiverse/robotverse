@@ -22,6 +22,7 @@ import { budgetFor, CycleTracker, decodeLine, encodeLine, reportHtml, roi, START
 import { inr as inrShort } from "./solutionCost";
 import { KIND_JOB, thinkCell, type Thought } from "./engineerPlaybook";
 import { attachmentIssues, type FitIssue } from "./attachmentFit";
+import { analyzeJob, JOB_EXAMPLES, type JobTask } from "./customJob";
 import { processKind } from "./processProfiles";
 
 /* ------------------------------------------------------------------ data */
@@ -43,8 +44,10 @@ interface TouchState {
 }
 interface Cell {
   id: string;
-  /** "" until the user picks a job. */
+  /** "" until the user picks a job; a builder job or a skills-library task name. */
   job: string;
+  /** The user's own words when they typed the job. */
+  custom?: string;
   choice: Choice;
   /** undefined until the user picks safety: fence (true) or open cobot cell (false). */
   fenced?: boolean;
@@ -87,6 +90,7 @@ const SLOTS: { key: Slot; label: string; icon: typeof Bot }[] = [
   { key: "camera", label: "Wrist camera", icon: Camera },
 ];
 const jobLabel = (name: string) => (name ? (BLOCKS.find((b) => b.name === name)?.label ?? name) : "No job yet");
+const cellLabel = (c?: { job: string; custom?: string }) => (c?.custom ? c.custom : jobLabel(c?.job ?? ""));
 const newId = () => Math.random().toString(36).slice(2, 9);
 const STORE = "rv-cell-builder";
 const inr = (v: number) => `₹${Math.round(v).toLocaleString("en-IN")}`;
@@ -133,6 +137,10 @@ export default function CellBuilder() {
   const [breakdown, setBreakdown] = useState<(StepTime[] | null)[]>([]);
   const [roiIn, setRoiIn] = useState({ operators: 0, shifts: 2, wage: 25000 });
   const [copied, setCopied] = useState(false);
+  // A job typed in the user's own words, analysed into robot tasks.
+  const [jobText, setJobText] = useState("");
+  const jobInputRef = useRef<HTMLInputElement>(null);
+  const jobTasks = useMemo(() => analyzeJob(jobText), [jobText]);
   // Warn the moment something unsuitable is attached: compare each cell's fit issues with the last state.
   const [fitAlert, setFitAlert] = useState<{ cell: number; issues: FitIssue[]; undo: Cell[] } | null>(null);
   const [fitOpen, setFitOpen] = useState(false);
@@ -341,6 +349,26 @@ export default function CellBuilder() {
     const pick = suggest(cells[i].job, need, raw);
     update(i, (c) => ({ ...c, choice: { ...c.choice, ...pick }, fenced: pick.robot ? !isCobot(pick.robot) : c.fenced }));
   };
+  const applyTyped = (tasks: JobTask[], target: number | "new") => {
+    const custom = tasks.length === 1 && jobText.trim() ? jobText.trim() : undefined;
+    if (target === "new") {
+      const room = Math.max(0, 6 - cells.length);
+      const add = tasks.slice(0, room).map((t) => ({ id: newId(), job: t.name, custom: tasks.length === 1 ? custom : undefined, choice: {} }));
+      if (!add.length) return;
+      setCells((cs) => [...cs, ...add]);
+      setSelected(cells.length);
+    } else update(target, (c) => ({ ...c, job: tasks[0].name, custom }));
+    setJobText("");
+  };
+  const typeJobFor = (i: number) => {
+    setSelected(i);
+    setTab("cell");
+    setShowLib(true);
+    window.setTimeout(() => {
+      jobInputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      jobInputRef.current?.focus();
+    }, 60);
+  };
   const share = async () => {
     const url = `${window.location.origin}/automation-studio/build#line=${encodeLine(cells)}`;
     try {
@@ -407,7 +435,8 @@ export default function CellBuilder() {
       setCells(
         shared.map((c) => ({
           id: newId(),
-          job: BLOCKS.some((b) => b.name === c.j) ? c.j : "",
+          job: BLOCKS.some((b) => b.name === c.j) || processesFromSkills([c.j]).length ? c.j : "",
+          custom: typeof c.u === "string" ? c.u.slice(0, 120) : undefined,
           fenced: typeof c.f === "boolean" ? c.f : undefined,
           choice: Object.fromEntries(Object.entries(c.s ?? {}).map(([k, key]) => [k, byKey.get(key)]).filter(([, m]) => m)) as Choice,
         })),
@@ -437,7 +466,7 @@ export default function CellBuilder() {
   const applyDrop = (p: string, cellIndex: number | "new") => {
     if (p.startsWith("job:")) {
       const job = p.slice(4);
-      return cellIndex === "new" || !cells[cellIndex] ? addCell({ job }) : update(cellIndex, (c) => ({ ...c, job }));
+      return cellIndex === "new" || !cells[cellIndex] ? addCell({ job }) : update(cellIndex, (c) => ({ ...c, job, custom: undefined }));
     }
     if (p === "fence:on" || p === "fence:off") {
       const fenced = p === "fence:on";
@@ -602,7 +631,7 @@ export default function CellBuilder() {
       "Please quote the robot cell I built in Automation Studio:",
       "",
       ...cells.map((c, i) =>
-        [`Cell ${i + 1} — ${jobLabel(c.job)}${c.fenced === undefined ? " (safety not chosen)" : c.fenced ? " (fenced)" : " (open / collaborative)"}`, ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `  ${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`)].join("\n"),
+        [`Cell ${i + 1} — ${cellLabel(c)}${c.fenced === undefined ? " (safety not chosen)" : c.fenced ? " (fenced)" : " (open / collaborative)"}`, ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `  ${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`)].join("\n"),
       ),
       "",
       "Name:",
@@ -649,7 +678,7 @@ export default function CellBuilder() {
     if (!w) return;
     w.document.write(
       reportHtml({
-        cells: cells.map((c, i) => ({ job: jobLabel(c.job), choice: c.choice, fenced: c.fenced, cycle: cycles[i], checks: checks[i], thoughts: thoughts[i] })),
+        cells: cells.map((c, i) => ({ job: cellLabel(c), choice: c.choice, fenced: c.fenced, cycle: cycles[i], checks: checks[i], thoughts: thoughts[i] })),
         bottleneck, perHour, budget, roi: payback, inputs: { operators, shifts: roiIn.shifts, wage: roiIn.wage },
       }),
     );
@@ -665,7 +694,7 @@ export default function CellBuilder() {
   const STEPS = [
     { n: 1, label: "Robot", done: robotsDone, hint: "Drag a robot onto the empty floor — one per station.", go: () => setTab("robots") },
     { n: 2, label: "Tool", done: toolsDone, hint: "Drop a gripper, torch or other tool on each robot. Accessories are optional.", go: () => setTab("tools") },
-    { n: 3, label: "Job", done: jobsDone, hint: "Give each robot its job — its stations appear around it.", go: () => setTab("cell") },
+    { n: 3, label: "Job", done: jobsDone, hint: "Pick a job or type your own — its stations appear around the robot.", go: () => setTab("cell") },
     { n: 4, label: "Safety", done: safetyDone, hint: "Choose a safety fence or an open cobot cell.", go: () => setTab("cell") },
     { n: 5, label: "Run", done: runDone, hint: "Watch the line run, then open the report for cycle time, checks and cost.", go: () => setReportOpen(true) },
   ];
@@ -676,7 +705,7 @@ export default function CellBuilder() {
     const rows = [
       ["Cell", "Job", "Robot", "Tool", "Accessories", "Safety", "Cycle (s)", "Parts / hour", "Status", "Notes"],
       ...cells.map((c, i) => [
-        i + 1, jobLabel(c.job), c.choice.robot?.name, c.choice.tool?.name,
+        i + 1, cellLabel(c), c.choice.robot?.name, c.choice.tool?.name,
         [c.choice.changer, c.choice.sensor, c.choice.camera].filter(Boolean).map((m) => m!.name).join(" + "),
         c.fenced === undefined ? "Not chosen" : c.fenced ? "Fenced" : "Open (cobot)", cycles[i]?.toFixed(1), cycles[i] ? Math.floor(3600 / cycles[i]!) : "",
         states[i] === "ok" ? "Ready" : states[i] === "warn" ? "Check" : "Incomplete",
@@ -705,7 +734,7 @@ export default function CellBuilder() {
   const dropHint = !cells.length
     ? "Drop to create your first robot cell"
     : hover >= 0 && hover < cells.length
-      ? `Drop on Cell ${hover + 1} · ${jobLabel(cells[hover].job)} — ${drag?.kind === "robot" && cells[hover].choice.robot ? "replace the robot" : `set the ${what}`}`
+      ? `Drop on Cell ${hover + 1} · ${cellLabel(cells[hover])} — ${drag?.kind === "robot" && cells[hover].choice.robot ? "replace the robot" : `set the ${what}`}`
       : hover === cells.length
         ? `Drop here to add Cell ${cells.length + 1}`
         : drag?.kind === "robot"
@@ -791,7 +820,7 @@ export default function CellBuilder() {
                   )}
                 >
                   <b className="block">Cell {i + 1}</b>
-                  <span className="block truncate">{jobLabel(c.job)}</span>
+                  <span className="block truncate">{cellLabel(c)}</span>
                 </div>
               ))}
               {cells.length < 6 && (
@@ -929,6 +958,78 @@ export default function CellBuilder() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           {tab === "cell" ? (
             <div className="space-y-3 p-2">
+              <div className="rounded-lg border border-primary/40 bg-primary/5 p-2">
+                <label htmlFor="own-job" className="mb-1 block px-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                  Your own job
+                </label>
+                <input
+                  id="own-job"
+                  ref={jobInputRef}
+                  value={jobText}
+                  onChange={(e) => setJobText(e.target.value)}
+                  placeholder="Type any job, e.g. deburr aluminium castings"
+                  className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+                />
+                {jobText.trim().length < 3 ? (
+                  <p className="mt-1.5 px-1 text-[11px] text-muted-foreground">
+                    Not in the list? Describe it — we work out the robot, tool and stations.{" "}
+                    {JOB_EXAMPLES.slice(0, 3).map((x) => (
+                      <button key={x} type="button" onClick={() => setJobText(x)} className="mr-1 text-primary underline-offset-2 hover:underline">
+                        “{x}”
+                      </button>
+                    ))}
+                  </p>
+                ) : !jobTasks.length ? (
+                  <p className="mt-1.5 px-1 text-[11px] text-amber-600">
+                    We could not match this to a robot task yet. Use action words such as weld, pick, place, pack, stack, grind, polish, paint, glue, screw,
+                    inspect, test, cut or load.
+                  </p>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    <p className="px-1 text-[11px] text-muted-foreground">
+                      We understood {jobTasks.length === 1 ? "one robot task" : `${jobTasks.length} robot tasks`}:
+                    </p>
+                    {jobTasks.map((t) => (
+                      <div key={t.name} className="rounded-md border border-border bg-background p-2 text-[11px]">
+                        <div className="flex items-start justify-between gap-2">
+                          <b className="text-xs">{t.name}</b>
+                          <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{t.family}</span>
+                        </div>
+                        <p className="mt-1 text-muted-foreground">{t.does}</p>
+                        <ul className="mt-1 space-y-0.5">
+                          <li><span className="text-muted-foreground">Tool:</span> {t.tool}</li>
+                          <li><span className="text-muted-foreground">Robot:</span> {t.payloadKg} kg payload or more · often used: {t.robot}</li>
+                          <li><span className="text-muted-foreground">In 3D:</span> {t.stations.join(", ") || "robot only"}</li>
+                          <li><span className="text-muted-foreground">Typical cycle:</span> {t.cycle[0]}–{t.cycle[1]} s</li>
+                        </ul>
+                        <p className="mt-1 italic text-muted-foreground">{t.key}</p>
+                        {jobTasks.length > 1 && (
+                          <div className="mt-1.5 flex gap-1">
+                            {cells[selected] && (
+                              <button type="button" onClick={() => applyTyped([t], selected)} className="rounded border border-border px-1.5 py-0.5 hover:border-primary">
+                                Use for Cell {selected + 1}
+                              </button>
+                            )}
+                            <button type="button" onClick={() => applyTyped([t], "new")} disabled={cells.length >= 6} className="rounded border border-border px-1.5 py-0.5 hover:border-primary disabled:opacity-50">
+                              + New cell
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    <div className="flex flex-wrap gap-1.5">
+                      {jobTasks.length === 1 && cells[selected] && (
+                        <Button size="sm" className="h-7 text-xs" onClick={() => applyTyped(jobTasks, selected)}>
+                          Use for Cell {selected + 1}
+                        </Button>
+                      )}
+                      <Button size="sm" variant={jobTasks.length === 1 && cells[selected] ? "outline" : "default"} className="h-7 text-xs" disabled={cells.length >= 6} onClick={() => applyTyped(jobTasks, "new")}>
+                        {jobTasks.length === 1 ? "+ New cell" : `Add all ${Math.min(jobTasks.length, 6 - cells.length)} as cells`}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <div>
                 <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ready cells</p>
                 <div className="grid grid-cols-2 gap-1">
@@ -986,7 +1087,7 @@ export default function CellBuilder() {
                         onDragStart={(e) => onDragStart(e, `job:${b.name}`, "job")}
                         onDragEnd={endDrag}
                         {...touchDrag({ payload: `job:${b.name}`, kind: "job", label: b.label })}
-                        onClick={tapped(() => (cells[selected] ? update(selected, (c) => ({ ...c, job: b.name })) : addCell({ job: b.name })))}
+                        onClick={tapped(() => (cells[selected] ? update(selected, (c) => ({ ...c, job: b.name, custom: undefined })) : addCell({ job: b.name })))}
                         className="cursor-grab select-none rounded-full [-webkit-touch-callout:none] border border-border bg-background px-2 py-1 text-[11px] hover:border-primary hover:text-primary"
                       >
                         {b.label}
@@ -1075,13 +1176,15 @@ export default function CellBuilder() {
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">{i + 1}</span>
                   <select
                     value={c.job}
-                    onChange={(e) => update(i, (x) => ({ ...x, job: e.target.value }))}
+                    onChange={(e) => (e.target.value === "__type" ? typeJobFor(i) : update(i, (x) => ({ ...x, job: e.target.value, custom: undefined })))}
                     className="min-w-0 flex-1 rounded border border-border bg-background px-1.5 py-1 text-xs"
                     aria-label={`Job of cell ${i + 1}`}
                   >
                     <option value="" disabled>
                       Choose a job…
                     </option>
+                    <option value="__type">✎ Type my own job…</option>
+                    {c.job && (c.custom || !BLOCKS.some((b) => b.name === c.job)) && <option value={c.job}>{cellLabel(c)}</option>}
                     {BLOCKS.map((b) => (
                       <option key={b.name} value={b.name}>
                         {b.label}
@@ -1196,7 +1299,7 @@ export default function CellBuilder() {
               <AlertTriangle className={cn("h-5 w-5", fitAlert?.issues.some((f) => f.level === "stop") ? "text-red-500" : "text-amber-500")} />
               {fitAlert?.issues.some((f) => f.level === "stop") ? "This is not suitable" : "Check this choice"}
             </DialogTitle>
-            <DialogDescription>Cell {fitAlert ? fitAlert.cell + 1 : ""} · {fitAlert ? jobLabel(fitAlert.undo[fitAlert.cell]?.job ?? cells[fitAlert.cell]?.job ?? "") : ""}</DialogDescription>
+            <DialogDescription>Cell {fitAlert ? fitAlert.cell + 1 : ""} · {fitAlert ? cellLabel(fitAlert.undo[fitAlert.cell] ?? cells[fitAlert.cell]) : ""}</DialogDescription>
           </DialogHeader>
           <ul className="space-y-3">
             {fitAlert?.issues.map((f) => (
@@ -1253,7 +1356,7 @@ export default function CellBuilder() {
                   <li key={c.id} className="rounded-xl border border-border p-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">{i + 1}</span>
-                      <b className="text-sm">{jobLabel(c.job)}</b>
+                      <b className="text-sm">{cellLabel(c)}</b>
                       <StateBadge state={states[i]} />
                       <span className="ml-auto text-xs tabular-nums text-muted-foreground">
                         {cycles[i] ? `${cycles[i]!.toFixed(1)} s cycle · ${Math.floor(3600 / cycles[i]!)} parts/h` : stalled[i] ? "stalled" : "running…"}
@@ -1296,7 +1399,7 @@ export default function CellBuilder() {
                     return (
                       <div key={c.id}>
                         <div className="flex items-baseline justify-between text-xs">
-                          <b>Cell {i + 1} · {jobLabel(c.job)}</b>
+                          <b>Cell {i + 1} · {cellLabel(c)}</b>
                           <span className="tabular-nums text-muted-foreground">{total.toFixed(1)} s</span>
                         </div>
                         <div className="mt-1 flex h-3 overflow-hidden rounded-full bg-muted" role="img" aria-label={[...groups.values()].map((g) => `${g.label} ${g.seconds.toFixed(1)} s`).join(", ")}>
