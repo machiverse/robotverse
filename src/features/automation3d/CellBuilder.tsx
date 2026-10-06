@@ -423,7 +423,7 @@ export default function CellBuilder() {
     const card = el?.closest<HTMLElement>("[data-cell]");
     if (card) {
       setOverStage(false);
-      setHover(-1);
+      setHover(Number(card.dataset.cell));
       setSelected(Number(card.dataset.cell));
     } else if (inStage(el)) {
       setOverStage(true);
@@ -724,6 +724,26 @@ export default function CellBuilder() {
           {drag && (
             <div className="pointer-events-none absolute inset-x-0 top-14 mx-auto w-fit max-w-[90%] rounded-lg bg-background/95 px-4 py-2 text-center text-sm font-medium shadow-lg">
               {dropHint}
+            </div>
+          )}
+          {/* Phones: the cell cards are further down the page, so offer them as drop targets right here. */}
+          {drag && !wide && cells.length > 0 && (
+            <div className="absolute inset-x-2 bottom-2 flex gap-1.5 overflow-x-auto rounded-lg bg-background/90 p-1.5 shadow-lg">
+              {cells.map((c, i) => (
+                <div
+                  key={c.id}
+                  data-cell={i}
+                  onDragOver={(e) => (e.preventDefault(), setSelected(i))}
+                  onDrop={(e) => dropOn(e, i)}
+                  className={cn(
+                    "min-w-[88px] shrink-0 rounded-md border-2 border-dashed px-2 py-1.5 text-center text-[11px]",
+                    selected === i ? "border-primary bg-primary/15 text-foreground" : "border-border text-muted-foreground",
+                  )}
+                >
+                  <b className="block">Cell {i + 1}</b>
+                  <span className="block truncate">{jobLabel(c.job)}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
