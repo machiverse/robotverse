@@ -359,6 +359,8 @@ export default function CellBuilder() {
       setSelected(cells.length);
     } else update(target, (c) => ({ ...c, job: tasks[0].name, custom }));
     setJobText("");
+    // Phones: the 3D view is above the library — bring it back so the new stations are seen.
+    if (!wide) window.setTimeout(() => stageBoxRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }), 50);
   };
   const typeJobFor = (i: number) => {
     setSelected(i);
@@ -929,7 +931,7 @@ export default function CellBuilder() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={tab === "robots" ? "Search brand, model…" : "Search tools…"}
-                className="w-full rounded-md border border-border bg-background py-2 pl-8 pr-2 text-sm"
+                className="w-full rounded-md border border-border bg-background py-2 pl-8 pr-2 text-base sm:text-sm"
                 aria-label="Search parts"
               />
             </label>
@@ -968,7 +970,8 @@ export default function CellBuilder() {
                   value={jobText}
                   onChange={(e) => setJobText(e.target.value)}
                   placeholder="Type any job, e.g. deburr aluminium castings"
-                  className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+                  enterKeyHint="done"
+                  className="w-full rounded-md border border-border bg-background px-2 py-2 text-base sm:text-sm"
                 />
                 {jobText.trim().length < 3 ? (
                   <p className="mt-1.5 px-1 text-[11px] text-muted-foreground">
@@ -1006,11 +1009,11 @@ export default function CellBuilder() {
                         {jobTasks.length > 1 && (
                           <div className="mt-1.5 flex gap-1">
                             {cells[selected] && (
-                              <button type="button" onClick={() => applyTyped([t], selected)} className="rounded border border-border px-1.5 py-0.5 hover:border-primary">
+                              <button type="button" onClick={() => applyTyped([t], selected)} className="rounded border border-border px-2 py-1.5 hover:border-primary sm:px-1.5 sm:py-0.5">
                                 Use for Cell {selected + 1}
                               </button>
                             )}
-                            <button type="button" onClick={() => applyTyped([t], "new")} disabled={cells.length >= 6} className="rounded border border-border px-1.5 py-0.5 hover:border-primary disabled:opacity-50">
+                            <button type="button" onClick={() => applyTyped([t], "new")} disabled={cells.length >= 6} className="rounded border border-border px-2 py-1.5 hover:border-primary disabled:opacity-50 sm:px-1.5 sm:py-0.5">
                               + New cell
                             </button>
                           </div>
@@ -1019,11 +1022,11 @@ export default function CellBuilder() {
                     ))}
                     <div className="flex flex-wrap gap-1.5">
                       {jobTasks.length === 1 && cells[selected] && (
-                        <Button size="sm" className="h-7 text-xs" onClick={() => applyTyped(jobTasks, selected)}>
+                        <Button size="sm" className="h-9 text-xs sm:h-7" onClick={() => applyTyped(jobTasks, selected)}>
                           Use for Cell {selected + 1}
                         </Button>
                       )}
-                      <Button size="sm" variant={jobTasks.length === 1 && cells[selected] ? "outline" : "default"} className="h-7 text-xs" disabled={cells.length >= 6} onClick={() => applyTyped(jobTasks, "new")}>
+                      <Button size="sm" variant={jobTasks.length === 1 && cells[selected] ? "outline" : "default"} className="h-9 text-xs sm:h-7" disabled={cells.length >= 6} onClick={() => applyTyped(jobTasks, "new")}>
                         {jobTasks.length === 1 ? "+ New cell" : `Add all ${Math.min(jobTasks.length, 6 - cells.length)} as cells`}
                       </Button>
                     </div>
