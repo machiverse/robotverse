@@ -421,7 +421,10 @@ export default function CellBuilder() {
   const touchAt = (x: number, y: number) => {
     const el = document.elementFromPoint(x, y);
     const card = el?.closest<HTMLElement>("[data-cell]");
-    if (card) {
+    if (card?.dataset.cell === "new") {
+      setOverStage(false);
+      setHover(cells.length);
+    } else if (card) {
       setOverStage(false);
       setHover(Number(card.dataset.cell));
       setSelected(Number(card.dataset.cell));
@@ -437,7 +440,7 @@ export default function CellBuilder() {
   const touchDrop = (x: number, y: number, t: TouchItem) => {
     const el = document.elementFromPoint(x, y);
     const card = el?.closest<HTMLElement>("[data-cell]");
-    if (card) applyDrop(t.payload, Number(card.dataset.cell));
+    if (card) applyDrop(t.payload, card.dataset.cell === "new" ? "new" : Number(card.dataset.cell));
     else if (inStage(el)) applyDrop(t.payload, stageIndex(x, y, t.kind));
   };
   const touchFns = useRef({ touchAt, touchDrop });
@@ -744,6 +747,19 @@ export default function CellBuilder() {
                   <span className="block truncate">{jobLabel(c.job)}</span>
                 </div>
               ))}
+              {cells.length < 6 && (
+                <div
+                  data-cell="new"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => dropOn(e, "new")}
+                  className={cn(
+                    "flex min-w-[80px] shrink-0 items-center justify-center rounded-md border-2 border-dashed px-2 py-1.5 text-[11px] font-semibold",
+                    hover === cells.length ? "border-emerald-500 bg-emerald-500/15 text-foreground" : "border-border text-muted-foreground",
+                  )}
+                >
+                  + New cell
+                </div>
+              )}
             </div>
           )}
         </div>

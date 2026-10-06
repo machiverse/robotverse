@@ -2223,7 +2223,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       }
     });
     // Close to a robot (within about half the spacing between cells) counts as that robot; empty floor is -1.
-    return bestD <= Math.min(gap * 0.4, 170) ? best : -1;
+    return bestD <= Math.min(gap * 0.4, 170, rect.width * 0.22) ? best : -1;
   }
   function setHover(i) {
     if (i == null || i < 0) {
