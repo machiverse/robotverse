@@ -67,7 +67,7 @@ export function requestSolution(brief: string, industry?: string | null): Promis
   const p = (async () => {
     // Plain fetch: an AI refusal (e.g. 402 out of credits) is an expected answer the
     // page handles by showing the built-in design, not an unhandled client error.
-    let data: { error?: string } | null = null;
+    let data: { error?: string; unavailable?: boolean } | null = null;
     try {
       const { data: s } = await supabase.auth.getSession();
       const res = await fetch(`${SUPABASE_URL}/functions/v1/automation-solution`, {
