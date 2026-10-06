@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
-  AlertTriangle, Bot, Brain, Link2, Printer, Wand2, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
+  AlertTriangle, Bot, Brain, Link2, PanelLeft, PanelRight, Printer, Wand2, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +59,7 @@ const marketTool = (t: Record<string, unknown>): Match => ({
 
 // Cell equipment that does not go on the arm (stations, power sources, feeders).
 const NOT_ON_ARM = /cleaning|reamer|station|power source|wire feeder|feeder|proportioner|controller/i;
-const isCobot = (m?: Match) => !!m && (m.reasons.includes("Collaborative") || /cobot|collaborative|\bur\d|crx|techman|doosan|gofa|iisy/i.test(`${m.type} ${m.name}`));
+const isCobot = (m?: Match) => !!m && (m.reasons.includes("Collaborative") || /cobot|collaborative|\bur\d|crx|techman|doosan|gofa|crb\s?1|iisy/i.test(`${m.type} ${m.name}`));
 const ROBOT_TYPES = ["All", "6-Axis", "Cobot", "SCARA", "Delta", "Palletizing", "7-Axis"] as const;
 const SLOTS: { key: Slot; label: string; icon: typeof Bot }[] = [
   { key: "robot", label: "Robot arm", icon: Bot },
@@ -102,6 +102,7 @@ export default function CellBuilder() {
   const [playing, setPlaying] = useState(true);
   const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle"> | null>(null);
   const lastEmit = useRef(0);
+  const cellCount = useRef(0);
   const [reportOpen, setReportOpen] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [raw, setRaw] = useState<Raw | null>(null);
@@ -110,6 +111,13 @@ export default function CellBuilder() {
   const [breakdown, setBreakdown] = useState<(StepTime[] | null)[]>([]);
   const [roiIn, setRoiIn] = useState({ operators: 0, shifts: 2, wage: 25000 });
   const [copied, setCopied] = useState(false);
+  // Digital-twin view: floating library and line panels over the 3D stage (desktop), and the drop target under the pointer.
+  const [showLib, setShowLib] = useState(true);
+  const [showLine, setShowLine] = useState(true);
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
+  const [hover, setHover] = useState(-1);
+  const eqKeys = useRef<string[]>([]);
+  const fenceKey = useRef("");
   const [unreachable, setUnreachable] = useState<string[]>([]);
   useEffect(() => {
     if (reportOpen) setUnreachable(simRef.current?.checkReach() ?? []);
@@ -145,7 +153,22 @@ export default function CellBuilder() {
       },
     });
     simRef.current = s;
-    return () => s.dispose();
+    // Click a robot in the 3D view to select its cell (a drag of the camera is not a click).
+    const el = stageRef.current;
+    let down: [number, number] | null = null;
+    const onDown = (e: PointerEvent) => (down = [e.clientX, e.clientY]);
+    const onUp = (e: PointerEvent) => {
+      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
+      const t = s.cellAt(e.clientX, e.clientY);
+      if (t >= 0 && t < cellCount.current) setSelected(t);
+    };
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointerup", onUp);
+    return () => {
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointerup", onUp);
+      s.dispose();
+    };
   }, []);
 
   useEffect(() => {
@@ -176,15 +199,30 @@ export default function CellBuilder() {
     stepsRef.current = plan.sim.cells.map((c) => c.steps.map((st) => ({ label: st.label, action: st.action })));
     tracker.current.reset(plan.sim.cells.length);
     setBreakdown([]);
+    // The line was rebuilt with planned robots: every cell's equipment and fencing must be applied again.
+    eqKeys.current = [];
+    fenceKey.current = "";
     if (playing) s.play();
+    else s.pause();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planKey]);
   useEffect(() => {
     const s = simRef.current;
+    cellCount.current = cells.length;
     if (!s || !plan) return;
-    s.setFencing(cells.map((c) => c.fenced));
+    // Only touch what changed: re-applying a robot rebuilds its model and restarts the line.
+    const fk = cells.map((c) => (c.fenced ? 1 : 0)).join("");
+    if (fk !== fenceKey.current) {
+      fenceKey.current = fk;
+      s.setFencing(cells.map((c) => c.fenced));
+    }
+    let changed = false;
     cells.forEach((c, i) => {
       const eq = c.choice;
+      const key = SLOTS.map((sl) => (eq[sl.key] ? `${eq[sl.key]!.source}:${eq[sl.key]!.id}` : "")).join("|");
+      if (eqKeys.current[i] === key) return;
+      eqKeys.current[i] = key;
+      changed = true;
       const any = eq.robot || eq.tool || eq.changer || eq.sensor || eq.camera;
       s.setEquipment(
         i,
@@ -197,10 +235,25 @@ export default function CellBuilder() {
           : null,
       );
     });
+    if (!changed) return;
     // Equipment changes restart the line, so the cycle measurement starts again too.
     tracker.current.reset(cells.length);
     setBreakdown([]);
   }, [cells, plan]);
+  // Desktop: panels float over the stage, so frame the line in the free middle.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const on = () => setWide(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  useEffect(() => {
+    simRef.current?.setInsets(wide && showLib ? 316 : 0, wide && showLine ? 326 : 0);
+  }, [wide, showLib, showLine]);
+  // The ring on the floor marks the drop target while dragging, otherwise the selected cell.
+  useEffect(() => {
+    simRef.current?.setHover(drag ? hover : cells.length ? Math.min(selected, cells.length - 1) : -1);
+  }, [drag, hover, selected, cells.length, planKey]);
   useEffect(() => {
     if (cells.length) simRef.current?.setFocus(Math.min(selected, cells.length - 1));
   }, [selected, cells.length]);
@@ -311,6 +364,15 @@ export default function CellBuilder() {
   const endDrag = () => {
     setDrag(null);
     setOverStage(false);
+    setHover(-1);
+  };
+  // Where a drop on the 3D stage lands: the cell under the pointer, the empty slot after the line, or (off target) the selected cell.
+  const stageTarget = (x: number, y: number) => (cells.length ? (simRef.current?.cellAt(x, y) ?? -1) : -1);
+  const dropOnStage = (e: React.DragEvent) => {
+    const t = stageTarget(e.clientX, e.clientY);
+    if (!cells.length || t >= cells.length || (t < 0 && drag?.kind === "robot")) return dropOn(e, "new");
+    if (t < 0 && drag?.kind === "fence") return dropOn(e, "new");
+    dropOn(e, t < 0 ? selected : t);
   };
   const dropOn = (e: React.DragEvent, cellIndex: number | "new") => {
     e.preventDefault();
@@ -327,7 +389,7 @@ export default function CellBuilder() {
     }
     const m = byKey.get(p);
     if (!m) return;
-    if (cellIndex === "new") return m.kind === "robot" ? addCell({ choice: { robot: m }, fenced: !isCobot(m) }) : put(selected, m);
+    if (cellIndex === "new") return m.kind === "robot" ? addCell({ choice: { robot: m }, fenced: !isCobot(m) }) : addCell({ choice: { [slotOf(m)]: m } });
     put(cellIndex, m);
   };
 
@@ -458,11 +520,24 @@ export default function CellBuilder() {
     setPlaying(!playing);
   };
 
+  const what = drag?.kind === "robot" ? "robot" : drag?.kind === "job" ? "job" : drag?.kind === "fence" ? "safety" : drag?.slot === "tool" ? "tool" : "accessory";
+  const dropHint = !cells.length
+    ? "Drop to create your first robot cell"
+    : hover >= 0 && hover < cells.length
+      ? `Drop on Cell ${hover + 1} · ${jobLabel(cells[hover].job)} — ${drag?.kind === "robot" && cells[hover].choice.robot ? "replace the robot" : `set the ${what}`}`
+      : hover === cells.length
+        ? `Drop here to add Cell ${cells.length + 1}`
+        : drag?.kind === "robot"
+          ? "Drop to add a new robot cell — or point at a robot to replace it"
+          : drag?.kind === "fence"
+            ? "Drop to apply to every cell — or point at one robot"
+            : `Point at a robot — or drop to use Cell ${selected + 1}`;
+
   /* -------------------------------------------------------------- render */
 
   return (
     <div className="flex flex-col gap-3 p-3">
-    <ol aria-label="Steps" className="grid gap-2 sm:grid-cols-3">
+    <ol aria-label="Steps" className="grid grid-cols-3 gap-2">
       {STEPS.map((st) => {
         const active = st.n === current;
         return (
@@ -471,7 +546,7 @@ export default function CellBuilder() {
               type="button"
               onClick={st.go}
               className={cn(
-                "flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "flex w-full items-start gap-2 rounded-xl border p-2 text-left sm:gap-3 sm:p-3 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/50",
               )}
               aria-current={active ? "step" : undefined}
@@ -480,8 +555,8 @@ export default function CellBuilder() {
                 {st.done ? <CheckCircle2 className="h-4 w-4" /> : st.n}
               </span>
               <span className="min-w-0">
-                <b className="block text-sm">{st.label}</b>
-                <span className="block text-xs text-muted-foreground">
+                <b className="block text-xs sm:text-sm">{st.label}</b>
+                <span className="hidden text-xs text-muted-foreground sm:block">
                   {st.done ? (st.n === 3 ? `Line runs · ${perHour} parts/hour — open the report` : "Done") : st.n === 3 && toolsDone ? (stalled.some(Boolean) ? "A cell is not completing its cycle — open the report to see why" : "Measuring cycle time… the first full cycle takes a moment") : st.hint}
                 </span>
               </span>
@@ -490,16 +565,104 @@ export default function CellBuilder() {
         );
       })}
     </ol>
-    <div className="grid gap-3 lg:h-[calc(100vh-235px)] lg:grid-cols-[320px_1fr_330px]">
+    <div className="relative flex flex-col gap-3 lg:block lg:h-[calc(100vh-200px)] lg:min-h-[600px]">
+      {/* 3D stage */}
+      <section aria-label="3D robot cell" className="relative h-[58vh] min-h-[380px] overflow-hidden rounded-xl border border-border bg-slate-900 lg:absolute lg:inset-0 lg:h-auto">
+        <div ref={stageRef} className="absolute inset-0" />
+        <div
+          onDragOver={(e) => {
+            if (!drag) return;
+            e.preventDefault();
+            setOverStage(true);
+            const t = stageTarget(e.clientX, e.clientY);
+            if (t !== hover) setHover(t);
+          }}
+          onDragLeave={() => (setOverStage(false), setHover(-1))}
+          onDrop={dropOnStage}
+          className={cn("absolute inset-0 transition-colors", drag ? "pointer-events-auto" : "pointer-events-none", overStage && "bg-primary/10 ring-4 ring-inset ring-primary/70")}
+        >
+          {drag && (
+            <div className="pointer-events-none absolute inset-x-0 top-14 mx-auto w-fit max-w-[90%] rounded-lg bg-background/95 px-4 py-2 text-center text-sm font-medium shadow-lg">
+              {dropHint}
+            </div>
+          )}
+        </div>
+        <div className="absolute inset-x-2 top-2 z-20 flex items-center gap-1.5 overflow-x-auto sm:inset-x-3 sm:top-3 lg:overflow-visible">
+          <Button size="sm" variant={showLib ? "default" : "secondary"} className="hidden lg:inline-flex" onClick={() => setShowLib((v) => !v)} aria-pressed={showLib}>
+            <PanelLeft className="mr-1 h-3.5 w-3.5" /> Library
+          </Button>
+          <Button size="sm" variant="secondary" onClick={togglePlay} disabled={!cells.length}>
+            {playing ? <Pause className="mr-1 h-3.5 w-3.5" /> : <Play className="mr-1 h-3.5 w-3.5" />} {playing ? "Pause" : "Play"}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => (simRef.current?.reset(), simRef.current?.play(), setPlaying(true), tracker.current.reset(cells.length), setBreakdown([]))} disabled={!cells.length}>
+            <RotateCcw className="mr-1 h-3.5 w-3.5" /> Restart
+          </Button>
+          <select
+            value={speed}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setSpeed(v);
+              simRef.current?.setSpeed(v);
+            }}
+            aria-label="Simulation speed"
+            className="h-8 rounded-md border border-border bg-secondary px-2 text-xs text-secondary-foreground"
+          >
+            {[0.5, 1, 2, 4].map((v) => (
+              <option key={v} value={v}>
+                {v}×
+              </option>
+            ))}
+          </select>
+          {(["iso", "front", "top"] as const).map((v) => (
+            <Button key={v} size="sm" variant="secondary" onClick={() => simRef.current?.setView(v)}>
+              {v === "iso" ? "3D" : v[0].toUpperCase() + v.slice(1)}
+            </Button>
+          ))}
+          <Button size="sm" variant={showLine ? "default" : "secondary"} className="ml-auto hidden lg:inline-flex" onClick={() => setShowLine((v) => !v)} aria-pressed={showLine}>
+            Your line ({cells.length}) <PanelRight className="ml-1 h-3.5 w-3.5" />
+          </Button>
+        </div>
+        {!cells.length && !drag && (
+          <div className="absolute inset-0 flex items-center justify-center overflow-y-auto px-3 pb-3 pt-14">
+            <div className="w-full max-w-md rounded-xl bg-background/95 p-3 shadow-lg sm:p-5">
+              <p className="flex items-center gap-2 font-semibold">
+                <Bot className="h-5 w-5 text-primary" /> Drag a robot here — or start from a ready cell
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {STARTERS.map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    disabled={!raw}
+                    onClick={() => applyStarter(st.jobs)}
+                    className="rounded-lg border border-border p-2.5 text-left transition-colors duration-150 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                  >
+                    <b className="block text-sm">{st.name}</b>
+                    <span className="hidden text-[11px] text-muted-foreground sm:block">{st.what}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] text-muted-foreground">Ready cells come with a matching robot and tool from the marketplace or Directory — change anything after.</p>
+            </div>
+          </div>
+        )}
+      </section>
+
       {/* Palette */}
-      <aside aria-label="Parts" className="flex min-h-0 flex-col rounded-xl border border-border bg-card">
+      <aside
+        aria-label="Parts"
+        className={cn(
+          "flex max-h-[70vh] min-h-0 flex-col rounded-xl border border-border bg-card lg:absolute lg:bottom-3 lg:left-3 lg:top-14 lg:z-10 lg:max-h-none lg:w-[300px] lg:bg-card/95 lg:shadow-xl lg:backdrop-blur",
+          !showLib && "lg:hidden",
+        )}
+      >
         <div className="grid grid-cols-4 gap-0.5 border-b border-border p-1 text-[11px]" role="tablist">
           {([["robots", "Robots", Bot], ["tools", "EOAT", Wrench], ["acc", "Accessories", Cog], ["cell", "Job & safety", Workflow]] as const).map(([k, label, Icon]) => (
             <button
               key={k}
               role="tab"
               aria-selected={tab === k}
-              onClick={() => setTab(k)}
+              onClick={() => (setTab(k), setQ(""))}
               className={cn("flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 font-medium", tab === k ? "bg-primary text-primary-foreground" : "hover:bg-muted")}
             >
               <Icon className="h-4 w-4" /> {label}
@@ -537,7 +700,7 @@ export default function CellBuilder() {
           </div>
         )}
         <p className="border-b border-border px-3 py-1.5 text-[11px] text-muted-foreground">
-          Drag onto the 3D cell or a cell card — or tap <b>Add</b>.
+          Drag onto a robot in the 3D view, or a cell card — or tap <b>Add</b>.
         </p>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {tab === "cell" ? (
@@ -651,82 +814,14 @@ export default function CellBuilder() {
         </div>
       </aside>
 
-      {/* 3D stage */}
-      <section aria-label="3D robot cell" className="relative min-h-[420px] overflow-hidden rounded-xl border border-border bg-slate-900">
-        <div ref={stageRef} className="absolute inset-0" />
-        <div
-          onDragOver={(e) => {
-            if (!drag) return;
-            e.preventDefault();
-            setOverStage(true);
-          }}
-          onDragLeave={() => setOverStage(false)}
-          onDrop={(e) => dropOn(e, drag?.kind === "robot" ? "new" : selected)}
-          className={cn("absolute inset-0 transition-colors", drag ? "pointer-events-auto" : "pointer-events-none", overStage && "bg-primary/15 ring-4 ring-inset ring-primary")}
-        >
-          {drag && (
-            <div className="pointer-events-none absolute inset-x-0 top-1/2 mx-auto w-fit -translate-y-1/2 rounded-lg bg-background/90 px-4 py-2 text-sm font-medium shadow">
-              {drag.kind === "robot" ? "Drop to add a robot cell" : drag.kind === "fence" ? "Drop to apply to every cell" : `Drop on Cell ${selected + 1}`}
-            </div>
-          )}
-        </div>
-        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-          <Button size="sm" variant="secondary" onClick={togglePlay} disabled={!cells.length}>
-            {playing ? <Pause className="mr-1 h-3.5 w-3.5" /> : <Play className="mr-1 h-3.5 w-3.5" />} {playing ? "Pause" : "Play"}
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => plan && (simRef.current?.setPlan(plan.sim), simRef.current?.play(), setPlaying(true))} disabled={!cells.length}>
-            <RotateCcw className="mr-1 h-3.5 w-3.5" /> Restart
-          </Button>
-          <select
-            value={speed}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              setSpeed(v);
-              simRef.current?.setSpeed(v);
-            }}
-            aria-label="Simulation speed"
-            className="h-8 rounded-md border border-border bg-secondary px-2 text-xs text-secondary-foreground"
-          >
-            {[0.5, 1, 2, 4].map((v) => (
-              <option key={v} value={v}>
-                {v}×
-              </option>
-            ))}
-          </select>
-          {(["iso", "front", "top"] as const).map((v) => (
-            <Button key={v} size="sm" variant="secondary" onClick={() => simRef.current?.setView(v)}>
-              {v === "iso" ? "3D" : v[0].toUpperCase() + v.slice(1)}
-            </Button>
-          ))}
-        </div>
-        {!cells.length && !drag && (
-          <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="w-full max-w-md rounded-xl bg-background/95 p-5 shadow-lg">
-              <p className="flex items-center gap-2 font-semibold">
-                <Bot className="h-5 w-5 text-primary" /> Drag a robot here — or start from a ready cell
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {STARTERS.map((st) => (
-                  <button
-                    key={st.id}
-                    type="button"
-                    disabled={!raw}
-                    onClick={() => applyStarter(st.jobs)}
-                    className="rounded-lg border border-border p-2.5 text-left transition-colors duration-150 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
-                  >
-                    <b className="block text-sm">{st.name}</b>
-                    <span className="block text-[11px] text-muted-foreground">{st.what}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="mt-3 text-[11px] text-muted-foreground">Ready cells come with a matching robot and tool from the marketplace or Directory — change anything after.</p>
-            </div>
-          </div>
-        )}
-      </section>
-
       {/* Cells */}
-      <aside aria-label="Your robot cells" className="flex min-h-0 flex-col rounded-xl border border-border bg-card">
+      <aside
+        aria-label="Your robot cells"
+        className={cn(
+          "flex max-h-[80vh] min-h-0 flex-col rounded-xl border border-border bg-card lg:absolute lg:bottom-3 lg:right-3 lg:top-14 lg:z-10 lg:max-h-none lg:w-[310px] lg:bg-card/95 lg:shadow-xl lg:backdrop-blur",
+          !showLine && "lg:hidden",
+        )}
+      >
         <div className="flex items-center justify-between border-b border-border p-3">
           <p className="text-sm font-semibold">Your line · {cells.length} robot{cells.length === 1 ? "" : "s"}</p>
           <Button size="sm" variant="outline" onClick={() => addCell()} disabled={cells.length >= 6}>

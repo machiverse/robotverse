@@ -35,6 +35,12 @@ export interface Simulation {
   setSpeed(v: number): void;
   setRobotSize(key: string): void;
   setView(name: string): void;
+  /** Cell index under a screen point; cells.length = the empty slot after the line; -1 = none. */
+  cellAt(clientX: number, clientY: number): number;
+  /** Ring on the floor marking a drop target (-1 hides it). */
+  setHover(i: number): void;
+  /** Pixels covered by floating panels, so the line is framed in the free area. */
+  setInsets(left: number, right: number): void;
   setOverlay(name: "none" | "layout" | "flow"): void;
   setEquipment(
     cell: number,

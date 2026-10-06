@@ -2184,6 +2184,56 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
   }
 
   let currentView = "iso";
+
+  /* ------------------------------------------------------------------
+   * Digital-twin interaction: which robot cell is under the pointer, a
+   * floor ring that marks the drop target, and side insets so the line is
+   * framed in the part of the stage not covered by floating panels.
+   * ------------------------------------------------------------------ */
+  const hoverMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false });
+  const hoverRing = new THREE.Mesh(new THREE.RingGeometry(1.05, 1.22, 56), hoverMat);
+  hoverRing.rotation.x = -Math.PI / 2;
+  hoverRing.position.y = 0.015;
+  hoverRing.visible = false;
+  scene.add(hoverRing);
+  const insets = { left: 0, right: 0 };
+  const visibleAspect = () => {
+    const w = container.clientWidth || 800;
+    const h = container.clientHeight || 500;
+    return Math.max(w - insets.left - insets.right, 120) / h;
+  };
+  /** Index of the cell under a screen point; cells.length means the empty slot after the line; -1 if none. */
+  function cellAt(clientX, clientY) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (!rect.width) return -1;
+    const toScreen = (x) => {
+      const p = new THREE.Vector3(x, 0.9, 0).project(camera);
+      return [rect.left + ((p.x + 1) / 2) * rect.width, rect.top + ((1 - p.y) / 2) * rect.height];
+    };
+    const pts = [];
+    for (let i = 0; i <= cells.length; i++) pts.push(toScreen(i * CELL_SPACING));
+    const gap = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) || 200;
+    let best = -1;
+    let bestD = Infinity;
+    pts.forEach(([x, y], i) => {
+      const d = Math.hypot(clientX - x, clientY - y);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    // Close to a robot (within about half the spacing between cells) counts as that robot; empty floor is -1.
+    return bestD <= Math.min(gap * 0.4, 170) ? best : -1;
+  }
+  function setHover(i) {
+    if (i == null || i < 0) {
+      hoverRing.visible = false;
+      return;
+    }
+    hoverRing.visible = true;
+    hoverRing.position.x = i * CELL_SPACING;
+    hoverMat.color.setHex(i >= cells.length ? 0x34d399 : 0x38bdf8);
+  }
   function setView(name) {
     currentView = name;
     const span = (cells.length - 1) * CELL_SPACING;
@@ -2198,7 +2248,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     if (cells.length > 1) {
       // Fit the whole line across the screen, whatever the stage's shape.
       const vfov = (camera.fov * Math.PI) / 180;
-      const hfov = 2 * Math.atan(Math.tan(vfov / 2) * Math.max(camera.aspect, 0.5));
+      const hfov = 2 * Math.atan(Math.tan(vfov / 2) * Math.max(visibleAspect(), 0.5));
       const dist = Math.max((span + 5.6) / 2 / Math.tan(hfov / 2), 3.4 / Math.tan(vfov / 2));
       const at = (dx, dy, dz) => {
         const d = new THREE.Vector3(dx, dy, dz).normalize().multiplyScalar(dist);
@@ -2308,6 +2358,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const h = container.clientHeight || 500;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
+    // Centre the picture in the part of the stage the side panels leave free.
+    const shift = (insets.right - insets.left) / 2;
+    if (shift) camera.setViewOffset(w, h, shift, 0, w, h);
+    else camera.clearViewOffset();
     camera.updateProjectionMatrix();
     if (cells.length > 1) setView(currentView);
   }
@@ -2375,6 +2429,15 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       reset();
     },
     setView,
+    cellAt,
+    setHover,
+    /** Pixels covered by floating panels on the left and right of the stage. */
+    setInsets(left, right) {
+      insets.left = Math.max(0, Number(left) || 0);
+      insets.right = Math.max(0, Number(right) || 0);
+      resize();
+      setView(currentView);
+    },
     /** "layout" (factory plan), "flow" (material flow) or "none" on the same live line. */
     setOverlay,
     /** Fence the industrial robot cells: true / false for all, or one flag per cell. */
@@ -2413,6 +2476,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       clearReference();
       clearFence();
       disposeLine();
+      hoverRing.geometry.dispose();
+      hoverMat.dispose();
       controls.dispose();
       if (envTexture) envTexture.dispose();
       floorTex.dispose();
