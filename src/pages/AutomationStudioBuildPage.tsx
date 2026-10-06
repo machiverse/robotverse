@@ -22,7 +22,7 @@ export default function AutomationStudioBuildPage() {
             <ArrowLeft className="h-3.5 w-3.5" /> Automation Studio
           </Link>
           <span>/</span>
-          <span className="font-medium text-foreground">Build your own robot cell</span>
+          <h1 className="text-xs font-medium text-foreground">Build your own robot cell in 3D</h1>
         </div>
         <Link to="/automation-studio?mode=ai" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
           <Sparkles className="h-3.5 w-3.5" /> Prefer to describe your job? Let our intelligence design it

@@ -1,11 +1,18 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import {
+  applicationGuide,
+  applicationMeta,
   canonicalFor,
   classifyPath,
+  DIRECTORY_FILE,
+  directoryItemSeo,
+  directorySlug,
   INDEXABLE_ROBOTS,
   NOINDEX_ROBOTS,
   staticMeta,
+  type DirectoryItem,
+  type DirectoryType,
 } from "@/lib/seo/seoText";
 
 /**
@@ -44,14 +51,16 @@ function apply(head: {
   image?: string | null;
   ogType?: string;
 }) {
-  if (head.title) document.title = head.title;
+  if (head.title) {
+    document.title = head.title;
+    setMeta("property", "og:title", head.title);
+    setMeta("name", "twitter:title", head.title);
+  }
   if (head.description) {
     setMeta("name", "description", head.description);
     setMeta("property", "og:description", head.description);
     setMeta("name", "twitter:description", head.description);
   }
-  setMeta("property", "og:title", head.title);
-  setMeta("name", "twitter:title", head.title);
   setMeta("property", "og:url", head.canonical);
   setMeta("property", "og:type", head.ogType || "website");
   setMeta("name", "robots", head.robots);
@@ -81,7 +90,15 @@ const ENTITY_KINDS = new Set([
   "spares",
   "seller-robots",
   "robot-application",
+  "directory-item",
+  "financing-detail",
+  "logistics-detail",
 ]);
+
+/** Directory catalogue files, loaded once (the model pages load the same files). */
+const catalogues: Partial<Record<string, Promise<DirectoryItem[]>>> = {};
+const loadCatalogue = (file: string) =>
+  (catalogues[file] ??= fetch(`/directory/${file}.json`).then((r) => (r.ok ? (r.json() as Promise<DirectoryItem[]>) : []), () => []));
 
 type Desired = Parameters<typeof apply>[0];
 
@@ -93,11 +110,15 @@ export function useCanonicalHead() {
     let cancelled = false;
     const path = location.pathname;
     const match = classifyPath(path);
-    const base = staticMeta(match.kind);
+    const guide = match.kind === "robot-application" ? applicationGuide(match.key ?? "") : null;
+    const base = guide ? applicationMeta(guide) : staticMeta(match.kind);
 
+    // Listing and entity pages have no useful generic title: keep the page's own title and description
+    // until the exact seo-render values arrive, rather than showing "Page Not Found" in the meantime.
+    const placeholder = ENTITY_KINDS.has(match.kind) && !guide && /Page Not Found/i.test(base.title);
     desired.current = {
-      title: base.title,
-      description: base.description,
+      title: placeholder ? "" : base.title,
+      description: placeholder ? "" : base.description,
       canonical: canonicalFor(match.path),
       robots:
         match.kind === "private" || match.kind === "unknown" || match.kind === "gone"
@@ -112,6 +133,22 @@ export function useCanonicalHead() {
       if (!cancelled && desired.current) apply(desired.current);
     };
     const timers = [200, 900, 2500, 5000, 9000].map((ms) => window.setTimeout(enforce, ms));
+
+    // Directory model pages: the exact title comes from the same catalogue and generator as seo-render.
+    if (match.kind === "directory-item" && match.key) {
+      const [type, slugKey] = match.key.split("/") as [DirectoryType, string];
+      loadCatalogue(DIRECTORY_FILE[type]).then((list) => {
+        const it = list.find((i) => directorySlug(i.n) === slugKey);
+        if (cancelled || !desired.current) return;
+        if (!it) {
+          desired.current = { ...desired.current, title: "Model not found | RobotVerse Directory", robots: NOINDEX_ROBOTS };
+        } else {
+          const seo = directoryItemSeo(type, it);
+          desired.current = { ...desired.current, title: seo.title, description: seo.description };
+        }
+        apply(desired.current);
+      });
+    }
 
     if (ENTITY_KINDS.has(match.kind)) {
       // The function is a public GET endpoint; fetch it directly with the path.

@@ -11,6 +11,7 @@ import { CORE_SKILLS, JOB_NOTES, KIND_JOB, PLAYBOOK, PROJECT_STAGES } from "@/fe
 import { BLOCKS } from "@/features/automation3d/ProcessBuilder";
 import EngineeringCalculators from "@/features/automation3d/EngineeringCalculators";
 import { ATTACHMENT_RULES } from "@/features/automation3d/attachmentFit";
+import { APPLICATION_GUIDES } from "@/lib/seo/seoText";
 
 const KINDS = Object.keys(PLAYBOOK) as ProcessKind[];
 
@@ -178,6 +179,18 @@ export default function AutomationPlaybookPage() {
                   <span className="font-semibold text-primary">Rule:</span> {k.rule}
                 </p>
               </div>
+            ))}
+          </div>
+        </section>
+
+        <section aria-labelledby="apps" className="mt-12">
+          <h2 id="apps" className="text-lg font-semibold">Robot application guides</h2>
+          <p className="mt-1 text-sm text-muted-foreground">How each kind of robot automation works, how to choose the robot, and used robots for sale.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {APPLICATION_GUIDES.map((g) => (
+              <Link key={g.slug} to={`/robots/application/${g.slug}`} className="rounded-full border border-border px-3 py-1.5 text-sm transition-colors duration-150 hover:border-primary hover:text-primary">
+                {g.label} robots
+              </Link>
             ))}
           </div>
         </section>

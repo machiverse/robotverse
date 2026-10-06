@@ -74,6 +74,9 @@ const Footer = () => {
               <a href="/dashboard/help" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Help Center
               </a>
+              <a href="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                About RobotVerse
+              </a>
               <a href="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Contact Us
               </a>

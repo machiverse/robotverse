@@ -71,6 +71,8 @@ import Contact from "./pages/Contact";
 import WithBack from "./components/navigation/WithBack";
 const AutomationStudioBuildPage = lazy(() => import("./pages/AutomationStudioBuildPage"));
 const AutomationPlaybookPage = lazy(() => import("./pages/AutomationPlaybookPage"));
+const AboutPage = lazy(() => import("./pages/About"));
+const DirectoryModelPage = lazy(() => import("./pages/DirectoryModelPage"));
 const Directory = lazy(() => import("./pages/Directory"));
 const TrainingPosterPage = lazy(() => import("./pages/TrainingPosterPage"));
 const DirectoryPhotosAdmin = lazy(() => import("./pages/DirectoryPhotosAdmin"));
@@ -240,7 +242,9 @@ const App = () => (
             <Route path="/profile-settings" element={<ProfileSettings />} />
             <Route path="/settings" element={<ProfileSettings />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
             <Route path="/directory" element={<Suspense fallback={null}><Directory /></Suspense>} />
+            <Route path="/directory/:type/:slug" element={<Suspense fallback={null}><DirectoryModelPage /></Suspense>} />
             <Route path="/directory/training/poster/:id" element={<Suspense fallback={null}><TrainingPosterPage /></Suspense>} />
             <Route path="/admin/directory-photos" element={<WithBack fallback="/directory" label="Directory photos"><Suspense fallback={null}><DirectoryPhotosAdmin /></Suspense></WithBack>} />
             <Route path="/terms" element={<Terms />} />
