@@ -118,7 +118,11 @@ serve(async (req) => {
       const txt = await res.text();
       console.error("AI gateway error", res.status, txt.slice(0, 300));
       if (res.status === 429) return json({ error: "Too many requests. Please try again in a minute." }, 429);
-      if (res.status === 402) return json({ error: "AI credits exhausted." }, 402);
+      // Out of credits / AI disabled is an expected state, not a failure: answer 200 with
+      // `unavailable` so the page quietly shows the built-in engine design instead.
+      if (res.status === 402 || res.status === 403) {
+        return json({ unavailable: true, reason: res.status === 402 ? "credits" : "blocked", error: "The AI design is not available right now." });
+      }
       return json({ error: `AI service error (${res.status})` }, 502);
     }
 
