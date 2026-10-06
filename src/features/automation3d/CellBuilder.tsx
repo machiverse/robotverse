@@ -25,6 +25,20 @@ import { thinkCell, type Thought } from "./engineerPlaybook";
 /* ------------------------------------------------------------------ data */
 
 type Slot = keyof Choice;
+type DragKind = "robot" | "tool" | "job" | "fence";
+interface TouchItem {
+  payload: string;
+  kind: DragKind;
+  slot?: Slot;
+  label: string;
+}
+interface TouchState {
+  item: TouchItem;
+  x: number;
+  y: number;
+  active: boolean;
+  timer: number;
+}
 interface Cell {
   id: string;
   job: string;
@@ -97,7 +111,11 @@ export default function CellBuilder() {
     }
   });
   const [selected, setSelected] = useState(0);
-  const [drag, setDrag] = useState<{ kind: "robot" | "tool" | "job" | "fence"; slot?: Slot } | null>(null);
+  const [drag, setDrag] = useState<{ kind: DragKind; slot?: Slot } | null>(null);
+  const [ghost, setGhost] = useState<{ label: string; x: number; y: number } | null>(null);
+  const touchRef = useRef<TouchState | null>(null);
+  const tapGuard = useRef(false);
+  const stageBoxRef = useRef<HTMLElement>(null);
   const [overStage, setOverStage] = useState(false);
   const [playing, setPlaying] = useState(true);
   const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle"> | null>(null);
@@ -356,7 +374,7 @@ export default function CellBuilder() {
     history.replaceState(null, "", window.location.pathname + window.location.search);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
-  const onDragStart = (e: React.DragEvent, payload: string, kind: "robot" | "tool" | "job" | "fence", slot?: Slot) => {
+  const onDragStart = (e: React.DragEvent, payload: string, kind: DragKind, slot?: Slot) => {
     e.dataTransfer.setData("text/plain", payload);
     e.dataTransfer.effectAllowed = "copy";
     setDrag({ kind, slot });
@@ -368,16 +386,12 @@ export default function CellBuilder() {
   };
   // Where a drop on the 3D stage lands: the cell under the pointer, the empty slot after the line, or (off target) the selected cell.
   const stageTarget = (x: number, y: number) => (cells.length ? (simRef.current?.cellAt(x, y) ?? -1) : -1);
-  const dropOnStage = (e: React.DragEvent) => {
-    const t = stageTarget(e.clientX, e.clientY);
-    if (!cells.length || t >= cells.length || (t < 0 && drag?.kind === "robot")) return dropOn(e, "new");
-    if (t < 0 && drag?.kind === "fence") return dropOn(e, "new");
-    dropOn(e, t < 0 ? selected : t);
+  const stageIndex = (x: number, y: number, kind?: DragKind): number | "new" => {
+    const t = stageTarget(x, y);
+    if (!cells.length || t >= cells.length || (t < 0 && (kind === "robot" || kind === "fence"))) return "new";
+    return t < 0 ? selected : t;
   };
-  const dropOn = (e: React.DragEvent, cellIndex: number | "new") => {
-    e.preventDefault();
-    const p = e.dataTransfer.getData("text/plain");
-    endDrag();
+  const applyDrop = (p: string, cellIndex: number | "new") => {
     if (p.startsWith("job:")) {
       const job = p.slice(4);
       return cellIndex === "new" || !cells[cellIndex] ? addCell({ job }) : update(cellIndex, (c) => ({ ...c, job }));
@@ -391,6 +405,123 @@ export default function CellBuilder() {
     if (!m) return;
     if (cellIndex === "new") return m.kind === "robot" ? addCell({ choice: { robot: m }, fenced: !isCobot(m) }) : addCell({ choice: { [slotOf(m)]: m } });
     put(cellIndex, m);
+  };
+  const dropOn = (e: React.DragEvent, cellIndex: number | "new") => {
+    e.preventDefault();
+    const p = e.dataTransfer.getData("text/plain");
+    endDrag();
+    applyDrop(p, cellIndex);
+  };
+  const dropOnStage = (e: React.DragEvent) => dropOn(e, stageIndex(e.clientX, e.clientY, drag?.kind));
+
+  /* --------------------------------------------------- touch drag & drop */
+
+  // Phones have no HTML drag and drop: press and hold an item, then drag it with the finger.
+  const inStage = (el: Element | null) => !!el && !!stageBoxRef.current?.contains(el) && !el.closest("aside");
+  const touchAt = (x: number, y: number) => {
+    const el = document.elementFromPoint(x, y);
+    const card = el?.closest<HTMLElement>("[data-cell]");
+    if (card) {
+      setOverStage(false);
+      setHover(-1);
+      setSelected(Number(card.dataset.cell));
+    } else if (inStage(el)) {
+      setOverStage(true);
+      const t = stageTarget(x, y);
+      setHover(t);
+    } else {
+      setOverStage(false);
+      setHover(-1);
+    }
+  };
+  const touchDrop = (x: number, y: number, t: TouchItem) => {
+    const el = document.elementFromPoint(x, y);
+    const card = el?.closest<HTMLElement>("[data-cell]");
+    if (card) applyDrop(t.payload, Number(card.dataset.cell));
+    else if (inStage(el)) applyDrop(t.payload, stageIndex(x, y, t.kind));
+  };
+  const touchFns = useRef({ touchAt, touchDrop });
+  touchFns.current = { touchAt, touchDrop };
+  useEffect(() => {
+    const move = (e: TouchEvent) => {
+      const r = touchRef.current;
+      if (!r?.active) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      r.x = t.clientX;
+      r.y = t.clientY;
+      setGhost({ label: r.item.label, x: r.x, y: r.y });
+      // Scroll the page when the finger nears the top or bottom edge.
+      if (r.y < 70) window.scrollBy(0, -14);
+      else if (r.y > window.innerHeight - 70) window.scrollBy(0, 14);
+      touchFns.current.touchAt(r.x, r.y);
+    };
+    const end = (e: TouchEvent) => {
+      const r = touchRef.current;
+      if (!r?.active) return;
+      if (e.type === "touchend") touchFns.current.touchDrop(r.x, r.y, r.item);
+      touchRef.current = null;
+      setGhost(null);
+      setDrag(null);
+      setOverStage(false);
+      setHover(-1);
+    };
+    document.addEventListener("touchmove", move, { passive: false });
+    document.addEventListener("touchend", end);
+    document.addEventListener("touchcancel", end);
+    return () => {
+      document.removeEventListener("touchmove", move);
+      document.removeEventListener("touchend", end);
+      document.removeEventListener("touchcancel", end);
+    };
+  }, []);
+  const touchDrag = (item: TouchItem) => ({
+    onTouchStart: (e: React.TouchEvent) => {
+      const t = e.touches[0];
+      // A new touch starts a new gesture: a tap after an earlier drag counts again.
+      tapGuard.current = false;
+      if (touchRef.current) window.clearTimeout(touchRef.current.timer);
+      const r: TouchState = {
+        item, x: t.clientX, y: t.clientY, active: false,
+        timer: window.setTimeout(() => {
+          r.active = true;
+          tapGuard.current = true;
+          setDrag({ kind: item.kind, slot: item.slot });
+          setGhost({ label: item.label, x: r.x, y: r.y });
+          navigator.vibrate?.(12);
+          // Bring the 3D view on screen so the item can be dropped on a robot.
+          const box = stageBoxRef.current?.getBoundingClientRect();
+          if (box && (box.top < 0 || box.top > window.innerHeight * 0.3)) window.scrollBy({ top: box.top - 8, behavior: "smooth" });
+        }, 280),
+      };
+      touchRef.current = r;
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      const r = touchRef.current;
+      if (!r || r.active) return;
+      const t = e.touches[0];
+      // Moving before the hold completes is a scroll, not a drag.
+      if (Math.hypot(t.clientX - r.x, t.clientY - r.y) > 8) {
+        window.clearTimeout(r.timer);
+        touchRef.current = null;
+      }
+    },
+    onTouchEnd: () => {
+      const r = touchRef.current;
+      if (r && !r.active) {
+        window.clearTimeout(r.timer);
+        touchRef.current = null;
+      }
+    },
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  });
+  // A finished hold-and-drag must not also count as a tap on the item.
+  const tapped = (fn: () => void) => () => {
+    if (tapGuard.current) {
+      tapGuard.current = false;
+      return;
+    }
+    fn();
   };
 
   /* ------------------------------------------------------------ palette */
@@ -537,6 +668,15 @@ export default function CellBuilder() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
+      {ghost && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed z-[100] max-w-[220px] -translate-x-1/2 -translate-y-[130%] truncate rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-xl"
+          style={{ left: ghost.x, top: ghost.y }}
+        >
+          {ghost.label}
+        </div>
+      )}
     <ol aria-label="Steps" className="grid grid-cols-3 gap-2">
       {STEPS.map((st) => {
         const active = st.n === current;
@@ -567,7 +707,7 @@ export default function CellBuilder() {
     </ol>
     <div className="relative flex flex-col gap-3 lg:block lg:h-[calc(100vh-200px)] lg:min-h-[600px]">
       {/* 3D stage */}
-      <section aria-label="3D robot cell" className="relative h-[58vh] min-h-[380px] overflow-hidden rounded-xl border border-border bg-slate-900 lg:absolute lg:inset-0 lg:h-auto">
+      <section ref={stageBoxRef} aria-label="3D robot cell" className="relative h-[58vh] min-h-[380px] overflow-hidden rounded-xl border border-border bg-slate-900 lg:absolute lg:inset-0 lg:h-auto">
         <div ref={stageRef} className="absolute inset-0" />
         <div
           onDragOver={(e) => {
@@ -700,7 +840,8 @@ export default function CellBuilder() {
           </div>
         )}
         <p className="border-b border-border px-3 py-1.5 text-[11px] text-muted-foreground">
-          Drag onto a robot in the 3D view, or a cell card — or tap <b>Add</b>.
+          <span className="hidden [@media(hover:hover)]:inline">Drag onto a robot in the 3D view, or a cell card — or click <b>Add</b>.</span>
+          <span className="[@media(hover:hover)]:hidden">Hold an item, then drag it onto a robot in the 3D view — or tap <b>Add</b>.</span>
         </p>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {tab === "cell" ? (
@@ -731,7 +872,8 @@ export default function CellBuilder() {
                     draggable
                     onDragStart={(e) => onDragStart(e, k, "fence")}
                     onDragEnd={endDrag}
-                    className="mb-1 flex cursor-grab items-center gap-2 rounded-md border border-border p-2 text-xs active:cursor-grabbing"
+                    {...touchDrag({ payload: k, kind: "fence", label })}
+                    className="mb-1 flex cursor-grab select-none items-center [-webkit-touch-callout:none] gap-2 rounded-md border border-border p-2 text-xs active:cursor-grabbing"
                   >
                     <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <ShieldCheck className={cn("h-5 w-5 shrink-0", k === "fence:on" ? "text-amber-500" : "text-emerald-500")} />
@@ -741,7 +883,7 @@ export default function CellBuilder() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => cells[selected] && update(selected, (c) => ({ ...c, fenced: k === "fence:on" }))}
+                      onClick={tapped(() => cells[selected] && update(selected, (c) => ({ ...c, fenced: k === "fence:on" })))}
                       className="rounded border border-border px-1.5 py-1 text-[11px] hover:border-primary"
                     >
                       Apply
@@ -760,8 +902,9 @@ export default function CellBuilder() {
                         draggable
                         onDragStart={(e) => onDragStart(e, `job:${b.name}`, "job")}
                         onDragEnd={endDrag}
-                        onClick={() => (cells[selected] ? update(selected, (c) => ({ ...c, job: b.name })) : addCell({ job: b.name }))}
-                        className="cursor-grab rounded-full border border-border bg-background px-2 py-1 text-[11px] hover:border-primary hover:text-primary"
+                        {...touchDrag({ payload: `job:${b.name}`, kind: "job", label: b.label })}
+                        onClick={tapped(() => (cells[selected] ? update(selected, (c) => ({ ...c, job: b.name })) : addCell({ job: b.name })))}
+                        className="cursor-grab select-none rounded-full [-webkit-touch-callout:none] border border-border bg-background px-2 py-1 text-[11px] hover:border-primary hover:text-primary"
                       >
                         {b.label}
                       </button>
@@ -783,7 +926,8 @@ export default function CellBuilder() {
                   draggable
                   onDragStart={(e) => onDragStart(e, `${m.source}:${m.id}`, m.kind, m.kind === "robot" ? "robot" : slotOf(m))}
                   onDragEnd={endDrag}
-                  className="flex cursor-grab items-center gap-2 p-2 active:cursor-grabbing"
+                  {...touchDrag({ payload: `${m.source}:${m.id}`, kind: m.kind, slot: m.kind === "robot" ? "robot" : slotOf(m), label: m.name })}
+                  className="flex cursor-grab select-none items-center gap-2 p-2 active:cursor-grabbing [-webkit-touch-callout:none]"
                 >
                   <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                   <Thumb m={m} size="h-11 w-11" />
@@ -797,7 +941,7 @@ export default function CellBuilder() {
                       {m.source === "market" ? (m.price ? inr(m.price) : "Marketplace") : "Directory · OEM"}
                     </span>
                   </span>
-                  <button type="button" onClick={() => add(m)} className="inline-flex items-center gap-0.5 rounded border border-border px-1.5 py-1 text-[11px] hover:border-primary">
+                  <button type="button" onClick={tapped(() => add(m))} className="inline-flex items-center gap-0.5 rounded border border-border px-1.5 py-1 text-[11px] hover:border-primary">
                     <Plus className="h-3 w-3" /> Add
                   </button>
                 </li>
@@ -834,6 +978,7 @@ export default function CellBuilder() {
             return (
               <div
                 key={c.id}
+                data-cell={i}
                 onClick={() => setSelected(i)}
                 onDragOver={(e) => {
                   if (!drag) return;
