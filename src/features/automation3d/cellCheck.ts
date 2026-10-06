@@ -2,6 +2,7 @@
 import { processKind, type ProcessKind } from "./processProfiles";
 import { eoatKind } from "./robotSim.js";
 import type { Choice } from "./EquipmentPicker";
+import { attachmentIssues } from "./attachmentFit";
 
 export type CheckState = "ok" | "warn" | "missing";
 export interface CheckItem {
@@ -74,6 +75,8 @@ export function checkCell(job: string, c: Choice, needKg: number | undefined, fe
           ? { state: "ok", label: "Safety", detail: "Safety fence with interlocked door" }
           : { state: "warn", label: "Safety", detail: "An industrial robot needs a fence or light curtain (ISO 10218-2)" },
     );
+  // Robot-attachment fit (weight, wrist, flange, brand, accessories); the tool-vs-job case is covered above.
+  for (const f of attachmentIssues(job, c)) if (f.title !== "Tool does not do this job") out.push({ state: "warn", label: f.title, detail: f.detail });
   return out;
 }
 

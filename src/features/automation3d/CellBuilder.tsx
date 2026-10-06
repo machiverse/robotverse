@@ -21,6 +21,7 @@ import { cellState, checkCell, type CheckItem, type CheckState } from "./cellChe
 import { budgetFor, CycleTracker, decodeLine, encodeLine, reportHtml, roi, STARTERS, STEP_GROUP, suggest, type Raw, type StepTime } from "./builderExtras";
 import { inr as inrShort } from "./solutionCost";
 import { KIND_JOB, thinkCell, type Thought } from "./engineerPlaybook";
+import { attachmentIssues, type FitIssue } from "./attachmentFit";
 import { processKind } from "./processProfiles";
 
 /* ------------------------------------------------------------------ data */
@@ -132,6 +133,12 @@ export default function CellBuilder() {
   const [breakdown, setBreakdown] = useState<(StepTime[] | null)[]>([]);
   const [roiIn, setRoiIn] = useState({ operators: 0, shifts: 2, wage: 25000 });
   const [copied, setCopied] = useState(false);
+  // Warn the moment something unsuitable is attached: compare each cell's fit issues with the last state.
+  const [fitAlert, setFitAlert] = useState<{ cell: number; issues: FitIssue[]; undo: Cell[] } | null>(null);
+  const [fitOpen, setFitOpen] = useState(false);
+  const seenFit = useRef<Map<string, Set<string>> | null>(null);
+  const prevCells = useRef<Cell[]>([]);
+  const quietFit = useRef(false);
   // Digital-twin view: floating library and line panels over the 3D stage (desktop), and the drop target under the pointer.
   const [showLib, setShowLib] = useState(true);
   const [showLine, setShowLine] = useState(true);
@@ -285,6 +292,25 @@ export default function CellBuilder() {
     if (cells.length) simRef.current?.setFocus(Math.min(selected, cells.length - 1));
   }, [selected, cells.length]);
 
+  useEffect(() => {
+    const now = new Map<string, Set<string>>();
+    let alert: { cell: number; issues: FitIssue[] } | null = null;
+    cells.forEach((c, i) => {
+      const issues = attachmentIssues(c.job, c.choice);
+      now.set(c.id, new Set(issues.map((f) => f.title)));
+      const before = seenFit.current?.get(c.id);
+      const fresh = issues.filter((f) => !before?.has(f.title));
+      if (!alert && fresh.length && seenFit.current && !quietFit.current) alert = { cell: i, issues: fresh };
+    });
+    if (alert) {
+      setFitAlert({ ...alert, undo: prevCells.current });
+      setFitOpen(true);
+    }
+    seenFit.current = now;
+    prevCells.current = cells;
+    quietFit.current = false;
+  }, [cells]);
+
   /* ------------------------------------------------------------ actions */
 
   const addCell = (patch: Partial<Cell> = {}) => {
@@ -305,6 +331,7 @@ export default function CellBuilder() {
       const choice = raw ? suggest(job, needs[i] ?? 10, raw) : {};
       return { id: newId(), job, choice, fenced: !isCobot(choice.robot) };
     });
+    quietFit.current = true;
     setCells(next);
     setSelected(0);
   };
@@ -376,6 +403,7 @@ export default function CellBuilder() {
     if (!code) return;
     const shared = decodeLine(code);
     if (shared?.length) {
+      quietFit.current = true;
       setCells(
         shared.map((c) => ({
           id: newId(),
@@ -1160,6 +1188,42 @@ export default function CellBuilder() {
         </div>
       </aside>
     </div>
+
+      <Dialog open={fitOpen} onOpenChange={setFitOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className={cn("h-5 w-5", fitAlert?.issues.some((f) => f.level === "stop") ? "text-red-500" : "text-amber-500")} />
+              {fitAlert?.issues.some((f) => f.level === "stop") ? "This is not suitable" : "Check this choice"}
+            </DialogTitle>
+            <DialogDescription>Cell {fitAlert ? fitAlert.cell + 1 : ""} · {fitAlert ? jobLabel(fitAlert.undo[fitAlert.cell]?.job ?? cells[fitAlert.cell]?.job ?? "") : ""}</DialogDescription>
+          </DialogHeader>
+          <ul className="space-y-3">
+            {fitAlert?.issues.map((f) => (
+              <li key={f.title} className={cn("rounded-lg border p-3 text-sm", f.level === "stop" ? "border-red-500/40 bg-red-500/5" : "border-amber-500/40 bg-amber-500/5")}>
+                <b className="block">{f.title}</b>
+                <span className="text-muted-foreground">{f.detail}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={() => setFitOpen(false)}>
+              Keep anyway
+            </Button>
+            <Button
+              onClick={() => {
+                if (fitAlert) {
+                  quietFit.current = true;
+                  setCells(fitAlert.undo);
+                }
+                setFitOpen(false);
+              }}
+            >
+              <RotateCcw className="mr-1.5 h-4 w-4" /> Undo
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
         <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">

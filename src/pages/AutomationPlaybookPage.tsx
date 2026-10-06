@@ -10,6 +10,7 @@ import { SKILLS } from "@/features/automation3d/robotKnowledge";
 import { CORE_SKILLS, JOB_NOTES, KIND_JOB, PLAYBOOK, PROJECT_STAGES } from "@/features/automation3d/engineerPlaybook";
 import { BLOCKS } from "@/features/automation3d/ProcessBuilder";
 import EngineeringCalculators from "@/features/automation3d/EngineeringCalculators";
+import { ATTACHMENT_RULES } from "@/features/automation3d/attachmentFit";
 
 const KINDS = Object.keys(PLAYBOOK) as ProcessKind[];
 
@@ -179,6 +180,19 @@ export default function AutomationPlaybookPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section aria-labelledby="fit" className="mt-12">
+          <h2 id="fit" className="text-lg font-semibold">What fits on a robot</h2>
+          <p className="mt-1 text-sm text-muted-foreground">The builder checks these rules and warns you as soon as an attachment does not suit the robot or the job.</p>
+          <ul className="mt-4 grid gap-3 md:grid-cols-2">
+            {ATTACHMENT_RULES.map((r) => (
+              <li key={r.rule} className="rounded-xl border border-border bg-card p-4">
+                <b className="text-sm">{r.rule}</b>
+                <p className="mt-1 text-xs text-muted-foreground">{r.why}</p>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section aria-labelledby="calc" className="mt-12">

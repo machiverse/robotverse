@@ -12,6 +12,7 @@ import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfil
 import { SKILLS } from "./robotKnowledge";
 import type { Choice } from "./EquipmentPicker";
 import type { CheckItem } from "./cellCheck";
+import { attachmentIssues } from "./attachmentFit";
 
 /* ------------------------------------------------------------ project stages */
 
@@ -262,6 +263,8 @@ export function thinkCell(r: {
     });
   } else out.push({ step: "Cycle time", thought: "Run the 3D line to measure the cycle and find the slowest step.", state: "todo" });
 
+  const fit = attachmentIssues(r.job, r.choice).filter((f) => f.title !== "Tool does not do this job");
+  if (fit.length) out.push({ step: "Attachments", thought: fit.map((f) => `${f.title}: ${f.detail}`).join(" "), state: "warn" });
   const notes = JOB_NOTES[r.job];
   if (notes) out.push({ step: `For ${r.job.toLowerCase()}`, thought: notes.join(". ") + ".", state: "todo" });
   out.push({ step: "Avoid", thought: book.mistakes.join(". ") + ".", state: "todo" });
