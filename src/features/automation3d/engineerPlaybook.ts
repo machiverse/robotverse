@@ -178,13 +178,18 @@ export function thinkCell(r: {
   job: string;
   choice: Choice;
   needKg?: number;
-  fenced: boolean;
+  fenced?: boolean;
   cobot: boolean;
   cycle: number | null;
   checks: CheckItem[];
   /** Share of the cycle per step group, e.g. { Pick: 0.6 }. */
   split?: Record<string, number>;
 }): Thought[] {
+  if (!r.job)
+    return [
+      { step: "The job", thought: "Choose the job first — what the robot does decides its payload, tool, stations and safety.", state: "todo" },
+      ...(r.fenced === undefined ? [{ step: "Safety", thought: "Then choose a safety fence, or an open cell if it is a cobot.", state: "todo" as ThoughtState }] : []),
+    ];
   const { kind, label, skill, book } = playbookFor(r.job);
   const out: Thought[] = [];
   const robot = r.choice.robot;

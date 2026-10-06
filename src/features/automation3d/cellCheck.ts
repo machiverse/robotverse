@@ -30,11 +30,12 @@ const TYPE_FOR: [RegExp, ProcessKind[]][] = [
 
 export const jobKind = (job: string) => processKind({ name: job });
 
-export function checkCell(job: string, c: Choice, needKg: number | undefined, fenced: boolean, cobot: boolean): CheckItem[] {
-  const kind = jobKind(job);
+export function checkCell(job: string, c: Choice, needKg: number | undefined, fenced: boolean | undefined, cobot: boolean): CheckItem[] {
+  const kind = jobKind(job || "Loading & Unloading");
   const out: CheckItem[] = [];
   const r = c.robot;
   const t = c.tool;
+  if (!job) out.push({ state: "missing", label: "Job", detail: "Drag a job onto this robot" });
 
   out.push(r ? { state: "ok", label: "Robot", detail: r.name } : { state: "missing", label: "Robot", detail: "Drag a robot onto this cell" });
 
@@ -53,7 +54,7 @@ export function checkCell(job: string, c: Choice, needKg: number | undefined, fe
       );
   }
 
-  const want = TOOL_FOR[kind];
+  const want = job ? TOOL_FOR[kind] : [];
   if (!t) out.push({ state: "missing", label: "Tool", detail: want.length ? `Add a ${TOOL_NAME[want[0]]}` : "Add a gripper or camera" });
   else {
     const k = eoatKind(`${t.name} ${t.type ?? ""}`);
@@ -64,7 +65,8 @@ export function checkCell(job: string, c: Choice, needKg: number | undefined, fe
     );
   }
 
-  if (r)
+  if (r && fenced === undefined) out.push({ state: "missing", label: "Safety", detail: "Choose a safety fence or an open cobot cell" });
+  else if (r)
     out.push(
       cobot
         ? { state: "ok", label: "Safety", detail: fenced ? "Fenced (a cobot may also run open after a risk assessment)" : "Open collaborative cell, speed and force limited" }

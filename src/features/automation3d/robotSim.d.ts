@@ -41,6 +41,8 @@ export interface Simulation {
   setHover(i: number): void;
   /** Pixels covered by floating panels, so the line is framed in the free area. */
   setInsets(left: number, right: number): void;
+  /** Cell builder: show only the equipment the user chose (no default robot, tool or stations). */
+  setBuildMode(on: boolean): void;
   setOverlay(name: "none" | "layout" | "flow"): void;
   setEquipment(
     cell: number,

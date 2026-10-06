@@ -42,9 +42,11 @@ interface TouchState {
 }
 interface Cell {
   id: string;
+  /** "" until the user picks a job. */
   job: string;
   choice: Choice;
-  fenced: boolean;
+  /** undefined until the user picks safety: fence (true) or open cobot cell (false). */
+  fenced?: boolean;
 }
 type PaletteTab = "robots" | "tools" | "acc" | "cell";
 
@@ -83,7 +85,7 @@ const SLOTS: { key: Slot; label: string; icon: typeof Bot }[] = [
   { key: "sensor", label: "Force / torque sensor", icon: Gauge },
   { key: "camera", label: "Wrist camera", icon: Camera },
 ];
-const jobLabel = (name: string) => BLOCKS.find((b) => b.name === name)?.label ?? name;
+const jobLabel = (name: string) => (name ? (BLOCKS.find((b) => b.name === name)?.label ?? name) : "No job yet");
 const newId = () => Math.random().toString(36).slice(2, 9);
 const STORE = "rv-cell-builder";
 const inr = (v: number) => `₹${Math.round(v).toLocaleString("en-IN")}`;
@@ -172,6 +174,7 @@ export default function CellBuilder() {
       },
     });
     simRef.current = s;
+    s.setBuildMode(true);
     // Click a robot in the 3D view to select its cell (a drag of the camera is not a click).
     const el = stageRef.current;
     let down: [number, number] | null = null;
@@ -201,8 +204,13 @@ export default function CellBuilder() {
   // One robot per cell, in order, doing the cell's job.
   const plan: LinePlan | null = useMemo(() => {
     if (!cells.length) return null;
-    const input = cells.map((c) => processesFromSkills([c.job])[0] ?? { name: c.job });
-    return planLine(input, "balanced", { splitBefore: input.map((p) => p.name), robots: cells.length });
+    // Cells without a job are sized as handling robots but get no stations or program until a job is chosen.
+    const input = cells.map((c) => processesFromSkills([c.job || "Loading & Unloading"])[0] ?? { name: c.job || "Loading & Unloading" });
+    const p = planLine(input, "balanced", { splitBefore: input.map((x) => x.name), robots: cells.length });
+    return {
+      ...p,
+      sim: { ...p.sim, cells: p.sim.cells.map((c, i) => (cells[i]?.job ? c : { ...c, title: `Robot ${i + 1}`, steps: [] })) },
+    };
   }, [cells]);
 
   // Push the plan and every cell's equipment into the 3D scene.
@@ -233,7 +241,7 @@ export default function CellBuilder() {
     const fk = cells.map((c) => (c.fenced ? 1 : 0)).join("");
     if (fk !== fenceKey.current) {
       fenceKey.current = fk;
-      s.setFencing(cells.map((c) => c.fenced));
+      s.setFencing(cells.map((c) => !!c.fenced));
     }
     let changed = false;
     cells.forEach((c, i) => {
@@ -281,8 +289,8 @@ export default function CellBuilder() {
 
   const addCell = (patch: Partial<Cell> = {}) => {
     if (cells.length >= 6) return;
-    const cell: Cell = { id: newId(), job: "Loading & Unloading", choice: {}, fenced: true, ...patch };
-    if (cell.choice.robot && isCobot(cell.choice.robot) && patch.fenced === undefined) cell.fenced = false;
+    // Nothing is assumed: the job and safety stay empty until the user chooses them.
+    const cell: Cell = { id: newId(), job: "", choice: {}, ...patch };
     setCells((cs) => [...cs, cell]);
     setSelected(cells.length);
   };
@@ -320,11 +328,11 @@ export default function CellBuilder() {
   const put = (i: number, m: Match) => {
     const slot: Slot = m.kind === "robot" ? "robot" : slotOf(m);
     if (!cells[i]) return addCell({ choice: { [slot]: m } });
-    update(i, (c) => ({ ...c, choice: { ...c.choice, [slot]: m }, fenced: slot === "robot" ? !isCobot(m) : c.fenced }));
+    update(i, (c) => ({ ...c, choice: { ...c.choice, [slot]: m } }));
   };
   // Tap "Add" (touch screens): a robot goes to the selected cell if it has none, else a new cell.
   const add = (m: Match) => {
-    if (m.kind === "robot" && (!cells.length || cells[selected]?.choice.robot)) return addCell({ choice: { robot: m }, fenced: !isCobot(m) });
+    if (m.kind === "robot" && (!cells.length || cells[selected]?.choice.robot)) return addCell({ choice: { robot: m } });
     put(selected, m);
   };
   const clear = (i: number, slot: Slot) =>
@@ -371,8 +379,8 @@ export default function CellBuilder() {
       setCells(
         shared.map((c) => ({
           id: newId(),
-          job: BLOCKS.some((b) => b.name === c.j) ? c.j : "Loading & Unloading",
-          fenced: !!c.f,
+          job: BLOCKS.some((b) => b.name === c.j) ? c.j : "",
+          fenced: typeof c.f === "boolean" ? c.f : undefined,
           choice: Object.fromEntries(Object.entries(c.s ?? {}).map(([k, key]) => [k, byKey.get(key)]).filter(([, m]) => m)) as Choice,
         })),
       );
@@ -410,7 +418,7 @@ export default function CellBuilder() {
     }
     const m = byKey.get(p);
     if (!m) return;
-    if (cellIndex === "new") return m.kind === "robot" ? addCell({ choice: { robot: m }, fenced: !isCobot(m) }) : addCell({ choice: { [slotOf(m)]: m } });
+    if (cellIndex === "new") return addCell({ choice: { [m.kind === "robot" ? "robot" : slotOf(m)]: m } });
     put(cellIndex, m);
   };
   const dropOn = (e: React.DragEvent, cellIndex: number | "new") => {
@@ -566,7 +574,7 @@ export default function CellBuilder() {
       "Please quote the robot cell I built in Automation Studio:",
       "",
       ...cells.map((c, i) =>
-        [`Cell ${i + 1} — ${jobLabel(c.job)}${c.fenced ? " (fenced)" : " (open / collaborative)"}`, ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `  ${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`)].join("\n"),
+        [`Cell ${i + 1} — ${jobLabel(c.job)}${c.fenced === undefined ? " (safety not chosen)" : c.fenced ? " (fenced)" : " (open / collaborative)"}`, ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `  ${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`)].join("\n"),
       ),
       "",
       "Name:",
@@ -623,11 +631,15 @@ export default function CellBuilder() {
   // The three steps from the Automation Studio start page.
   const robotsDone = cells.length > 0 && cells.every((c) => c.choice.robot);
   const toolsDone = robotsDone && cells.every((c) => c.choice.tool);
-  const runDone = toolsDone && bottleneck != null;
+  const jobsDone = toolsDone && cells.every((c) => c.job);
+  const safetyDone = jobsDone && cells.every((c) => c.fenced !== undefined);
+  const runDone = safetyDone && bottleneck != null;
   const STEPS = [
-    { n: 1, label: "Drag a robot", done: robotsDone, hint: "Drag a robot from the list onto the 3D cell — one per station.", go: () => setTab("robots") },
-    { n: 2, label: "Add the tool", done: toolsDone, hint: "Drop a gripper, torch or other tool on each robot, and set the job.", go: () => setTab("tools") },
-    { n: 3, label: "Run in 3D", done: runDone, hint: "Watch the line run, then open the line report for cycle time, checks and cost.", go: () => setReportOpen(true) },
+    { n: 1, label: "Robot", done: robotsDone, hint: "Drag a robot onto the empty floor — one per station.", go: () => setTab("robots") },
+    { n: 2, label: "Tool", done: toolsDone, hint: "Drop a gripper, torch or other tool on each robot. Accessories are optional.", go: () => setTab("tools") },
+    { n: 3, label: "Job", done: jobsDone, hint: "Give each robot its job — its stations appear around it.", go: () => setTab("cell") },
+    { n: 4, label: "Safety", done: safetyDone, hint: "Choose a safety fence or an open cobot cell.", go: () => setTab("cell") },
+    { n: 5, label: "Run", done: runDone, hint: "Watch the line run, then open the report for cycle time, checks and cost.", go: () => setReportOpen(true) },
   ];
   const current = STEPS.find((st) => !st.done)?.n ?? 4;
 
@@ -638,7 +650,7 @@ export default function CellBuilder() {
       ...cells.map((c, i) => [
         i + 1, jobLabel(c.job), c.choice.robot?.name, c.choice.tool?.name,
         [c.choice.changer, c.choice.sensor, c.choice.camera].filter(Boolean).map((m) => m!.name).join(" + "),
-        c.fenced ? "Fenced" : "Open (cobot)", cycles[i]?.toFixed(1), cycles[i] ? Math.floor(3600 / cycles[i]!) : "",
+        c.fenced === undefined ? "Not chosen" : c.fenced ? "Fenced" : "Open (cobot)", cycles[i]?.toFixed(1), cycles[i] ? Math.floor(3600 / cycles[i]!) : "",
         states[i] === "ok" ? "Ready" : states[i] === "warn" ? "Check" : "Incomplete",
         checks[i].filter((x) => x.state !== "ok").map((x) => `${x.label}: ${x.detail}`).join("; "),
       ]),
@@ -687,7 +699,7 @@ export default function CellBuilder() {
           {ghost.label}
         </div>
       )}
-    <ol aria-label="Steps" className="grid grid-cols-3 gap-2">
+    <ol aria-label="Steps" className="grid grid-cols-5 gap-1.5 sm:gap-2">
       {STEPS.map((st) => {
         const active = st.n === current;
         return (
@@ -707,7 +719,7 @@ export default function CellBuilder() {
               <span className="min-w-0">
                 <b className="block text-xs sm:text-sm">{st.label}</b>
                 <span className="hidden text-xs text-muted-foreground sm:block">
-                  {st.done ? (st.n === 3 ? `Line runs · ${perHour} parts/hour — open the report` : "Done") : st.n === 3 && toolsDone ? (stalled.some(Boolean) ? "A cell is not completing its cycle — open the report to see why" : "Measuring cycle time… the first full cycle takes a moment") : st.hint}
+                  {st.done ? (st.n === 5 ? `Line runs · ${perHour} parts/hour — open the report` : "Done") : st.n === 5 && safetyDone ? (stalled.some(Boolean) ? "A cell is not completing its cycle — open the report to see why" : "Measuring cycle time… the first full cycle takes a moment") : st.hint}
                 </span>
               </span>
             </button>
@@ -1039,6 +1051,9 @@ export default function CellBuilder() {
                     className="min-w-0 flex-1 rounded border border-border bg-background px-1.5 py-1 text-xs"
                     aria-label={`Job of cell ${i + 1}`}
                   >
+                    <option value="" disabled>
+                      Choose a job…
+                    </option>
                     {BLOCKS.map((b) => (
                       <option key={b.name} value={b.name}>
                         {b.label}
@@ -1084,10 +1099,13 @@ export default function CellBuilder() {
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
                   <button
                     type="button"
-                    onClick={(e) => (e.stopPropagation(), update(i, (x) => ({ ...x, fenced: !x.fenced })))}
-                    className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5", c.fenced ? "border-amber-500/60 text-amber-600" : "border-emerald-500/60 text-emerald-600")}
+                    onClick={(e) => (e.stopPropagation(), update(i, (x) => ({ ...x, fenced: x.fenced === undefined ? !isCobot(x.choice.robot) : !x.fenced })))}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5",
+                      c.fenced === undefined ? "border-dashed border-border text-muted-foreground" : c.fenced ? "border-amber-500/60 text-amber-600" : "border-emerald-500/60 text-emerald-600",
+                    )}
                   >
-                    <ShieldCheck className="h-3 w-3" /> {c.fenced ? "Fenced cell" : "Open (cobot)"}
+                    <ShieldCheck className="h-3 w-3" /> {c.fenced === undefined ? "Choose safety" : c.fenced ? "Fenced cell" : "Open (cobot)"}
                   </button>
                   <StateBadge state={states[i]} />
                   {cycles[i] && <span className="ml-auto tabular-nums text-muted-foreground">{cycles[i]!.toFixed(1)} s · {cellSim?.cycles ?? 0} parts</span>}

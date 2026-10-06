@@ -125,9 +125,9 @@ export function roi(total: [number, number], operators: number, shifts: number, 
 
 /* ----------------------------------------------------------- share link */
 
-type SharedCell = { j: string; f: boolean; s: Record<string, string> };
+type SharedCell = { j: string; f?: boolean; s: Record<string, string> };
 /** Compact, URL-safe description of the line (job, safety, and source:id of each part). */
-export function encodeLine(cells: { job: string; fenced: boolean; choice: Choice }[]): string {
+export function encodeLine(cells: { job: string; fenced?: boolean; choice: Choice }[]): string {
   const data: SharedCell[] = cells.map((c) => ({
     j: c.job, f: c.fenced,
     s: Object.fromEntries(Object.entries(c.choice).filter(([, m]) => m).map(([k, m]) => [k, `${(m as Match).source}:${(m as Match).id}`])),
@@ -148,7 +148,7 @@ export function decodeLine(code: string): SharedCell[] | null {
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 export function reportHtml(r: {
-  cells: { job: string; choice: Choice; fenced: boolean; cycle: number | null; checks: { state: string; label: string; detail: string }[]; thoughts?: { step: string; thought: string }[] }[];
+  cells: { job: string; choice: Choice; fenced?: boolean; cycle: number | null; checks: { state: string; label: string; detail: string }[]; thoughts?: { step: string; thought: string }[] }[];
   bottleneck: number | null;
   perHour: number | null;
   budget: Budget | null;
@@ -159,7 +159,7 @@ export function reportHtml(r: {
   const rows = r.cells
     .map(
       (c, i) => `<tr><td>${i + 1}</td><td>${esc(c.job)}</td><td>${esc(c.choice.robot?.name ?? "—")}</td><td>${esc(c.choice.tool?.name ?? "—")}</td>
-      <td>${c.fenced ? "Fenced" : "Open (cobot)"}</td><td>${c.cycle ? c.cycle.toFixed(1) + " s" : "—"}</td>
+      <td>${c.fenced === undefined ? "Not chosen" : c.fenced ? "Fenced" : "Open (cobot)"}</td><td>${c.cycle ? c.cycle.toFixed(1) + " s" : "—"}</td>
       <td>${c.checks.filter((x) => x.state !== "ok").map((x) => `${esc(x.label)}: ${esc(x.detail)}`).join("<br>") || "All checks passed"}</td></tr>`,
     )
     .join("");

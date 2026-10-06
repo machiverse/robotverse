@@ -767,6 +767,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const needed = new Set(steps.map((s) => s.station));
     if (steps.some((s) => TOOL_ACTIONS[s.action])) needed.add("table");
     const stations = {};
+    let zoneGroup = null;
+    let zoneLine = null;
 
     // Safety zone ring
     {
@@ -782,6 +784,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       zone.computeLineDistances();
       const g = new THREE.Group();
       g.add(zone);
+      zoneGroup = g;
+      zoneLine = zone;
       if (title) {
         const lbl = makeLabel(title, "#fbbf24");
         lbl.position.set(X, 2.45, 0.2);
@@ -1054,7 +1058,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       flange.rotation.z = Math.PI / 2;
       j6.add(flange);
       // End-of-arm tool: the chosen product's family, else a parallel gripper.
-      const eoat = (model && model.eoat) || "parallel";
+      const eoat = (model && model.eoat) || (buildMode ? "none" : "parallel");
       const fingerTool = eoat === "parallel" || eoat === "dual";
       const gBody = box(0.07, 0.09, eoat === "dual" ? 0.3 : 0.16, M.dark);
       gBody.position.x = 0.045;
@@ -1192,6 +1196,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         root.add(modelLabel);
       }
 
+      root.visible = !(buildMode && !(model && model.hasRobot));
       scene.add(root);
       return { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers, fingerTool, dims, q: [0, 0, 0, 0, 0, 0], toolHead, toolMat, paint, trim, eoatMat, modelLabel };
     }
@@ -1837,6 +1842,15 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       setModel(m) {
         model = m;
         cell.buildRobot(lastScale);
+        cell.fitZone();
+      },
+      /** The dashed ring shows the chosen robot's reach; in build mode it appears with the robot. */
+      fitZone() {
+        if (!zoneGroup) return;
+        const has = !!(model && model.hasRobot);
+        zoneGroup.visible = !buildMode || has;
+        const r = has && model.reachM ? model.reachM + 0.2 : 2.05;
+        if (zoneLine) zoneLine.scale.set(r / 2.05, 1, r / 2.05);
       },
       get model() {
         return model;
@@ -1855,6 +1869,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       },
       update(dt) {
         updateSparks(dt);
+        // Build mode: a cell runs only once the user has put a robot on it.
+        if (buildMode && !(model && model.hasRobot)) return;
         const ct = stations.carton;
         if (ct && ct.closeT > 0) {
           ct.closeT -= dt;
@@ -1952,7 +1968,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     infeed.group.visible = usesInfeed;
     infeed.autoSpawn = usesInfeed;
     infeed.owner = cells[0];
-    cells.forEach((c) => c.buildRobot(ROBOT_SIZES[sizeKey].scale));
+    cells.forEach((c) => {
+      c.buildRobot(ROBOT_SIZES[sizeKey].scale);
+      c.fitZone();
+    });
     focus = Math.min(focus, cells.length - 1);
 
     const span = (cells.length - 1) * CELL_SPACING;
@@ -2184,6 +2203,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
   }
 
   let currentView = "iso";
+  // Build mode (cell builder): show only what the user chose — no robot, tool or fence until picked.
+  let buildMode = false;
 
   /* ------------------------------------------------------------------
    * Digital-twin interaction: which robot cell is under the pointer, a
@@ -2225,6 +2246,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     // Close to a robot (within about half the spacing between cells) counts as that robot; empty floor is -1.
     return bestD <= Math.min(gap * 0.4, 170, rect.width * 0.22) ? best : -1;
   }
+  const lastScaleAll = () => ROBOT_SIZES[sizeKey].scale;
   function setHover(i) {
     if (i == null || i < 0) {
       hoverRing.visible = false;
@@ -2421,6 +2443,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           paint: r ? brandPaint(r.brand || r.name, r.collaborative) : null,
           label: r ? [r.name, r.payloadKg ? `${r.payloadKg} kg` : "", reachM ? `${Math.round(reachM * 1000)} mm` : ""].filter(Boolean).join(" · ") : eq.eoat ? eq.eoat.name : "",
           eoat: eq.eoat ? eq.eoat.kind || eoatKind(eq.eoat.name) : null,
+          hasRobot: !!r,
+          reachM: reachM,
           accessories: eq.accessories || [],
         });
       }
@@ -2431,6 +2455,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     setView,
     cellAt,
     setHover,
+    /** Cell builder: show only chosen equipment (call before setPlan). */
+    setBuildMode(on) {
+      buildMode = !!on;
+      cells.forEach((c) => {
+        c.buildRobot(lastScaleAll());
+        c.fitZone();
+      });
+    },
     /** Pixels covered by floating panels on the left and right of the stage. */
     setInsets(left, right) {
       insets.left = Math.max(0, Number(left) || 0);
