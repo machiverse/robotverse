@@ -47,7 +47,7 @@ const AdminDashboardLayout = React.memo(({
   const handleSignOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
-      navigate('/auth');
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
       toast({
         title: "Signed out successfully",
         description: "You have been logged out of the admin panel.",

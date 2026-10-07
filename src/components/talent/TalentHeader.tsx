@@ -66,7 +66,7 @@ const TalentHeader = () => {
               </>
             )}
             {!user && (
-              <Button size="sm" onClick={() => navigate('/auth')} className="text-xs">
+              <Button size="sm" onClick={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true })} className="text-xs">
                 Sign In
               </Button>
             )}

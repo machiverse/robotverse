@@ -108,7 +108,7 @@ const ServicesManagement = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Services Management</h1>
           <p className="text-muted-foreground">
@@ -188,7 +188,7 @@ const ServicesManagement = () => {
           ) : (
             <div className="space-y-4">
               {services.map((service) => (
-                <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={service.id} className="flex flex-wrap items-center justify-between gap-3 p-4 border rounded-lg">
                   <div className="flex items-start gap-3">
                     <Wrench className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>

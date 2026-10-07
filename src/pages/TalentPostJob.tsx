@@ -26,7 +26,7 @@ const TalentPostJob = () => {
   });
   const [skillInput, setSkillInput] = useState('');
 
-  if (!user) { navigate('/auth'); return null; }
+  if (!user) { navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true }); return null; }
 
   const addSkill = (s: string) => {
     if (s && !form.skills_required.includes(s)) setForm(f => ({ ...f, skills_required: [...f.skills_required, s] }));

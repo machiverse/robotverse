@@ -112,3 +112,15 @@ verify_jwt = false
 
 [functions.robot-news]
 verify_jwt = false
+
+[functions.automation-solution]
+verify_jwt = false
+
+[functions.directory-photo-harvest]
+verify_jwt = false
+
+[functions.directory-parts-harvest]
+verify_jwt = false
+
+[functions.directory-catalog-sync]
+verify_jwt = false

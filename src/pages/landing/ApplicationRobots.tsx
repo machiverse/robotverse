@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import LandingPageLayout from "@/components/landing/LandingPageLayout";
 import { Card } from "@/components/ui/card";
+import { applicationGuide, applicationMeta, APPLICATION_GUIDES } from "@/lib/seo/seoText";
 
 const titleCase = (s: string) =>
   s.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -23,8 +24,11 @@ const APPLICATION_MAP: Record<string, { label: string; terms: string[] }> = {
 
 export default function ApplicationRobots() {
   const { application = "" } = useParams<{ application: string }>();
-  const slug = application.toLowerCase();
-  const cfg = APPLICATION_MAP[slug] ?? { label: titleCase(slug), terms: [slug.replace(/-/g, " ")] };
+  const guide = applicationGuide(application);
+  const slug = guide?.slug ?? application.toLowerCase();
+  const cfg = guide
+    ? { label: guide.label, terms: guide.terms }
+    : APPLICATION_MAP[application.toLowerCase()] ?? { label: titleCase(slug), terms: [slug.replace(/-/g, " ")] };
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,13 +60,17 @@ export default function ApplicationRobots() {
   }, [slug]);
 
   const label = cfg.label;
+  const meta = guide ? applicationMeta(guide) : null;
   const seo = {
-    title: `${label} Robots for Sale in India | Industrial ${label} Robots | RobotVerse`,
-    description: `Buy ${label.toLowerCase()} industrial robots in India. Compare ${items.length}+ verified ${label.toLowerCase()} robot listings — FANUC, ABB, KUKA, Yaskawa and more, with full specs and direct seller contact.`,
+    title: meta?.title ?? `${label} Robots for Sale in India | Industrial ${label} Robots | RobotVerse`,
+    description:
+      meta?.description ??
+      `Buy ${label.toLowerCase()} industrial robots in India. Compare ${items.length}+ verified ${label.toLowerCase()} robot listings — FANUC, ABB, KUKA, Yaskawa and more, with full specs and direct seller contact.`,
     canonical: `/robots/application/${slug}`,
-    // Thin-content guard: don't index landing pages with fewer than 3 listings
-    noIndex: items.length < 3,
+    // Thin-content guard: a page with an application guide has real content; without one, index only with 3+ listings
+    noIndex: !guide && items.length < 3,
     keywords: [
+      ...(guide?.aliases ?? []),
       `${label} robots`,
       `${label} robot India`,
       `industrial ${label} robot`,
@@ -77,6 +85,7 @@ export default function ApplicationRobots() {
       { title: "Direct contact", text: "No middlemen — message the seller through RobotVerse." },
     ],
     faq: [
+      ...(guide?.faq ?? []),
       {
         question: `Which brands make the best ${label.toLowerCase()} robots in India?`,
         answer: `FANUC, ABB, KUKA, Yaskawa and Kawasaki all offer proven ${label.toLowerCase()} robots widely deployed across Indian manufacturing. Browse the listings above to compare current options.`,
@@ -100,6 +109,38 @@ export default function ApplicationRobots() {
       loading={loading}
       emptyMessage={items.length === 0 ? `No ${label.toLowerCase()} robots are currently listed. Browse all robots at /robots or set up an alert.` : undefined}
     >
+      {guide && (
+        <div className="mb-8 grid gap-4 md:grid-cols-2">
+          <section className="rounded-xl border border-border bg-card p-4 md:col-span-2">
+            <h2 className="text-lg font-semibold">What a {label.toLowerCase()} robot does</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{guide.does}</p>
+            <p className="mt-2 text-sm font-medium">{guide.key}</p>
+          </section>
+          <section className="rounded-xl border border-border bg-card p-4">
+            <h2 className="text-base font-semibold">How to choose a {label.toLowerCase()} robot</h2>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+              {guide.choose.map((x) => <li key={x}>{x}</li>)}
+            </ul>
+          </section>
+          <section className="rounded-xl border border-border bg-card p-4">
+            <h2 className="text-base font-semibold">Equipment around the robot</h2>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+              {guide.around.map((x) => <li key={x}>{x}</li>)}
+            </ul>
+            <p className="mt-3 text-sm"><span className="text-muted-foreground">Typical cycle time:</span> {guide.cycle}</p>
+          </section>
+          <p className="text-xs text-muted-foreground md:col-span-2">
+            Plan it: <Link to="/automation-studio/build" className="text-primary hover:underline">build a {label.toLowerCase()} cell in 3D</Link> ·{" "}
+            <Link to="/automation-studio/playbook" className="text-primary hover:underline">engineer's playbook</Link> · Other applications:{" "}
+            {APPLICATION_GUIDES.filter((g) => g.slug !== guide.slug).map((g, i) => (
+              <span key={g.slug}>
+                {i > 0 && ", "}
+                <Link to={`/robots/application/${g.slug}`} className="hover:text-primary hover:underline">{g.label.toLowerCase()}</Link>
+              </span>
+            ))}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((r) => (
           <Link to={`/robots/${r.id}`} key={r.id}>

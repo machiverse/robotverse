@@ -56,6 +56,26 @@ class ErrorBoundary extends Component<Props, State> {
           >
             Refresh Page
           </button>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
+            <button
+              onClick={() => {
+                // Leave the broken page: go back, then reload so the app starts clean there.
+                if (window.history.length > 1) {
+                  window.addEventListener('popstate', () => window.location.reload(), { once: true });
+                  window.history.back();
+                } else window.location.href = '/';
+              }}
+              style={{ padding: '0.625rem 1.25rem', background: 'transparent', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}
+            >
+              ← Go back
+            </button>
+            <a
+              href="/"
+              style={{ padding: '0.625rem 1.25rem', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '0.5rem', fontSize: '0.875rem', textDecoration: 'none' }}
+            >
+              Home
+            </a>
+          </div>
           {this.state.error && (
             <pre style={{
               marginTop: '2rem',

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } fro
 import { analyzeDescription, processesFromSkills } from "@/utils/processAnalyzer";
 import MediaAnalyzer from "@/features/automation3d/MediaAnalyzer";
 import type { MediaAnalysis } from "@/features/automation3d/mediaAnalysis";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import StudioChooser from "@/components/automation/StudioChooser";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -58,13 +59,18 @@ import {
   buildStats,
   getBlueprint,
 } from "@/data/automationStudioIndustries";
-import { FactoryLayoutSvg, MaterialFlowSvg } from "@/components/automation-studio/StudioVisualizations";
+import { FactoryLayoutSvg } from "@/components/automation-studio/StudioVisualizations";
 import type { VisualStation } from "@/components/automation-studio/visualTypes";
 
-const ProcessLine3D = lazy(() => import("@/features/automation3d/ProcessLine3D"));
 const RobotCell3D = lazy(() => import("@/features/automation3d/AutomationStudio3D"));
 import { processKind, PROCESS_PROFILES } from "@/features/automation3d/processProfiles";
+import { JOB_NOTES, PLAYBOOK } from "@/features/automation3d/engineerPlaybook";
 import { processToText, PRESETS } from "@/features/automation3d/robotSim.js";
+import AiSolutionPanel from "@/features/automation3d/AiSolutionPanel";
+import { requestSolution, solutionProcesses, type AiSolution } from "@/features/automation3d/aiSolution";
+import { engineSolution } from "@/features/automation3d/solutionEngine";
+import BriefAssistant from "@/features/automation3d/BriefAssistant";
+import EquipmentPicker from "@/features/automation3d/EquipmentPicker";
 
 const simLink = (text: string, title?: string) =>
   `/automation-studio/3d?process=${encodeURIComponent(text)}${title ? `&title=${encodeURIComponent(title)}` : ""}`;
@@ -77,7 +83,7 @@ const SimFallback = () => (
 
 /* ---------------------------------- data --------------------------------- */
 
-const STEPS = ["Upload & Describe", "Analysis", "Results", "Automation Preview"];
+const STEPS = ["Describe the work", "We plan it", "Your plan", "See your cell"];
 
 const ANALYSIS_MESSAGES = [
   "Analyzing uploaded images...",
@@ -181,7 +187,13 @@ const previewVisualStations: VisualStation[] = PREVIEW_STATIONS.map((label, inde
 
 /* ---------------------------------- page ---------------------------------- */
 
+/** Entry: choose "build your own cell" or "describe your job" (?mode=ai). */
 export default function AutomationStudio() {
+  const [params] = useSearchParams();
+  return params.get("mode") === "ai" ? <AutomationStudioAI /> : <StudioChooser />;
+}
+
+function AutomationStudioAI() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -195,20 +207,38 @@ export default function AutomationStudio() {
   const [visualTab, setVisualTab] = useState("robot");
   // -1 = the whole line with every robot; otherwise one station
   const [simIndex, setSimIndex] = useState(-1);
-  const [visualPlaying, setVisualPlaying] = useState(true);
-  const [visualSpeed, setVisualSpeed] = useState<"0.5" | "1" | "2">("1");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const blueprint = getBlueprint(industry);
   // AI reading of uploaded photos / video: its tasks are used while the description it wrote is unchanged.
   const [media, setMedia] = useState<{ result: MediaAnalysis; frame: string; text: string } | null>(null);
+  // AI solution engineer's answer for the current brief (any kind of automation work).
+  const [ai, setAi] = useState<{ brief: string; solution: AiSolution | null; loading: boolean; error: string | null }>({
+    brief: "", solution: null, loading: false, error: null,
+  });
+  const aiCurrent = ai.brief === description.trim() ? ai : null;
+  const runAi = useCallback((brief: string, ind: string | null) => {
+    const text = brief.trim();
+    if (text.length < 8) return Promise.resolve();
+    setAi({ brief: text, solution: null, loading: true, error: null });
+    return requestSolution(text, ind).then(
+      (solution) => setAi((cur) => (cur.brief === text ? { brief: text, solution, loading: false, error: null } : cur)),
+      (e: Error) => setAi((cur) => (cur.brief === text ? { brief: text, solution: null, loading: false, error: e.message } : cur)),
+    );
+  }, []);
+  // Built-in solution engine: instant, offline answer for the same brief.
+  const engine = useMemo(() => (description.trim().length >= 8 ? engineSolution(description, industry) : null), [description, industry]);
   const processes = useMemo(() => {
+    if (aiCurrent?.solution) {
+      const fromAi = solutionProcesses(aiCurrent.solution);
+      if (fromAi.length) return fromAi;
+    }
     if (media && description === media.text) {
       const fromMedia = processesFromSkills(media.result.tasks);
       if (fromMedia.length) return fromMedia;
     }
     return analyzeDescription(description, industry);
-  }, [description, industry, media]);
+  }, [description, industry, media, aiCurrent?.solution]);
   const inventory = buildInventory({ ...blueprint, processes });
   const stats = buildStats({ ...blueprint, processes });
   const stations: VisualStation[] = processes.map((process, index) => ({
@@ -232,18 +262,33 @@ export default function AutomationStudio() {
     setFiles((prev) => [...prev, ...next]);
   }, []);
 
-  // Step 2 simulated analysis
+  // Step 2: the AI solution engineer designs the solution for the brief; the
+  // skills-library plan is the fallback if it is slow or unavailable.
   useEffect(() => {
     if (step !== 2) return;
     setMsgIndex(0);
+    let live = true;
     const interval = window.setInterval(() => {
       setMsgIndex((i) => Math.min(i + 1, ANALYSIS_MESSAGES.length - 1));
     }, 1300);
-    const done = window.setTimeout(() => setStep(3), 8000);
-    return () => {
-      window.clearInterval(interval);
-      window.clearTimeout(done);
+    const started = Date.now();
+    const finish = () => {
+      if (!live) return;
+      // Keep the analysis screen up for a moment so the steps read naturally.
+      window.setTimeout(() => live && setStep(3), Math.max(0, 2500 - (Date.now() - started)));
     };
+    const cap = window.setTimeout(finish, 45000);
+    const text = description.trim();
+    if (text.length >= 8) {
+      const ready = ai.brief === text && (ai.solution || ai.loading);
+      (ready && ai.solution ? Promise.resolve() : runAi(text, industry)).finally(finish);
+    } else window.setTimeout(finish, 6000);
+    return () => {
+      live = false;
+      window.clearInterval(interval);
+      window.clearTimeout(cap);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   const reset = () => {
@@ -272,7 +317,7 @@ export default function AutomationStudio() {
                   layout, ROI, and a live 3D robot cell that runs your process before you buy anything.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Button size="lg" onClick={() => navigate("/auth?redirect=/automation-studio")}>
+                  <Button size="lg" onClick={() => navigate("/auth?redirect=" + encodeURIComponent("/automation-studio?mode=ai"))}>
                     Sign In to Analyze My Process <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   <Button size="lg" variant="outline" asChild>
@@ -347,7 +392,7 @@ export default function AutomationStudio() {
             </Card>
 
             <div className="mt-10 text-center">
-              <Button size="lg" onClick={() => navigate("/auth?redirect=/automation-studio")}>
+              <Button size="lg" onClick={() => navigate("/auth?redirect=" + encodeURIComponent("/automation-studio?mode=ai"))}>
                 Sign In to Use Automation Studio
               </Button>
             </div>
@@ -506,6 +551,7 @@ export default function AutomationStudio() {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />
+                    <BriefAssistant value={description} onChange={setDescription} />
                   </div>
                 </CardContent>
               </Card>
@@ -553,26 +599,43 @@ export default function AutomationStudio() {
             <div className="flex min-h-[340px] flex-col items-center justify-center text-center">
               <Loader2 className="mb-6 h-10 w-10 animate-spin text-primary" />
               <p className="text-lg font-semibold" aria-live="polite">
-                {ANALYSIS_MESSAGES[msgIndex]}
+                {engine?.reasoning?.length ? "Designing your automation solution…" : ANALYSIS_MESSAGES[msgIndex]}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
                 This usually takes a few seconds. Please keep this page open.
               </p>
               <Badge variant="secondary" className="mt-4 gap-1.5">
-                <Bot className="h-3.5 w-3.5" /> Powered by RobotVerse AI
+                <Bot className="h-3.5 w-3.5" /> RobotVerse solution engine + AI
               </Badge>
-              <ul className="mt-8 space-y-2 text-left">
-                {ANALYSIS_MESSAGES.map((m, i) => (
-                  <li key={m} className="flex items-center gap-2 text-sm">
-                    {i < msgIndex ? (
-                      <Check className="h-4 w-4 text-emerald-600" />
-                    ) : (
-                      <span className="h-4 w-4 rounded-full border border-border" />
-                    )}
-                    <span className={i <= msgIndex ? "text-foreground" : "text-muted-foreground"}>{m}</span>
+              {engine?.reasoning?.length ? (
+                <ol className="mt-8 w-full max-w-2xl space-y-2 text-left">
+                  {engine.reasoning.slice(0, Math.min(engine.reasoning.length, msgIndex * 2 + 2)).map((r, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <span>
+                        <span className="font-medium">{r.title}</span>
+                        <span className="block text-muted-foreground">{r.detail}</span>
+                      </span>
+                    </li>
+                  ))}
+                  <li className="flex items-center gap-2 text-sm text-primary">
+                    <Loader2 className="h-4 w-4 animate-spin" /> AI engineer refining the design for your brief…
                   </li>
-                ))}
-              </ul>
+                </ol>
+              ) : (
+                <ul className="mt-8 space-y-2 text-left">
+                  {ANALYSIS_MESSAGES.map((m, i) => (
+                    <li key={m} className="flex items-center gap-2 text-sm">
+                      {i < msgIndex ? (
+                        <Check className="h-4 w-4 text-emerald-600" />
+                      ) : (
+                        <span className="h-4 w-4 rounded-full border border-border" />
+                      )}
+                      <span className={i <= msgIndex ? "text-foreground" : "text-muted-foreground"}>{m}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </StepShell>
         )}
@@ -580,6 +643,36 @@ export default function AutomationStudio() {
         {/* Step 3 */}
         {step === 3 && (
           <StepShell>
+            {description.trim().length >= 8 && (
+              <div className="mb-6">
+                <AiSolutionPanel
+                  solution={aiCurrent?.solution ?? null}
+                  fallback={engine}
+                  loading={aiCurrent?.loading}
+                  error={aiCurrent?.error ?? (!aiCurrent ? "The brief changed since the last analysis." : null)}
+                  onRetry={() => runAi(description, industry)}
+                  onBuild={() => {
+                    setSimIndex(-1);
+                    setVisualTab("robot");
+                    setStep(4);
+                  }}
+                  onAsk={(q) => {
+                    setDescription((d) => `${d.trim()} ${q} Answer: `);
+                    setStep(1);
+                    window.setTimeout(() => {
+                      const el = document.getElementById("as-description") as HTMLTextAreaElement | null;
+                      el?.focus();
+                      el?.setSelectionRange(el.value.length, el.value.length);
+                    }, 50);
+                  }}
+                />
+                {((aiCurrent?.solution ?? engine)?.stations.length ?? 0) > 0 && (
+                  <div className="mt-6">
+                    <EquipmentPicker key={description.trim()} stations={(aiCurrent?.solution ?? engine)!.stations} briefKey={description.trim()} />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {stats.map((s) => (
                 <Card key={s.label}>
@@ -689,19 +782,42 @@ export default function AutomationStudio() {
               ))}
             </div>
 
-            <Card className="mt-6">
-              <CardHeader><CardTitle className="text-base">Deep Analysis Summary</CardTitle></CardHeader>
-              <CardContent className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-                {[
-                  ["Est. Investment", "₹1.2Cr — ₹1.8Cr"],
-                  ["Annual Savings", "₹45L — ₹65L"],
-                  ["Manpower", "From 24 workers → 8 operators"],
-                  ["Capacity Increase", "+150% throughput"],
-                  ["Timeline", "12-16 weeks deployment"],
-                  ["Payback Period", "18-30 months"],
-                ].map(([label, value]) => <div key={label} className="bg-card p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold text-foreground">{value}</p></div>)}
-              </CardContent>
-            </Card>
+            {(() => {
+              // Figures from this brief's own plan (AI engineer, else the built-in engine) — never fixed numbers.
+              const sol = aiCurrent?.solution ?? engine;
+              if (!sol) return null;
+              const cr = (v: number) => (v >= 1e7 ? `₹${(v / 1e7).toFixed(2)} Cr` : `₹${Math.round(v / 1e5)} L`);
+              const b = sol.budget_inr;
+              const weeks = sol.implementation
+                .map((ph) => (ph.weeks.match(/\d+/g) ?? []).map(Number))
+                .reduce(([lo, hi], w) => [lo + (w[0] ?? 0), hi + (w[w.length - 1] ?? 0)], [0, 0]);
+              const rows: [string, string][] = [
+                ["Estimated investment", b.low && b.high ? `${cr(b.low)} – ${cr(b.high)}` : "On quotation"],
+                ["Payback", sol.roi.payback_months ? (/month/i.test(sol.roi.payback_months) ? sol.roi.payback_months : `${sol.roi.payback_months} months`) : "—"],
+                ["Labour", sol.roi.labour_saved || "—"],
+                ["Quality", sol.roi.quality_gain || "—"],
+                ["Throughput", [sol.throughput.target, sol.throughput.takt_s ? `takt ${sol.throughput.takt_s} s` : ""].filter(Boolean).join(" · ") || "—"],
+                ["Timeline", weeks[1] ? `${weeks[0]}–${weeks[1]} weeks to production` : "—"],
+              ];
+              return (
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle className="text-base">Your plan in numbers</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Worked out for this brief from {sol.stations.length} station{sol.stations.length === 1 ? "" : "s"}. Indicative — confirm with a site visit and supplier quotes.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+                    {rows.map(([label, value]) => (
+                      <div key={label} className="bg-card p-4">
+                        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             <div className="mt-6 flex justify-center">
               <Button asChild variant="ghost" className="whitespace-normal min-w-fit w-auto">
@@ -731,34 +847,9 @@ export default function AutomationStudio() {
                 <CardTitle className="text-base">Automation preview</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="whitespace-normal min-w-fit w-auto gap-2"
-                    onClick={() => setVisualPlaying((value) => !value)}
-                    aria-pressed={!visualPlaying}
-                  >
-                    {visualPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                    {visualPlaying ? "Pause" : "Play"}
-                  </Button>
-                  <div className="flex items-center gap-1 rounded-md border border-border bg-card p-1" aria-label="Animation speed">
-                    {(["1", "2", "0.5"] as const).map((speed) => (
-                      <Button
-                        key={speed}
-                        type="button"
-                        variant={visualSpeed === speed ? "default" : "ghost"}
-                        size="sm"
-                        className="h-7 min-w-10 px-2 text-xs"
-                        onClick={() => setVisualSpeed(speed)}
-                        aria-pressed={visualSpeed === speed}
-                      >
-                        {speed}x
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  All four views show the same robot line: the same robots, stations and conveyors, seen as the working cells, as a factory floor plan, with the material path, and as the full production line.
+                </p>
                 <Tabs value={visualTab} onValueChange={setVisualTab}>
                   <TabsList className="h-auto flex-wrap">
                     <TabsTrigger value="robot" className="gap-1.5">
@@ -781,11 +872,18 @@ export default function AutomationStudio() {
                             <p className="text-sm text-muted-foreground">
                               Watch your whole line with every robot, or choose one station to see it on its own.
                             </p>
-                            <Button variant="outline" size="sm" asChild>
-                              <Link to={full ? lineHref : simLink(text, current.name)}>
-                                <Maximize2 className="mr-2 h-4 w-4" /> Open full screen
-                              </Link>
-                            </Button>
+                            <div className="flex flex-wrap gap-2">
+                              <Button size="sm" asChild>
+                                <Link to={`/automation-studio/build#job=${encodeURIComponent(processes.slice(0, 6).map((p) => p.name).join("|"))}`}>
+                                  Build this line with real robots
+                                </Link>
+                              </Button>
+                              <Button variant="outline" size="sm" asChild>
+                                <Link to={full ? lineHref : simLink(text, current.name)}>
+                                  <Maximize2 className="mr-2 h-4 w-4" /> Open full screen
+                                </Link>
+                              </Button>
+                            </div>
                           </div>
                           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Station to simulate">
                             <button
@@ -844,21 +942,79 @@ export default function AutomationStudio() {
                               />
                             )}
                           </Suspense>
+                          {!full && (
+                            <div className="rounded-xl border border-border p-4">
+                              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                <p className="text-sm font-semibold">How an engineer thinks about this station</p>
+                                <span className="text-xs tabular-nums text-muted-foreground">
+                                  typical cycle {PLAYBOOK[kind].cycle[0]}–{PLAYBOOK[kind].cycle[1]} s
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-muted-foreground">{PLAYBOOK[kind].key}</p>
+                              <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+                                {(
+                                  [
+                                    ["Ask first", PLAYBOOK[kind].ask],
+                                    ["Rules of thumb", PLAYBOOK[kind].rules],
+                                    ["Around the robot", PLAYBOOK[kind].around],
+                                  ] as const
+                                ).map(([t, items]) => (
+                                  <div key={t} className="rounded-lg bg-muted/40 p-3">
+                                    <p className="font-semibold">{t}</p>
+                                    <ul className="mt-1.5 list-disc space-y-1 pl-4 text-muted-foreground">
+                                      {items.map((x) => (
+                                        <li key={x}>{x}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ))}
+                              </div>
+                              {JOB_NOTES[current.name] && (
+                                <p className="mt-3 text-xs">
+                                  <b>For {current.name.toLowerCase()}:</b> <span className="text-muted-foreground">{JOB_NOTES[current.name].join(". ")}.</span>
+                                </p>
+                              )}
+                              <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                                <Link to={`/automation-studio/build#job=${encodeURIComponent(current.name)}`} className="font-medium text-primary hover:underline">
+                                  Build this cell with real robots →
+                                </Link>
+                                <Link to="/automation-studio/playbook" className="text-muted-foreground hover:text-primary hover:underline">
+                                  Full engineer's playbook
+                                </Link>
+                              </div>
+                            </div>
+                          )}
                         </>
                       );
                     })()}
                   </TabsContent>
-                  <TabsContent value="layout" className="mt-4">
-                    <FactoryLayoutSvg stations={stations} playing={visualPlaying} speed={visualSpeed} active={visualTab === "layout"} />
-                  </TabsContent>
-                  <TabsContent value="flow" className="mt-4">
-                    <MaterialFlowSvg stations={stations} playing={visualPlaying} speed={visualSpeed} active={visualTab === "flow"} />
-                  </TabsContent>
-                  <TabsContent value="cell" className="mt-4">
-                    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading 3D production line…</div>}>
-                      <ProcessLine3D processes={processes} playing={visualPlaying && visualTab === "cell"} speed={visualSpeed} />
-                    </Suspense>
-                  </TabsContent>
+                  {(
+                    [
+                      ["layout", "layout", "top", "Factory layout", "Floor plan of your line: robot zones, operator aisle, material in/out and overall dimensions"],
+                      ["flow", "flow", "iso", "Material flow", "The path each part takes from raw material in, through every robot, to finished goods out"],
+                      ["cell", "none", "iso", "3D production line", `${processes.length} tasks · every robot running its cycle on one line`],
+                    ] as const
+                  ).map(([tab, overlay, view, title, subtitle]) => (
+                    <TabsContent key={tab} value={tab} className="mt-4">
+                      {processes.length > 0 && (
+                        <Suspense fallback={<SimFallback />}>
+                          <RobotCell3D
+                            key={`${tab}-${processes.map((p) => p.name).join("|")}`}
+                            variant="embedded"
+                            showEditor={false}
+                            processes={processes}
+                            description={description.trim() || undefined}
+                            referenceImage={media?.frame}
+                            mediaAnalysis={media && description === media.text ? media.result : null}
+                            overlay={overlay}
+                            initialView={view}
+                            title={title}
+                            subtitle={subtitle}
+                          />
+                        </Suspense>
+                      )}
+                    </TabsContent>
+                  ))}
                 </Tabs>
               </CardContent>
             </Card>
@@ -897,7 +1053,8 @@ export default function AutomationStudio() {
               </CardContent>
             </Card>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <p className="mt-6 text-xs font-medium uppercase tracking-wide text-muted-foreground">Typical results in this industry</p>
+            <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {roiCards.map((r) => (
                 <Card key={r.label}>
                   <CardContent className="p-5">

@@ -24,7 +24,7 @@ export const generateCompleteSitemap = async (): Promise<string> => {
   const staticPages = [
     { path: '/', priority: '1.0', changefreq: 'daily' },
     { path: '/robots', priority: '1.0', changefreq: 'daily' },
-    { path: '/spare-parts', priority: '0.9', changefreq: 'daily' },
+    { path: '/parts', priority: '0.9', changefreq: 'daily' },
     { path: '/services', priority: '0.9', changefreq: 'daily' },
     { path: '/robobook', priority: '0.8', changefreq: 'daily' },
     { path: '/logistics', priority: '0.8', changefreq: 'weekly' },

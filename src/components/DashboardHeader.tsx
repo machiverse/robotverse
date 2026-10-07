@@ -82,7 +82,7 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
       options.push({
         label: 'Add Loan Product',
         icon: CreditCard,
-        path: '/finance',
+        path: '/financing',
         description: 'Add a new financing option'
       });
     }
@@ -190,11 +190,8 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
             </div>
 
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative">
+            <Button variant="ghost" size="sm" className="relative" aria-label="Messages and notifications" onClick={() => navigate("/dashboard/messages")}>
               <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full text-[10px] flex items-center justify-center text-primary-foreground">
-                3
-              </span>
             </Button>
 
             {/* Professional Dashboard Menu */}
@@ -255,12 +252,12 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
                   <span>Account Settings</span>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onClick={() => navigate('/dashboard')} className="px-4 py-3 cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/dashboard/analytics')} className="px-4 py-3 cursor-pointer">
                   <BarChart3 className="w-4 h-4 mr-3" />
                   <span>Analytics</span>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onClick={() => navigate('/dashboard')} className="px-4 py-3 cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/dashboard/reports')} className="px-4 py-3 cursor-pointer">
                   <FileText className="w-4 h-4 mr-3" />
                   <span>Reports</span>
                 </DropdownMenuItem>
@@ -289,7 +286,7 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
                   </>
                 )}
 
-                <DropdownMenuItem onClick={() => navigate('/help')} className="px-4 py-3 cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/dashboard/help')} className="px-4 py-3 cursor-pointer">
                   <HelpCircle className="w-4 h-4 mr-3" />
                   <span>Help & Support</span>
                 </DropdownMenuItem>

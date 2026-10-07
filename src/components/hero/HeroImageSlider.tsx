@@ -80,14 +80,12 @@ export const useHeroSlides = () => {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  // A fresh 7s timer per slide, so picking a slide restarts its full time.
   useEffect(() => {
     if (reducedMotion) return;
-    const id = window.setInterval(
-      () => setIndex((prev) => (prev + 1) % HERO_SLIDES.length),
-      HERO_SLIDE_MS,
-    );
-    return () => window.clearInterval(id);
-  }, [reducedMotion]);
+    const id = window.setTimeout(() => setIndex((prev) => (prev + 1) % HERO_SLIDES.length), HERO_SLIDE_MS);
+    return () => window.clearTimeout(id);
+  }, [index, reducedMotion]);
 
   return { index, setIndex, reducedMotion };
 };

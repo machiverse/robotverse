@@ -1,31 +1,47 @@
 # RobotVerse
 
-> RobotVerse is a B2B marketplace and auction platform for new, used and refurbished industrial robots and robot spare parts in India, based in Chennai. Buyers compare verified listings, request quotations and bid in auctions; sellers list robots, parts and robotics services.
+> RobotVerse (www.robotverse.in) is India's B2B marketplace and auction platform for new, used and refurbished industrial robots, robot spare parts and robotics services, with free tools to plan and simulate robot cells in 3D. Based in Tamil Nadu, India; serves buyers and sellers across India.
 
-Listings carry structured specifications (brand, model, payload, reach, year, controller, condition, location) and prices in INR where the seller has published one. Seller contact details are masked; buyers request quotes through the platform.
+Listings carry structured specifications (brand, model, payload, reach, axes, year, controller, condition, location) and prices in INR where the seller has published one. Seller contact details are masked; buyers request quotations through the platform. RobotVerse does not publish invented prices or specifications.
+
+## What people use RobotVerse for
+
+- Buying used or refurbished industrial robots: FANUC, ABB, KUKA, Yaskawa (Motoman), Kawasaki, Universal Robots, Nachi, Stäubli, Denso, Epson, Comau, Mitsubishi, Estun, Omron, Techman, Hyundai and more — 6-axis arms, SCARA, delta, palletizing robots and collaborative robots (cobots)
+- Finding robot spare parts by brand and part number: servo motors, servo amplifiers and drives, teach pendants, controller boards, reducers and gearboxes, cables, batteries, encoders, power supplies
+- End-of-arm tooling (EOAT): grippers, vacuum cups, welding torches, spindles, tool changers, force/torque sensors and cameras
+- Robot applications: welding (MIG/MAG, TIG, spot), machine tending (CNC, injection moulding, press), palletizing, pick and place, packing, painting, dispensing, grinding, polishing, deburring, assembly, screw driving, inspection
+- Planning automation: robot selection, payload and reach sizing, cell layout, safety (ISO 10218, ISO 13849, ISO 13855), cycle time, budget and payback
+- Integrators, installation, programming, AMC and repair services; robot transport; loans and leasing; robotics jobs and training
 
 ## Main sections
 
 - [Industrial robots](https://www.robotverse.in/robots): all robot listings; each listing lives at https://www.robotverse.in/robots/{id}
-- [Robots by brand](https://www.robotverse.in/robots/brand/fanuc): brand pages at https://www.robotverse.in/robots/brand/{brand} (FANUC, ABB, KUKA, Yaskawa, Universal Robots and more)
+- [Robots by brand](https://www.robotverse.in/robots/brand/fanuc): brand pages at https://www.robotverse.in/robots/brand/{brand}
 - [Robots by city](https://www.robotverse.in/robots/city/chennai): city pages at https://www.robotverse.in/robots/city/{city}
+- [Robots by application](https://www.robotverse.in/robots/application/welding): application pages at https://www.robotverse.in/robots/application/{application}
+- [Compare robots](https://www.robotverse.in/robots/compare): side-by-side robot comparisons; brand comparisons at https://www.robotverse.in/compare/{brand}-vs-{brand}
 - [Robot spare parts](https://www.robotverse.in/parts): parts at https://www.robotverse.in/parts/{id}, brand pages at https://www.robotverse.in/parts/brand/{brand}
-- [Robotics directory](https://www.robotverse.in/directory): robot models, end-of-arm tools, external axes and training
-- [Automation Studio 3D](https://www.robotverse.in/automation-studio/3d): simulate a robot cell in 3D from a process description
-- [Automation Studio](https://www.robotverse.in/automation-studio): process-to-robot recommendation planner
+- [Robotics directory](https://www.robotverse.in/directory): robot model specifications, end-of-arm tools, external axes, parts and components, and training
+- [Automation Studio](https://www.robotverse.in/automation-studio): describe a manual job and get a robot automation plan with a live 3D simulation
+- [Robot cell builder](https://www.robotverse.in/automation-studio/build): choose a robot, tool, accessories, job and safety and watch the cell run in 3D, with fit warnings, cycle time, budget and payback
+- [Automation engineer's playbook](https://www.robotverse.in/automation-studio/playbook): how robot cells are planned, rules per application, and calculators (takt time, payload, vacuum gripper, grip force, light-curtain safety distance, camera resolution)
+- [Automation Studio 3D](https://www.robotverse.in/automation-studio/3d): simulate a robot cell from a process description
 - [Auctions](https://www.robotverse.in/auctions): live and upcoming robot auctions at https://www.robotverse.in/auctions/{id}
-- [RoboBook](https://www.robotverse.in/robobook): guides, buying advice and community posts
 - [Robotics services](https://www.robotverse.in/services): installation, programming, AMC and repair providers
+- [Logistics](https://www.robotverse.in/logistics) and [Financing](https://www.robotverse.in/financing): transport and loans for robots and machinery
+- [RoboBook](https://www.robotverse.in/robobook): guides, buying advice and community posts; [news](https://www.robotverse.in/robobook/news)
 - [Robot talent](https://www.robotverse.in/robot-talent): robotics jobs and training
 - [Buyer guide](https://www.robotverse.in/buyer-guide): how to buy a used industrial robot in India
 - [Seller guide](https://www.robotverse.in/seller-guide): how to list and sell robots and parts
 
 ## Company
 
-- [Contact](https://www.robotverse.in/contact)
+- [About RobotVerse](https://www.robotverse.in/about)
+- [Contact](https://www.robotverse.in/contact): support@robotverse.in, +91 86109 25352
 - [Pricing](https://www.robotverse.in/pricing)
 - [API documentation](https://www.robotverse.in/api-docs)
 
-## Sitemap
+## Full page list and sitemaps
 
+- Every public page with its title: https://www.robotverse.in/llms-full.txt
 - https://www.robotverse.in/sitemap.xml

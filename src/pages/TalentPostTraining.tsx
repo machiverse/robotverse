@@ -26,7 +26,7 @@ const TalentPostTraining = () => {
   });
   const [skillInput, setSkillInput] = useState('');
 
-  if (!user) { navigate('/auth'); return null; }
+  if (!user) { navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true }); return null; }
 
   const addSkill = (s: string) => {
     if (s && !form.skills_covered.includes(s)) setForm(f => ({ ...f, skills_covered: [...f.skills_covered, s] }));

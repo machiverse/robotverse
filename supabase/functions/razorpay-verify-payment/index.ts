@@ -164,13 +164,15 @@ Deno.serve(async (req) => {
       .eq('user_id', user.id);
 
     // Use raw SQL for the update instead
-    await supabase.rpc('add_user_credits', { 
+    const { error: rpcCreditsError } = await supabase.rpc('add_user_credits', { 
       p_user_id: user.id, 
       p_credits: order.credits 
-    }).catch(() => {
-      // Fallback: direct update
-      console.log('RPC not available, using direct update');
     });
+
+    if (rpcCreditsError) {
+      // Fallback: direct update
+      console.log('RPC not available, using direct update:', rpcCreditsError.message);
+    }
 
     // Record transaction
     const { error: transactionError } = await supabase

@@ -1,0 +1,699 @@
+// supabase/functions/directory-photo-harvest/index.ts
+//
+// Finds a REAL photo for every Directory catalogue item (robots first), copies it
+// into our storage and records it in public.directory_robot_images, so the
+// Directory cards show real product photos instead of CAD renders.
+//
+// POST JSON:
+//   { action: "status", kind? }                          -> counts per status (anyone)
+//   { action: "run", kind?, limit?, retry?, ids? }       -> harvest a batch now (admin)
+//   { action: "start", kind?, retry?, redo? }            -> harvest everything in the background (admin);
+//                                                           redo searches again models that already have a photo
+//   { action: "stop", kind? }                            -> stop the background job (admin)
+//   { action: "job", kind? }                             -> latest background job progress (anyone)
+//   { action: "tick", kind? }  (also GET ?action=tick)   -> restart a stalled background job (anyone)
+//   { action: "continue", job, token, step }             -> next background batch (internal, needs the job token)
+//   { action: "manual", kind?, id, imageUrl, pageUrl? }  -> store a photo the admin picked (admin)
+//   { action: "reject", kind?, id }                      -> hide a wrong photo (admin)
+//   { action: "list", kind?, status?, limit? }           -> recent rows for review (anyone)
+//
+// Goal: a real camera photo of the physical robot (like a used robot on a pallet in a
+// warehouse), not a CAD render. Search order per model:
+//   1. Used-robot dealers and machinery marketplaces ("<brand> <model> used robot")
+//   2. Anywhere on the web for the exact model: Google Custom Search (if GOOGLE_CSE_KEY + GOOGLE_CSE_CX
+//      are set), Bing images and DuckDuckGo images
+//   3. The manufacturer's own website, then Wikimedia Commons
+//   4. The model series (e.g. M-20iD for M-20iD/25) when the exact variant has no photo anywhere
+// Candidates from used-robot dealers, or naming the model, rank first.
+// Each accepted photo is checked with AI vision (LOVABLE_API_KEY) to be a real
+// photograph of that kind of equipment (renders are refused), resized (large + card thumbnail) and
+// stored in the public "robot-images" bucket at directory/<kind>/<id>-photo[-sm].jpg.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SITE_URL = (Deno.env.get("PUBLIC_SITE_URL") ?? "https://www.robotverse.in").replace(/\/$/, "");
+const BUCKET = "robot-images";
+const TABLE = "directory_robot_images";
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
+const service = () => createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+
+/** Official websites per brand, used to prefer and to find manufacturer photos. */
+const OEM_SITES: Record<string, string[]> = {
+  KUKA: ["kuka.com"], Fanuc: ["fanuc.eu", "fanucamerica.com", "fanuc.co.jp", "fanucindia.com"], ABB: ["abb.com"],
+  "Yaskawa Motoman": ["motoman.com", "yaskawa.eu.com", "yaskawa.com"], Kawasaki: ["kawasakirobotics.com", "kawasakirobot.com"],
+  Comau: ["comau.com"], Estun: ["estun.com", "estunrobotics.com"], Mitsubishi: ["mitsubishielectric.com"], Staubli: ["staubli.com"],
+  "Techman Robot": ["tm-robot.com"], Omron: ["omron.com", "ia.omron.com", "industrial.omron.eu"], "Hyundai Robotics": ["hyundai-robotics.com"],
+  Epson: ["epson.com", "epson.eu"], Brooks: ["brooks.com"], INOVANCE: ["inovance.eu", "inovance.com"], Nachi: ["nachi.com", "nachirobotics.com"],
+  Rokae: ["rokae.com"], Dobot: ["dobot-robots.com", "dobot.cc"], Denso: ["densorobotics.com", "denso-wave.com"], AUBO: ["aubo-cobot.com", "aubo-robotics.com"],
+  Efort: ["efort.com.cn", "efortrobot.com"], JAKA: ["jaka.com", "jakarobotics.com"], "Doosan Robotics": ["doosanrobotics.com"],
+  "Shibaura Machine": ["shibaura-machine.co.jp"], "OTC Daihen": ["otc-daihen.de", "daihen-usa.com"], Siasun: ["siasun.com"], Neura: ["neura-robotics.com"],
+  DUCO: ["ducorobots.com"], "Elite Robots": ["eliterobots.com"], "Universal Robots": ["universal-robots.com"], HIWIN: ["hiwin.com", "hiwin.tw"],
+  Panasonic: ["panasonic.com"], uFactory: ["ufactory.cc", "ufactory.us"], Kinova: ["kinovarobotics.com"], Flexiv: ["flexiv.com"],
+  Yamaha: ["yamaha-motor.com", "global.yamaha-motor.com"], CLOOS: ["cloos.de"], "Kassow Robots": ["kassowrobots.com"],
+  "Rainbow Robotics": ["rainbow-robotics.com"], Neuromeka: ["neuromeka.com"], FAIRINO: ["frtech.fr", "fairino.com"], Hanwha: ["hanwharobotics.com"],
+  "Delta Electronics": ["deltaww.com"], "Schneider Electric": ["se.com"], Adept: ["omron.com"], "Codian Robotics": ["codian-robotics.com"],
+};
+
+/** Used-robot dealers and machinery marketplaces: real photos of the physical robot. */
+const USED_DEALERS =
+  /exapro|eurobots|robots\.com|globalrobots|imssupply|klema|surplex|machineseeker|maschinensucher|machinio|kitmondo|robotsdoneright|robotworx|hgrinc|used-?robot|robot-?recovery|robotrecovery|bidspotter|troostwijk|resale|second-?hand|gebraucht|werktuigen|robotunits|industrial-?robots?\.(com|net|de)|robot-?direct|kuka-?used|fanuc-?used/i;
+
+type Item = { id: string; b: string; m: string; n: string; t?: string; c?: string };
+type Candidate = { img: string; page?: string; title?: string; source: string };
+
+/* ------------------------------------------------------------- utils */
+
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+const hostOf = (u?: string) => {
+  try {
+    return u ? new URL(u).hostname.replace(/^www\./, "") : "";
+  } catch {
+    return "";
+  }
+};
+const decodeEntities = (s: string) =>
+  s.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+const BAD_URL = /logo|icon|favicon|sprite|banner|avatar|placeholder|badge|flag|\.svg|\.gif|thumbnail_default|qr[-_]?code/i;
+
+async function get(url: string, ms = 12000, init: RequestInit = {}) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctl.signal, headers: { "User-Agent": UA, "Accept-Language": "en", ...(init.headers ?? {}) } });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/* ----------------------------------------------------------- sources */
+
+async function googleImages(q: string, site?: string): Promise<Candidate[]> {
+  const key = Deno.env.get("GOOGLE_CSE_KEY");
+  const cx = Deno.env.get("GOOGLE_CSE_CX");
+  if (!key || !cx) return [];
+  const restrict = site ? `&siteSearch=${encodeURIComponent(site)}&siteSearchFilter=i` : "";
+  const u = `https://www.googleapis.com/customsearch/v1?key=${key}&cx=${cx}&searchType=image&num=10&safe=active${restrict}&q=${encodeURIComponent(q)}`;
+  const r = await get(u).catch(() => null);
+  if (!r?.ok) return [];
+  const d = await r.json();
+  return (d.items ?? []).map((i: Record<string, any>) => ({ img: i.link, page: i.image?.contextLink, title: i.title, source: "google" }));
+}
+
+async function bingImages(q: string): Promise<Candidate[]> {
+  const u = `https://www.bing.com/images/search?q=${encodeURIComponent(q)}&form=HDRSC2&qft=+filterui:imagesize-large&first=1`;
+  const r = await get(u).catch(() => null);
+  if (!r?.ok) return [];
+  const html = await r.text();
+  const out: Candidate[] = [];
+  for (const m of html.matchAll(/class="iusc"[^>]*\sm="([^"]+)"/g)) {
+    try {
+      const meta = JSON.parse(decodeEntities(m[1]));
+      if (meta.murl) out.push({ img: meta.murl, page: meta.purl, title: meta.t, source: "bing" });
+    } catch {
+      /* skip */
+    }
+    if (out.length >= 15) break;
+  }
+  return out;
+}
+
+async function ddgImages(q: string): Promise<Candidate[]> {
+  // DuckDuckGo image results: a page token (vqd) first, then the JSON results.
+  const page = await get(`https://duckduckgo.com/?q=${encodeURIComponent(q)}&iax=images&ia=images`).catch(() => null);
+  if (!page?.ok) return [];
+  const vqd = (await page.text()).match(/vqd=["']?([\d-]+)/)?.[1];
+  if (!vqd) return [];
+  const r = await get(`https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(q)}&vqd=${vqd}&f=,,,,,&p=1`, 12000, {
+    headers: { Referer: "https://duckduckgo.com/", Accept: "application/json" },
+  }).catch(() => null);
+  if (!r?.ok) return [];
+  const d = await r.json().catch(() => ({}));
+  return (d.results ?? []).slice(0, 15).map((x: Record<string, string>) => ({ img: x.image, page: x.url, title: x.title, source: "duckduckgo" }));
+}
+
+async function wikimedia(q: string): Promise<Candidate[]> {
+  // Free-licence photos on Wikimedia Commons.
+  const u = `https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=8&gsrsearch=${encodeURIComponent(q)}&prop=imageinfo&iiprop=url|mime&iiurlwidth=1200&origin=*`;
+  const r = await get(u).catch(() => null);
+  if (!r?.ok) return [];
+  const d = await r.json().catch(() => ({}));
+  return Object.values((d.query?.pages ?? {}) as Record<string, any>)
+    .map((p) => ({ img: p.imageinfo?.[0]?.thumburl ?? p.imageinfo?.[0]?.url, page: p.imageinfo?.[0]?.descriptionurl, title: p.title, source: "wikimedia" }))
+    .filter((c) => c.img && /jpe?g|png|webp/i.test(c.img));
+}
+
+/** Product pages on the brand's official sites: og:image plus large product images that name the model. */
+async function oemPage(item: Item, model = item.m): Promise<Candidate[]> {
+  const sites = OEM_SITES[item.b] ?? [];
+  const out: Candidate[] = [];
+  const token = norm(model.split(/[\/\s]/)[0]);
+  for (const site of sites.slice(0, 2)) {
+    const r = await get(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(`site:${site} ${model}`)}`).catch(() => null);
+    if (!r?.ok) continue;
+    const html = await r.text();
+    const links = [...html.matchAll(/uddg=([^&"]+)/g)].map((m) => decodeURIComponent(m[1])).filter((l) => sites.some((s) => hostOf(l).endsWith(s)));
+    for (const page of [...new Set(links)].slice(0, 2)) {
+      const pr = await get(page).catch(() => null);
+      if (!pr?.ok) continue;
+      const ph = await pr.text();
+      const title = ph.match(/<title>([^<]*)/i)?.[1];
+      const og = ph.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)/i)?.[1] ?? ph.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)/i)?.[1];
+      if (og) out.push({ img: new URL(decodeEntities(og), page).toString(), page, title, source: "oem-page" });
+      for (const m of ph.matchAll(/<img[^>]+(?:data-src|src)=["']([^"']+\.(?:jpe?g|png|webp)[^"']*)["'][^>]*>/gi)) {
+        const src = decodeEntities(m[1]);
+        if (token.length >= 3 && norm(`${src} ${m[0]}`).includes(token)) {
+          try {
+            out.push({ img: new URL(src, page).toString(), page, title, source: "oem-page" });
+          } catch {
+            /* bad url */
+          }
+        }
+        if (out.length >= 8) break;
+      }
+    }
+    if (out.length) break;
+  }
+  return out;
+}
+
+/** Rank: manufacturer site first, then candidates naming the model; drop logos and icons. */
+function rank(item: Item, cands: Candidate[]) {
+  const sites = OEM_SITES[item.b] ?? [];
+  const model = norm(item.m);
+  const modelBase = norm(item.m.split(/[\/\s]/)[0]);
+  const seen = new Set<string>();
+  return cands
+    .filter((c) => c.img && /^https?:\/\//.test(c.img) && !BAD_URL.test(c.img) && !seen.has(c.img) && (seen.add(c.img), true))
+    .map((c) => {
+      const text = norm(`${c.title ?? ""} ${c.img} ${c.page ?? ""}`);
+      let score = 0;
+      // Real photos of the actual robot come mostly from used-robot dealers; maker sites often show renders.
+      if (USED_DEALERS.test(hostOf(c.page) + " " + hostOf(c.img))) score += 45;
+      if (sites.some((s) => hostOf(c.page).endsWith(s) || hostOf(c.img).endsWith(s))) score += 15;
+      if (text.includes(model)) score += 40;
+      else if (modelBase.length >= 3 && text.includes(modelBase)) score += 20;
+      if (text.includes(norm(item.b))) score += 10;
+      if (c.source === "oem-page") score += 15;
+      if (/ebay|aliexpress|alibaba|amazon|pinterest|youtube|facebook|instagram/.test(hostOf(c.page) + hostOf(c.img))) score -= 30;
+      return { ...c, score };
+    })
+    .filter((c) => c.score >= 20)
+    .sort((a, b) => b.score - a.score);
+}
+
+/* ------------------------------------------------------- verification */
+
+/** Set when the AI check answers 402/429 (no credits / rate limit): the run pauses without changing anything. */
+let aiDown = false;
+
+async function verify(item: Item, kind: string, bytes: Uint8Array, mime: string): Promise<{ ok: boolean; note: string; checked: boolean }> {
+  const key = Deno.env.get("LOVABLE_API_KEY");
+  if (!key) return { ok: true, note: "not verified (no AI key)", checked: false };
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  const dataUrl = `data:${mime};base64,${btoa(bin)}`;
+  const what = kind === "robots" ? `industrial robot "${item.n}" (${item.t ?? "robot"})` : kind === "tools" ? `robot end-of-arm tool "${item.n}" (${item.c ?? "tool"})` : `robot external axis / positioner "${item.n}"`;
+  const r = await get("https://ai.gateway.lovable.dev/v1/chat/completions", 25000, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      temperature: 0,
+      max_tokens: 200,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Is this a REAL CAMERA PHOTOGRAPH of a physical ${what} — for example a used robot photographed in a warehouse, workshop, factory or photo studio (standing on the floor or a pallet, possibly with its controller)? Answer ok=false if the picture has a watermark, a website address, a seller or dealer logo or name, a price, or any other text or graphics added on top of the photo (the maker's own badge painted on the robot is fine). Answer ok=false if it clearly shows a different brand or a clearly different model (e.g. an ABB robot when ${item.b} was asked for), and for CAD or 3D renders, computer-generated catalogue images, illustrations, drawings, collages of several images, screenshots, logos, documents, photos where the robot is tiny or hidden, and other kinds of machines. Reply ONLY JSON: {"ok": true|false, "note": "short reason"}`,
+            },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        },
+      ],
+    }),
+  }).catch(() => null);
+  if (r && (r.status === 402 || r.status === 429)) aiDown = true;
+  if (!r?.ok) return { ok: true, note: `not verified (AI ${r?.status ?? "unreachable"})`, checked: false };
+  try {
+    const d = await r.json();
+    const txt = String(d.choices?.[0]?.message?.content ?? "").replace(/```json|```/g, "");
+    const j = JSON.parse(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
+    return { ok: !!j.ok, note: String(j.note ?? "").slice(0, 200), checked: true };
+  } catch {
+    return { ok: true, note: "not verified (unreadable AI answer)", checked: false };
+  }
+}
+
+/* ----------------------------------------------------------- storing */
+
+async function download(url: string) {
+  const r = await get(url, 15000, { headers: { Accept: "image/avif,image/webp,image/*,*/*;q=0.8" } }).catch(() => null);
+  if (!r?.ok) return null;
+  const mime = (r.headers.get("content-type") ?? "").split(";")[0].trim();
+  if (!/^image\/(jpeg|jpg|png|webp)$/.test(mime)) return null;
+  const buf = new Uint8Array(await r.arrayBuffer());
+  if (buf.length < 12_000 || buf.length > 5_000_000) return null;
+  const d = dims(buf);
+  if (d && (d.w < 250 || d.h < 180)) return null; // too small to be a product photo
+  return { buf, mime };
+}
+
+/** Width and height from a JPEG/PNG/WebP header without decoding it (null when unknown). */
+function dims(b: Uint8Array): { w: number; h: number } | null {
+  if (b[0] === 0x89 && b[1] === 0x50) {
+    const v = new DataView(b.buffer, b.byteOffset);
+    return { w: v.getUint32(16), h: v.getUint32(20) };
+  }
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) return null;
+      const marker = b[i + 1];
+      const len = (b[i + 2] << 8) | b[i + 3];
+      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+        return { h: (b[i + 5] << 8) | b[i + 6], w: (b[i + 7] << 8) | b[i + 8] };
+      }
+      i += 2 + len;
+    }
+    return null;
+  }
+  if (b[8] === 0x57 && b[9] === 0x45 && b[12] === 0x56 && b[15] === 0x58) {
+    // WebP extended (VP8X): 24-bit width-1 and height-1
+    return { w: (b[24] | (b[25] << 8) | (b[26] << 16)) + 1, h: (b[27] | (b[28] << 8) | (b[29] << 16)) + 1 };
+  }
+  return null;
+}
+
+/**
+ * Large (≤ 1000 px) and card (≤ 420 px) JPEG copies, made by the free wsrv.nl image service so this
+ * function never decodes big photos itself (that ran it out of memory). Falls back to the original
+ * file when it is small enough to show as is.
+ */
+type Sized = { large: Uint8Array; small: Uint8Array; mime: string; ext: string };
+async function resize(srcUrl: string, file: { buf: Uint8Array; mime: string }): Promise<Sized | null> {
+  const via = async (w: number, q: number) => {
+    const u = `https://wsrv.nl/?url=${encodeURIComponent(srcUrl)}&w=${w}&h=${w}&fit=inside&we&output=jpg&q=${q}`;
+    const r = await get(u, 20000).catch(() => null);
+    if (!r?.ok || !(r.headers.get("content-type") ?? "").startsWith("image/")) return null;
+    const b = new Uint8Array(await r.arrayBuffer());
+    return b.length > 3000 ? b : null;
+  };
+  const [large, small] = await Promise.all([via(1000, 84), via(420, 80)]);
+  if (large && small) return { large, small, mime: "image/jpeg", ext: "jpg" };
+  if (file.buf.length > 1_500_000) return null;
+  const ext = file.mime.includes("png") ? "png" : file.mime.includes("webp") ? "webp" : "jpg";
+  return { large: file.buf, small: file.buf, mime: file.mime, ext };
+}
+
+async function store(sb: ReturnType<typeof service>, kind: string, id: string, sized: Sized) {
+  const base = `directory/${kind}/${id}-photo`;
+  const up = async (path: string, data: Uint8Array) => {
+    const { error } = await sb.storage.from(BUCKET).upload(path, data, { contentType: sized.mime, upsert: true, cacheControl: "31536000" });
+    if (error) throw error;
+    return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  };
+  const v = Date.now().toString(36);
+  const image_url = `${await up(`${base}.${sized.ext}`, sized.large)}?v=${v}`;
+  const thumb_url = `${await up(`${base}-sm.${sized.ext}`, sized.small)}?v=${v}`;
+  return { image_url, thumb_url, storage_path: `${base}.${sized.ext}`, bytes: sized.large.length };
+}
+
+/* ----------------------------------------------------------- harvest */
+
+/** Series name, e.g. "M-20iD/25" -> "M-20iD", "IRB 6700-150/3.20" -> "IRB 6700", "KR 210 R2700-2" -> "KR 210". */
+function family(model: string) {
+  const m = model.trim();
+  const byDash = m.match(/^([A-Za-z]{1,5}[\s-]?\d{2,5}[A-Za-z]{0,4})/)?.[1];
+  return byDash && byDash.length < m.length ? byDash : m.split(/[\/]/)[0].trim();
+}
+
+async function harvestOne(sb: ReturnType<typeof service>, kind: string, item: Item, deadline: number) {
+  const noun = kind === "robots" ? "robot" : kind === "tools" ? "gripper tool" : "positioner";
+  const base = { catalog_id: item.id, kind, brand: item.b, model: item.m, name: item.n, updated_at: new Date().toISOString() };
+  const notes: string[] = [];
+  const tried = new Set<string>();
+
+  const attempt = async (cands: Candidate[], label: string, familyOnly = false) => {
+    for (const c of cands.filter((c) => !tried.has(c.img)).slice(0, 4)) {
+      if (Date.now() > deadline) return null;
+      tried.add(c.img);
+      const file = await download(c.img);
+      if (!file) {
+        notes.push(`${label}: download failed (${hostOf(c.img)})`);
+        continue;
+      }
+      const sized = await resize(c.img, file);
+      if (!sized) {
+        notes.push(`${label}: could not resize (${hostOf(c.img)})`);
+        continue;
+      }
+      // The AI check looks at the small copy: same picture, a fraction of the memory.
+      let check = await verify(item, kind, sized.small, sized.mime);
+      if (!check.checked) check = await verify(item, kind, sized.small, sized.mime); // one retry
+      // Only photos the AI check actually passed are used (never an unchecked one).
+      if (!check.ok || !check.checked) {
+        notes.push(`${label}: vision rejected (${check.note})`);
+        continue;
+      }
+      const saved = await store(sb, kind, item.id, sized).catch((e) => {
+        notes.push(`store failed: ${e?.message ?? e}`);
+        return null;
+      });
+      if (!saved) continue;
+      return {
+        ...base, ...saved, status: "found", source: `${c.source}${familyOnly ? " (series photo)" : ""}`, source_image_url: c.img,
+        source_page_url: c.page ?? null, verified: check.checked, verify_note: `${label}: ${check.note}`,
+      };
+    }
+    return null;
+  };
+
+  const sites = OEM_SITES[item.b] ?? [];
+  const used = [`${item.b} ${item.m} used robot`, `"${item.m}" ${item.b} robot for sale`];
+  const exact = [`"${item.b}" "${item.m}"`, `${item.b} ${item.m} ${noun}`, `${item.m} industrial ${noun}`];
+  let row = null;
+
+  // Stage 1: real photos of this model at used-robot dealers and machinery marketplaces.
+  for (const q of used) {
+    if (Date.now() > deadline) break;
+    const [g, b, d] = await Promise.all([googleImages(q), bingImages(q), ddgImages(q)]);
+    row = await attempt(rank(item, [...g, ...b, ...d]), "used-robot photo");
+    if (row) return row;
+  }
+
+  // Stage 2: anywhere on the web, exact model.
+  for (const q of exact) {
+    if (Date.now() > deadline) break;
+    const [g, b, d] = await Promise.all([googleImages(q), bingImages(q), ddgImages(q)]);
+    row = await attempt(rank(item, [...g, ...b, ...d]), "web search");
+    if (row) return row;
+  }
+
+  // Stage 3: the manufacturer's own website and Wikimedia Commons.
+  if (Date.now() < deadline) {
+    const oemCands = rank(item, [...(sites.length ? await googleImages(`${item.m}`, sites[0]) : []), ...(await oemPage(item))]);
+    row = await attempt(oemCands, "manufacturer site");
+    if (row) return row;
+  }
+  if (Date.now() < deadline) {
+    row = await attempt(rank(item, await wikimedia(`${item.b} ${item.m}`)), "Wikimedia Commons");
+    if (row) return row;
+  }
+
+  // Stage 4: the model series, when this exact variant has no photo anywhere.
+  const fam = family(item.m);
+  if (fam && fam !== item.m && Date.now() < deadline) {
+    const famItem = { ...item, m: fam };
+    const q = `${item.b} ${fam} used ${noun}`;
+    const [g, b, d, o] = await Promise.all([googleImages(q), bingImages(q), ddgImages(q), oemPage(item, fam)]);
+    row = await attempt(rank(famItem, [...o, ...g, ...b, ...d]), `series ${fam}`, true);
+    if (row) return row;
+  }
+
+  return { ...base, status: tried.size ? "rejected" : "not_found", verify_note: notes.slice(0, 5).join(" | ") || "no candidate photos found in any source" };
+}
+
+async function catalogue(kind: string): Promise<Item[]> {
+  const r = await get(`${SITE_URL}/directory/${kind}.json`, 20000);
+  if (!r.ok) throw new Error(`Could not load ${kind} catalogue from ${SITE_URL}`);
+  return r.json();
+}
+
+async function isAdmin(req: Request) {
+  const auth = req.headers.get("Authorization") ?? "";
+  if (!auth.startsWith("Bearer ")) return false;
+  const userClient = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "", { global: { headers: { Authorization: auth } } });
+  const { data: u } = await userClient.auth.getUser();
+  if (!u?.user) return false;
+  const a = await userClient.rpc("is_admin_user");
+  if (!a.error && a.data === true) return true;
+  const b = await userClient.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
+  return !b.error && b.data === true;
+}
+
+/* ------------------------------------------------------- batches + jobs */
+
+const JOBS = "directory_harvest_jobs";
+const FN_URL = `${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/directory-photo-harvest`;
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
+const background = (p: Promise<unknown>) => {
+  const safe = p.catch((e) => console.error("directory-photo-harvest background", e));
+  if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(safe);
+};
+
+type BatchOpts = { limit?: unknown; retry?: unknown; ids?: unknown; since?: string };
+
+async function runBatch(sb: ReturnType<typeof service>, kind: string, opts: BatchOpts, deadline: number) {
+  const items = await catalogue(kind);
+  const done: { catalog_id: string; status: string; attempts: number; updated_at: string }[] = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data } = await sb.from(TABLE).select("catalog_id,status,attempts,updated_at").eq("kind", kind).order("catalog_id").range(from, from + 999);
+    done.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  const state = new Map(done.map((r) => [r.catalog_id, r]));
+  const limit = Math.max(1, Math.min(6, Number(opts.limit) || 3));
+  // Redo: every model not searched since the job began counts as new again (admin-picked photos are kept).
+  const stale = (s: { status: string; updated_at: string }) => !!opts.since && s.status !== "manual" && s.updated_at < opts.since;
+  const ids = Array.isArray(opts.ids) ? (opts.ids as string[]) : [];
+  const wanted = ids.length
+    ? items.filter((i) => ids.includes(i.id))
+    : items.filter((i) => {
+        const s = state.get(i.id);
+        if (!s || stale(s)) return true;
+        return opts.retry ? ["not_found", "rejected", "error"].includes(s.status) && (s.attempts ?? 0) < 3 : false;
+      });
+  const batch = wanted.slice(0, limit);
+  const results: { id: string; name: string; status: string; image: string | null; note: string }[] = [];
+  // One at a time (less memory). Each model is marked as tried before its search starts, so a model
+  // that crashes the function is not picked first again on the next batch.
+  aiDown = false;
+  for (let i = 0; i < batch.length && Date.now() < deadline - 20_000 && !aiDown; i += 1) {
+    const item = batch[i];
+    const prior = state.get(item.id);
+    const tries = ((prior?.attempts as number) ?? 0) + 1;
+    const now = new Date().toISOString();
+    if (prior && (prior.status === "found" || prior.status === "manual")) {
+      await sb.from(TABLE).update({ updated_at: now }).eq("catalog_id", item.id);
+    } else {
+      await sb.from(TABLE).upsert({
+        catalog_id: item.id, kind, brand: item.b, model: item.m, name: item.n, status: "error",
+        verify_note: "search did not finish (will retry)", attempts: tries, updated_at: now,
+      });
+    }
+    const part = await Promise.all(
+      [item].map((item) =>
+        harvestOne(sb, kind, item, deadline).catch((e) => ({
+          catalog_id: item.id, kind, brand: item.b, model: item.m, name: item.n, status: "error",
+          verify_note: String(e?.message ?? e).slice(0, 300), updated_at: new Date().toISOString(),
+        })),
+      ),
+    );
+    // The AI check was unavailable during this search: leave the saved row exactly as it was.
+    if (aiDown) break;
+    for (const row of part) {
+      const prev = state.get(row.catalog_id);
+      const attempts = opts.since && prev && stale(prev) ? 1 : ((prev?.attempts as number) ?? 0) + 1;
+      if (prev && stale(prev) && prev.status === "found" && row.status !== "found") {
+        // Redo found nothing new: keep the earlier photo only if it passes today's check (no watermark or logo).
+        const keep = await recheckStored(sb, kind, item);
+        if (keep) {
+          await sb.from(TABLE).update({ updated_at: new Date().toISOString(), attempts }).eq("catalog_id", row.catalog_id);
+          results.push({ id: row.catalog_id, name: row.name, status: "found", image: null, note: "kept earlier photo" });
+          continue;
+        }
+      }
+      await sb.from(TABLE).upsert({ ...row, attempts });
+      results.push({ id: row.catalog_id, name: row.name, status: row.status, image: (row as any).thumb_url ?? null, note: (row as any).verify_note ?? "" });
+    }
+  }
+  return { processed: results.length, remaining: Math.max(0, wanted.length - results.length), results };
+}
+
+/** Checks the photo already stored for a model against today's rules. */
+async function recheckStored(sb: ReturnType<typeof service>, kind: string, item: Item) {
+  const { data } = await sb.from(TABLE).select("thumb_url").eq("catalog_id", item.id).maybeSingle();
+  if (!data?.thumb_url) return false;
+  const r = await get(data.thumb_url, 15000).catch(() => null);
+  if (!r?.ok) return false;
+  const buf = new Uint8Array(await r.arrayBuffer());
+  const check = await verify(item, kind, buf, r.headers.get("content-type") ?? "image/jpeg");
+  return check.ok && check.checked;
+}
+
+/** Starts the next link of a background job (returns as soon as that link has accepted it). */
+async function kick(job: string, token: string, step: number) {
+  const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const r = await fetch(FN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: anon, Authorization: `Bearer ${anon}` },
+    body: JSON.stringify({ action: "continue", job, token, step }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  await r.body?.cancel();
+  if (!r.ok) throw new Error(`next batch did not start (${r.status})`);
+}
+
+async function continueJob(sb: ReturnType<typeof service>, job: any, step: number) {
+  let status = "running";
+  let retry = job.retry as boolean;
+  let note = "";
+  let processed = 0;
+  let found = 0;
+  try {
+    const res = await runBatch(sb, job.kind, { limit: 4, retry, since: job.redo ? job.created_at : undefined }, Date.now() + 90_000);
+    processed = res.processed;
+    found = res.results.filter((r) => r.status === "found").length;
+    note = res.results.map((r) => `${r.name}: ${r.status}`).join(" · ").slice(0, 500);
+    if (aiDown) {
+      // No AI credits / rate limited: wait; the every-minute timer tries again, nothing is changed meanwhile.
+      status = "error";
+      note = "paused: AI check unavailable (402/429) — resumes automatically when it answers again";
+    } else if (res.remaining === 0) {
+      // First pass finished: one more pass over the models without a photo, then stop.
+      if (!retry) retry = true;
+      else status = "done";
+    } else if (res.processed === 0) {
+      note = "no progress in this batch";
+    }
+  } catch (e) {
+    note = `batch failed: ${e instanceof Error ? e.message : String(e)}`.slice(0, 500);
+  }
+  const { data: cur } = await sb.from(JOBS).select("status, processed, found").eq("id", job.id).single();
+  if (cur?.status !== "running") status = cur?.status ?? "stopped";
+  await sb.from(JOBS).update({
+    status, retry, last_note: note, processed: (cur?.processed ?? 0) + processed, found: (cur?.found ?? 0) + found,
+    updated_at: new Date().toISOString(),
+  }).eq("id", job.id);
+  if (status !== "running") return;
+  try {
+    await kick(job.id, job.token, step);
+  } catch (e) {
+    // The every-minute timer restarts it; keep the job running.
+    await sb.from(JOBS).update({ last_note: `next batch did not start: ${String(e instanceof Error ? e.message : e).slice(0, 200)}` }).eq("id", job.id);
+  }
+}
+
+/* ------------------------------------------------------------ server */
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  try {
+    const body = req.method === "GET" ? Object.fromEntries(new URL(req.url).searchParams) : await req.json().catch(() => ({}));
+    const action = String(body.action ?? "status");
+    const kind = ["robots", "tools", "axes"].includes(body.kind) ? body.kind : "robots";
+    const sb = service();
+
+    if (action === "status") {
+      const items = await catalogue(kind);
+      // The API returns at most 1000 rows per request, so count page by page.
+      const data: { status: string }[] = [];
+      for (let from = 0; from < 20000; from += 1000) {
+        const { data: page } = await sb.from(TABLE).select("status").eq("kind", kind).order("catalog_id").range(from, from + 999);
+        data.push(...(page ?? []));
+        if (!page || page.length < 1000) break;
+      }
+      const counts: Record<string, number> = { total: items.length, pending: items.length };
+      for (const r of data) {
+        counts[r.status] = (counts[r.status] ?? 0) + 1;
+        counts.pending -= 1;
+      }
+      return json(counts);
+    }
+    if (action === "list") {
+      let q = sb.from(TABLE).select("*").eq("kind", kind).order("updated_at", { ascending: false }).limit(Math.min(200, Number(body.limit) || 50));
+      if (body.status) q = q.eq("status", String(body.status));
+      const { data, error } = await q;
+      if (error) throw error;
+      return json({ rows: data });
+    }
+
+    if (action === "job") {
+      const { data } = await sb.from(JOBS).select("id, kind, status, retry, redo, step, processed, found, last_note, created_at, updated_at")
+        .eq("kind", kind).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      return json({ job: data ?? null });
+    }
+
+    if (action === "tick") {
+      // Photos hidden only because the AI check was out of credits (402) come back.
+      await sb.from(TABLE).update({ status: "found", verify_note: "restored: hidden while the AI check was unavailable" })
+        .eq("status", "rejected").not("image_url", "is", null).like("verify_note", "%AI 402%");
+      // Watchdog: if a running job has gone quiet (a batch was cut off), start its next batch again.
+      // A job that hit a hiccup ("error") is picked up again too; only "stopped" and "done" stay put.
+      const { data: job } = await sb.from(JOBS).select("*").eq("kind", kind).in("status", ["running", "error"])
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!job) return json({ ok: true, running: false });
+      const quiet = Date.now() - new Date(job.updated_at).getTime();
+      if (quiet < 2 * 60_000) return json({ ok: true, running: true, restarted: false });
+      await sb.from(JOBS).update({ status: "running", updated_at: new Date().toISOString(), last_note: "restarted after a stalled batch" }).eq("id", job.id);
+      await kick(job.id, job.token, job.step);
+      return json({ ok: true, running: true, restarted: true });
+    }
+
+    if (action === "continue") {
+      // One link of the background chain: answer at once, work in the background, then call the next link.
+      const { data: job } = await sb.from(JOBS).select("*").eq("id", String(body.job ?? "")).maybeSingle();
+      if (!job || job.token !== body.token) return json({ error: "Unknown job" }, 403);
+      if (job.status !== "running" || job.step !== Number(body.step)) return json({ ok: true, skipped: true });
+      const next = job.step + 1;
+      await sb.from(JOBS).update({ step: next, updated_at: new Date().toISOString() }).eq("id", job.id);
+      background(continueJob(sb, job, next));
+      return json({ ok: true, step: next }, 202);
+    }
+
+    if (!(await isAdmin(req))) return json({ error: "Admins only." }, 403);
+
+    if (action === "run") {
+      return json(await runBatch(sb, kind, { limit: body.limit, retry: body.retry, ids: body.ids }, Date.now() + 110_000));
+    }
+
+    if (action === "start") {
+      await sb.from(JOBS).update({ status: "stopped", updated_at: new Date().toISOString() }).eq("kind", kind).eq("status", "running");
+      const { data: job, error } = await sb.from(JOBS).insert({ kind, retry: !!body.retry, redo: !!body.redo }).select("id, token, step").single();
+      if (error) throw error;
+      await kick(job.id, job.token, job.step);
+      return json({ ok: true, job: job.id });
+    }
+
+    if (action === "stop") {
+      await sb.from(JOBS).update({ status: "stopped", updated_at: new Date().toISOString() }).eq("kind", kind).eq("status", "running");
+      return json({ ok: true });
+    }
+
+    if (action === "manual") {
+      const items = await catalogue(kind);
+      const item = items.find((i) => i.id === body.id);
+      if (!item) return json({ error: "Unknown catalogue id" }, 400);
+      const file = await download(String(body.imageUrl ?? ""));
+      if (!file) return json({ error: "Could not download that image (JPG/PNG/WebP, 12 KB–5 MB)." }, 400);
+      const sized = await resize(String(body.imageUrl), file);
+      if (!sized) return json({ error: "Could not resize that image; try a smaller one." }, 400);
+      const saved = await store(sb, kind, item.id, sized);
+      if (!saved) return json({ error: "Image too small to use." }, 400);
+      const row = {
+        catalog_id: item.id, kind, brand: item.b, model: item.m, name: item.n, ...saved, status: "manual", source: "manual",
+        source_image_url: body.imageUrl, source_page_url: body.pageUrl ?? null, verified: true, verify_note: "chosen by admin", updated_at: new Date().toISOString(),
+      };
+      await sb.from(TABLE).upsert(row);
+      return json({ ok: true, row });
+    }
+
+    if (action === "reject") {
+      await sb.from(TABLE).update({ status: "rejected", verify_note: "hidden by admin", updated_at: new Date().toISOString() }).eq("catalog_id", String(body.id));
+      return json({ ok: true });
+    }
+
+    return json({ error: "Unknown action" }, 400);
+  } catch (e) {
+    console.error("directory-photo-harvest", e);
+    return json({ error: e instanceof Error ? e.message : String(e) }, 500);
+  }
+});

@@ -2375,6 +2375,210 @@ export type Database = {
         }
         Relationships: []
       }
+      directory_harvest_jobs: {
+        Row: {
+          created_at: string
+          found: number
+          id: string
+          kind: string
+          last_note: string | null
+          processed: number
+          redo: boolean
+          retry: boolean
+          status: string
+          step: number
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          found?: number
+          id?: string
+          kind?: string
+          last_note?: string | null
+          processed?: number
+          redo?: boolean
+          retry?: boolean
+          status?: string
+          step?: number
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          found?: number
+          id?: string
+          kind?: string
+          last_note?: string | null
+          processed?: number
+          redo?: boolean
+          retry?: boolean
+          status?: string
+          step?: number
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      directory_parts: {
+        Row: {
+          applications: string[]
+          brand: string
+          category: string
+          compatible_with: string[]
+          component_type: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          model: string
+          name: string
+          source_url: string | null
+          specs: Json
+          subcategory: string
+          thumb_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          applications?: string[]
+          brand: string
+          category: string
+          compatible_with?: string[]
+          component_type: string
+          created_at?: string
+          description?: string | null
+          id: string
+          image_url?: string | null
+          model: string
+          name: string
+          source_url?: string | null
+          specs?: Json
+          subcategory: string
+          thumb_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applications?: string[]
+          brand?: string
+          category?: string
+          compatible_with?: string[]
+          component_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          model?: string
+          name?: string
+          source_url?: string | null
+          specs?: Json
+          subcategory?: string
+          thumb_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      directory_parts_seeds: {
+        Row: {
+          attempts: number
+          brand: string
+          category: string
+          component_type: string
+          found: number
+          id: string
+          note: string | null
+          status: string
+          subcategory: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          brand: string
+          category: string
+          component_type: string
+          found?: number
+          id: string
+          note?: string | null
+          status?: string
+          subcategory: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          brand?: string
+          category?: string
+          component_type?: string
+          found?: number
+          id?: string
+          note?: string | null
+          status?: string
+          subcategory?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      directory_robot_images: {
+        Row: {
+          attempts: number
+          brand: string | null
+          bytes: number | null
+          catalog_id: string
+          created_at: string
+          image_url: string | null
+          kind: string
+          model: string | null
+          name: string | null
+          source: string | null
+          source_image_url: string | null
+          source_page_url: string | null
+          status: string
+          storage_path: string | null
+          thumb_url: string | null
+          updated_at: string
+          verified: boolean
+          verify_note: string | null
+        }
+        Insert: {
+          attempts?: number
+          brand?: string | null
+          bytes?: number | null
+          catalog_id: string
+          created_at?: string
+          image_url?: string | null
+          kind?: string
+          model?: string | null
+          name?: string | null
+          source?: string | null
+          source_image_url?: string | null
+          source_page_url?: string | null
+          status?: string
+          storage_path?: string | null
+          thumb_url?: string | null
+          updated_at?: string
+          verified?: boolean
+          verify_note?: string | null
+        }
+        Update: {
+          attempts?: number
+          brand?: string | null
+          bytes?: number | null
+          catalog_id?: string
+          created_at?: string
+          image_url?: string | null
+          kind?: string
+          model?: string | null
+          name?: string | null
+          source?: string | null
+          source_image_url?: string | null
+          source_page_url?: string | null
+          status?: string
+          storage_path?: string | null
+          thumb_url?: string | null
+          updated_at?: string
+          verified?: boolean
+          verify_note?: string | null
+        }
+        Relationships: []
+      }
       document_uploads: {
         Row: {
           document_type: string

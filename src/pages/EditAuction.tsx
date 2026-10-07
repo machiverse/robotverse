@@ -64,7 +64,7 @@ const EditAuction: React.FC = () => {
     });
   }, [auction]);
 
-  if (!user) { navigate('/auth'); return null; }
+  if (!user) { navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true }); return null; }
   if (isLoading || loadingAdmin || !form) {
     return (
       <div className="min-h-screen bg-background">

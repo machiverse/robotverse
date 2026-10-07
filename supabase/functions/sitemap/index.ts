@@ -11,6 +11,7 @@
 // `prerender` function: /functions/v1/prerender?path=<url-encoded path>
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { APPLICATION_GUIDES, directorySlug, type DirectoryItem } from "../_shared/seoText.ts";
 
 const SITE_URL = (Deno.env.get("PUBLIC_SITE_URL") ?? "https://www.robotverse.in").replace(/\/$/, "");
 const SITEMAP_URL = `${SITE_URL}/sitemap.xml`;
@@ -180,6 +181,12 @@ async function buildPages(supabase: Client): Promise<string> {
     "/pricing",
     "/automation-studio",
     "/automation-studio/3d",
+    "/automation-studio/build",
+    "/automation-studio/playbook",
+    "/robobook/news",
+    "/about",
+    // Robot application guides (content-rich even when few listings match)
+    ...APPLICATION_GUIDES.map((g) => `/robots/application/${g.slug}`),
     "/directory",
     "/auctions",
     "/robot-talent",
@@ -193,9 +200,11 @@ async function buildPages(supabase: Client): Promise<string> {
   ];
 
   // Live/upcoming auctions, open jobs and seller pages with >= 1 active robot.
-  const [{ data: auctions }, { data: jobs }] = await Promise.all([
+  const [{ data: auctions }, { data: jobs }, { data: loans }, { data: shipping }] = await Promise.all([
     supabase.from("auctions").select("id, seller_id, updated_at, created_at, status").in("status", ["live", "upcoming"]),
     supabase.from("talent_jobs").select("id, employer_id, updated_at, created_at").eq("status", "open"),
+    supabase.from("loan_products").select("id, updated_at, created_at").eq("is_active", true),
+    supabase.from("logistics_services").select("id, updated_at, created_at").eq("is_active", true),
   ]);
   const sup = new Set(supUsers);
   const dynamicTags = [
@@ -205,6 +214,8 @@ async function buildPages(supabase: Client): Promise<string> {
     ...((jobs ?? []) as any[])
       .filter((j) => !sup.has(j.employer_id))
       .map((j) => urlTag(`/robot-talent/jobs/${j.id}`, isoDay(j.updated_at ?? j.created_at))),
+    ...((loans ?? []) as any[]).map((l) => urlTag(`/financing/${l.id}`, isoDay(l.updated_at ?? l.created_at))),
+    ...((shipping ?? []) as any[]).map((g) => urlTag(`/logistics/${g.id}`, isoDay(g.updated_at ?? g.created_at))),
     ...Array.from(new Set(robots.map((r: any) => r.seller_id).filter(Boolean))).map((id) =>
       urlTag(`/seller/${id}/robots`, STATIC_LASTMOD)
     ),
@@ -373,8 +384,19 @@ async function buildNews(supabase: Client): Promise<string> {
 
 const hasUrls = (xml: string) => xml.includes("<loc>");
 
+/** Every robot, tool and external-axis model page in the Directory (from the catalogue files the site serves). */
+async function buildModels(): Promise<string> {
+  const base = Deno.env.get("DIRECTORY_BASE_URL") ?? SITE_URL;
+  const files = [["robots", "robot"], ["tools", "tool"], ["axes", "axis"]] as const;
+  const lists = await Promise.all(
+    files.map(([f]) => fetch(`${base}/directory/${f}.json`).then((r) => (r.ok ? (r.json() as Promise<DirectoryItem[]>) : [])).catch(() => [] as DirectoryItem[])),
+  );
+  const entries = files.flatMap(([, type], i) => lists[i].map((it) => urlTag(`/directory/${type}/${directorySlug(it.n)}`, STATIC_LASTMOD)));
+  return urlset(entries);
+}
+
 async function buildIndex(supabase: Client): Promise<string> {
-  const children = ["pages", "robots", "parts", "blogs"];
+  const children = ["pages", "robots", "parts", "blogs", "models"];
   // images / news are only advertised when they actually contain URLs.
   const optional = await Promise.all([
     buildImages(supabase).then((xml) => (hasUrls(xml) ? "images" : null)).catch(() => null),
@@ -411,6 +433,7 @@ Deno.serve(async (req) => {
       case "blogs": xml = await buildBlogs(supabase); break;
       case "images": xml = await buildImages(supabase); break;
       case "news": xml = await buildNews(supabase); break;
+      case "models": xml = await buildModels(); break;
       case "index":
       default: xml = await buildIndex(supabase); break;
     }

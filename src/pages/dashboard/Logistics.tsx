@@ -6,6 +6,8 @@ import { Truck, Plus, MapPin, MoreHorizontal, Package, Clock } from "lucide-reac
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import LogisticsServiceForm from "@/components/forms/LogisticsServiceForm";
 
 const Logistics = () => {
   const { user } = useAuth();
@@ -18,6 +20,7 @@ const Logistics = () => {
     totalRevenue: 0
   });
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -107,7 +110,7 @@ const Logistics = () => {
             Manage shipments and logistics services
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Service
         </Button>
@@ -308,6 +311,20 @@ const Logistics = () => {
           )}
         </CardContent>
       </Card>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Logistics Service</DialogTitle>
+          </DialogHeader>
+          <LogisticsServiceForm
+            onSuccess={() => {
+              setShowForm(false);
+              fetchLogisticsData();
+            }}
+            onCancel={() => setShowForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

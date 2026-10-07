@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, BookOpen, Bot, CheckCircle2, FileText, Info, Pause, Play, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
+import { AlertTriangle, BookOpen, Bot, CheckCircle2, FileText, Info, Minus, Pause, Play, Plus, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/utils/processAnalyzer";
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation } from "./robotSim.js";
-import { PROCESS_PROFILES, type ProcessKind } from "./processProfiles";
+import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, recommendRobots, STRATEGIES, type DirectoryRobot, type LinePlan, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, inrRange } from "./solutionCost";
 
@@ -18,6 +19,20 @@ import SolutionReport from "./SolutionReport";
 import SkillsLibrary from "./SkillsLibrary";
 import MediaAnalyzer from "./MediaAnalyzer";
 import type { MediaAnalysis } from "./mediaAnalysis";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AiSolutionPanel from "./AiSolutionPanel";
+import EquipmentPicker, { Thumb, type Choice } from "./EquipmentPicker";
+import RobotConfigurator from "./RobotConfigurator";
+import ProcessBuilder from "./ProcessBuilder";
+import { imageFunctionUrl, storedImageUrl } from "@/components/directory/directoryTypes";
+import type { AiStation } from "./aiSolution";
+import { requestSolution, solutionProcesses, type AiSolution } from "./aiSolution";
+import { engineSolution } from "./solutionEngine";
+
+// Construction 3D concrete printing is a whole system (printer, material plant, PLC, HMI),
+// not a robot station, so it opens its own simulator.
+const ConstructionPrintStudio = lazy(() => import("./concrete/ConstructionPrintStudio"));
+const CONCRETE_PRINTING = "Construction 3D Concrete Printing";
 
 type Step = { action: string; station: string; label: string; auto?: boolean };
 type SimState = {
@@ -73,6 +88,10 @@ const VIEWS: [string, string][] = [
 
 interface Props {
   initialProcess?: string;
+  /** Same live line shown as a factory plan ("layout") or with the material path ("flow"). */
+  overlay?: "none" | "layout" | "flow";
+  /** Camera to start from: iso, front, top or side. */
+  initialView?: string;
   /** Shown in the toolbar, e.g. the user's process name */
   title?: string;
   subtitle?: string;
@@ -99,6 +118,8 @@ const Panel = ({ title, children, className }: { title: string; children: React.
 
 export default function AutomationStudio3D({
   initialProcess,
+  overlay = "none",
+  initialView = "iso",
   title = "Robot Cell Simulator",
   subtitle = "Describe any process and watch a 6-axis robot cell run it in 3D",
   variant = "page",
@@ -114,7 +135,7 @@ export default function AutomationStudio3D({
   const [steps, setSteps] = useState<Step[]>([]);
   const [notes, setNotes] = useState<string[]>([]);
   const [size, setSize] = useState("medium");
-  const [view, setView] = useState("iso");
+  const [view, setView] = useState(initialView);
   const [speed, setSpeed] = useState(1);
   const [state, setState] = useState<SimState | null>(null);
   const [unreachable, setUnreachable] = useState<string[]>([]);
@@ -130,6 +151,148 @@ export default function AutomationStudio3D({
   const [allTemplates, setAllTemplates] = useState(false);
   const [reference, setReference] = useState<string | undefined>(referenceImage);
   const [media, setMedia] = useState<MediaAnalysis | null>(mediaAnalysis ?? null);
+  const [special, setSpecial] = useState(false);
+  // Solution for the current brief: built-in engine instantly, AI engineer refines it.
+  const [solutionOpen, setSolutionOpen] = useState(false);
+  // Equipment the user chose per solution station; shown on the matching robot cell in 3D.
+  const [equipment, setEquipment] = useState<{ brief: string; stations: string[]; choices: Record<number, Choice> } | null>(null);
+  // Robot / tool the user picked directly for a robot cell (from the robot list); wins over the station choices.
+  // Keyed by the robot's first task ("task:<name>") so a pick stays on its job when the line is re-split.
+  const [cellPicks, setCellPicks] = useState<Record<string, Choice>>({});
+  // Robots the user asked for (null = let the planner decide from the solution option).
+  const [robotCount, setRobotCount] = useState<number | null>(null);
+  const [pickFor, setPickFor] = useState<number | null>(null);
+  const [inputMode, setInputMode] = useState<"blocks" | "words">("blocks");
+  const [ai, setAi] = useState<{ brief: string; solution: AiSolution | null; loading: boolean; error: string | null }>({
+    brief: "", solution: null, loading: false, error: null,
+  });
+  const genericLine = useRef(false);
+  const engine = useMemo(() => (description && description.length >= 8 ? engineSolution(description) : null), [description]);
+  const runAi = (brief: string) => {
+    setAi({ brief, solution: null, loading: true, error: null });
+    requestSolution(brief).then(
+      (solution) => {
+        setAi((cur) => (cur.brief === brief ? { brief, solution, loading: false, error: null } : cur));
+        // The keywords found nothing: build the line the AI engineer designed instead of the generic cell.
+        if (genericLine.current) {
+          const procs = solutionProcesses(solution);
+          if (procs.length) {
+            genericLine.current = false;
+            runLine(procs);
+          }
+        }
+      },
+      (e: Error) => setAi((cur) => (cur.brief === brief ? { brief, solution: null, loading: false, error: e.message } : cur)),
+    );
+  };
+  // The line task each solution station stands for: same name, else the same kind of work, else its position.
+  const stationTasks = useMemo(() => {
+    // Choices made for another brief never land on this line.
+    if (!equipment || !lineInput || equipment.brief !== (description ?? "")) return [] as (string | null)[];
+    const used = new Set<string>();
+    return equipment.stations.map((name, i) => {
+      const lower = name.toLowerCase();
+      const kind = processKind({ name });
+      const hit =
+        lineInput.find((t) => !used.has(t.name) && t.name.toLowerCase() === lower) ??
+        lineInput.find((t) => !used.has(t.name) && processKind(t) === kind) ??
+        (equipment.stations.length === lineInput.length ? lineInput[i] : undefined);
+      if (!hit) return null;
+      used.add(hit.name);
+      return hit.name;
+    });
+  }, [equipment, lineInput, description]);
+  // Every station the user gave its own robot starts a robot cell of its own.
+  const splitBefore = useMemo(
+    () => stationTasks.filter((t, i): t is string => !!t && !!equipment?.choices[i]?.robot),
+    [stationTasks, equipment],
+  );
+  const cellOf = (p: LinePlan, task: string) => p.robots.findIndex((r) => r.tasks.some((t) => t.name === task));
+  const pickKey = (r: LinePlan["robots"][number]) => `task:${r.tasks[0]?.name ?? ""}`;
+  // What goes on each robot cell: the station choices, then the robot built in the configurator (wins).
+  const perCell = useMemo(() => {
+    const map = new Map<number, Choice>();
+    if (!plan) return map;
+    equipment?.stations.forEach((_, i) => {
+      const c = equipment!.choices[i];
+      const task = stationTasks[i];
+      if ((!c?.robot && !c?.tool) || !task) return;
+      const idx = cellOf(plan, task);
+      if (idx < 0) return;
+      const prev = map.get(idx) ?? {};
+      map.set(idx, { robot: prev.robot ?? c.robot, tool: prev.tool ?? c.tool });
+    });
+    plan.robots.forEach((r, idx) => {
+      const c = cellPicks[pickKey(r)];
+      // The configurator holds the whole build for this robot.
+      if (c && Object.values(c).some(Boolean)) map.set(idx, { ...(map.get(idx) ?? {}), ...c });
+    });
+    return map;
+  }, [equipment, plan, cellPicks, stationTasks]);
+
+  useEffect(() => {
+    const sim = simRef.current;
+    if (!sim || !plan) return;
+    plan.robots.forEach((r, i) => {
+      const eq = perCell.get(i);
+      sim.setEquipment(
+        i,
+        eq
+          ? {
+              robot: eq.robot
+                ? { name: eq.robot.name, brand: eq.robot.brand, reachMm: eq.robot.reach, payloadKg: eq.robot.payload, collaborative: r.collaborative || /cobot|collaborative/i.test(`${eq.robot.type} ${eq.robot.name}`) }
+                : undefined,
+              eoat: eq.tool ? { name: `${eq.tool.name} ${eq.tool.type ?? ""}` } : undefined,
+              accessories: [eq.changer && "changer", eq.sensor && "sensor", eq.camera && "camera"].filter(Boolean) as ("changer" | "sensor" | "camera")[],
+            }
+          : null,
+      );
+    });
+    setUnreachable(sim.checkReach() || []);
+  }, [perCell, plan]);
+
+  // Per-cell picks are saved per brief too.
+  const cellKey = "rv-studio-cells:" + (description ?? "").slice(0, 200);
+  useEffect(() => {
+    try {
+      setCellPicks(JSON.parse(localStorage.getItem(cellKey) || "{}"));
+    } catch {
+      setCellPicks({});
+    }
+  }, [cellKey]);
+  const setCellPick = (key: string, c: Choice) =>
+    setCellPicks((cur) => {
+      const next = { ...cur, [key]: c };
+      try {
+        localStorage.setItem(cellKey, JSON.stringify(next));
+      } catch {
+        /* private mode */
+      }
+      return next;
+    });
+
+  // Restore choices saved for this brief (the picker stores them per brief) without opening the dialog.
+  useEffect(() => {
+    if (!engine || !description) return setEquipment(null);
+    try {
+      const saved = JSON.parse(localStorage.getItem("rv-studio-equipment:" + description.slice(0, 200)) || "null");
+      // Choices belong to one brief: a new brief starts clean unless it has its own saved choices.
+      setEquipment(saved && typeof saved === "object" ? { brief: description, stations: engine.stations.map((s) => s.skill || s.name), choices: saved } : null);
+    } catch {
+      setEquipment(null);
+    }
+  }, [engine, description]);
+
+  useEffect(() => {
+    if (description && description.length >= 8 && ai.brief !== description) runAi(description);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [description]);
+
+  function openSpecial(desc?: string) {
+    simRef.current?.pause();
+    if (desc) setDescription(desc);
+    setSpecial(true);
+  }
 
   useEffect(() => {
     simRef.current?.setReference(reference ?? null, "Your reference: manual process today");
@@ -148,6 +311,7 @@ export default function AutomationStudio3D({
     const sim = createSimulation({
       THREE,
       OrbitControls,
+      RoomEnvironment,
       container: stageRef.current,
       onUpdate: (s: SimState) => setState(s),
     });
@@ -155,30 +319,56 @@ export default function AutomationStudio3D({
     if (reference) sim.setReference(reference, "Your reference: manual process today");
     if (processes?.length) runLine(processes);
     else build(text);
+    sim.setOverlay(overlay);
+    if (initialView !== "iso") sim.setView(initialView);
     return () => sim.dispose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function runLine(input: LineInput, planNotes: string[] = [], option: Strategy = strategy) {
+    if (input.some((p) => p.name === CONCRETE_PRINTING)) return openSpecial();
     setLineInput(input);
+    setRobotCount(null);
     runPlan(planLine(input, option), planNotes);
   }
 
   function chooseOption(option: Strategy) {
     setStrategy(option);
-    if (lineInput) runPlan(planLine(lineInput, option), notes);
+    setRobotCount(null);
+    if (lineInput) runPlan(planLine(lineInput, option, { splitBefore }), notes);
   }
 
-  function runPlan(p: LinePlan, planNotes: string[] = []) {
+  function chooseRobotCount(n: number) {
+    if (!lineInput) return;
+    setRobotCount(n);
+    runPlan(planLine(lineInput, strategy, { splitBefore, robots: n }), notes);
+  }
+
+  // A robot chosen for a station that shares a cell with another robot: give it a cell of its own.
+  // Runs when the choices or the line change, not on every re-plan, so a robot count the user sets later is kept.
+  useEffect(() => {
+    if (!plan || !lineInput || !splitBefore.length) return;
+    const clash = splitBefore.some((t) => {
+      const i = cellOf(plan, t);
+      return i >= 0 && plan.robots[i].tasks[0]?.name !== t;
+    });
+    if (!clash) return;
+    setRobotCount(null);
+    runPlan(planLine(lineInput, strategy, { splitBefore }), notes, focus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [splitBefore.join("|"), lineInput]);
+
+  function runPlan(p: LinePlan, planNotes: string[] = [], keepFocus = 0) {
+    const f = Math.min(keepFocus, p.robots.length - 1);
     setPlan(p);
-    setFocus(0);
+    setFocus(f);
     setAllTemplates(false);
-    setSteps(p.robots[0]?.steps || []);
+    setSteps(p.robots[f]?.steps || []);
     setNotes(planNotes);
     simRef.current?.setPlan(p.sim);
     // Industrial robots work behind a fence; a cobot-only line does not need one.
     simRef.current?.setFencing(p.robots.map((r) => !r.collaborative));
-    simRef.current?.setFocus(0);
+    simRef.current?.setFocus(f);
     simRef.current?.play();
     setUnreachable(simRef.current?.checkReach() || []);
   }
@@ -204,12 +394,15 @@ export default function AutomationStudio3D({
     const isStepList = /\n|->|→/.test(src.trim());
     if (!isStepList && src.trim()) {
       setDescription(src.trim());
-      if (matchTemplateIds(src).length > 0) runLine(analyzeDescription(src, null));
-      else
-        // Every request still gets a solution: a general pick-and-place cell.
+      if (matchTemplateIds(src).includes("concrete3dp")) openSpecial(src.trim());
+      else if (matchTemplateIds(src).length > 0) runLine(analyzeDescription(src, null));
+      else {
+        // Every request still gets a solution: a general pick-and-place cell until the AI engineer answers.
+        genericLine.current = true;
         runLine([{ name: "Pick & Place Handling" }], [
-          "No specific process was recognised, so this is a general pick-and-place robot cell. Name the tasks (weld, grind, paint, glue, assemble, screw, machine tending, press, moulding, inspect, measure, label, pack, palletize…) or open the Skills library for a detailed plan.",
+          "No specific process was recognised yet, so this starts as a general pick-and-place cell. The AI solution engineer is reading your brief and will rebuild the line it designs; open Solution for the full engineering proposal.",
         ]);
+      }
       return;
     }
     setDescription(undefined);
@@ -235,6 +428,15 @@ export default function AutomationStudio3D({
     const procs = processesFromSkills(r.tasks);
     if (procs.length) runLine(procs);
     else build(words || "pick and place");
+  }
+
+  // Point-and-click builder: the chosen jobs, in order, become the robot line.
+  function buildFromBlocks(names: string[]) {
+    const sentence = `Robot line: ${names.join(", then ")}.`;
+    setText(sentence);
+    setDescription(sentence);
+    const procs = processesFromSkills(names);
+    if (procs.length) runLine(procs);
   }
 
   function changeSize(key: string) {
@@ -264,10 +466,25 @@ export default function AutomationStudio3D({
   const options = useMemo(() => (lineInput ? compareOptions(lineInput, catalog) : []), [lineInput, catalog]);
 
   return (
+    <>
+    {special && (
+      <div className={cn(embedded && "overflow-hidden rounded-xl border border-border")}>
+        <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Loading the construction printing cell…</div>}>
+          <ConstructionPrintStudio
+            description={description}
+            onExit={() => {
+              setSpecial(false);
+              simRef.current?.play();
+            }}
+          />
+        </Suspense>
+      </div>
+    )}
     <div
       className={cn(
         "flex flex-col bg-background text-foreground",
         embedded ? "overflow-hidden rounded-xl border border-border" : "min-h-[calc(100vh-8rem)]",
+        special && "hidden",
       )}
     >
       {/* Toolbar */}
@@ -308,6 +525,12 @@ export default function AutomationStudio3D({
             <Button size="sm" onClick={() => setReportOpen(true)} className="bg-amber-500 text-black hover:bg-amber-400">
               <FileText className="h-4 w-4" />
               <span className="ml-1.5">Solution report</span>
+            </Button>
+          )}
+          {engine && (
+            <Button size="sm" variant="outline" onClick={() => setSolutionOpen(true)} aria-label="Engineered solution">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="ml-1.5">Solution</span>
             </Button>
           )}
           <Button size="sm" variant="outline" onClick={() => setSkillsOpen(true)} aria-label="Skills library">
@@ -360,7 +583,24 @@ export default function AutomationStudio3D({
         {/* Left: process */}
         <aside className="order-2 space-y-3 overflow-auto border-border bg-muted/20 p-3 lg:order-1 lg:border-r">
           {showEditor && (
-            <Panel title="Describe the process">
+            <Panel title="Build your process">
+              <div className="mb-3 grid grid-cols-2 overflow-hidden rounded-md border border-border text-xs" role="tablist" aria-label="How to build">
+                {(["blocks", "words"] as const).map((m) => (
+                  <button
+                    key={m}
+                    role="tab"
+                    aria-selected={inputMode === m}
+                    onClick={() => setInputMode(m)}
+                    className={cn("px-2 py-1.5 font-medium", inputMode === m ? "bg-primary text-primary-foreground" : "hover:bg-muted")}
+                  >
+                    {m === "blocks" ? "Tap jobs (easy)" : "Describe in words"}
+                  </button>
+                ))}
+              </div>
+              {inputMode === "blocks" ? (
+                <ProcessBuilder onBuild={buildFromBlocks} />
+              ) : (
+              <>
               <p className="mb-2 text-xs text-muted-foreground">
                 Describe your whole factory in a sentence or two and the studio picks out only the tasks you name, plans
                 the robots and shows the line. Or write one robot step per line: pick, place, weld, paint, polish,
@@ -377,6 +617,8 @@ export default function AutomationStudio3D({
               <Button className="mt-2 w-full" onClick={() => build(text)}>
                 <Play className="mr-2 h-4 w-4" /> Build simulation
               </Button>
+              </>
+              )}
               <p className="mb-1.5 mt-3 text-[11px] font-semibold text-muted-foreground">
                 Or show us the manual work (AI photo / video analysis)
               </p>
@@ -479,6 +721,35 @@ export default function AutomationStudio3D({
                   <p className="mt-1 text-[10px] text-muted-foreground">{STRATEGIES[strategy].bestFor}.</p>
                 </div>
               )}
+              {lineInput && taskCount > 1 && (
+                <div className="mb-2 flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5">
+                  <span className="min-w-0 flex-1 text-[11px] leading-tight">
+                    <b className="block">Robots in line</b>
+                    <span className="text-muted-foreground">{robotCount ? "Your choice" : splitBefore.length ? "One cell per robot you chose" : "Set by the solution option"} · 1–{taskCount}</span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Fewer robots"
+                    disabled={plan.robots.length <= 1}
+                    onClick={() => chooseRobotCount(plan.robots.length - 1)}
+                    className="rounded border border-border p-1 hover:border-primary disabled:opacity-40"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <b className="w-5 text-center text-sm tabular-nums" aria-live="polite" aria-label="Robots in line">
+                    {plan.robots.length}
+                  </b>
+                  <button
+                    type="button"
+                    aria-label="More robots"
+                    disabled={plan.robots.length >= taskCount}
+                    onClick={() => chooseRobotCount(plan.robots.length + 1)}
+                    className="rounded border border-border p-1 hover:border-primary disabled:opacity-40"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
               {budget && (
                 <button
                   onClick={() => setReportOpen(true)}
@@ -493,13 +764,19 @@ export default function AutomationStudio3D({
                   </span>
                 </button>
               )}
+              {engine && (
+                <Button size="sm" variant="outline" className="mb-2 w-full" onClick={() => setSolutionOpen(true)}>
+                  <Bot className="mr-1.5 h-3.5 w-3.5" /> Choose robots & tools (marketplace / OEM)
+                </Button>
+              )}
               <div className="space-y-2">
                 {plan.robots.map((r, i) => {
                   const recs = recommendRobots(r, catalog);
+                  const chosen = perCell.get(i);
                   const cell = state?.cells?.[i];
                   return (
+                    <div key={i} className="space-y-1">
                     <button
-                      key={i}
                       onClick={() => focusRobot(i)}
                       aria-pressed={focus === i}
                       className={cn(
@@ -545,15 +822,62 @@ export default function AutomationStudio3D({
                         {r.tools.length ? r.tools.join(" + ") : r.tasks[0].skill.toolName}
                         {" · "}min {r.minPayload} kg
                       </span>
-                      {recs.length > 0 && (
-                        <span className="mt-1 block text-[11px] text-muted-foreground">
-                          Suitable: <span className="text-foreground">{recs.map((m) => m.n).join(", ")}</span>
+                      {chosen?.robot || chosen?.tool || chosen?.changer || chosen?.sensor || chosen?.camera ? (
+                        <span className="mt-2 grid w-full min-w-0 gap-1.5">
+                          {chosen.robot && (
+                            <span className="flex min-w-0 items-center gap-2 overflow-hidden rounded-md bg-primary/10 p-1.5">
+                              <Thumb m={chosen.robot} size="h-12 w-12" />
+                              <span className="min-w-0 flex-1 text-[11px] leading-tight">
+                                <span className="block text-[9px] uppercase tracking-wide text-muted-foreground">Robot</span>
+                                <b className="block truncate">{chosen.robot.name}</b>
+                                <span className="text-muted-foreground">
+                                  {chosen.robot.source === "market" ? "RobotVerse marketplace" : "Directory · OEM"}
+                                  {chosen.robot.payload ? ` · ${chosen.robot.payload} kg` : ""}
+                                </span>
+                              </span>
+                            </span>
+                          )}
+                          {chosen.tool && (
+                            <span className="flex min-w-0 items-center gap-2 overflow-hidden rounded-md bg-muted/60 p-1.5">
+                              <Thumb m={chosen.tool} size="h-12 w-12" />
+                              <span className="min-w-0 flex-1 text-[11px] leading-tight">
+                                <span className="block text-[9px] uppercase tracking-wide text-muted-foreground">Tool (EOAT)</span>
+                                <b className="block truncate">{chosen.tool.name}</b>
+                                <span className="text-muted-foreground">{chosen.tool.source === "market" ? "RobotVerse marketplace" : "Directory · OEM"}</span>
+                              </span>
+                            </span>
+                          )}
+                          {(chosen.changer || chosen.sensor || chosen.camera) && (
+                            <span className="flex flex-wrap gap-1 text-[10px]">
+                              {[chosen.changer, chosen.sensor, chosen.camera].filter(Boolean).map((a) => (
+                                <span key={a!.id} className="max-w-full truncate rounded bg-muted px-1.5 py-0.5">+ {a!.name}</span>
+                              ))}
+                            </span>
+                          )}
                         </span>
+                      ) : (
+                        recs.length > 0 && (
+                          <span className="mt-2 block">
+                            <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">Suitable robots</span>
+                            <span className="mt-1 grid grid-cols-3 gap-1">
+                              {recs.map((m) => (
+                                <span key={m.id} className="min-w-0 rounded border border-border bg-white p-0.5 text-center">
+                                  <SuggestImg id={m.id} img={m.img} th={m.th} />
+                                  <span className="block truncate px-0.5 text-[9px] text-slate-700">{m.n}</span>
+                                </span>
+                              ))}
+                            </span>
+                          </span>
+                        )
                       )}
                       {cell?.step && focus !== i && (
                         <span className="mt-1 block truncate text-[11px] text-amber-600">Now: {cell.step.label}</span>
                       )}
                     </button>
+                    <Button size="sm" variant={chosen?.robot ? "secondary" : "outline"} className="h-7 w-full text-xs" onClick={() => setPickFor(i)}>
+                      <Bot className="mr-1.5 h-3.5 w-3.5" /> {chosen?.robot ? "Change robot, tool & accessories" : "Build robot: drag robot, tool & accessories"}
+                    </Button>
+                    </div>
                   );
                 })}
               </div>
@@ -735,6 +1059,70 @@ export default function AutomationStudio3D({
           options={options}
         />
       )}
+      <Dialog open={solutionOpen} onOpenChange={setSolutionOpen}>
+        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Engineered solution</DialogTitle>
+            <DialogDescription className="line-clamp-2">{description}</DialogDescription>
+            <p className="text-xs text-primary">Robots and tools you choose below replace the robots in the 3D view — close this window to see them.</p>
+          </DialogHeader>
+          <AiSolutionPanel
+            solution={ai.brief === description ? ai.solution : null}
+            fallback={engine}
+            loading={ai.brief === description && ai.loading}
+            error={ai.brief === description ? ai.error : null}
+            onRetry={() => description && runAi(description)}
+            onBuild={() => {
+              const sol = (ai.brief === description && ai.solution) || engine;
+              if (sol) runLine(solutionProcesses(sol));
+              setSolutionOpen(false);
+            }}
+            onAsk={
+              showEditor
+                ? (q) => {
+                    setText((t) => `${t.trim()} ${q} Answer: `);
+                    setSolutionOpen(false);
+                  }
+                : undefined
+            }
+            compact
+          />
+          {(((ai.brief === description && ai.solution) || engine)?.stations.length ?? 0) > 0 && (
+            <EquipmentPicker
+              key={description}
+              stations={((ai.brief === description && ai.solution) || engine)!.stations}
+              briefKey={description ?? ""}
+              onChange={(choices) =>
+                setEquipment({ brief: description ?? "", stations: ((ai.brief === description && ai.solution) || engine)!.stations.map((s) => s.skill || s.name), choices })
+              }
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={pickFor !== null} onOpenChange={(o) => !o && setPickFor(null)}>
+        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+          {pickFor !== null && plan?.robots[pickFor] && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Build the robot for: {plan.robots[pickFor].title}</DialogTitle>
+                <DialogDescription>
+                  Job: {plan.robots[pickFor].tasks.map((t) => t.name).join(", ")}. Drag a robot arm, an end-of-arm tool and any accessories onto your robot — from the
+                  RobotVerse marketplace or the Directory. Each part appears on this robot in the 3D cell right away.
+                </DialogDescription>
+              </DialogHeader>
+              <RobotConfigurator
+                key={`${description}-${pickFor}`}
+                station={cellStation(plan.robots[pickFor])}
+                value={cellPicks[pickKey(plan.robots[pickFor])] ?? perCell.get(pickFor) ?? {}}
+                onChange={(c) => setCellPick(pickKey(plan.robots[pickFor]), c)}
+              />
+              <div className="flex justify-end">
+                <Button size="sm" onClick={() => setPickFor(null)}>Show in 3D</Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       <SkillsLibrary
         open={skillsOpen}
         onOpenChange={setSkillsOpen}
@@ -744,5 +1132,35 @@ export default function AutomationStudio3D({
         }}
       />
     </div>
+    </>
+  );
+}
+
+/** The job one robot cell does, in the shape the equipment matcher expects. */
+function cellStation(r: LinePlan["robots"][number]): AiStation {
+  const t = r.tasks[0];
+  return {
+    name: r.tasks.map((x) => x.name).join(" + "),
+    skill: String(t.kind),
+    what: r.tasks.map((x) => x.name).join(", "),
+    equipment: r.collaborative ? "collaborative robot" : "",
+    payload_kg: r.minPayload,
+    reach_mm: null,
+    tooling: r.tools.length ? r.tools.join(", ") : t.skill.toolName,
+    sensors: [],
+    cycle_s: null,
+    notes: "",
+  };
+}
+
+/** Small Directory robot picture for the suggestions on a robot card. */
+function SuggestImg({ id, img, th }: { id: string; img?: string; th?: string }) {
+  const item = { id, img, th } as never;
+  const srcs = [storedImageUrl("robots", id, true), imageFunctionUrl("robots", item, true)];
+  const [i, setI] = useState(0);
+  return srcs[i] ? (
+    <img src={srcs[i]} alt="" loading="lazy" onError={() => setI((n) => n + 1)} className="mx-auto h-10 w-full object-contain" />
+  ) : (
+    <Bot className="mx-auto h-10 w-6 text-muted-foreground" aria-hidden />
   );
 }

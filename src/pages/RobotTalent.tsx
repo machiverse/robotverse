@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
@@ -44,7 +44,11 @@ function useTalentStats() {
 }
 
 const RobotTalent = () => {
-  const [activeSection, setActiveSection] = useState<"jobs" | "talent" | "training">("jobs");
+  // /robot-talent/talent and /robot-talent/training open those sections directly (header links).
+  const { pathname } = useLocation();
+  const sectionFromPath = (p: string) => (p.endsWith("/talent") ? "talent" : p.endsWith("/training") ? "training" : "jobs") as "jobs" | "talent" | "training";
+  const [activeSection, setActiveSection] = useState<"jobs" | "talent" | "training">(() => sectionFromPath(pathname));
+  useEffect(() => setActiveSection(sectionFromPath(pathname)), [pathname]);
   const [heroSearch, setHeroSearch] = useState("");
   const [heroLocation, setHeroLocation] = useState("");
   const navigate = useNavigate();
@@ -165,7 +169,7 @@ const RobotTalent = () => {
       <main className="container mx-auto px-4 py-6">
         {/* Tabs + Context Actions */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-1 bg-card border border-border p-1 rounded-xl w-fit">
+          <div className="flex items-center gap-1 bg-card border border-border p-1 rounded-xl w-fit max-w-full overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
@@ -204,7 +208,7 @@ const RobotTalent = () => {
               </Button>
             ))}
             {!user && (
-              <Button size="sm" onClick={() => navigate('/auth')} className="gap-1.5 text-xs">
+              <Button size="sm" onClick={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true })} className="gap-1.5 text-xs">
                 Get Started <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             )}

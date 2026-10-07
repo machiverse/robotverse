@@ -30,7 +30,7 @@ interface Conversation {
 }
 
 const Messages = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,8 +56,10 @@ const Messages = () => {
 
   // Fetch all conversations
   useEffect(() => {
+    // Wait for the saved login to load; only a visitor who is really signed out goes to sign-in.
+    if (authLoading) return;
     if (!user) {
-      navigate("/auth");
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
       return;
     }
 
@@ -150,7 +152,7 @@ const Messages = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   // Filter conversations based on search
   const filteredConversations = conversations.filter((conv) => {

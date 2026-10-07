@@ -16,7 +16,7 @@ export interface SimUpdate {
   events: { t: number; msg: string }[];
   /** Index of the robot whose joints/step are reported (multi-robot lines). */
   focus?: number;
-  cells?: { title: string; stepIndex: number; step: SimStep | null; cycles: number }[];
+  cells?: { title: string; stepIndex: number; step: SimStep | null; cycles: number; lastCycle?: number | null }[];
 }
 
 export interface SimPlan {
@@ -35,6 +35,23 @@ export interface Simulation {
   setSpeed(v: number): void;
   setRobotSize(key: string): void;
   setView(name: string): void;
+  /** Cell index under a screen point; cells.length = the empty slot after the line; -1 = none. */
+  cellAt(clientX: number, clientY: number): number;
+  /** Ring on the floor marking a drop target (-1 hides it). */
+  setHover(i: number): void;
+  /** Pixels covered by floating panels, so the line is framed in the free area. */
+  setInsets(left: number, right: number): void;
+  /** Cell builder: show only the equipment the user chose (no default robot, tool or stations). */
+  setBuildMode(on: boolean): void;
+  setOverlay(name: "none" | "layout" | "flow"): void;
+  setEquipment(
+    cell: number,
+    eq: {
+      robot?: { name: string; brand?: string; reachMm?: number | null; payloadKg?: number | null; collaborative?: boolean };
+      eoat?: { name: string; kind?: string };
+      accessories?: ("changer" | "sensor" | "camera")[];
+    } | null,
+  ): void;
   setJoint(i: number, deg: number | string): void;
   checkReach(steps?: SimStep[]): string[];
   dispose(): void;
@@ -45,11 +62,14 @@ export const STATION_NAMES: Record<string, string>;
 export const TOOL_ACTIONS: Record<string, { label: string; color: number }>;
 export const PRESETS: Record<string, string>;
 export function stepLabel(step: SimStep): string;
+export function brandPaint(brand: string, collaborative?: boolean): [number, number];
+export function eoatKind(text: string): string;
 export function parseProcess(text: string): { steps: SimStep[]; notes: string[] };
 export function processToText(kind: string, name?: string): string;
 export function createSimulation(opts: {
   THREE: typeof import("three");
   OrbitControls: unknown;
+  RoomEnvironment?: unknown;
   container: HTMLElement;
   onUpdate?: (s: SimUpdate) => void;
 }): Simulation;

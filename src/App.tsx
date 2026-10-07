@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RobotComparisonProvider } from "@/contexts/RobotComparisonContext";
+import CompareTray from "@/components/CompareTray";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import { useCanonicalHead } from "@/hooks/useCanonicalHead";
@@ -67,8 +68,14 @@ import ApiKeys from "./pages/dashboard/ApiKeys";
 import ApiDocs from "./pages/ApiDocs";
 import Contact from "./pages/Contact";
 // Loaded on demand so the Directory adds nothing to the main bundle
+import WithBack from "./components/navigation/WithBack";
+const AutomationStudioBuildPage = lazy(() => import("./pages/AutomationStudioBuildPage"));
+const AutomationPlaybookPage = lazy(() => import("./pages/AutomationPlaybookPage"));
+const AboutPage = lazy(() => import("./pages/About"));
+const DirectoryModelPage = lazy(() => import("./pages/DirectoryModelPage"));
 const Directory = lazy(() => import("./pages/Directory"));
 const TrainingPosterPage = lazy(() => import("./pages/TrainingPosterPage"));
+const DirectoryPhotosAdmin = lazy(() => import("./pages/DirectoryPhotosAdmin"));
 const RobotNews = lazy(() => import("./pages/RobotNews"));
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
@@ -161,6 +168,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <PageTracker />
+            <CompareTray />
             <HeadSync />
             <AIAssistantProvider>
               <GlobalEmailVerificationHandler />
@@ -183,7 +191,7 @@ const App = () => (
               <Route path="/parts/category/:cat" element={<CategoryParts />} />
               {/* Removed: /services/:city/:serviceCombo doorway pages (now 404 + noindex) */}
               <Route path="/compare/:slug" element={<CompareRobots />} />
-              <Route path="/dashboard/admin/seo" element={<SEODashboard />} />
+              <Route path="/dashboard/admin/seo" element={<WithBack fallback="/dashboard" label="SEO"><SEODashboard /></WithBack>} />
               <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
             <Route path="/parts/:id" element={<SparePartDetails />} />
@@ -213,35 +221,38 @@ const App = () => (
             <Route path="/marketplace/parts" element={<Navigate to="/parts" replace />} />
             <Route path="/marketplace/services" element={<Navigate to="/services" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/dashboard/analytics" element={<Analytics />} />
-            <Route path="/dashboard/reports" element={<Reports />} />
-            <Route path="/dashboard/messages" element={<Messages />} />
-            <Route path="/dashboard/robots" element={<MyRobots />} />
-            <Route path="/dashboard/parts" element={<PartsManagement />} />
-            <Route path="/dashboard/services" element={<ServicesManagement />} />
-            <Route path="/dashboard/finance" element={<Finance />} />
-            <Route path="/dashboard/logistics" element={<LogisticsDashboard />} />
-            <Route path="/dashboard/settings" element={<Settings />} />
-            <Route path="/dashboard/help" element={<Help />} />
-            <Route path="/dashboard/privacy" element={<Privacy />} />
-            <Route path="/dashboard/credits" element={<Credits />} />
-            <Route path="/dashboard/quotations" element={<Quotations />} />
-            <Route path="/dashboard/my-requests" element={<MyRequests />} />
-            <Route path="/dashboard/api-keys" element={<ApiKeys />} />
+            <Route path="/dashboard/analytics" element={<WithBack fallback="/dashboard" label="Analytics"><Analytics /></WithBack>} />
+            <Route path="/dashboard/reports" element={<WithBack fallback="/dashboard" label="Reports"><Reports /></WithBack>} />
+            <Route path="/dashboard/messages" element={<WithBack fallback="/dashboard" label="Messages"><Messages /></WithBack>} />
+            <Route path="/dashboard/robots" element={<WithBack fallback="/dashboard" label="My robots"><MyRobots /></WithBack>} />
+            <Route path="/dashboard/parts" element={<WithBack fallback="/dashboard" label="Spare parts"><PartsManagement /></WithBack>} />
+            <Route path="/dashboard/services" element={<WithBack fallback="/dashboard" label="Services"><ServicesManagement /></WithBack>} />
+            <Route path="/dashboard/finance" element={<WithBack fallback="/dashboard" label="Finance"><Finance /></WithBack>} />
+            <Route path="/dashboard/logistics" element={<WithBack fallback="/dashboard" label="Logistics"><LogisticsDashboard /></WithBack>} />
+            <Route path="/dashboard/settings" element={<WithBack fallback="/dashboard" label="Settings"><Settings /></WithBack>} />
+            <Route path="/dashboard/help" element={<WithBack fallback="/dashboard" label="Help"><Help /></WithBack>} />
+            <Route path="/dashboard/privacy" element={<WithBack fallback="/dashboard" label="Privacy"><Privacy /></WithBack>} />
+            <Route path="/dashboard/credits" element={<WithBack fallback="/dashboard" label="Credits"><Credits /></WithBack>} />
+            <Route path="/dashboard/quotations" element={<WithBack fallback="/dashboard" label="Quotations"><Quotations /></WithBack>} />
+            <Route path="/dashboard/my-requests" element={<WithBack fallback="/dashboard" label="My requests"><MyRequests /></WithBack>} />
+            <Route path="/dashboard/api-keys" element={<WithBack fallback="/dashboard" label="API keys"><ApiKeys /></WithBack>} />
             <Route path="/api-docs" element={<ApiDocs />} />
-            <Route path="/spare-parts-dashboard" element={<SparePartsSellerDashboard />} />
+            <Route path="/spare-parts-dashboard" element={<WithBack fallback="/dashboard" label="Spare parts dashboard"><SparePartsSellerDashboard /></WithBack>} />
             <Route path="/watchlist" element={<WatchlistDashboard />} />
             <Route path="/profile-settings" element={<ProfileSettings />} />
             <Route path="/settings" element={<ProfileSettings />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
             <Route path="/directory" element={<Suspense fallback={null}><Directory /></Suspense>} />
+            <Route path="/directory/:type/:slug" element={<Suspense fallback={null}><DirectoryModelPage /></Suspense>} />
             <Route path="/directory/training/poster/:id" element={<Suspense fallback={null}><TrainingPosterPage /></Suspense>} />
+            <Route path="/admin/directory-photos" element={<WithBack fallback="/directory" label="Directory photos"><Suspense fallback={null}><DirectoryPhotosAdmin /></Suspense></WithBack>} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/seller-guide" element={<SellerGuide />} />
             <Route path="/buyer-guide" element={<BuyerGuide />} />
             <Route path="/cookies" element={<Cookies />} />
             {/* Public, crawlable privacy path (/dashboard/* is disallowed in robots.txt) */}
-            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/privacy" element={<WithBack fallback="/" label="Privacy"><Privacy /></WithBack>} />
 
             <Route path="/sitemap" element={<Sitemap />} />
             <Route path="/accessibility" element={<Accessibility />} />
@@ -250,6 +261,8 @@ const App = () => (
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/ai-assistant" element={<AIAssistant />} />
               <Route path="/robot-talent" element={<RobotTalent />} />
+              <Route path="/robot-talent/talent" element={<RobotTalent />} />
+              <Route path="/robot-talent/training" element={<RobotTalent />} />
               <Route path="/robot-talent/jobs/:id" element={<TalentJobDetail />} />
               <Route path="/robot-talent/post-job" element={<TalentPostJob />} />
               <Route path="/robot-talent/seeker-profile" element={<TalentSeekerProfile />} />
@@ -257,11 +270,13 @@ const App = () => (
               <Route path="/robot-talent/employer-dashboard" element={<TalentEmployerDashboard />} />
               <Route path="/automation-studio" element={<AutomationStudio />} />
               <Route path="/automation-studio/3d" element={<AutomationStudio3DPage />} />
+              <Route path="/automation-studio/build" element={<Suspense fallback={null}><AutomationStudioBuildPage /></Suspense>} />
+              <Route path="/automation-studio/playbook" element={<Suspense fallback={null}><AutomationPlaybookPage /></Suspense>} />
               <Route path="/auctions" element={<Auctions />} />
               <Route path="/auctions/:id" element={<AuctionDetail />} />
               <Route path="/auctions/create" element={<CreateAuction />} />
               <Route path="/auctions/:id/edit" element={<EditAuction />} />
-              <Route path="/whatsapp-bot" element={<WhatsAppBotLayout />}>
+              <Route path="/whatsapp-bot" element={<WithBack fallback="/dashboard" label="WhatsApp bot"><WhatsAppBotLayout /></WithBack>}>
                 <Route index element={<WhatsAppDashboard />} />
                 <Route path="conversations" element={<WhatsAppConversations />} />
                 <Route path="knowledge-base" element={<WhatsAppKnowledgeBase />} />
@@ -269,7 +284,7 @@ const App = () => (
                 <Route path="settings" element={<WhatsAppSettings />} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={<WithBack fallback="/" label="Page not found"><NotFound /></WithBack>} />
             </Routes>
             <WhatsAppChatButton />
 

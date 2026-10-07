@@ -1,3 +1,4 @@
+import { BackIconButton } from "@/components/navigation/BackButton";
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import {
   Edit,
   ChevronDown,
   Menu,
+  Home,
   LayoutDashboard,
   Users,
   Target,
@@ -32,7 +34,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 // Import dashboard components
 import BuyerDashboard from "@/components/dashboards/BuyerDashboard";
@@ -158,7 +160,7 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/auth');
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -266,6 +268,11 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
                   <Menu className="h-4 w-4" strokeWidth={1.5} />
                 </Button>
               )}
+              <BackIconButton fallbackPath="/" className="h-8 w-8" />
+              <Link to="/" className="hidden items-center gap-1 rounded-md px-1.5 py-1 text-[13px] text-foreground/65 hover:bg-muted hover:text-foreground sm:inline-flex" title="Back to the RobotVerse website">
+                <Home className="h-3.5 w-3.5" strokeWidth={1.5} /> Website
+              </Link>
+              <span className="hidden text-[13px] text-foreground/45 sm:inline">/</span>
               <span className="truncate text-[13px] font-normal leading-[1.4] text-foreground/65">Dashboard</span>
               <span className="text-[13px] text-foreground/45">/</span>
               <span className="truncate text-[13px] font-semibold leading-[1.4] text-foreground">{activeLabel}</span>

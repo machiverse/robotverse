@@ -244,10 +244,49 @@ export function processToText(kind, name) {
 
 const PART = { w: 0.1, h: 0.09, d: 0.1 };
 const TOOL_LEN = 0.16;
+
+/** Factory paint of each robot brand: [body, trim]. */
+const BRAND_PAINT = [
+  [/fanuc/i, 0xf2c500, 0x1f2937],
+  [/kuka/i, 0xf07c00, 0x2b2b2b],
+  [/abb/i, 0xeceff2, 0xe8631a],
+  [/yaskawa|motoman/i, 0x2d6fd6, 0xeceff2],
+  [/universal robots|\bur\d/i, 0xd9dde2, 0x3d8fd6],
+  [/doosan/i, 0xf1f3f5, 0x1b1f24],
+  [/kawasaki/i, 0xe9e2c8, 0xd65a1f],
+  [/nachi/i, 0x8fa3b8, 0x1f2937],
+  [/st[aä]ubli/i, 0xf4b400, 0x1f2937],
+  [/comau/i, 0x1f5fb0, 0xeceff2],
+  [/epson/i, 0xeef1f5, 0x1d4ed8],
+  [/denso/i, 0xeef1f5, 0x2b6cb0],
+  [/mitsubishi/i, 0xeef1f5, 0xc81e1e],
+  [/hyundai/i, 0x1f5fb0, 0xeceff2],
+];
+export function brandPaint(brand, collaborative) {
+  const hit = BRAND_PAINT.find(([re]) => re.test(brand || ""));
+  if (hit) return [hit[1], hit[2]];
+  return collaborative ? [0xeef1f5, 0x2f7de1] : [0xf2b705, 0x1f2937];
+}
+
+/** End-of-arm tool family from a product name or category. */
+export function eoatKind(text) {
+  const t = String(text || "").toLowerCase();
+  if (/dual/.test(t) && /grip/.test(t)) return "dual";
+  if (/vacuum|suction|epick|\bvg[cp]?\d|cup/.test(t)) return "vacuum";
+  if (/magnet/.test(t)) return "magnet";
+  if (/fork|sack|bag|claw|clamp|palletiz|slip sheet/.test(t)) return "fork";
+  if (/torch|weld|mig|tig|\barc\b|spot/.test(t)) return "torch";
+  if (/grind|sand|polish|deburr|spindle|milling|router|cutter/.test(t)) return "spindle";
+  if (/screw|nutrunner|driver|fasten/.test(t)) return "driver";
+  if (/dispens|glue|paint|spray|nozzle|applicator|extru|dosing/.test(t)) return "nozzle";
+  return "parallel";
+}
 const APPROACH = 0.22;
 const CELL_SPACING = 3.6;
 const BELT_SPEED = 0.45;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+/** Typical reach for a payload class when a listing gives none. */
+const estimateReach = (kg) => (!kg ? 1.45 : kg <= 8 ? 0.9 : kg <= 25 ? 1.6 : kg <= 70 ? 2.05 : kg <= 200 ? 2.7 : 3.1);
 const smooth = (t) => t * t * (3 - 2 * t);
 const wrapPi = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
@@ -271,7 +310,7 @@ const BELT_TOP = 0.78;
  * Only the stations a cell's steps use are built, so the scene shows just
  * the machines the process needs.
  */
-export function createSimulation({ THREE, OrbitControls, container, onUpdate }) {
+export function createSimulation({ THREE, OrbitControls, RoomEnvironment, container, onUpdate }) {
   const LIGHT_K = Number(THREE.REVISION) >= 155 ? Math.PI : 1;
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -283,22 +322,37 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
   renderer.domElement.style.width = "100%";
   renderer.domElement.style.height = "100%";
 
+  // Physically based look: sRGB output, filmic tone mapping, soft image-based lighting.
+  if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a2433);
-  scene.fog = new THREE.Fog(0x1a2433, 9, 30);
+  scene.background = new THREE.Color(0x1b2430);
+  scene.fog = new THREE.Fog(0x1b2430, 12, 36);
+  let envTexture = null;
+  if (RoomEnvironment) {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = envTexture;
+    if ("environmentIntensity" in scene) scene.environmentIntensity = 0.45;
+    pmrem.dispose();
+  }
 
   const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 90);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.maxPolarAngle = Math.PI * 0.495;
   controls.minDistance = 1.2;
-  controls.maxDistance = 30;
+  controls.maxDistance = 45;
 
-  scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x2a3240, 0.75 * LIGHT_K));
+  scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x2a3240, (RoomEnvironment ? 0.45 : 0.75) * LIGHT_K));
   const sun = new THREE.DirectionalLight(0xffffff, 0.95 * LIGHT_K);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.02;
+  sun.shadow.radius = 3;
   scene.add(sun, sun.target);
   const rim = new THREE.DirectionalLight(0x8fb6ff, 0.35 * LIGHT_K);
   rim.position.set(-4, 3, -3);
@@ -330,16 +384,79 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     return m;
   };
 
+  const floorTex = (() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 256;
+    const g = c.getContext("2d");
+    g.fillStyle = "#6b7280";
+    g.fillRect(0, 0, 256, 256);
+    // Mottled concrete.
+    for (let i = 0; i < 2600; i++) {
+      const v = 95 + Math.floor(Math.random() * 30);
+      g.fillStyle = `rgba(${v},${v + 4},${v + 10},0.22)`;
+      const r = 1 + Math.random() * 3;
+      g.fillRect(Math.random() * 256, Math.random() * 256, r, r);
+    }
+    // 1 m tile joints.
+    g.strokeStyle = "rgba(40,46,56,0.55)";
+    g.lineWidth = 2;
+    g.strokeRect(0, 0, 256, 256);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(60, 30);
+    t.anisotropy = 8;
+    if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })();
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(60, 30),
-    new THREE.MeshStandardMaterial({ color: 0x243041, metalness: 0.1, roughness: 0.9 })
+    new THREE.MeshStandardMaterial({ map: floorTex, color: 0x747c86, metalness: 0.05, roughness: 0.6 })
   );
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
   const grid = new THREE.GridHelper(60, 120, 0x33445a, 0x2a384a);
   grid.position.y = 0.001;
+  grid.visible = false; // tile joints are in the floor texture
   scene.add(grid);
+
+  const building = new THREE.Group();
+  {
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x3b4655, metalness: 0.35, roughness: 0.55 });
+    const ribMat = new THREE.MeshStandardMaterial({ color: 0x2f3946, metalness: 0.4, roughness: 0.5 });
+    const colMat = new THREE.MeshStandardMaterial({ color: 0x1f6fb2, metalness: 0.45, roughness: 0.45 });
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4dc, emissiveIntensity: 1.6 });
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(60, 7), wallMat);
+    wall.position.set(0, 3.5, -7.2);
+    wall.receiveShadow = true;
+    building.add(wall);
+    for (let x = -29; x <= 29; x += 1.2) {
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.06, 7, 0.06), ribMat);
+      rib.position.set(x, 3.5, -7.15);
+      building.add(rib);
+    }
+    const dado = new THREE.Mesh(new THREE.BoxGeometry(60, 1.1, 0.08), new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.8 }));
+    dado.position.set(0, 0.55, -7.1);
+    building.add(dado);
+    for (let x = -24; x <= 24; x += 6) {
+      const col = new THREE.Mesh(new THREE.BoxGeometry(0.35, 7, 0.35), colMat);
+      col.position.set(x, 3.5, -6.8);
+      col.castShadow = true;
+      building.add(col);
+      const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.35, 0.12, 20), lampMat);
+      lamp.position.set(x + 3, 5.6, -1.5);
+      building.add(lamp);
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.4, 6), ribMat);
+      rod.position.set(x + 3, 6.3, -1.5);
+      building.add(rod);
+    }
+    // Yellow walkway line along the front of the line.
+    const walk = new THREE.Mesh(new THREE.PlaneGeometry(60, 0.1), new THREE.MeshStandardMaterial({ color: 0xf2b705, roughness: 0.6 }));
+    walk.rotation.x = -Math.PI / 2;
+    walk.position.set(0, 0.003, 3.4);
+    building.add(walk);
+  }
+  scene.add(building);
 
   function makeLabel(text, color = "#e6ecf3") {
     const c = document.createElement("canvas");
@@ -443,7 +560,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     const bounds = new THREE.Box3();
     const tmp = new THREE.Box3();
     for (const o of scene.children) {
-      if (o === floor || o === grid || o === refGroup || o.isLight || o === sun.target || !o.visible) continue;
+      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o.isLight || o === sun.target || !o.visible) continue;
       if (o.isSprite) continue;
       tmp.setFromObject(o);
       if (!tmp.isEmpty()) bounds.union(tmp);
@@ -650,6 +767,8 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     const needed = new Set(steps.map((s) => s.station));
     if (steps.some((s) => TOOL_ACTIONS[s.action])) needed.add("table");
     const stations = {};
+    let zoneGroup = null;
+    let zoneLine = null;
 
     // Safety zone ring
     {
@@ -665,6 +784,8 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       zone.computeLineDistances();
       const g = new THREE.Group();
       g.add(zone);
+      zoneGroup = g;
+      zoneLine = zone;
       if (title) {
         const lbl = makeLabel(title, "#fbbf24");
         lbl.position.set(X, 2.45, 0.2);
@@ -849,10 +970,15 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     /* Robot */
     let robot = null;
     function buildRobot(s) {
+      if (model && model.scale) s = model.scale;
       const dims = { h1: 0.45 * s, a1: 0.15 * s, L2: 0.7 * s, L3: 0.75 * s, d6: 0.09 * s };
       dims.dTool = dims.d6 + TOOL_LEN;
       const root = new THREE.Group();
       root.position.x = X;
+      // Painted like a real robot: industrial yellow, or white with blue trim for a cobot (see setPaint).
+      const paint = new (THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial)({ color: 0xf2b705, metalness: 0.15, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.18 });
+      const trim = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.55, roughness: 0.35 });
+      const cable = new THREE.MeshStandardMaterial({ color: 0x111418, metalness: 0.1, roughness: 0.7 });
 
       const base = cyl(0.22 * s, 0.12 * s, M.dark);
       base.position.y = 0.06 * s;
@@ -861,10 +987,10 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       const j1 = new THREE.Group();
       j1.position.y = 0.12 * s;
       root.add(j1);
-      const turret = cyl(0.19 * s, 0.18 * s, M.body);
+      const turret = cyl(0.19 * s, 0.18 * s, paint);
       turret.position.y = 0.09 * s;
       j1.add(turret);
-      const shoulderBlock = box(0.3 * s, dims.h1 - 0.12 * s - 0.18 * s + 0.12 * s, 0.3 * s, M.body);
+      const shoulderBlock = box(0.3 * s, dims.h1 - 0.12 * s - 0.18 * s + 0.12 * s, 0.3 * s, paint);
       shoulderBlock.position.set(dims.a1 * 0.6, 0.18 * s + (dims.h1 - 0.12 * s - 0.18 * s) / 2, 0);
       j1.add(shoulderBlock);
 
@@ -874,13 +1000,17 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       const m2 = cyl(0.12 * s, 0.34 * s, M.dark);
       m2.rotation.x = Math.PI / 2;
       j2.add(m2);
-      const cap2 = cyl(0.07 * s, 0.36 * s, M.accent);
+      const cap2 = cyl(0.07 * s, 0.36 * s, trim);
       cap2.rotation.x = Math.PI / 2;
       j2.add(cap2);
-      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.085 * s, dims.L2 - 0.17 * s, 8, 20), M.body);
+      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.085 * s, dims.L2 - 0.17 * s, 8, 20), paint);
       upper.castShadow = true;
       upper.position.y = dims.L2 / 2;
       j2.add(upper);
+
+      const harness2 = cyl(0.022 * s, dims.L2 * 0.8, cable, 10);
+      harness2.position.set(-0.07 * s, dims.L2 / 2, 0.11 * s);
+      j2.add(harness2);
 
       const j3 = new THREE.Group();
       j3.position.set(0, dims.L2, 0);
@@ -888,22 +1018,27 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       const m3 = cyl(0.1 * s, 0.28 * s, M.dark);
       m3.rotation.x = Math.PI / 2;
       j3.add(m3);
-      const rear = box(0.2 * s, 0.16 * s, 0.2 * s, M.body);
+      const rear = box(0.2 * s, 0.16 * s, 0.2 * s, paint);
       rear.position.x = -0.12 * s;
       j3.add(rear);
-      const fore1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.075 * s, dims.L3 * 0.5 - 0.1 * s, 8, 20), M.body);
+      const fore1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.075 * s, dims.L3 * 0.5 - 0.1 * s, 8, 20), paint);
       fore1.castShadow = true;
       fore1.rotation.z = -Math.PI / 2;
       fore1.position.x = dims.L3 * 0.25;
       j3.add(fore1);
 
+      const harness3 = cyl(0.018 * s, dims.L3 * 0.42, cable, 10);
+      harness3.rotation.z = Math.PI / 2;
+      harness3.position.set(dims.L3 * 0.24, 0.085 * s, 0.05 * s);
+      j3.add(harness3);
+
       const j4 = new THREE.Group();
       j4.position.set(dims.L3 * 0.5, 0, 0);
       j3.add(j4);
-      const ring = cyl(0.078 * s, 0.03 * s, M.accent);
+      const ring = cyl(0.078 * s, 0.03 * s, trim);
       ring.rotation.z = Math.PI / 2;
       j4.add(ring);
-      const fore2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.06 * s, dims.L3 * 0.5 - 0.1 * s, 8, 20), M.body);
+      const fore2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.06 * s, dims.L3 * 0.5 - 0.1 * s, 8, 20), paint);
       fore2.castShadow = true;
       fore2.rotation.z = -Math.PI / 2;
       fore2.position.x = dims.L3 * 0.25;
@@ -919,19 +1054,122 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       const j6 = new THREE.Group();
       j6.position.set(dims.d6, 0, 0);
       j5.add(j6);
-      const flange = cyl(0.05, 0.02, M.accent);
+      const flange = cyl(0.05, 0.02, trim);
       flange.rotation.z = Math.PI / 2;
       j6.add(flange);
-      const gBody = box(0.07, 0.09, 0.16, M.dark);
+      // End-of-arm tool: the chosen product's family, else a parallel gripper.
+      const eoat = (model && model.eoat) || (buildMode ? "none" : "parallel");
+      const fingerTool = eoat === "parallel" || eoat === "dual";
+      const gBody = box(0.07, 0.09, eoat === "dual" ? 0.3 : 0.16, M.dark);
       gBody.position.x = 0.045;
+      gBody.visible = fingerTool;
       j6.add(gBody);
       const fingers = [];
       for (const sgn of [-1, 1]) {
         const f = box(0.09, 0.035, 0.018, M.steel);
         f.position.set(0.12, 0, sgn * 0.075);
+        f.visible = fingerTool;
         j6.add(f);
         fingers.push(f);
       }
+      const eoatMat = new THREE.MeshStandardMaterial({ color: 0x3a4250, metalness: 0.5, roughness: 0.4 });
+      const addTool = (mesh, x, y = 0, z = 0) => {
+        mesh.position.set(x, y, z);
+        j6.add(mesh);
+        return mesh;
+      };
+      if (eoat === "dual") {
+        // Second gripper on the other side of the wrist for raw / finished parts.
+        for (const sgn of [-1, 1]) {
+          const f = box(0.09, 0.035, 0.018, M.steel);
+          f.position.set(0.12, 0.1, sgn * 0.075);
+          j6.add(f);
+        }
+      } else if (eoat === "vacuum") {
+        addTool(box(0.03, 0.2, 0.2, eoatMat), 0.05);
+        for (const [y, z] of [[-0.06, -0.06], [-0.06, 0.06], [0.06, -0.06], [0.06, 0.06]]) {
+          const stem = cyl(0.008, 0.07, M.steel, 10);
+          stem.rotation.z = Math.PI / 2;
+          addTool(stem, 0.1, y, z);
+          const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.016, 0.025, 16), new THREE.MeshStandardMaterial({ color: 0x1a1d22, roughness: 0.9 }));
+          cup.rotation.z = -Math.PI / 2;
+          addTool(cup, 0.145, y, z);
+        }
+      } else if (eoat === "magnet") {
+        addTool(box(0.04, 0.16, 0.16, eoatMat), 0.05);
+        addTool(cyl(0.07, 0.05, new THREE.MeshStandardMaterial({ color: 0xb91c1c, metalness: 0.3, roughness: 0.5 })), 0.12).rotation.z = Math.PI / 2;
+      } else if (eoat === "fork") {
+        addTool(box(0.04, 0.26, 0.28, eoatMat), 0.05);
+        for (const z of [-0.09, 0, 0.09]) addTool(box(0.2, 0.02, 0.03, M.steel), 0.16, -0.12, z);
+        addTool(box(0.03, 0.12, 0.26, M.amber), 0.1, 0.08);
+      } else if (eoat === "torch") {
+        const neck = cyl(0.022, 0.16, new THREE.MeshStandardMaterial({ color: 0x111418, roughness: 0.6 }), 12);
+        neck.rotation.z = Math.PI / 2;
+        addTool(neck, 0.09);
+        const bend = cyl(0.018, 0.08, new THREE.MeshStandardMaterial({ color: 0x111418, roughness: 0.6 }), 12);
+        bend.rotation.z = Math.PI / 2 + 0.6;
+        addTool(bend, 0.18, -0.02);
+        const tipC = cyl(0.014, 0.04, new THREE.MeshStandardMaterial({ color: 0xc27a3a, metalness: 0.8, roughness: 0.3 }), 12);
+        tipC.rotation.z = Math.PI / 2 + 0.6;
+        addTool(tipC, 0.215, -0.045);
+      } else if (eoat === "spindle") {
+        const motor = cyl(0.045, 0.14, eoatMat, 16);
+        motor.rotation.z = Math.PI / 2;
+        addTool(motor, 0.08);
+        const disc = cyl(0.07, 0.012, new THREE.MeshStandardMaterial({ color: 0x8b5e34, roughness: 0.95 }), 24);
+        disc.rotation.z = Math.PI / 2;
+        addTool(disc, 0.16);
+      } else if (eoat === "driver") {
+        const body = cyl(0.03, 0.14, new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.3, roughness: 0.4 }), 14);
+        body.rotation.z = Math.PI / 2;
+        addTool(body, 0.08);
+        const bit = cyl(0.006, 0.06, M.steel, 8);
+        bit.rotation.z = Math.PI / 2;
+        addTool(bit, 0.18);
+      } else if (eoat === "nozzle") {
+        const gun = cyl(0.028, 0.12, new THREE.MeshStandardMaterial({ color: 0x0e7490, metalness: 0.3, roughness: 0.4 }), 14);
+        gun.rotation.z = Math.PI / 2;
+        addTool(gun, 0.075);
+        const nz = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.014, 0.05, 10), M.steel);
+        nz.rotation.z = Math.PI / 2;
+        addTool(nz, 0.16);
+      }
+      // Accessories the user attached in the configurator: tool changer / force-torque sensor at the
+      // flange, a vision camera on the side of the wrist.
+      const acc = (model && model.accessories) || [];
+      if (acc.includes("changer")) {
+        const plate = cyl(0.058, 0.025, M.steel, 20);
+        plate.rotation.z = Math.PI / 2;
+        plate.position.x = 0.012;
+        j6.add(plate);
+        const ring = cyl(0.06, 0.008, new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.4, roughness: 0.4 }), 20);
+        ring.rotation.z = Math.PI / 2;
+        ring.position.x = 0.026;
+        j6.add(ring);
+      }
+      if (acc.includes("sensor")) {
+        const ft = cyl(0.052, 0.03, new THREE.MeshStandardMaterial({ color: 0x9ca3af, metalness: 0.7, roughness: 0.3 }), 20);
+        ft.rotation.z = Math.PI / 2;
+        ft.position.x = acc.includes("changer") ? 0.045 : 0.018;
+        j6.add(ft);
+        const band = cyl(0.054, 0.006, new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.5 }), 20);
+        band.rotation.z = Math.PI / 2;
+        band.position.x = ft.position.x;
+        j6.add(band);
+      }
+      if (acc.includes("camera")) {
+        const bracket = box(0.05, 0.02, 0.02, M.steel);
+        bracket.position.set(0.02, 0.07, 0);
+        j6.add(bracket);
+        const cam = box(0.06, 0.045, 0.045, new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.5 }));
+        cam.position.set(0.05, 0.095, 0);
+        j6.add(cam);
+        const lens = cyl(0.014, 0.02, new THREE.MeshStandardMaterial({ color: 0x0ea5e9, metalness: 0.6, roughness: 0.2 }), 14);
+        lens.rotation.z = Math.PI / 2;
+        lens.position.set(0.09, 0.095, 0);
+        j6.add(lens);
+      }
+
       const tip = new THREE.Object3D();
       tip.position.x = TOOL_LEN;
       j6.add(tip);
@@ -947,16 +1185,33 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       toolTip.position.x = 0.15;
       toolHead.add(toolBody, toolTip);
       toolHead.visible = false;
+      if (["torch", "spindle", "driver", "nozzle"].includes(eoat)) toolHead.scale.setScalar(0.001);
       j6.add(toolHead);
 
+      // Model label under the robot's title, e.g. "FANUC M-20iD/25 · 25 kg · 1811 mm".
+      let modelLabel = null;
+      if (model && model.label) {
+        modelLabel = makeLabel(model.label, "#93c5fd");
+        modelLabel.position.set(0, 2.05 + (s - 1) * 0.4, 0.2);
+        root.add(modelLabel);
+      }
+
+      root.visible = !(buildMode && !(model && model.hasRobot));
       scene.add(root);
-      return { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers, dims, q: [0, 0, 0, 0, 0, 0], toolHead, toolMat };
+      return { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers, fingerTool, dims, q: [0, 0, 0, 0, 0, 0], toolHead, toolMat, paint, trim, eoatMat, modelLabel };
     }
 
     function disposeRobot() {
       if (!robot) return;
       scene.remove(robot.root);
       robot.root.traverse((o) => o.geometry && o.geometry.dispose());
+      robot.paint.dispose();
+      robot.trim.dispose();
+      robot.eoatMat.dispose();
+      if (robot.modelLabel) {
+        robot.modelLabel.material.map.dispose();
+        robot.modelLabel.material.dispose();
+      }
       robot = null;
     }
 
@@ -1473,7 +1728,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       out.push(
         dwell(0.2, null, () => {
           robot.toolHead.visible = false;
-          robot.fingers.forEach((f) => (f.visible = true));
+          robot.fingers.forEach((f) => (f.visible = robot.fingerTool));
           robot.joints[5].rotation.x = 0;
         })
       );
@@ -1539,10 +1794,14 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       sparks.visible = false;
       if (robot) {
         robot.toolHead.visible = false;
-        robot.fingers.forEach((f) => (f.visible = true));
+        robot.fingers.forEach((f) => (f.visible = robot.fingerTool));
       }
     }
 
+    let paintIndustrial = true;
+    /** Equipment the user chose for this cell: { scale, paint:[body,trim], label, eoat } or null. */
+    let model = null;
+    let lastScale = 1;
     const cell = {
       title,
       steps,
@@ -1567,9 +1826,34 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
         return !!held;
       },
       unreachable,
+      setPaint(industrial) {
+        paintIndustrial = industrial;
+        if (!robot) return;
+        const [body, trimC] = model && model.paint ? model.paint : industrial ? [0xf2b705, 0x1f2937] : [0xeef1f5, 0x2f7de1];
+        robot.paint.color.set(body);
+        robot.trim.color.set(trimC);
+      },
       buildRobot(scale) {
+        lastScale = scale;
         disposeRobot();
         robot = buildRobot(scale);
+        cell.setPaint(paintIndustrial);
+      },
+      setModel(m) {
+        model = m;
+        cell.buildRobot(lastScale);
+        cell.fitZone();
+      },
+      /** The dashed ring shows the chosen robot's reach; in build mode it appears with the robot. */
+      fitZone() {
+        if (!zoneGroup) return;
+        const has = !!(model && model.hasRobot);
+        zoneGroup.visible = !buildMode || has;
+        const r = has && model.reachM ? model.reachM + 0.2 : 2.05;
+        if (zoneLine) zoneLine.scale.set(r / 2.05, 1, r / 2.05);
+      },
+      get model() {
+        return model;
       },
       reset() {
         clearParts();
@@ -1585,6 +1869,8 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       },
       update(dt) {
         updateSparks(dt);
+        // Build mode: a cell runs only once the user has put a robot on it.
+        if (buildMode && !(model && model.hasRobot)) return;
         const ct = stations.carton;
         if (ct && ct.closeT > 0) {
           ct.closeT -= dt;
@@ -1682,7 +1968,10 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     infeed.group.visible = usesInfeed;
     infeed.autoSpawn = usesInfeed;
     infeed.owner = cells[0];
-    cells.forEach((c) => c.buildRobot(ROBOT_SIZES[sizeKey].scale));
+    cells.forEach((c) => {
+      c.buildRobot(ROBOT_SIZES[sizeKey].scale);
+      c.fitZone();
+    });
     focus = Math.min(focus, cells.length - 1);
 
     const span = (cells.length - 1) * CELL_SPACING;
@@ -1696,10 +1985,277 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     // Push the fog back so a long line stays clear.
     scene.fog.near = 9 + span * 1.2;
     scene.fog.far = 30 + span * 2;
-    setView(currentView);
+    setOverlay(overlay);
+    if (overlay === "none") setView(currentView);
+  }
+
+  /* ------------------------------------------------------------------
+   * Presentation overlays on the same live line:
+   *   "layout" – factory plan: station zones, aisle, in/out, dimensions
+   *   "flow"   – material flow: animated path of the part through every station
+   * Both are built from the real station and conveyor positions.
+   * ------------------------------------------------------------------ */
+  let overlay = "none";
+  let overlayGroup = null;
+  let flowTex = null;
+  let flowCurve = null;
+  let flowTokens = [];
+  let flowT = 0;
+  const ZONE_COLORS = [0x38bdf8, 0xa78bfa, 0x34d399, 0xfbbf24, 0xf472b6, 0x60a5fa, 0xfb923c, 0x2dd4bf, 0xc084fc, 0xa3e635];
+
+  function clearOverlay() {
+    if (!overlayGroup) return;
+    scene.remove(overlayGroup);
+    overlayGroup.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        if (o.material.map) o.material.map.dispose();
+        o.material.dispose();
+      }
+    });
+    overlayGroup = null;
+    flowTex = null;
+    flowCurve = null;
+    flowTokens = [];
+  }
+
+  function lineBounds() {
+    const bounds = new THREE.Box3();
+    const tmp = new THREE.Box3();
+    for (const o of scene.children) {
+      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o.isLight || o === sun.target || !o.visible || o.isSprite) continue;
+      tmp.setFromObject(o);
+      if (!tmp.isEmpty()) bounds.union(tmp);
+    }
+    return bounds;
+  }
+
+  function floorRect(x0, z0, x1, z1, color, opacity) {
+    const g = new THREE.Group();
+    const fill = new THREE.Mesh(
+      new THREE.PlaneGeometry(x1 - x0, z1 - z0),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false })
+    );
+    fill.rotation.x = -Math.PI / 2;
+    fill.position.set((x0 + x1) / 2, 0.006, (z0 + z1) / 2);
+    const edge = new THREE.LineLoop(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x0, 0.01, z0), new THREE.Vector3(x1, 0.01, z0),
+        new THREE.Vector3(x1, 0.01, z1), new THREE.Vector3(x0, 0.01, z1),
+      ]),
+      new THREE.LineBasicMaterial({ color })
+    );
+    g.add(fill, edge);
+    return g;
+  }
+
+  const bigLabel = (text, color) => {
+    const l = makeLabel(text, color);
+    l.scale.multiplyScalar(2.2);
+    return l;
+  };
+
+  function dimension(a, b, text, offset) {
+    const g = new THREE.Group();
+    const mat = new THREE.LineBasicMaterial({ color: 0xe2e8f0 });
+    const pts = [a, b].map((p) => p.clone().add(offset));
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+    const perp = new THREE.Vector3().subVectors(b, a).normalize().cross(new THREE.Vector3(0, 1, 0)).multiplyScalar(0.12);
+    for (const p of pts) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([p.clone().add(perp), p.clone().sub(perp)]), mat));
+    const lbl = bigLabel(text, "#e2e8f0");
+    lbl.position.copy(pts[0].clone().add(pts[1]).multiplyScalar(0.5)).add(new THREE.Vector3(0, 0.25, 0));
+    g.add(lbl);
+    return g;
+  }
+
+  function buildLayoutOverlay() {
+    const b = lineBounds();
+    if (b.isEmpty()) return;
+    const g = new THREE.Group();
+    const z0 = b.min.z - 0.25, z1 = b.max.z + 0.25;
+    const half = cells.length > 1 ? CELL_SPACING / 2 : Math.max(2.2, (b.max.x - b.min.x) / 2 + 0.25);
+    cells.forEach((c, i) => {
+      const X = i * CELL_SPACING;
+      const x0 = cells.length > 1 ? (i === 0 ? Math.min(b.min.x - 0.25, X - half) : X - half) : b.min.x - 0.25;
+      const x1 = cells.length > 1 ? (i === cells.length - 1 ? Math.max(b.max.x + 0.25, X + half) : X + half) : b.max.x + 0.25;
+      g.add(floorRect(x0 + 0.04, z0, x1 - 0.04, z1, ZONE_COLORS[i % ZONE_COLORS.length], 0.12));
+      // Short label; the full task list is already on the robot's own title.
+      const name = c.title ? String(c.title).split(":")[0] : `Robot ${i + 1}`;
+      const lbl = bigLabel(`Zone ${String(i + 1).padStart(2, "0")} · ${name}`, "#f8fafc");
+      lbl.position.set((x0 + x1) / 2, 0.25, z1 - 0.35);
+      g.add(lbl);
+    });
+    const xa = Math.min(b.min.x - 0.25, -half), xb = Math.max(b.max.x + 0.25, (cells.length - 1) * CELL_SPACING + half);
+    // Operator / forklift aisle along the front of the line.
+    const aisle = floorRect(xa, z1 + 0.15, xb, z1 + 1.35, 0x22c55e, 0.1);
+    g.add(aisle);
+    const al = bigLabel("Operator & forklift aisle · 1.2 m", "#86efac");
+    al.position.set((xa + xb) / 2, 0.2, z1 + 0.75);
+    g.add(al);
+    // Material in / out.
+    const inf = conveyors[0];
+    const start = inf && inf.group.visible ? inf.startPoint : cells[0].stations.in?.startPoint || new THREE.Vector3(xa, 0, 0);
+    const inl = bigLabel("▶ Raw material in", "#67e8f9");
+    inl.position.set(start.x - 0.3, 1.5, start.z);
+    g.add(inl);
+    const last = cells[cells.length - 1].stations;
+    const outP = (last.pallet || last.carton || last.table || {}).point || new THREE.Vector3(xb, 0, 0);
+    const outl = bigLabel("Finished goods out ▶", "#fcd34d");
+    outl.position.set(outP.x, 1.6, outP.z);
+    g.add(outl);
+    // Dimensions.
+    const L = xb - xa, D = z1 + 1.35 - z0;
+    g.add(dimension(new THREE.Vector3(xa, 0.02, z1 + 1.35), new THREE.Vector3(xb, 0.02, z1 + 1.35), `Line length ${L.toFixed(1)} m`, new THREE.Vector3(0, 0, 0.55)));
+    g.add(dimension(new THREE.Vector3(xb, 0.02, z0), new THREE.Vector3(xb, 0.02, z1 + 1.35), `Depth ${D.toFixed(1)} m`, new THREE.Vector3(0.55, 0, 0)));
+    const area = bigLabel(`Floor area ≈ ${(L * D).toFixed(0)} m² · ${cells.length} robot zone${cells.length > 1 ? "s" : ""}`, "#fbbf24");
+    area.position.set((xa + xb) / 2, 0.3, z0 - 0.45);
+    g.add(area);
+    overlayGroup = g;
+    scene.add(g);
+  }
+
+  function flowPoints() {
+    const pts = [];
+    const push = (p, lift = 0.28) => {
+      if (!p) return;
+      const v = new THREE.Vector3(p.x, Math.max(p.y, 0.5) + lift, p.z);
+      const last = pts[pts.length - 1];
+      if (!last || last.distanceTo(v) > 0.08) pts.push(v);
+    };
+    const inf = conveyors[0];
+    if (inf && inf.group.visible) {
+      push(inf.startPoint);
+      push(inf.point);
+    }
+    cells.forEach((c) => {
+      for (const s of c.steps) {
+        const st = c.stations[s.station];
+        if (!st) continue;
+        if (s.station === "out") {
+          push(st.startPoint);
+          push(st.point);
+        } else push(st.point);
+      }
+    });
+    return pts;
+  }
+
+  function buildFlowOverlay() {
+    const pts = flowPoints();
+    if (pts.length < 2) return;
+    const g = new THREE.Group();
+    const path = new THREE.CurvePath();
+    for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
+    const len = path.getLength();
+    const c = document.createElement("canvas");
+    c.width = 128;
+    c.height = 32;
+    const x = c.getContext("2d");
+    x.fillStyle = "#0e7490";
+    x.fillRect(0, 0, 128, 32);
+    x.fillStyle = "#67e8f9";
+    x.beginPath();
+    x.moveTo(40, 4); x.lineTo(84, 16); x.lineTo(40, 28); x.lineTo(56, 16);
+    x.closePath();
+    x.fill();
+    flowTex = new THREE.CanvasTexture(c);
+    flowTex.wrapS = THREE.RepeatWrapping;
+    flowTex.repeat.set(Math.max(2, Math.round(len / 0.35)), 1);
+    const tube = new THREE.Mesh(
+      new THREE.TubeGeometry(path, Math.max(40, pts.length * 24), 0.045, 8, false),
+      new THREE.MeshBasicMaterial({ map: flowTex, transparent: true, opacity: 0.95, depthTest: false })
+    );
+    tube.renderOrder = 5;
+    g.add(tube);
+    flowCurve = path;
+    for (let k = 0; k < 6; k++) {
+      const tok = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.12), new THREE.MeshBasicMaterial({ color: 0xfbbf24, depthTest: false }));
+      tok.renderOrder = 6;
+      g.add(tok);
+      flowTokens.push(tok);
+    }
+    const inl = makeLabel("IN · raw parts", "#67e8f9");
+    inl.position.copy(pts[0]).add(new THREE.Vector3(0, 0.35, 0));
+    const outl = makeLabel("OUT · finished goods", "#fcd34d");
+    outl.position.copy(pts[pts.length - 1]).add(new THREE.Vector3(0, 0.35, 0));
+    g.add(inl, outl);
+    const total = makeLabel(`Part travel ${len.toFixed(1)} m through ${cells.length} robot${cells.length > 1 ? "s" : ""}`, "#e2e8f0");
+    const span = (cells.length - 1) * CELL_SPACING;
+    total.position.set(span / 2, 3.0, -1.6);
+    g.add(total);
+    overlayGroup = g;
+    scene.add(g);
+  }
+
+  function setOverlay(name) {
+    overlay = name || "none";
+    clearOverlay();
+    if (overlay === "layout") buildLayoutOverlay();
+    else if (overlay === "flow") buildFlowOverlay();
+    if (cells.length) setView(currentView);
+  }
+
+  function updateOverlay(dt) {
+    if (!flowCurve) return;
+    flowTex.offset.x -= dt * 1.2;
+    flowT = (flowT + dt * 0.035) % 1;
+    flowTokens.forEach((t, k) => t.position.copy(flowCurve.getPointAt((flowT + k / flowTokens.length) % 1)));
   }
 
   let currentView = "iso";
+  // Build mode (cell builder): show only what the user chose — no robot, tool or fence until picked.
+  let buildMode = false;
+
+  /* ------------------------------------------------------------------
+   * Digital-twin interaction: which robot cell is under the pointer, a
+   * floor ring that marks the drop target, and side insets so the line is
+   * framed in the part of the stage not covered by floating panels.
+   * ------------------------------------------------------------------ */
+  const hoverMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false });
+  const hoverRing = new THREE.Mesh(new THREE.RingGeometry(1.05, 1.22, 56), hoverMat);
+  hoverRing.rotation.x = -Math.PI / 2;
+  hoverRing.position.y = 0.015;
+  hoverRing.visible = false;
+  scene.add(hoverRing);
+  const insets = { left: 0, right: 0 };
+  const visibleAspect = () => {
+    const w = container.clientWidth || 800;
+    const h = container.clientHeight || 500;
+    return Math.max(w - insets.left - insets.right, 120) / h;
+  };
+  /** Index of the cell under a screen point; cells.length means the empty slot after the line; -1 if none. */
+  function cellAt(clientX, clientY) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (!rect.width) return -1;
+    const toScreen = (x) => {
+      const p = new THREE.Vector3(x, 0.9, 0).project(camera);
+      return [rect.left + ((p.x + 1) / 2) * rect.width, rect.top + ((1 - p.y) / 2) * rect.height];
+    };
+    const pts = [];
+    for (let i = 0; i <= cells.length; i++) pts.push(toScreen(i * CELL_SPACING));
+    const gap = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) || 200;
+    let best = -1;
+    let bestD = Infinity;
+    pts.forEach(([x, y], i) => {
+      const d = Math.hypot(clientX - x, clientY - y);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    // Close to a robot (within about half the spacing between cells) counts as that robot; empty floor is -1.
+    return bestD <= Math.min(gap * 0.4, 170, rect.width * 0.22) ? best : -1;
+  }
+  const lastScaleAll = () => ROBOT_SIZES[sizeKey].scale;
+  function setHover(i) {
+    if (i == null || i < 0) {
+      hoverRing.visible = false;
+      return;
+    }
+    hoverRing.visible = true;
+    hoverRing.position.x = i * CELL_SPACING;
+    hoverMat.color.setHex(i >= cells.length ? 0x34d399 : 0x38bdf8);
+  }
   function setView(name) {
     currentView = name;
     const span = (cells.length - 1) * CELL_SPACING;
@@ -1714,7 +2270,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     if (cells.length > 1) {
       // Fit the whole line across the screen, whatever the stage's shape.
       const vfov = (camera.fov * Math.PI) / 180;
-      const hfov = 2 * Math.atan(Math.tan(vfov / 2) * Math.max(camera.aspect, 0.5));
+      const hfov = 2 * Math.atan(Math.tan(vfov / 2) * Math.max(visibleAspect(), 0.5));
       const dist = Math.max((span + 5.6) / 2 / Math.tan(hfov / 2), 3.4 / Math.tan(vfov / 2));
       const at = (dx, dy, dz) => {
         const d = new THREE.Vector3(dx, dy, dz).normalize().multiplyScalar(dist);
@@ -1726,6 +2282,23 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       VIEWS.top = [at(0.001, 1, 0.001), new THREE.Vector3(cx, 0, -0.2)];
     }
     const v = VIEWS[name] || VIEWS.iso;
+    if (overlay !== "none") {
+      // Plan and flow views: frame the whole line plus its overlay (aisle, dimensions, in/out).
+      const box = lineBounds();
+      if (overlayGroup) box.union(new THREE.Box3().setFromObject(overlayGroup));
+      if (!box.isEmpty()) {
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        // Top view: square to the line, material flowing left to right.
+        const dir = name === "top" ? new THREE.Vector3(0, 1, 0.0001) : v[0].clone().sub(v[1]).normalize();
+        const vfov = (camera.fov * Math.PI) / 180;
+        const hfov = 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect);
+        const dist = (sphere.radius / Math.sin(Math.min(vfov, hfov) / 2)) * (name === "top" ? 0.8 : 0.72);
+        camera.position.copy(sphere.center).addScaledVector(dir, dist);
+        controls.target.copy(sphere.center);
+        controls.update();
+        return;
+      }
+    }
     camera.position.copy(v[0]);
     controls.target.copy(v[1]);
     controls.update();
@@ -1778,6 +2351,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
         stepIndex: c.stepIdx,
         step: c.steps[c.stepIdx] || null,
         cycles: c.cycles,
+        lastCycle: c.lastCycle,
       })),
     });
   }
@@ -1794,6 +2368,7 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       simTime += dt;
       conveyors.forEach((c) => c.update(dt));
       cells.forEach((c) => c.update(dt));
+      updateOverlay(dt);
     }
     controls.update();
     renderer.render(scene, camera);
@@ -1805,6 +2380,10 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
     const h = container.clientHeight || 500;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
+    // Centre the picture in the part of the stage the side panels leave free.
+    const shift = (insets.right - insets.left) / 2;
+    if (shift) camera.setViewOffset(w, h, shift, 0, w, h);
+    else camera.clearViewOffset();
     camera.updateProjectionMatrix();
     if (cells.length > 1) setView(currentView);
   }
@@ -1845,11 +2424,61 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       emit(true);
     },
     setRobotSize,
+    /**
+     * Put the user's chosen robot / end-of-arm tool on robot cell i:
+     * robot { name, brand, reachMm, payloadKg, collaborative }, eoat { name, kind? },
+     * accessories: ["changer" | "sensor" | "camera"].
+     * Pass null to go back to the planned robot.
+     */
+    setEquipment(i, eq) {
+      const c = cells[i];
+      if (!c) return;
+      if (!eq || (!eq.robot && !eq.eoat && !(eq.accessories && eq.accessories.length))) {
+        c.setModel(null);
+      } else {
+        const r = eq.robot;
+        const reachM = r ? (r.reachMm ? r.reachMm / 1000 : estimateReach(r.payloadKg)) : null;
+        c.setModel({
+          scale: reachM ? clamp(reachM / 1.45, 0.55, 1.7) : null,
+          paint: r ? brandPaint(r.brand || r.name, r.collaborative) : null,
+          label: r ? [r.name, r.payloadKg ? `${r.payloadKg} kg` : "", reachM ? `${Math.round(reachM * 1000)} mm` : ""].filter(Boolean).join(" · ") : eq.eoat ? eq.eoat.name : "",
+          eoat: eq.eoat ? eq.eoat.kind || eoatKind(eq.eoat.name) : null,
+          hasRobot: !!r,
+          reachM: reachM,
+          accessories: eq.accessories || [],
+        });
+      }
+      placeFence();
+      if (overlay !== "none") setOverlay(overlay);
+      reset();
+    },
     setView,
+    cellAt,
+    setHover,
+    /** Cell builder: show only chosen equipment (call before setPlan). */
+    setBuildMode(on) {
+      buildMode = !!on;
+      cells.forEach((c) => {
+        c.buildRobot(lastScaleAll());
+        c.fitZone();
+      });
+    },
+    /** Pixels covered by floating panels on the left and right of the stage. */
+    setInsets(left, right) {
+      insets.left = Math.max(0, Number(left) || 0);
+      insets.right = Math.max(0, Number(right) || 0);
+      resize();
+      setView(currentView);
+    },
+    /** "layout" (factory plan), "flow" (material flow) or "none" on the same live line. */
+    setOverlay,
     /** Fence the industrial robot cells: true / false for all, or one flag per cell. */
     setFencing(on) {
       fenceCells = Array.isArray(on) ? on.map(Boolean) : cells.map(() => !!on);
+      // Industrial robots (fenced) in yellow; cobots in white and blue.
+      cells.forEach((c, i) => c.setPaint(!!fenceCells[i]));
       placeFence();
+      if (overlay === "layout") setOverlay(overlay);
     },
     /** Show a photo of the user's manual process behind the line (null hides it). */
     setReference(url, label) {
@@ -1879,7 +2508,15 @@ export function createSimulation({ THREE, OrbitControls, container, onUpdate }) 
       clearReference();
       clearFence();
       disposeLine();
+      hoverRing.geometry.dispose();
+      hoverMat.dispose();
       controls.dispose();
+      if (envTexture) envTexture.dispose();
+      floorTex.dispose();
+      building.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) o.material.dispose();
+      });
       renderer.dispose();
       renderer.domElement.remove();
     },

@@ -143,14 +143,14 @@ const PartsManagement = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Spare Parts Management</h1>
           <p className="text-muted-foreground">
             Manage your spare parts inventory and track orders
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" size="sm" onClick={fetchParts} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -233,7 +233,7 @@ const PartsManagement = () => {
               {parts.map((part) => {
                 const status = getStockStatus(part.quantity);
                 return (
-                  <div key={part.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div key={part.id} className="flex flex-wrap items-center justify-between gap-3 p-4 border rounded-lg">
                     <div className="flex items-start gap-3">
                       <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
                       <div>

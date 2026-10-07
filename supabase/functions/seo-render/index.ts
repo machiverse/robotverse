@@ -34,6 +34,13 @@ import {
   brandFaq,
   type FaqItem,
   type RouteKind,
+  DIRECTORY_FILE,
+  directoryItemSeo,
+  directorySlug,
+  type DirectoryItem,
+  type DirectoryType,
+  applicationGuide,
+  applicationMeta,
 } from "../_shared/seoText.ts";
 
 const DEFAULT_OG = `${SITE_URL}/robotverse-logo.jpg`;
@@ -553,6 +560,7 @@ async function buildCollection(
       `<h1>${esc(clampWordsSafe(title))}</h1>` +
       `<p>${esc(description)}</p>` +
       linkList(items, `${count} listing${count === 1 ? "" : "s"}`) +
+      (kind === "robot-brand" ? linkList(await brandModels(label), `${label} robot models and specifications`) : "") +
       faqHtml(faq)
   );
 
@@ -861,6 +869,150 @@ async function buildStaticIndex(supabase: Client, kind: RouteKind, path: string)
   };
 }
 
+async function buildLoanProduct(supabase: Client, id: string, path: string): Promise<Snapshot> {
+  // deno-lint-ignore no-explicit-any
+  const { data: l } = (await supabase
+    .from("loan_products")
+    .select("product_name, description, loan_type, min_amount, max_amount, min_interest_rate, max_interest_rate, min_tenure_months, max_tenure_months, processing_fee_percentage, collateral_required, is_active")
+    .eq("id", id)
+    .maybeSingle()) as { data: any };
+  if (!l || l.is_active === false) return notFound(path);
+  const name = String(l.product_name || "Robot financing");
+  const inrL = (v: unknown) => (typeof v === "number" ? `₹${(v / 100000).toLocaleString("en-IN", { maximumFractionDigits: 1 })} L` : null);
+  const rate = l.min_interest_rate != null ? `${l.min_interest_rate}${l.max_interest_rate != null ? `–${l.max_interest_rate}` : ""}%` : null;
+  const title = clampTitle(`${name}: Industrial Robot & Machinery Loan | RobotVerse`);
+  const description = clampDescription(
+    `${name} for industrial robots and automation equipment in India${l.max_amount ? ` — up to ${inrL(l.max_amount)}` : ""}${rate ? `, interest ${rate}` : ""}${l.max_tenure_months ? `, up to ${l.max_tenure_months} months` : ""}.`
+  );
+  const trail = [{ name: "Home", path: "/" }, { name: "Financing", path: "/financing" }, { name, path }];
+  return simplePage({
+    path, title, description, h1: name, trail,
+    nodes: [{
+      "@type": "LoanOrCredit", name, description, url: canonicalFor(path), provider: sellerNode, currency: "INR",
+      ...(l.max_amount ? { amount: { "@type": "MonetaryAmount", currency: "INR", ...(l.min_amount ? { minValue: l.min_amount } : {}), maxValue: l.max_amount } } : {}),
+      ...(l.min_interest_rate != null ? { annualPercentageRate: l.min_interest_rate } : {}),
+      ...(l.max_tenure_months ? { loanTerm: { "@type": "QuantitativeValue", maxValue: l.max_tenure_months, unitCode: "MON" } } : {}),
+    }],
+    sections:
+      specTable([
+        ["Loan type", Array.isArray(l.loan_type) ? l.loan_type.join(", ") : null],
+        ["Amount", l.max_amount ? `${l.min_amount ? `${inrL(l.min_amount)} – ` : "up to "}${inrL(l.max_amount)}` : null],
+        ["Interest rate", rate],
+        ["Tenure", l.max_tenure_months ? `${l.min_tenure_months ?? 1}–${l.max_tenure_months} months` : null],
+        ["Processing fee", l.processing_fee_percentage != null ? `${l.processing_fee_percentage}%` : null],
+        ["Collateral", l.collateral_required == null ? null : l.collateral_required ? "Required" : "Not required"],
+      ]) +
+      (l.description ? `<p>${esc(stripTags(l.description).slice(0, 1500))}</p>` : "") +
+      linkList([{ url: "/financing", label: "All robot financing options" }, { url: "/robots", label: "Industrial robots for sale" }], "Related pages"),
+  });
+}
+
+async function buildLogisticsService(supabase: Client, id: string, path: string): Promise<Snapshot> {
+  // deno-lint-ignore no-explicit-any
+  const { data: g } = (await supabase
+    .from("logistics_services")
+    .select("service_name, service_type, description, coverage_areas, transport_modes, max_weight_kg, delivery_time_hours, insurance_included, tracking_available, special_handling, is_active")
+    .eq("id", id)
+    .maybeSingle()) as { data: any };
+  if (!g || g.is_active === false) return notFound(path);
+  const name = String(g.service_name || "Robot logistics");
+  const areas: string[] = Array.isArray(g.coverage_areas) ? g.coverage_areas.slice(0, 8) : [];
+  const title = clampTitle(`${name}: Industrial Robot Transport | RobotVerse`);
+  const description = clampDescription(
+    `${name} — ${g.service_type || "logistics"} for industrial robots and machinery${areas.length ? ` across ${areas.slice(0, 4).join(", ")}` : " in India"}${g.max_weight_kg ? `, up to ${g.max_weight_kg} kg` : ""}${g.insurance_included ? ", insured" : ""}.`
+  );
+  const trail = [{ name: "Home", path: "/" }, { name: "Logistics", path: "/logistics" }, { name, path }];
+  return simplePage({
+    path, title, description, h1: name, trail,
+    nodes: [{
+      "@type": "Service", name, description, url: canonicalFor(path), serviceType: g.service_type || "Industrial robot transport", provider: sellerNode,
+      areaServed: areas.length ? areas.map((a) => ({ "@type": "Place", name: a })) : { "@type": "Country", name: "India" },
+    }],
+    sections:
+      specTable([
+        ["Service type", g.service_type],
+        ["Transport", Array.isArray(g.transport_modes) ? g.transport_modes.join(", ") : null],
+        ["Coverage", areas.join(", ") || null],
+        ["Maximum weight", g.max_weight_kg ? `${g.max_weight_kg} kg` : null],
+        ["Delivery time", g.delivery_time_hours ? `${g.delivery_time_hours} hours` : null],
+        ["Insurance", g.insurance_included == null ? null : g.insurance_included ? "Included" : "Optional"],
+        ["Tracking", g.tracking_available ? "Available" : null],
+        ["Special handling", g.special_handling ? "Available" : null],
+      ]) +
+      (g.description ? `<p>${esc(stripTags(g.description).slice(0, 1500))}</p>` : "") +
+      linkList([{ url: "/logistics", label: "All robot logistics providers" }, { url: "/robots", label: "Industrial robots for sale" }], "Related pages"),
+  });
+}
+
+/* ---------------------------------------------------- directory model pages */
+
+// The catalogue files the website serves; cached per function instance.
+const catalogue: Partial<Record<"robots" | "tools" | "axes", Promise<DirectoryItem[]>>> = {};
+const loadCatalogue = (file: "robots" | "tools" | "axes") =>
+  (catalogue[file] ??= fetch(`${Deno.env.get("DIRECTORY_BASE_URL") ?? SITE_URL}/directory/${file}.json`)
+    .then((r) => (r.ok ? (r.json() as Promise<DirectoryItem[]>) : []))
+    .catch(() => {
+      delete catalogue[file];
+      return [] as DirectoryItem[];
+    }));
+
+/** Directory robot models of a brand, for links from the brand's listing page. */
+async function brandModels(label: string) {
+  const want = label.toLowerCase().split(" ")[0];
+  const list = await loadCatalogue("robots");
+  return list
+    .filter((i) => i.b.toLowerCase().split(" ")[0] === want)
+    .slice(0, 200)
+    .map((i) => ({ name: `${i.n}${i.p ? ` (${i.p} kg${i.r ? `, ${i.r} mm` : ""})` : ""}`, url: `/directory/robot/${directorySlug(i.n)}` }));
+}
+
+async function buildDirectoryItem(key: string, path: string): Promise<Snapshot> {
+  const [type, slugKey] = key.split("/") as [DirectoryType, string];
+  const list = await loadCatalogue(DIRECTORY_FILE[type]);
+  const it = list.find((i) => directorySlug(i.n) === slugKey);
+  if (!it) return notFound(path);
+  const seo = directoryItemSeo(type, it);
+  const same = list
+    .filter((i) => i.b === it.b && i.id !== it.id)
+    .sort((a, b) => Math.abs((a.p ?? 0) - (it.p ?? 0)) - Math.abs((b.p ?? 0) - (it.p ?? 0)))
+    .slice(0, 24)
+    .map((i) => ({ name: i.n, url: `/directory/${type}/${directorySlug(i.n)}` }));
+  const brandSlugKey = directorySlug(it.b.split(" ")[0]);
+  const trail = [{ name: "Home", path: "/" }, { name: "Directory", path: "/directory" }, { name: it.n, path }];
+  const props = seo.specs
+    .filter(([k, v]) => v && k !== "Manufacturer" && k !== "Model")
+    .map(([k, v]) => ({ "@type": "PropertyValue", name: k, value: v }));
+  return simplePage({
+    path, title: seo.title, description: seo.description, h1: `${it.n} specifications`, trail,
+    nodes: [
+      {
+        "@type": "Product",
+        name: it.n,
+        brand: { "@type": "Brand", name: it.b },
+        model: it.m,
+        sku: it.id,
+        category: seo.kindWord,
+        description: seo.description,
+        url: canonicalFor(path),
+        additionalProperty: props,
+      },
+      faqNode(seo.faq),
+    ],
+    sections:
+      specTable(seo.specs.map(([k, v]) => [k, v])) +
+      faqHtml(seo.faq) +
+      linkList(
+        [
+          { url: `/robots/brand/${brandSlugKey}`, label: `Used ${it.b} robots for sale` },
+          { url: `/parts/brand/${brandSlugKey}`, label: `${it.b} spare parts` },
+          { url: "/automation-studio/build", label: "Try it in the 3D robot cell builder" },
+        ],
+        "Buy, service or simulate",
+      ) +
+      linkList(same, `Other ${it.b} models`),
+  });
+}
+
 const DEFAULT_LINKS = [
   { url: "/robots", label: "Industrial robots for sale" },
   { url: "/parts", label: "Robot spare parts" },
@@ -874,6 +1026,26 @@ const PAGE_LINKS: Partial<Record<RouteKind, Array<{ url: string; label: string }
     { url: "/robots", label: "Industrial robots for sale" },
     { url: "/directory", label: "Robotics directory" },
     { url: "/services", label: "Robot integrators and service providers" },
+  ],
+  "automation-studio-build": [
+    { url: "/automation-studio/playbook", label: "Engineer's playbook and calculators" },
+    { url: "/automation-studio/3d", label: "3D robot cell simulator" },
+    { url: "/robots", label: "Industrial robots for sale" },
+    { url: "/directory", label: "Robots, grippers and tools directory" },
+  ],
+  "automation-studio-playbook": [
+    { url: "/automation-studio/build", label: "Build a robot cell in 3D" },
+    { url: "/automation-studio", label: "Automation Studio" },
+    { url: "/robots", label: "Industrial robots for sale" },
+    { url: "/parts", label: "Robot spare parts" },
+  ],
+  "robot-news": [
+    { url: "/robobook", label: "RoboBook articles" },
+    { url: "/robots", label: "Industrial robots for sale" },
+  ],
+  "training-poster": [
+    { url: "/directory?tab=training", label: "Robotics training directory" },
+    { url: "/robot-talent", label: "Robotics jobs" },
   ],
   "automation-studio-3d": [
     { url: "/automation-studio", label: "Automation Studio process planner" },
@@ -920,11 +1092,13 @@ const PAGE_LINKS: Partial<Record<RouteKind, Array<{ url: string; label: string }
 
 function buildInfoPage(kind: RouteKind, path: string, extraNode?: Record<string, unknown>): Snapshot {
   const meta = staticMeta(kind);
+  const faq = INFO_FAQ[kind] ?? [];
   const trail = [{ name: "Home", path: "/" }, { name: clampWordsSafe(meta.title), path }];
   const bodyHtml = page(
     crumbHtml(trail) +
       `<h1>${esc(clampWordsSafe(meta.title))}</h1>` +
       `<p>${esc(meta.description)}</p>` +
+      faqHtml(faq) +
       linkList(PAGE_LINKS[kind] ?? DEFAULT_LINKS, "Related pages")
   );
   return {
@@ -940,10 +1114,55 @@ function buildInfoPage(kind: RouteKind, path: string, extraNode?: Record<string,
         ? { name: meta.title, description: meta.description, url: canonicalFor(path), ...extraNode }
         : { "@type": "WebPage", name: meta.title, description: meta.description, url: canonicalFor(path) },
       breadcrumbNode(trail),
+      faqNode(faq),
     ]),
     bodyHtml,
   };
 }
+
+/**
+ * Short factual answers for information pages — what AI assistants quote. Only facts about how
+ * RobotVerse works and standard engineering rules; no prices or claims that change.
+ */
+const INFO_FAQ: Partial<Record<RouteKind, FaqItem[]>> = {
+  about: [
+    { question: "What is RobotVerse?", answer: "RobotVerse is an Indian B2B marketplace for new, used and refurbished industrial robots, robot spare parts, automation services, logistics, financing and auctions, with free tools to plan robot cells in 3D." },
+    { question: "Where is RobotVerse based?", answer: "RobotVerse is based in Tamil Nadu, India, and serves buyers and sellers across India." },
+    { question: "Which robot brands can I find on RobotVerse?", answer: "Listings and the robotics directory cover FANUC, ABB, KUKA, Yaskawa (Motoman), Kawasaki, Universal Robots, Nachi, Stäubli, Denso, Epson and other brands." },
+    { question: "How do buyers contact sellers?", answer: "Seller contact details are masked; buyers send a quotation request or enquiry through RobotVerse." },
+  ],
+  "automation-studio": [
+    { question: "What does RobotVerse Automation Studio do?", answer: "It turns a description of a manual job into a robot automation plan — robots, grippers and tools, cell layout, safety, cycle time, budget and payback — and shows it as a live 3D simulation." },
+    { question: "Which jobs can Automation Studio plan?", answer: "Pick and place, bin picking, CNC and injection moulding machine tending, press tending, MIG/MAG, TIG and spot welding, grinding, polishing, painting, glue and sealant dispensing, assembly, screw driving, inspection, filling, capping, labelling, packing and palletizing." },
+    { question: "Is Automation Studio free?", answer: "Yes. Planning and the 3D simulation are free to use; quotations come from sellers and integrators on RobotVerse." },
+  ],
+  "automation-studio-3d": [
+    { question: "How do I simulate a robot cell in 3D?", answer: "Type the steps of your process (for example load, weld, unload, palletize) and the simulator builds the robot, stations and conveyors and runs the cycle in your browser." },
+  ],
+  "automation-studio-build": [
+    { question: "How do I build a robot cell online?", answer: "Choose a robot, add its end-of-arm tool and accessories, give it a job and choose safety (fence or open cobot cell). Each choice appears in the 3D cell, which then runs and reports cycle time, parts per hour, budget and payback." },
+    { question: "Does the cell builder check if a gripper suits the robot?", answer: "Yes. It warns when the tool and accessories are too heavy for the robot's payload, when a torch or spindle is put on a SCARA, delta or 4-axis palletizer, when a cobot gripper is put on a large robot, and when a tool is made for another robot brand." },
+    { question: "Can I add a job that is not in the list?", answer: "Yes. Type the job in your own words; it is matched to robot tasks with the tool, payload, stations and typical cycle time, and built in 3D." },
+  ],
+  "automation-studio-playbook": [
+    { question: "How much payload margin should an industrial robot have?", answer: "Add the part, gripper, fingers and cables, then allow about 25% extra for acceleration and wear. Also check the wrist moment (weight × offset from the flange) and inertia limits." },
+    { question: "How is takt time calculated?", answer: "Takt time = net available production time ÷ parts required. For example 2 shifts of 7 net hours for 600 parts gives 84 seconds per part. Robots needed = robot cycle ÷ takt, rounded up." },
+    { question: "How far must a light curtain be from a robot?", answer: "ISO 13855 gives S = K × T + C: K = 2000 mm/s (1600 mm/s if S exceeds 500 mm), T = robot stopping time plus curtain response time, C = 8 × (resolution − 14 mm)." },
+    { question: "What camera resolution does robot vision need?", answer: "Plan about 3–4 pixels across the smallest feature or defect: pixels across = field of view ÷ smallest feature × 4." },
+    { question: "Why use a dual gripper for CNC machine tending?", answer: "A dual gripper removes the finished part and loads the next blank in one visit, so the machine door is open for less time; published cases show cycle times cut by around 40%." },
+    { question: "Can a SCARA or palletizing robot carry a welding torch?", answer: "No. Torches, spindles and screwdrivers must be angled to the work, which needs a 6-axis wrist; SCARA, delta and 4-axis palletizing robots keep the tool pointing down." },
+  ],
+  directory: [
+    { question: "What is in the RobotVerse robotics directory?", answer: "Specifications of industrial robot models from the major manufacturers, end-of-arm tools such as grippers, welding torches and vacuum cups, external axes, robot spare parts and components, and robotics training programmes in India." },
+  ],
+  financing: [
+    { question: "Can I finance a used industrial robot in India?", answer: "Yes. RobotVerse lists loan and leasing products from finance providers for new and used robots and automation equipment; compare amount, interest range and tenure, then apply through the provider." },
+  ],
+  logistics: [
+    { question: "How are industrial robots shipped?", answer: "Robots are shipped on pallets or crates with the arm in its transport position, often with special handling and insurance; RobotVerse lists logistics providers with coverage, weight limits and tracking." },
+  ],
+};
+
 
 
 /* ----------------------------------------------------- additional routes */
@@ -1242,24 +1461,66 @@ async function buildSellerRobots(supabase: Client, sellerId: string, path: strin
   });
 }
 
-async function buildApplication(key: string, path: string): Promise<Snapshot> {
-  const label = titleCaseSlug(key);
-  const title = clampTitle(`${label} Robots for Sale in India | RobotVerse`);
-  const description = clampDescription(
-    `Used and refurbished industrial robots for ${label.toLowerCase()} in India. Compare payload, reach, brand and price, and request quotes from verified sellers.`
-  );
+async function buildApplication(supabase: Client, key: string, path: string): Promise<Snapshot> {
+  const g = applicationGuide(key);
+  const label = g?.label ?? titleCaseSlug(key);
+  const terms = g?.terms ?? [label.toLowerCase()];
+  const sup = await suppressedUsers(supabase);
+  const or = terms.flatMap((t) => [`name.ilike.%${t}%`, `description.ilike.%${t}%`, `robot_type.ilike.%${t}%`]).join(",");
+  const { data } = await supabase
+    .from("robots")
+    .select("id, brand, model, name, payload_capacity, reach")
+    .or(or)
+    .eq("availability", "available")
+    .not("seller_id", "in", notIn(sup))
+    .order("updated_at", { ascending: false })
+    .limit(30);
+  // deno-lint-ignore no-explicit-any
+  const listings = ((data ?? []) as any[]).map((r) => ({ name: [r.brand, r.model || r.name].filter(Boolean).join(" ") || "Robot", url: `/robots/${r.id}` }));
+  const models = g?.ap
+    ? (await loadCatalogue("robots"))
+        .filter((i) => (i.ap ?? []).includes(g.ap!))
+        .sort((x, y) => (y.p ?? 0) - (x.p ?? 0))
+        .slice(0, 40)
+        .map((i) => ({ name: `${i.n}${i.p ? ` (${i.p} kg${i.r ? `, ${i.r} mm` : ""})` : ""}`, url: `/directory/robot/${directorySlug(i.n)}` }))
+    : [];
+  const meta = g
+    ? applicationMeta(g)
+    : {
+        title: clampTitle(`${label} Robots for Sale in India | RobotVerse`),
+        description: clampDescription(`Used and refurbished industrial robots for ${label.toLowerCase()} in India. Compare payload, reach, brand and price, and request quotes from verified sellers.`),
+      };
   const trail = [{ name: "Home", path: "/" }, { name: "Industrial Robots", path: "/robots" }, { name: `${label} robots`, path }];
+  const list = (items: string[]) => `<ul>${items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  const guideHtml = g
+    ? `<section><h2>What a ${esc(label.toLowerCase())} robot does</h2><p>${esc(g.does)}</p><p><strong>${esc(g.key)}</strong></p></section>` +
+      `<section><h2>How to choose a ${esc(label.toLowerCase())} robot</h2>${list(g.choose)}</section>` +
+      `<section><h2>Equipment around the robot</h2>${list(g.around)}</section>` +
+      `<section><h2>Typical cycle time</h2><p>${esc(g.cycle)}</p></section>` +
+      `<section><h2>Also searched as</h2><p>${esc(g.aliases.join(", "))}</p></section>`
+    : "";
+  const faq = g?.faq ?? [];
   return simplePage({
-    path, title, description, h1: `${label} Robots`, trail,
-    nodes: [{ "@type": "CollectionPage", name: title, description, url: canonicalFor(path) }],
-    sections: linkList(
-      [
-        { url: "/robots", label: "All industrial robots" },
-        { url: "/automation-studio/3d", label: `Simulate a ${label.toLowerCase()} cell in 3D` },
-        { url: "/services", label: "Robot integrators" },
-      ],
-      "Related pages"
-    ),
+    path, title: meta.title, description: meta.description, h1: `${label} Robots`, trail,
+    nodes: [
+      { "@type": "CollectionPage", name: meta.title, description: meta.description, url: canonicalFor(path), ...(g ? { keywords: g.aliases.join(", ") } : {}) },
+      listings.length ? itemListNode(listings) : null,
+      faqNode(faq),
+    ],
+    sections:
+      guideHtml +
+      linkList(listings, listings.length ? `${label} robots for sale` : "") +
+      linkList(models, models.length ? `Robot models used for ${label.toLowerCase()}` : "") +
+      faqHtml(faq) +
+      linkList(
+        [
+          { url: "/robots", label: "All industrial robots" },
+          { url: "/automation-studio/build", label: `Build a ${label.toLowerCase()} robot cell in 3D` },
+          { url: "/automation-studio/playbook", label: "Automation engineer's playbook" },
+          { url: "/services", label: "Robot integrators" },
+        ],
+        "Related pages",
+      ),
   });
 }
 
@@ -1298,10 +1559,24 @@ async function render(supabase: Client, rawPath: string): Promise<Snapshot> {
       return buildInfoPage(match.kind, path);
     case "automation-studio":
     case "automation-studio-3d":
+    case "automation-studio-build":
       return buildInfoPage(match.kind, path, {
         ...webAppNode,
-        ...(match.kind === "automation-studio-3d" ? { name: "Automation Studio 3D" } : { name: "Automation Studio" }),
+        name: match.kind === "automation-studio-3d" ? "Automation Studio 3D" : match.kind === "automation-studio-build" ? "Robot Cell Builder" : "Automation Studio",
       });
+    case "automation-studio-playbook":
+      return buildInfoPage(match.kind, path, { "@type": "WebPage", about: "Industrial robot automation engineering" });
+    case "robot-news":
+      return buildInfoPage(match.kind, path, { "@type": "CollectionPage" });
+    case "training-poster":
+      return buildInfoPage(match.kind, path, { "@type": "WebPage" });
+    case "financing-detail":
+      return await buildLoanProduct(supabase, match.key!, path);
+    case "directory-item":
+      return await buildDirectoryItem(match.key!, path);
+    case "logistics-detail":
+      return await buildLogisticsService(supabase, match.key!, path);
+
     case "directory":
       return buildInfoPage(match.kind, path, { "@type": "CollectionPage" });
     case "auction":
@@ -1319,7 +1594,7 @@ async function render(supabase: Client, rawPath: string): Promise<Snapshot> {
     case "seller-robots":
       return await buildSellerRobots(supabase, match.key!, path);
     case "robot-application":
-      return await buildApplication(match.key!, path);
+      return await buildApplication(supabase, match.key!, path);
     case "robot":
       return await buildRobotDetail(supabase, match.key!, path);
     case "part":

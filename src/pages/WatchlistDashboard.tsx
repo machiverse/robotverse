@@ -294,7 +294,7 @@ const WatchlistDashboard = () => {
         <div className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-2xl font-bold mb-4">Login Required</h1>
           <p className="text-muted-foreground mb-6">Please log in to view your watchlist.</p>
-          <Button onClick={() => navigate('/auth')}>Login</Button>
+          <Button onClick={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true })}>Login</Button>
         </div>
       </div>
     );
@@ -306,7 +306,7 @@ const WatchlistDashboard = () => {
       
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <Heart className="w-8 h-8 text-red-500" />
@@ -318,7 +318,7 @@ const WatchlistDashboard = () => {
           </div>
           
           {/* Filters and Sort */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value as any)}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Calendar, Filter, BarChart3, Users, Bot, Package } from "lucide-react";
+import { FileText, Download, Calendar, BarChart3, Users, Bot, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
@@ -119,19 +119,15 @@ const Reports = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
           <p className="text-muted-foreground">
             Generate and download comprehensive business reports
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
-          <Button size="sm">
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={generateCSVReport} disabled={loading}>
             <FileText className="h-4 w-4 mr-2" />
             Generate Report
           </Button>
@@ -246,7 +242,7 @@ const Reports = () => {
         <CardContent>
           <div className="space-y-4">
             {reports.map((report) => (
-              <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg">
+              <div key={report.id} className="flex flex-wrap items-center justify-between gap-3 p-4 border rounded-lg">
                 <div className="flex items-start gap-3">
                   <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>

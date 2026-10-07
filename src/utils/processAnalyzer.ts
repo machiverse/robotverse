@@ -346,6 +346,12 @@ const TEMPLATES: Record<string, Template> = {
     ["Robot deposits metal layer by layer from CAD", "Near-net shape, less machining", "Unattended build overnight"],
     "ABB IRB 2600-20/1.65", "20 kg", "1650 mm", "OmniCore", ["Additive Welding Torch", "Layer Height Sensor", "Two-Axis Positioner"],
     { risk: "High" }),
+  concrete3dp: t("Construction 3D Concrete Printing", "3DCP", "full",
+    ["Walls built by hand from blocks, formwork and mortar", "Crew-dependent quality and slow cycle per wall", "Heavy lifting and work at height"],
+    ["Gantry / robot extrudes concrete layer by layer from the CAD path", "Closed-loop nozzle height, flow and pressure control", "PLC sequence with interlocks, fault stop and auto-recovery"],
+    "3-axis gantry printer (or ABB IRB 6700 on a track)", "150 kg print head", "3.2 × 2.6 × 1.2 m build volume", "Siemens S7-1500 PLC + HMI",
+    ["Concrete Print Nozzle + Pinch Valve", "Mixer, Hopper & Piston Pump", "Laser Height / Flow / Pressure Sensors"],
+    { risk: "High" }),
   plasmacut: t("Plasma & Laser Cutting", "Cut", "full",
     ["Holes and profiles cut with a hand torch", "Rough edges need grinding", "Fume and spark exposure"],
     ["Robot follows the 3D cut path", "Clean, repeatable edges", "Fume extraction at the torch"],
@@ -568,6 +574,11 @@ const PROCESS_KEYWORDS: Record<string, keyof typeof TEMPLATES> = {
   weigh: "label", "function test": "test", grading: "sort", grade: "sort", reject: "sort",
   bag: "bag", bagging: "bag", sack: "bag", "case pack": "pack",
   "stud weld": "stud", "stud welding": "stud",
+  "concrete print": "concrete3dp", "concrete 3d": "concrete3dp", "3d concrete": "concrete3dp", "3dcp": "concrete3dp",
+  "construction 3d": "concrete3dp", "construction print": "concrete3dp", "for construction": "concrete3dp", "printing concrete": "concrete3dp",
+  "depositing concrete": "concrete3dp", "deposit concrete": "concrete3dp", "deposits concrete": "concrete3dp", "extruding concrete": "concrete3dp",
+  "concrete extru": "concrete3dp", "mortar print": "concrete3dp", "cement print": "concrete3dp", "printed wall": "concrete3dp",
+  "print a wall": "concrete3dp", "print the wall": "concrete3dp", "house print": "concrete3dp", "printed house": "concrete3dp",
   additive: "waam", "3d print": "waam", waam: "waam", "wire arc": "waam", "metal deposition": "waam", "weld build": "waam", "build up": "waam",
   plasma: "plasmacut", "laser cut": "plasmacut", "laser cutting": "plasmacut", "profile cut": "plasmacut",
   waterjet: "waterjet", "water jet": "waterjet",
@@ -607,6 +618,17 @@ export const matchTemplateIds = (description: string): string[] => {
     .toLowerCase()
     // "…on pallets for dispatch" states a purpose, not an extra station.
     .replace(/\b(ready )?for (dispatch|despatch|shipping|shipment|delivery|sale|storage)\b/g, " ")
+    // Quality words, not processes: "food grade" is not grading; "iron castings" are parts, not die casting.
+    .replace(/\b(food|pharma|medical|industrial|export)[ -]grade\b/g, " ")
+    .replace(/\b(?<!die )(aluminium|aluminum|iron|steel|zinc|brass|sand)?\s*castings\b/g, " parts")
+    // "part weight 4 kg" / "shafts weigh 6 kg" state a mass, not a weighing station.
+    .replace(/\bweigh(t|ts|s)\b/g, " ")
+    .replace(/\bweigh\b(?= (about |around |approx |approximately |up to |upto |max |maximum |only |less than |under )?\d)/g, " ")
+    // Cleaning up after welding is finishing: "grind weld spatter" is not a welding station.
+    .replace(/\bweld(ing)? (spatter|splatter|slag|beads?|seams?|joints?|marks?|scale)\b(?=[^.]*)/g, (m, _i, what, offset, str) =>
+      /\b(grind|grinding|clean|cleaning|remove|removing|polish|polishing|dress|dressing|blend|blending|deburr|deburring|chip|chipping|brush|brushing|sand|sanding)\b[^.]{0,30}$/.test(str.slice(Math.max(0, offset - 40), offset)) ? ` ${what}` : m)
+    // Raw billets going into a machine tool are machining blanks, not forging.
+    .replace(/\bbillets?\b(?=[^.]*\b(cnc|lathe|machining|mill|milling|turning|machine)\b)/g, "blanks")
     // Picking parts off a conveyor is machine loading, not warehouse order picking.
     .replace(/\bpick(s|ed|ing)?\b((?: [a-z]+){0,3}) from (the )?(conveyor|belt|line)/g, "load$2 from the $4")
     .replace(/[^a-z0-9 ]+/g, " ")
@@ -640,8 +662,11 @@ export const matchTemplateIds = (description: string): string[] => {
     stack: ["palletize", "depal", "bag", "brick", "crate", "battery"],
     cnc: ["mill", "turn", "route"],
     assembly: ["screw", "rivet", "battery", "harness", "bearing"],
-    dispense: ["sole", "icing"],
-    inspect: ["vision", "measure", "xray", "leak"],
+    dispense: ["sole", "icing", "concrete3dp"],
+    inspect: ["vision", "measure", "xray", "leak", "concrete3dp"],
+    // Concrete printing is its own system: its sensors, pump and layers are not separate stations.
+    waam: ["concrete3dp"],
+    brick: ["concrete3dp"],
     test: ["pipette", "leak", "xray"],
     polish: ["deflash", "blast"],
     pick: ["binpick", "kit", "food", "fruit", "parcel"],

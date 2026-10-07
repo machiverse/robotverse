@@ -11,13 +11,24 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import HeroImageSlider, { HERO_SLIDES, useHeroSlides } from "@/components/hero/HeroImageSlider";
+import HeroImageSlider, { useHeroSlides } from "@/components/hero/HeroImageSlider";
 import HeroWeldSparks from "@/components/hero/HeroWeldSparks";
 import HeroEmbers from "@/components/hero/HeroEmbers";
+import { Bevel, CornerMarks, DecodeText, PixelArrow, PixelDot } from "@/components/hero/HeroConsole";
+import { HERO_SLIDE_MS } from "@/components/hero/HeroImageSlider";
 
 const HERO_TITLE = "Your Complete Robotics Solution";
 const HERO_SUBTITLE =
   "Buy Industrial Robots with Spare Parts, Services, Logistics & Finance – All in One Platform";
+
+/** What each hero photograph shows, for the console labels and readout. */
+const SLIDE_META = [
+  { name: "Arc Welding", code: "WLD", payload: "6–25 kg", reach: "1.4–2.0 m", axes: "6-axis" },
+  { name: "Pick & Place", code: "PNP", payload: "3–20 kg", reach: "0.9–1.8 m", axes: "6-axis / Delta" },
+  { name: "Palletizing", code: "PAL", payload: "100–800 kg", reach: "2.4–3.2 m", axes: "4 / 6-axis" },
+  { name: "Assembly Line", code: "ASM", payload: "10–210 kg", reach: "1.4–2.7 m", axes: "6-axis" },
+  { name: "Machine Tending", code: "MTD", payload: "7–35 kg", reach: "0.9–1.8 m", axes: "6-axis" },
+] as const;
 
 /** Fade + 8px rise, 60ms stagger, once on mount. */
 const enter = (index: number) => ({
@@ -124,153 +135,244 @@ const EnhancedHero = () => {
     navigate(`/robots?${params.toString()}`);
   };
 
+  const meta = SLIDE_META[slideIndex % SLIDE_META.length];
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const field =
+    "h-11 rounded-none border-[hsl(var(--rv-console-line))] bg-[hsl(var(--rv-console-bg)/0.55)] text-sm text-[hsl(var(--rv-console-ink))] placeholder:text-[hsl(var(--rv-console-ink)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--rv-console-ink)/0.6)] focus-visible:ring-offset-0";
+  const label = "mb-1.5 block font-mono text-[10px] uppercase tracking-[0.16em] text-[hsl(var(--rv-console-ink)/0.6)]";
+
   return (
-    <section className="relative isolate flex w-full items-center overflow-hidden min-h-[80vh] pt-20 pb-12 md:min-h-[88vh] md:pt-24 md:pb-20 lg:min-h-[92vh] lg:pt-28 lg:pb-24">
-      {/* Full-bleed photographic industrial robot slideshow */}
-      <HeroImageSlider index={slideIndex} reducedMotion={reducedMotion} />
-
-      {/* Readability overlays */}
+    <section className="relative bg-[hsl(var(--rv-console-bg))] p-2.5 md:p-4" aria-label="RobotVerse industrial robot marketplace">
+      {/* Console window: the photographs sit inside a cut-corner frame */}
       <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-black/75 via-black/60 to-black/80 lg:hidden"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-10 hidden bg-gradient-to-r from-black/80 via-black/40 to-black/5 lg:block"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-32 bg-gradient-to-t from-background to-transparent"
-      />
+        className="relative isolate flex min-h-[86vh] flex-col overflow-hidden text-[hsl(var(--rv-console-ink))] md:min-h-[88vh]"
+        style={{
+          clipPath:
+            "polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px)",
+        }}
+      >
+        <HeroImageSlider index={slideIndex} reducedMotion={reducedMotion} />
+        {/* Readability: navy tint rather than black, stronger on the copy side */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-10 bg-[hsl(222_47%_6%/0.62)] lg:hidden" />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-10 hidden bg-gradient-to-r from-[hsl(222_47%_6%/0.9)] via-[hsl(222_47%_6%/0.45)] to-[hsl(222_47%_6%/0.05)] lg:block"
+        />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-40 bg-gradient-to-t from-[hsl(222_47%_6%/0.85)] to-transparent" />
 
-      {/* Weld spatter overlay, active on the welding slide only */}
-      <HeroWeldSparks active={!reducedMotion && slideIndex === 0} />
+        <HeroWeldSparks active={!reducedMotion && slideIndex === 0} />
+        <HeroEmbers />
+        <CornerMarks inset={14} className="z-20" />
 
-      {/* Screen-wide ambient ember drift (above overlays, below copy) */}
-      <HeroEmbers />
-
-      {/* Slide indicators — bottom-right, desktop only */}
-      {!reducedMotion && (
-        <div className="absolute bottom-8 right-24 z-20 hidden items-center gap-2 md:flex lg:right-28">
-          {HERO_SLIDES.map((slide, i) => (
-            <button
-              key={slide.src}
-              type="button"
-              aria-label={`Show slide ${i + 1}`}
-              aria-current={i === slideIndex}
-              onClick={() => setSlideIndex(i)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === slideIndex ? "w-7 bg-white/70" : "w-1.5 bg-white/30 hover:bg-white/50"
-              }`}
-            />
-          ))}
+        {/* Top telemetry line */}
+        <div className="relative z-20 flex items-center justify-between gap-4 px-7 pt-7 font-mono text-[11px] uppercase tracking-[0.16em] md:px-10 md:pt-9">
+          <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-[hsl(var(--rv-console-ink)/0.7)]">
+            <PixelDot className="text-emerald-400" />
+            <span className="hidden sm:inline">RV/Live · </span>{pad(slideIndex + 1)} / {pad(SLIDE_META.length)}
+          </span>
+          <DecodeText text={`${meta.code} · ${meta.name}`} className="truncate whitespace-nowrap text-[hsl(var(--rv-console-ink))]" />
         </div>
-      )}
 
+        {/* Copy, search and actions */}
+        <div className="relative z-20 flex flex-1 items-center">
+          <div className="container mx-auto grid w-full gap-10 px-6 pb-28 pt-10 md:px-10 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-end lg:pb-32">
+            <div className="max-w-3xl">
+              <p className="rv-hero-enter mb-5 flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.18em] text-[hsl(var(--rv-console-ink)/0.75)]" style={enter(0)}>
+                <PixelDot />
+                India&apos;s industrial robot marketplace
+              </p>
+              <h1
+                className="rv-hero-enter text-[34px] font-semibold uppercase leading-[1.02] tracking-[-0.01em] text-[hsl(var(--rv-console-ink))] sm:text-5xl lg:text-[64px]"
+                style={enter(1)}
+              >
+                {HERO_TITLE}
+              </h1>
+              <p
+                className="rv-hero-enter mt-5 max-w-[56ch] text-base font-light leading-relaxed text-[hsl(var(--rv-console-ink)/0.7)] sm:text-lg"
+                style={enter(2)}
+              >
+                {HERO_SUBTITLE}
+              </p>
 
-      <div className="container relative z-20 mx-auto w-full px-4">
-        <div className="max-w-4xl">
-          <h1
-            className="rv-hero-enter text-3xl font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-5xl lg:text-7xl"
-            style={enter(0)}
-          >
-            {HERO_TITLE}
-          </h1>
-          <p
-            className="rv-hero-enter mt-3 max-w-[58ch] text-base leading-[1.5] text-white/80 sm:mt-4 sm:text-lg lg:text-xl"
-            style={enter(1)}
-          >
-            {HERO_SUBTITLE}
-          </p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSearch();
+                }}
+                className="rv-hero-enter mt-8"
+                style={enter(3)}
+              >
+                <Bevel cut={10} fill="hsl(var(--rv-console-bg) / 0.6)" className="backdrop-blur-md">
+                  <div className="grid gap-3 p-4 sm:p-5">
+                    <div>
+                      <label htmlFor="hero-search" className={label}>
+                        Search
+                      </label>
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--rv-console-ink)/0.55)]" />
+                        <Input
+                          id="hero-search"
+                          aria-label="Search robots, parts, and services"
+                          placeholder="Robot model, brand, spare part, service…"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className={`${field} pl-9`}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                      <div className="min-w-0">
+                        <span className={label}>Category</span>
+                        <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={loading}>
+                          <SelectTrigger aria-label="Select category" className={`${field} w-full min-w-0 disabled:opacity-60`}>
+                            <SelectValue placeholder="All Categories" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="min-w-0">
+                        <span className={label}>Location</span>
+                        <Select value={selectedLocation} onValueChange={setSelectedLocation} disabled={loading}>
+                          <SelectTrigger aria-label="Select location" className={`${field} w-full min-w-0 disabled:opacity-60`}>
+                            <SelectValue placeholder="All Locations" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {locations.map((location) => (
+                              <SelectItem key={location} value={location}>
+                                {location}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        type="submit"
+                        aria-label="Perform search"
+                        className="group h-11 rounded-none px-6 font-mono text-xs uppercase tracking-[0.16em] active:scale-[0.98]"
+                      >
+                        <Search className="mr-2 h-4 w-4" /> Search
+                      </Button>
+                    </div>
+                  </div>
+                </Bevel>
+              </form>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSearch();
-            }}
-            className="mt-4 w-full min-w-0 rounded-2xl border border-white/20 bg-white/10 p-3.5 backdrop-blur-md sm:mt-6 sm:p-5"
-          >
-            <div className="grid grid-cols-1 gap-3">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-                <Input
-                  aria-label="Search robots, parts, and services"
-                  placeholder="Search robots, parts, services..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-11 rounded-xl border-white/25 bg-white/15 pl-9 text-sm text-white placeholder:text-white/60 focus-visible:ring-white/40"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                  disabled={loading}
+              <div className="rv-hero-enter mt-6 flex flex-col gap-3 sm:flex-row" style={enter(4)}>
+                <Link
+                  to="/robots"
+                  className="group rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--rv-console-ink))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--rv-console-bg))]"
                 >
-                  <SelectTrigger
-                    aria-label="Select category"
-                    className="h-11 w-full min-w-0 rounded-xl border-white/25 bg-white/15 text-sm text-white disabled:opacity-60"
-                  >
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={selectedLocation}
-                  onValueChange={setSelectedLocation}
-                  disabled={loading}
+                  <Bevel cut={8} edge="hsl(var(--rv-console-ink))" fill="hsl(var(--rv-console-ink))">
+                    <span className="flex items-center justify-center gap-3 px-7 py-4 font-mono text-xs font-medium uppercase tracking-[0.16em] text-[hsl(var(--rv-console-bg))] transition-opacity duration-150 group-hover:opacity-90 group-active:scale-[0.98]">
+                      <PixelArrow /> Explore robots
+                    </span>
+                  </Bevel>
+                </Link>
+                <Link
+                  to="/auth"
+                  className="group rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--rv-console-ink))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--rv-console-bg))]"
                 >
-                  <SelectTrigger
-                    aria-label="Select location"
-                    className="h-11 w-full min-w-0 rounded-xl border-white/25 bg-white/15 text-sm text-white disabled:opacity-60"
-                  >
-                    <SelectValue placeholder="All Locations" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem key={location} value={location}>
-                        {location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Bevel cut={8} fill="hsl(var(--rv-console-bg) / 0.35)" className="backdrop-blur-sm">
+                    <span className="flex items-center justify-center gap-3 px-7 py-4 font-mono text-xs font-medium uppercase tracking-[0.16em] text-[hsl(var(--rv-console-ink))] transition-colors duration-150 group-hover:bg-[hsl(var(--rv-console-ink)/0.08)]">
+                      <PixelArrow /> Start selling
+                    </span>
+                  </Bevel>
+                </Link>
               </div>
-
-              <Button type="submit" className="h-11 w-full rounded-xl text-sm" aria-label="Perform search">
-                <Search className="mr-2 h-4 w-4" /> Search
-              </Button>
             </div>
-          </form>
 
-          <div className="mt-4 flex flex-col gap-2.5 sm:mt-6 sm:flex-row sm:items-center sm:gap-4">
-            <Button
-              size="lg"
-              className="h-auto bg-white px-6 py-3 text-base text-neutral-900 hover:bg-white/90"
-              asChild
-            >
-              <Link to="/robots">Explore Robots</Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="h-auto border-white/40 bg-transparent px-6 py-3 text-base text-white hover:bg-white/10 hover:text-white"
-              asChild
-            >
-              <Link to="/auth">Start Selling</Link>
-            </Button>
+            {/* Readout for the robot application in the current photograph */}
+            <aside className="hidden lg:block" aria-label="Application shown">
+              <Bevel cut={10} fill="hsl(var(--rv-console-bg) / 0.55)" className="backdrop-blur-md">
+                <dl className="divide-y divide-[hsl(var(--rv-console-line))] font-mono text-[11px] uppercase tracking-[0.14em]">
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[hsl(var(--rv-console-ink)/0.55)]">Application</dt>
+                    <dd>
+                      <DecodeText text={meta.name} />
+                    </dd>
+                  </div>
+                  {(
+                    [
+                      ["Typical payload", meta.payload],
+                      ["Typical reach", meta.reach],
+                      ["Robot type", meta.axes],
+                    ] as const
+                  ).map(([k, v]) => (
+                    <div key={k} className="flex items-center justify-between px-4 py-3">
+                      <dt className="text-[hsl(var(--rv-console-ink)/0.55)]">{k}</dt>
+                      <dd className="tabular-nums">
+                        <DecodeText text={v} />
+                      </dd>
+                    </div>
+                  ))}
+                  <Link
+                    to={`/robots?search=${encodeURIComponent(meta.name.split(" ")[0])}`}
+                    className="group flex items-center justify-between px-4 py-3 text-[hsl(var(--rv-console-ink))] transition-colors duration-150 hover:bg-[hsl(var(--rv-console-ink)/0.06)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[hsl(var(--rv-console-ink))]"
+                  >
+                    Browse {meta.name.toLowerCase()} robots <PixelArrow />
+                  </Link>
+                </dl>
+              </Bevel>
+            </aside>
           </div>
-
         </div>
-      </div>
 
+        {/* Console bar: numbered chapters with the current slide's progress */}
+        <nav aria-label="Hero slides" className="absolute inset-x-0 bottom-0 z-20 border-t border-[hsl(var(--rv-console-line))]">
+          <ol className="hidden grid-cols-5 md:grid">
+            {SLIDE_META.map((m, i) => {
+              const on = i === slideIndex;
+              return (
+                <li key={m.code} className="relative border-l border-[hsl(var(--rv-console-line))] first:border-l-0">
+                  <button
+                    type="button"
+                    onClick={() => setSlideIndex(i)}
+                    aria-current={on ? "true" : undefined}
+                    className={`flex w-full items-center gap-3 px-5 py-5 text-left font-mono text-[11px] uppercase tracking-[0.16em] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[hsl(var(--rv-console-ink))] ${
+                      on ? "text-[hsl(var(--rv-console-ink))]" : "text-[hsl(var(--rv-console-ink)/0.45)] hover:text-[hsl(var(--rv-console-ink)/0.8)]"
+                    }`}
+                  >
+                    <span className="tabular-nums">{pad(i + 1)}</span>
+                    <span className="truncate">{m.name}</span>
+                  </button>
+                  {on && (
+                    <span
+                      key={slideIndex}
+                      aria-hidden
+                      className="absolute inset-x-0 bottom-0 h-[2px] origin-left bg-[hsl(var(--rv-console-ink))]"
+                      style={reducedMotion ? undefined : { animation: `rv-console-fill ${HERO_SLIDE_MS}ms linear forwards` }}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          {/* Phones: compact counter and square steps */}
+          <div className="flex items-center justify-between px-6 py-4 font-mono text-[11px] uppercase tracking-[0.16em] md:hidden">
+            <span className="tabular-nums">
+              {pad(slideIndex + 1)} / {pad(SLIDE_META.length)} · {meta.name}
+            </span>
+            <span className="flex gap-1.5">
+              {SLIDE_META.map((m, i) => (
+                <button
+                  key={m.code}
+                  type="button"
+                  aria-label={`Show slide ${i + 1}: ${m.name}`}
+                  aria-current={i === slideIndex ? "true" : undefined}
+                  onClick={() => setSlideIndex(i)}
+                  className={`h-2 w-2 transition-colors duration-150 ${i === slideIndex ? "bg-[hsl(var(--rv-console-ink))]" : "bg-[hsl(var(--rv-console-ink)/0.25)]"}`}
+                />
+              ))}
+            </span>
+          </div>
+        </nav>
+      </div>
     </section>
   );
 };

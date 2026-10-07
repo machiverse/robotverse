@@ -1,4 +1,7 @@
+import { useState, type FormEvent } from "react";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import { mailto } from "@/components/directory/directoryTypes";
+import { useToast } from "@/hooks/use-toast";
 import BackButton from "@/components/navigation/BackButton";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +14,19 @@ import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import { generateOrganizationSchema, generateLocalBusinessSchema, generateFAQSchema } from "@/utils/seo/modernSchemas";
 
 const Contact = () => {
+  const { toast } = useToast();
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", subject: "", message: "" });
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  // Opens the visitor's mail app with the message filled in (works in browsers and the Android app).
+  const send = (e: FormEvent) => {
+    e.preventDefault();
+    const name = `${form.firstName} ${form.lastName}`.trim();
+    window.location.href = mailto(
+      form.subject.trim() || "RobotVerse enquiry",
+      `${form.message.trim()}\n\nName: ${name}\nEmail: ${form.email.trim()}`,
+    );
+    toast({ title: "Opening your email app", description: "Press send in your email app to deliver the message to support@robotverse.in." });
+  };
   // Contact page FAQs for schema
   const contactFAQs = [
     {
@@ -80,24 +96,25 @@ const Contact = () => {
               <CardHeader>
                 <CardTitle>Send us a Message</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
+                <form onSubmit={send} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" placeholder="Your first name" />
+                    <Input id="firstName" placeholder="Your first name" value={form.firstName} onChange={set("firstName")} required />
                   </div>
                   <div>
                     <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" placeholder="Your last name" />
+                    <Input id="lastName" placeholder="Your last name" value={form.lastName} onChange={set("lastName")} />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="your@email.com" />
+                  <Input id="email" type="email" placeholder="your@email.com" value={form.email} onChange={set("email")} required />
                 </div>
                 <div>
                   <Label htmlFor="subject">Subject</Label>
-                  <Input id="subject" placeholder="What can we help you with?" />
+                  <Input id="subject" placeholder="What can we help you with?" value={form.subject} onChange={set("subject")} />
                 </div>
                 <div>
                   <Label htmlFor="message">Message</Label>
@@ -105,9 +122,13 @@ const Contact = () => {
                     id="message" 
                     placeholder="Tell us more about your inquiry..."
                     rows={6}
+                    value={form.message}
+                    onChange={set("message")}
+                    required
                   />
                 </div>
-                <Button className="w-full">Send Message</Button>
+                <Button type="submit" className="w-full">Send Message</Button>
+                </form>
               </CardContent>
             </Card>
 

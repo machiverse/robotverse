@@ -3,7 +3,6 @@ import { OemRail, OemDot } from '@/components/oem/OemAccents';
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Bot, ArrowRight, Loader2 } from "lucide-react";
@@ -12,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatPrice as formatCurrencyPrice, Currency } from "@/utils/currency";
 import Autoplay from "embla-carousel-autoplay";
+import { BevelBox, ConsoleButton, ConsoleLink, Readout, SectionHead, pad2 } from "@/components/console/ConsoleUI";
 
 interface Robot {
   id: string;
@@ -230,70 +230,46 @@ const HomeRobotListings = () => {
   return (
     <section className="relative z-10 pt-10 pb-20 md:pt-12 md:pb-28 bg-background">
       <div className="container mx-auto px-4">
-        {/* Section Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-4xl font-bold mb-4 text-primary">
-            Robot Marketplace
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
-            Discover cutting-edge industrial robots from verified sellers
-          </p>
+        <SectionHead
+          index="001"
+          label="Marketplace"
+          title="Robot Marketplace"
+          subtitle="Industrial robots from verified sellers, grouped by type."
+          action={<ConsoleLink to="/robots">All robots</ConsoleLink>}
+        />
 
-          {/* Overall Stats */}
-          <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
-            <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold tabular">
-              {overallStats.count} Robots
-            </span>
-            <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium tabular">
-              {overallStats.typeCount} Categories
-            </span>
-            {overallStats.brandCount > 0 && (
-              <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium tabular">
-                {overallStats.brandCount} Brands
-              </span>
-            )}
-            {overallStats.minPrice > 0 && (
-              <>
-                <span className="px-3 py-1.5 rounded-lg bg-success/10 text-success dark:text-success font-medium tabular">
-                  Min: ₹{overallStats.minPrice.toLocaleString('en-IN')}
-                </span>
-                <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary dark:text-primary font-medium tabular">
-                  Avg: ₹{overallStats.avgPrice.toLocaleString('en-IN')}
-                </span>
-                <span className="px-3 py-1.5 rounded-lg bg-warning/10 text-warning font-medium tabular">
-                  Max: ₹{overallStats.maxPrice.toLocaleString('en-IN')}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
+        {/* Overall stats as a readout strip */}
+        <BevelBox className="mb-12" innerClassName="grid grid-cols-2 gap-px bg-border sm:grid-cols-3 lg:grid-cols-6 [&>*]:bg-card">
+          <Readout label="Robots" value={overallStats.count.toLocaleString("en-IN")} />
+          <Readout label="Categories" value={overallStats.typeCount} />
+          <Readout label="Brands" value={overallStats.brandCount} />
+          <Readout label="Lowest price" value={overallStats.minPrice > 0 ? `₹${overallStats.minPrice.toLocaleString("en-IN")}` : "—"} />
+          <Readout label="Average price" value={overallStats.avgPrice > 0 ? `₹${overallStats.avgPrice.toLocaleString("en-IN")}` : "—"} />
+          <Readout label="Highest price" value={overallStats.maxPrice > 0 ? `₹${overallStats.maxPrice.toLocaleString("en-IN")}` : "—"} />
+        </BevelBox>
 
         {/* Robot Type Sections */}
         <div className="space-y-12">
-          {robotTypes.map((robotType) => {
+          {robotTypes.map((robotType, typeIndex) => {
             const robotsOfType = robotsByType[robotType];
             if (!robotsOfType?.length) return null;
 
             return (
               <div key={robotType} className="relative">
                 {/* Type Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="space-y-1">
-                    <h3 className="text-2xl font-bold text-foreground">{getTypeLabel(robotType)}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="tabular">{robotsOfType.length}</span>{" "}{robotsOfType.length === 1 ? "robot" : "robots"} available
-                    </p>
+                <div className="mb-5 flex items-end justify-between gap-4 border-b border-border pb-3">
+                  <div className="flex min-w-0 items-baseline gap-3">
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">{pad2(typeIndex + 1)}</span>
+                    <h3 className="text-base font-semibold uppercase tracking-[-0.01em] text-foreground sm:text-lg md:text-xl">
+                      {getTypeLabel(robotType)}
+                    </h3>
+                    <span className="hidden whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground sm:inline">
+                      <span className="tabular-nums">{robotsOfType.length}</span> {robotsOfType.length === 1 ? "unit" : "units"}
+                    </span>
                   </div>
-                  <Link
-                    to={`/robots?type=${encodeURIComponent(robotType)}`}
-                    className="shrink-0 no-underline"
-                  >
-                    <Button variant="outline" size="sm" className="group shrink-0">
-                      View All
-                      <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
-                
+                  <ConsoleLink to={`/robots?type=${encodeURIComponent(robotType)}`} className="shrink-0">
+                    View all
+                  </ConsoleLink>
                 </div>
 
                 {/* ✅ AUTO-SCROLLS EVERY 5 SECONDS */}
@@ -313,51 +289,55 @@ const HomeRobotListings = () => {
                       >
                         <Link
                           to={`/robots/${robot.id}`}
-                          className="block no-underline text-inherit"
+                          className="group block h-full no-underline text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         >
-                        <Card
-                          className="group relative cursor-pointer transition-colors duration-150 overflow-hidden border border-border hover:border-muted-foreground/40 bg-card shadow-none"
-                        >
+                        <BevelBox className="h-full" innerClassName="relative overflow-hidden">
                           <OemRail brand={robot.brand} />
                           {/* Robot Image */}
-                          <div className="relative aspect-[4/3] overflow-hidden bg-muted border-b border-border dark:shadow-[inset_0_0_0_1px_hsl(var(--border))]">
+                          <div className="relative aspect-[4/3] overflow-hidden border-b border-border bg-muted">
                             {robot.images && robot.images.length > 0 ? (
                               <img
                                 src={robot.images[0]}
                                 alt={robot.name}
                                 loading="lazy"
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Bot className="w-10 h-10 text-muted-foreground" />
+                              <div className="flex h-full w-full items-center justify-center">
+                                <Bot className="h-10 w-10 text-muted-foreground" />
                               </div>
+                            )}
+                            {robot.condition && (
+                              <span className="absolute left-3 top-3 bg-background/90 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground">
+                                {robot.condition}
+                              </span>
                             )}
                           </div>
 
                           {/* Robot Info */}
-                          <CardContent className="p-4 space-y-2">
-                            <h4 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
-                              {robot.name}
-                            </h4>
+                          <div className="space-y-2 p-4">
                             {robot.brand && (
-                              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                                 <OemDot brand={robot.brand} />
                                 {robot.brand}
                               </p>
                             )}
+                            <h4 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug transition-colors duration-150 group-hover:text-primary">
+                              {robot.name}
+                            </h4>
                             {isPriceAvailable(robot.price) ? (
-                              <div className="space-y-0.5">
-                                <p className="text-base font-bold text-primary tabular">
+                              <div className="space-y-0.5 border-t border-border pt-2">
+                                <p className="font-mono text-base font-medium tabular-nums text-foreground">
                                   {formatPrice(robot.price, robot.currency)}
                                 </p>
                                 <CardLeadTimeNote condition={robot.condition} leadTime={robot.lead_time} />
                               </div>
                             ) : (
-                              <div className="space-y-1">
+                              <div className="space-y-1 border-t border-border pt-2">
                                 <RequestQuotePill
                                   label="Ask for Price"
                                   onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
                                     navigate(`/robots/${robot.id}`);
                                   }}
@@ -365,9 +345,8 @@ const HomeRobotListings = () => {
                                 <CardLeadTimeNote condition={robot.condition} leadTime={robot.lead_time} />
                               </div>
                             )}
-                          </CardContent>
-
-                        </Card>
+                          </div>
+                        </BevelBox>
                         </Link>
                       </CarouselItem>
                     ))}
@@ -375,8 +354,8 @@ const HomeRobotListings = () => {
 
                   {robotsOfType.length > 4 && (
                     <>
-                      <CarouselPrevious className="hidden md:flex -left-4 bg-background/80 backdrop-blur-sm border-border hover:bg-background" />
-                      <CarouselNext className="hidden md:flex -right-4 bg-background/80 backdrop-blur-sm border-border hover:bg-background" />
+                      <CarouselPrevious className="hidden md:flex -left-4 rounded-none border-border bg-background hover:bg-muted" />
+                      <CarouselNext className="hidden md:flex -right-4 rounded-none border-border bg-background hover:bg-muted" />
                     </>
                   )}
                 </Carousel>
@@ -386,13 +365,10 @@ const HomeRobotListings = () => {
         </div>
 
         {/* View All Robots Button */}
-        <div className="text-center mt-12">
-          <Link to="/robots" className="inline-block no-underline">
-            <Button size="lg">
-              View All <span className="tabular mx-1">{robots.length}</span> Robots
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </Link>
+        <div className="mt-12 flex justify-center">
+          <ConsoleButton to="/robots">
+            View all <span className="tabular-nums">{robots.length}</span> robots
+          </ConsoleButton>
         </div>
       </div>
     </section>

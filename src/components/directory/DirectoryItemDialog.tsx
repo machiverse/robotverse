@@ -1,14 +1,17 @@
+import { Link } from "react-router-dom";
+import { directorySlug } from "@/lib/seo/seoText";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Mail } from "lucide-react";
 import ItemImage from "./ItemImage";
-import { enquiryMailto, oemPhotoSearchUrl, type CatalogItem, type CatalogKind } from "./directoryTypes";
+import RobotComponents from "./RobotComponents";
+import { enquiryMailto, oemPhotoSearchUrl, type CatalogItem, type CatalogKind, type Photo } from "./directoryTypes";
 
 interface Props {
   kind: CatalogKind;
   item: CatalogItem | null;
-  photo?: string;
+  photo?: Photo;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -22,6 +25,8 @@ const row = (label: string, value: string | number | undefined, unit = "") =>
       </dd>
     </div>
   );
+
+const KIND_TYPE = { robots: "robot", tools: "tool", axes: "axis" } as const;
 
 const DirectoryItemDialog = ({ kind, item, photo, onOpenChange }: Props) => {
   if (!item) return <Dialog open={false} onOpenChange={onOpenChange} />;
@@ -74,7 +79,12 @@ const DirectoryItemDialog = ({ kind, item, photo, onOpenChange }: Props) => {
           </div>
         )}
 
+        {kind === "robots" && <RobotComponents robot={item} />}
+
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Button variant="outline" asChild>
+            <Link to={`/directory/${KIND_TYPE[kind]}/${directorySlug(item.n)}`}>Full specifications page</Link>
+          </Button>
           <Button asChild>
             <a href={enquiryMailto(item)}>
               <Mail className="mr-2 h-4 w-4" />

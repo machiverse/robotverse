@@ -88,7 +88,11 @@ serve(async (req) => {
       const txt = await res.text();
       console.error("AI gateway error", res.status, txt.slice(0, 300));
       if (res.status === 429) return json({ error: "Too many requests. Please try again in a minute." }, 429);
-      if (res.status === 402) return json({ error: "AI credits exhausted." }, 402);
+      // Out of credits / AI disabled is an expected state: answer 200 with `unavailable`
+      // so the page shows a readable note instead of an edge-function failure.
+      if (res.status === 402 || res.status === 403) {
+        return json({ unavailable: true, reason: res.status === 402 ? "credits" : "blocked", error: "Photo and video analysis is not available right now. Describe the job in words instead." });
+      }
       return json({ error: `AI service error (${res.status})` }, 502);
     }
 

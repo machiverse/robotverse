@@ -421,7 +421,7 @@ const LoginRequiredBanner: React.FC<{ remainingFree: number }> = ({ remainingFre
       <p className="text-xs text-muted-foreground mb-3">
         Sign in for unlimited AI assistance and advanced product matching
       </p>
-      <Button size="sm" className="text-xs h-9 px-4 rounded-lg" onClick={() => navigate("/auth")}>
+      <Button size="sm" className="text-xs h-9 px-4 rounded-lg" onClick={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true })}>
         <LogIn className="w-3.5 h-3.5 mr-1.5" /> Sign In / Register
       </Button>
       <p className="mt-2 text-[11px] text-muted-foreground">

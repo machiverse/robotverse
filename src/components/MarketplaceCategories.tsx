@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import {
   Bot,
@@ -15,6 +13,9 @@ import {
   CreditCard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { PixelArrow } from "@/components/hero/HeroConsole";
+import robotsPhoto from "@/assets/hero-pick-place.jpg";
+import { BevelBox, SectionHead, pad2 } from "@/components/console/ConsoleUI";
 
 interface CategoryStats {
   [key: string]: number;
@@ -189,74 +190,83 @@ const MarketplaceCategories = () => {
 
   const [primary, ...rest] = categoriesData;
 
-  const renderStats = (category: MarketplaceCategory, dense = false) => (
-    <div className={dense ? "space-y-2" : "space-y-3"}>
-      {Object.entries(category.stats).map(([key, value]) => {
-        const meta = STAT_META[key];
-        const StatIcon = meta?.icon;
-        return (
-          <div key={key} className="flex items-center justify-between gap-2">
-            <div className="flex items-center space-x-2 min-w-0">
-              {StatIcon && <StatIcon className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />}
-              <span className="text-sm text-muted-foreground truncate">{meta?.label ?? key}</span>
-            </div>
-            <Badge variant="secondary" className="text-xs tabular" aria-label={`${value} ${key}`}>
-              {typeof value === "number" ? value.toLocaleString() : value}
-            </Badge>
-          </div>
-        );
-      })}
-    </div>
+  const renderStats = (category: MarketplaceCategory) => (
+    <dl className="divide-y divide-border border-t border-border">
+      {Object.entries(category.stats).map(([key, value]) => (
+        <div key={key} className="flex items-baseline justify-between gap-3 py-2">
+          <dt className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {STAT_META[key]?.label ?? key}
+          </dt>
+          <dd className="font-mono text-sm tabular-nums text-foreground" aria-label={`${value} ${key}`}>
+            {typeof value === "number" ? value.toLocaleString("en-IN") : value}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 
-  return (
-    <section className="relative z-10 py-10 md:py-14 bg-background">
-      <div className="container mx-auto px-4">
-        <h2 className="text-2xl md:text-3xl font-bold mb-2 text-foreground">
-          Everything You Need in One Marketplace
-        </h2>
-        <p className="text-base text-muted-foreground mb-6 md:mb-8">
-          Buy robots and access all supporting services seamlessly
-        </p>
+  const cardLink =
+    "group block h-full no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-5">
+  return (
+    <section className="relative z-10 border-t border-border bg-background py-14 md:py-20">
+      <div className="container mx-auto px-4">
+        <SectionHead
+          index="003"
+          label="Ecosystem"
+          title="Everything you need in one marketplace"
+          subtitle="Buy robots and reach every supporting service from one place."
+        />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 md:gap-5">
           {/* Primary path: Industrial Robots */}
           {primary && (
-            <Link
-              to={primary.href}
-              aria-label={primary.title}
-              className="lg:col-span-2 lg:row-span-2"
-            >
-              <Card className="h-full bg-card border border-border hover:border-primary/50 hover:bg-accent/40 transition-colors duration-150 cursor-pointer">
-                <CardContent className="p-6 md:p-8 flex flex-col h-full">
-                  <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center mb-5">
-                    <primary.icon className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold mb-2 text-foreground">{primary.title}</h3>
-                  <p className="text-sm md:text-base text-muted-foreground mb-6 max-w-md">
-                    {primary.description}
-                  </p>
-                  <div className="max-w-sm">{renderStats(primary)}</div>
-                </CardContent>
-              </Card>
+            <Link to={primary.href} aria-label={primary.title} className={`${cardLink} sm:col-span-2 lg:row-span-2`}>
+              <BevelBox className="h-full" cut={16} innerClassName="flex flex-col p-6 md:p-8">
+                <div className="relative -mx-6 -mt-6 mb-6 aspect-[16/7] overflow-hidden border-b border-border md:-mx-8 md:-mt-8">
+                  <img
+                    src={robotsPhoto}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover object-[70%_center] transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                  />
+                  <span className="absolute left-4 top-4 bg-background/90 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-foreground md:left-6 md:top-6">01</span>
+                  <span className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center bg-primary text-primary-foreground md:bottom-6 md:right-6">
+                    <primary.icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                </div>
+                <h3 className="text-2xl font-semibold uppercase tracking-[-0.02em] text-foreground md:text-3xl">
+                  {primary.title}
+                </h3>
+                <p className="mb-8 mt-2 max-w-md text-sm text-muted-foreground md:text-base">{primary.description}</p>
+                <div className="mt-auto max-w-sm">{renderStats(primary)}</div>
+                <span className="mt-6 inline-flex items-center gap-2.5 font-mono text-xs uppercase tracking-[0.14em] text-foreground transition-colors duration-150 group-hover:text-primary">
+                  <PixelArrow /> Browse robots
+                </span>
+              </BevelBox>
             </Link>
           )}
 
-          {/* Supporting categories 2x2 */}
-          {rest.map((category) => {
+          {/* Supporting categories */}
+          {rest.map((category, i) => {
             const Icon = category.icon;
             return (
-              <Link key={category.id} to={category.href} aria-label={category.title}>
-                <Card className="h-full bg-card border border-border hover:border-primary/50 hover:bg-accent/40 transition-colors duration-150 cursor-pointer">
-                  <CardContent className="p-5">
-                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center mb-4">
-                      <Icon className="w-5 h-5 text-primary" aria-hidden="true" />
-                    </div>
-                    <h3 className="text-base font-semibold mb-1 text-foreground">{category.title}</h3>
-                    <p className="text-xs text-muted-foreground mb-4">{category.description}</p>
-                    {renderStats(category, true)}
-                  </CardContent>
-                </Card>
+              <Link key={category.id} to={category.href} aria-label={category.title} className={cardLink}>
+                <BevelBox className="h-full" innerClassName="flex flex-col p-5">
+                  <div className="mb-6 flex items-start justify-between">
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">{pad2(i + 2)}</span>
+                    <span className="flex h-9 w-9 items-center justify-center border border-border text-primary">
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  </div>
+                  <h3 className="flex items-center justify-between gap-2 text-base font-semibold uppercase tracking-[-0.01em] text-foreground">
+                    {category.title}
+                    <PixelArrow className="text-muted-foreground transition-colors duration-150 group-hover:text-primary" />
+                  </h3>
+                  <p className="mb-5 mt-1 text-xs text-muted-foreground">{category.description}</p>
+                  <div className="mt-auto">{renderStats(category)}</div>
+                </BevelBox>
               </Link>
             );
           })}

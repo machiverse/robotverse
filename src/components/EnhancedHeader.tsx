@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Bot,
@@ -42,6 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
+import { BackIconButton } from "@/components/navigation/BackButton";
 
 const menuIcons: Record<string, React.ElementType> = {
   "Robot Parts": Cpu,
@@ -101,6 +102,7 @@ const DropdownMenu = ({ isOpen, onClose, children, className }: DropdownMenuProp
 
 const EnhancedHeader = () => {
   const { user, signOut } = useAuth();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const { selectedRobots, maxRobots, removeRobot, clearComparison } = useRobotComparison();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -207,7 +209,7 @@ const EnhancedHeader = () => {
 
   const handleCompareClick = () => {
     if (!user) {
-      navigate("/auth");
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
       return;
     }
     setCompareDropdownOpen(!compareDropdownOpen);
@@ -324,14 +326,17 @@ const EnhancedHeader = () => {
       <header className="sticky top-0 z-50 bg-[hsl(var(--header-bg))] shadow-[var(--shadow-header)] backdrop-blur-md">
         {/* Top Header - Logo, Search, Icons */}
         <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-6">
-          {/* Logo */}
-          <Link
-            to="/"
-            aria-label="RobotVerse home"
-            className="inline-flex shrink-0 rounded-sm transition-[opacity,transform] duration-150 ease-out hover:opacity-[0.85] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            <BrandLogo />
-          </Link>
+          {/* Back (every page except home) + Logo */}
+          <div className="flex shrink-0 items-center gap-1">
+            {pathname !== "/" && <BackIconButton className="-ml-2" />}
+            <Link
+              to="/"
+              aria-label="RobotVerse home"
+              className="inline-flex shrink-0 rounded-sm transition-[opacity,transform] duration-150 ease-out hover:opacity-[0.85] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <BrandLogo />
+            </Link>
+          </div>
 
           {/* Centered Search Bar */}
           <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl mx-8">
@@ -1362,8 +1367,20 @@ const EnhancedHeader = () => {
                 <Heart className="h-5 w-5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Wishlist</span>
               </Link>
-              <button className="flex flex-col items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate(user ? "/robots/compare" : "/auth");
+                }}
+                className="relative flex flex-col items-center gap-1"
+              >
                 <Scale className="h-5 w-5 text-muted-foreground" />
+                {comparisonCount > 0 && (
+                  <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                    {comparisonCount}
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground">Compare</span>
               </button>
               {user && (

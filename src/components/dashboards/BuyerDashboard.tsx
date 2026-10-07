@@ -209,7 +209,7 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
           { label: 'Spare Parts', value: stats.availableParts, icon: Package, gradient: 'from-success/20 to-success/5', iconColor: 'text-success', path: '/parts' },
           { label: 'Services', value: stats.availableServices, icon: Wrench, gradient: 'from-primary/20 to-primary/5', iconColor: 'text-primary', path: '/services' },
           { label: 'Quote Requests', value: stats.totalQuoteRequests, icon: Send, gradient: 'from-amber-500/20 to-amber-600/5', iconColor: 'text-amber-400', path: '/dashboard/my-requests' },
-          { label: 'Watchlist', value: stats.totalWatchlistItems, icon: Heart, gradient: 'from-rose-500/20 to-rose-600/5', iconColor: 'text-rose-400', path: '/dashboard/watchlist' },
+          { label: 'Watchlist', value: stats.totalWatchlistItems, icon: Heart, gradient: 'from-rose-500/20 to-rose-600/5', iconColor: 'text-rose-400', path: '/watchlist' },
           { label: 'Profile', value: `${stats.profileCompletion}%`, icon: User, gradient: 'from-primary/20 to-primary/5', iconColor: 'text-primary', path: '/profile-settings' },
         ].map((metric) => {
           const Icon = metric.icon;
@@ -374,7 +374,7 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
                   { title: 'Robots', desc: `${stats.availableRobots} listed`, icon: Bot, path: '/robots', iconColor: 'text-primary', bg: 'bg-primary/10' },
                   { title: 'Spare Parts', desc: `${stats.availableParts} in stock`, icon: Package, path: '/parts', iconColor: 'text-success', bg: 'bg-success/10' },
                   { title: 'Services', desc: `${stats.availableServices} providers`, icon: Wrench, path: '/services', iconColor: 'text-primary', bg: 'bg-primary/10' },
-                  { title: 'Financing', desc: 'Loan options', icon: CreditCard, path: '/finance', iconColor: 'text-amber-400', bg: 'bg-amber-500/10' },
+                  { title: 'Financing', desc: 'Loan options', icon: CreditCard, path: '/financing', iconColor: 'text-amber-400', bg: 'bg-amber-500/10' },
                   { title: 'Logistics', desc: 'Shipping', icon: Truck, path: '/logistics', iconColor: 'text-rose-400', bg: 'bg-rose-500/10' },
                   { title: 'RoboBook', desc: 'Knowledge base', icon: Globe, path: '/robobook', iconColor: 'text-primary', bg: 'bg-primary/10' },
                 ].map((item) => {
