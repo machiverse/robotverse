@@ -2,18 +2,21 @@ import { useEffect, useState } from "react";
 import { FileText, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import type { CatalogItem, CatalogKind } from "./directoryTypes";
+/** Catalogues with datasheets: the Directory JSON catalogues plus spare parts. */
+export type DatasheetKind = "robots" | "tools" | "axes" | "parts";
+/** What the button needs about a model: id, brand and model name. */
+export type DatasheetItem = { id: string; b: string; m: string };
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://cmahwgetrqczytnijbuk.supabase.co";
 
 /** Datasheets already found, per catalogue: { id: pdf url }. Loaded once per page visit. */
-const indexes: Partial<Record<CatalogKind, Promise<Record<string, string>>>> = {};
-const loadIndex = (kind: CatalogKind) =>
+const indexes: Partial<Record<DatasheetKind, Promise<Record<string, string>>>> = {};
+const loadIndex = (kind: DatasheetKind) =>
   (indexes[kind] ??= fetch(`${SUPABASE_URL}/storage/v1/object/public/robot-images/directory/datasheets/index-${kind}.json`, { cache: "no-cache" })
     .then((r) => (r.ok ? (r.json() as Promise<Record<string, string>>) : {}))
     .catch(() => ({})));
 
-const webSearchUrl = (item: CatalogItem) =>
+const webSearchUrl = (item: DatasheetItem) =>
   `https://www.google.com/search?q=${encodeURIComponent(`"${item.m}" ${item.b.split(" ")[0]} datasheet filetype:pdf`)}`;
 
 /**
@@ -21,7 +24,7 @@ const webSearchUrl = (item: CatalogItem) =>
  * straight away; otherwise the datasheet is searched for on click (manufacturer sites first) and
  * remembered for everyone. If none exists, a web search for it is offered.
  */
-export default function DatasheetButton({ kind, item, className }: { kind: CatalogKind; item: CatalogItem; className?: string }) {
+export default function DatasheetButton({ kind, item, className }: { kind: DatasheetKind; item: DatasheetItem; className?: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [state, setState] = useState<"idle" | "searching" | "none">("idle");
 

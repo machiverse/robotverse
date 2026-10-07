@@ -25,7 +25,7 @@ const DIR = "directory/datasheets";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 const NONE_TTL_DAYS = 21;
 const BATCH = 6;
-const KINDS = ["robots", "tools", "axes"] as const;
+const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
 
 const cors = {
@@ -209,9 +209,25 @@ async function addToIndex(kind: Kind, updates: Record<string, string | null>) {
   return Object.keys(index).length;
 }
 
+/** Spare parts and components live in the directory_parts table (read only). */
+async function loadParts(): Promise<Item[]> {
+  const out: Item[] = [];
+  for (let from = 0; from < 50000; from += 1000) {
+    const { data, error } = await service().from("directory_parts").select("id, brand, model, name").order("id").range(from, from + 999);
+    if (error || !data) break;
+    // deno-lint-ignore no-explicit-any
+    out.push(...(data as any[]).map((p) => ({ id: String(p.id), b: String(p.brand ?? ""), m: String(p.model || p.name || ""), n: String(p.name || `${p.brand} ${p.model}`) })));
+    if (data.length < 1000) break;
+  }
+  return out;
+}
+
 const catalogue: Partial<Record<Kind, Promise<Item[]>>> = {};
 const loadCatalogue = (kind: Kind) =>
-  (catalogue[kind] ??= get(`${SITE_URL}/directory/${kind}.json`, 20000).then((r) => (r.ok ? (r.json() as Promise<Item[]>) : [])).catch(() => {
+  (catalogue[kind] ??= (kind === "parts"
+    ? loadParts()
+    : get(`${SITE_URL}/directory/${kind}.json`, 20000).then((r) => (r.ok ? (r.json() as Promise<Item[]>) : []))
+  ).catch(() => {
     delete catalogue[kind];
     return [] as Item[];
   }));
@@ -296,7 +312,7 @@ Deno.serve(async (req) => {
 
     if (action === "find") {
       const id = String(p("id") ?? "");
-      if (!/^RV[A-Za-z]+\d+$/.test(id)) return json({ error: "Missing or invalid id" }, 400);
+      if (!/^[A-Za-z0-9_-]{3,64}$/.test(id)) return json({ error: "Missing or invalid id" }, 400);
       return json(await find(kind, id, String(p("refresh") ?? "") === "true"));
     }
     if (action === "status") {

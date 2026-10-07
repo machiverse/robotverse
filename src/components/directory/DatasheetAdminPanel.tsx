@@ -3,7 +3,7 @@ import { FileText, Loader2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
-type Kind = "robots" | "tools" | "axes";
+type Kind = "robots" | "tools" | "axes" | "parts";
 type Status = { withDatasheet: number; total: number; job?: { done: number; total: number; running: boolean; updatedAt: string } | null };
 
 /** Admin: how many Directory models have a datasheet, and a button to find them for every model. */
@@ -13,7 +13,7 @@ export default function DatasheetAdminPanel() {
 
   const refresh = useCallback(async () => {
     const out: Partial<Record<Kind, Status>> = {};
-    for (const kind of ["robots", "tools", "axes"] as Kind[]) {
+    for (const kind of ["robots", "tools", "axes", "parts"] as Kind[]) {
       const { data } = await supabase.functions.invoke("directory-datasheet", { body: { action: "status", kind } });
       if (data && typeof data.total === "number") out[kind] = data as Status;
     }
@@ -42,8 +42,8 @@ export default function DatasheetAdminPanel() {
         Finds each model's official datasheet or brochure — manufacturer websites first, then the web — and checks that the link really is a PDF.
         Found datasheets appear as a “Datasheet (PDF)” button in the Directory and on model pages. Visitors' clicks also find datasheets one by one.
       </p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        {(["robots", "tools", "axes"] as Kind[]).map((k) => {
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {(["robots", "tools", "axes", "parts"] as Kind[]).map((k) => {
           const s = status[k];
           const running = !!s?.job?.running && Date.now() - new Date(s.job.updatedAt).getTime() < 5 * 60_000;
           return (
