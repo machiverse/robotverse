@@ -1,22 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
 import { FileText, Loader2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { callDatasheets } from "./datasheetClient";
 
 type Kind = "robots" | "tools" | "axes" | "parts";
-type Status = { withDatasheet: number; total: number; job?: { done: number; total: number; running: boolean; updatedAt: string } | null };
+type Status = { withDatasheet: number; total: number; counts: { not_found: number; unsupported: number; error: number }; job?: { done: number; total: number; running: boolean; updatedAt: string; last_error: string | null } | null };
 
 /** Admin: how many Directory models have a datasheet, and a button to find them for every model. */
 export default function DatasheetAdminPanel() {
   const [status, setStatus] = useState<Partial<Record<Kind, Status>>>({});
   const [msg, setMsg] = useState<string | null>(null);
+  const [starting, setStarting] = useState<Kind | null>(null);
 
   const refresh = useCallback(async () => {
     const out: Partial<Record<Kind, Status>> = {};
-    for (const kind of ["robots", "tools", "axes", "parts"] as Kind[]) {
-      const { data } = await supabase.functions.invoke("directory-datasheet", { body: { action: "status", kind } });
-      if (data && typeof data.total === "number") out[kind] = data as Status;
-    }
+    const results = await Promise.allSettled((["robots", "tools", "axes", "parts"] as Kind[]).map(async (kind) => {
+      out[kind] = await callDatasheets<Status>({ action: "status", kind });
+    }));
+    if (results.some((result) => result.status === "rejected")) setMsg("Some datasheet counts could not load. Check connectivity and datasheet storage access, then retry.");
     setStatus(out);
   }, []);
 
@@ -28,9 +29,13 @@ export default function DatasheetAdminPanel() {
 
   const start = async (kind: Kind, redo = false) => {
     setMsg(null);
-    const { data, error } = await supabase.functions.invoke("directory-datasheet", { body: { action: "start", kind, redo } });
-    setMsg(error || data?.error ? `Could not start: ${data?.error ?? error?.message}` : `Finding ${kind} datasheets in the background — counts update every 15 s.`);
-    refresh();
+    setStarting(kind);
+    try {
+      const data = await callDatasheets<{ from: number }>({ action: "start", kind, redo });
+      setMsg(`Collecting official ${kind} datasheets${data.from ? ` from model ${data.from + 1}` : ""}. Counts update every 15 seconds.`);
+      await refresh();
+    } catch (error) { setMsg(error instanceof Error ? error.message : "Could not start collection"); }
+    finally { setStarting(null); }
   };
 
   return (
@@ -39,7 +44,7 @@ export default function DatasheetAdminPanel() {
         <FileText className="h-5 w-5 text-primary" /> Datasheets (PDF)
       </h2>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Finds each model's official datasheet or brochure — manufacturer websites first, then the web — and checks that the link really is a PDF.
+        Finds matching datasheets and brochures on approved manufacturer websites, checks the PDF content, and saves the links in datasheet files.
         Found datasheets appear as a “Datasheet (PDF)” button in the Directory and on model pages. Visitors' clicks also find datasheets one by one.
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -58,11 +63,14 @@ export default function DatasheetAdminPanel() {
                   <Loader2 className="h-3 w-3 animate-spin" /> Searching… {s?.job?.done}/{s?.job?.total}
                 </p>
               )}
+              {s?.counts && <p className="mt-1 text-xs text-muted-foreground">{s.counts.not_found} not found · {s.counts.unsupported} need manufacturer review · {s.counts.error} failed lookups</p>}
+              {s?.job && !running && s.job.done < s.job.total && <p className="mt-1 text-xs text-muted-foreground">Paused at {s.job.done}/{s.job.total}. Resume collection to continue.</p>}
+              {s?.job?.last_error && <p className="mt-1 text-xs text-destructive" role="alert">{s.job.last_error}</p>}
               <div className="mt-2 flex gap-2">
-                <Button size="sm" onClick={() => start(k)} disabled={running}>
-                  <Play className="mr-1 h-3.5 w-3.5" /> Find all
+                <Button size="sm" onClick={() => start(k)} disabled={running || starting !== null}>
+                  <Play className="mr-1 h-3.5 w-3.5" /> {s?.job && s.job.done < s.job.total ? "Resume" : "Find all"}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => start(k, true)} disabled={running}>
+                <Button size="sm" variant="outline" onClick={() => start(k, true)} disabled={running || starting !== null}>
                   Search again
                 </Button>
               </div>
@@ -70,7 +78,7 @@ export default function DatasheetAdminPanel() {
           );
         })}
       </div>
-      {msg && <p className="mt-2 text-sm">{msg}</p>}
+      {msg && <p className="mt-2 text-sm" role="status">{msg}</p>}
     </section>
   );
 }

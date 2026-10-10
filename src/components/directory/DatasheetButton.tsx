@@ -1,87 +1,75 @@
-import { useEffect, useState } from "react";
-import { FileText, Loader2, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { FileText, Loader2, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-/** Catalogues with datasheets: the Directory JSON catalogues plus spare parts. */
-export type DatasheetKind = "robots" | "tools" | "axes" | "parts";
-/** What the button needs about a model: id, brand and model name. */
-export type DatasheetItem = { id: string; b: string; m: string };
+import { callDatasheets, loadDatasheetIndex, rememberDatasheet, type DatasheetItem, type DatasheetKind } from "./datasheetClient";
+import { isOfficialUrl, OEM_SITES } from "../../../supabase/functions/_shared/datasheetPolicy";
+export type { DatasheetItem, DatasheetKind } from "./datasheetClient";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://cmahwgetrqczytnijbuk.supabase.co";
+type Lookup = { url: string | null; status: "found" | "not_found" | "unsupported" | "error" };
+type State = { key: string; url: string | null; status: "idle" | "searching" | "none" | "error" };
 
-/** Datasheets already found, per catalogue: { id: pdf url }. Loaded once per page visit. */
-const indexes: Partial<Record<DatasheetKind, Promise<Record<string, string>>>> = {};
-const loadIndex = (kind: DatasheetKind) =>
-  (indexes[kind] ??= fetch(`${SUPABASE_URL}/storage/v1/object/public/robot-images/directory/datasheets/index-${kind}.json`, { cache: "no-cache" })
-    .then((r) => (r.ok ? (r.json() as Promise<Record<string, string>>) : {}))
-    .catch(() => ({})));
-
-const webSearchUrl = (item: DatasheetItem) =>
-  `https://www.google.com/search?q=${encodeURIComponent(`"${item.m}" ${item.b.split(" ")[0]} datasheet filetype:pdf`)}`;
-
-/**
- * "Datasheet (PDF)": opens the manufacturer's datasheet for this model. Models found before open
- * straight away; otherwise the datasheet is searched for on click (manufacturer sites first) and
- * remembered for everyone. If none exists, a web search for it is offered.
- */
 export default function DatasheetButton({ kind, item, className }: { kind: DatasheetKind; item: DatasheetItem; className?: string }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [state, setState] = useState<"idle" | "searching" | "none">("idle");
+  const key = `${kind}:${item.id}`;
+  const current = useRef(key);
+  const [result, setResult] = useState<State>({ key, url: null, status: "idle" });
+  const state = result.key === key ? result : { key, url: null, status: "idle" as const };
 
   useEffect(() => {
+    current.current = key;
     let live = true;
-    setUrl(null);
-    setState("idle");
-    loadIndex(kind).then((ix) => live && ix[item.id] && setUrl(ix[item.id]));
-    return () => {
-      live = false;
-    };
-  }, [kind, item.id]);
+    loadDatasheetIndex(kind).then((index) => {
+      const url = index[item.id];
+      if (live && url && isOfficialUrl(url, item.b)) setResult({ key, url, status: "idle" });
+    }).catch(() => { /* A click can retry when the background index is unavailable. */ });
+    return () => { live = false; current.current = ""; };
+  }, [key, kind, item.id, item.b]);
 
-  if (url)
-    return (
-      <Button asChild className={className}>
-        <a href={url} target="_blank" rel="noopener noreferrer">
-          <FileText className="mr-2 h-4 w-4" /> Datasheet (PDF)
-        </a>
-      </Button>
-    );
+  if (state.url) return (
+    <Button asChild className={className}>
+      <a href={state.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${item.b} ${item.m} official datasheet PDF`}>
+        <FileText className="mr-2 h-4 w-4" /> Datasheet (PDF)
+      </a>
+    </Button>
+  );
 
-  if (state === "none")
+  if (state.status === "none") {
+    const sites = (OEM_SITES[item.b] ?? []).map((domain) => `site:${domain}`).join(" OR ");
+    const query = `${sites} "${item.m}" ${item.b} datasheet filetype:pdf`;
     return (
       <Button variant="outline" asChild className={className}>
-        <a href={webSearchUrl(item)} target="_blank" rel="noopener noreferrer">
-          <Search className="mr-2 h-4 w-4" /> No datasheet found — search the web
+        <a href={`https://www.google.com/search?q=${encodeURIComponent(query)}`} target="_blank" rel="noopener noreferrer">
+          <Search className="mr-2 h-4 w-4" /> Search manufacturer datasheet
         </a>
       </Button>
     );
+  }
 
   const find = async () => {
-    // Open the tab now (inside the click) so the browser does not block it, then point it at the PDF.
+    // Reserve a tab during the click so async lookup does not trigger popup blockers.
     const tab = window.open("about:blank", "_blank");
-    setState("searching");
+    if (tab) tab.opener = null;
+    setResult({ key, url: null, status: "searching" });
     try {
-      const { data, error } = await supabase.functions.invoke("directory-datasheet", { body: { action: "find", kind, id: item.id } });
-      const found = !error && typeof data?.url === "string" ? (data.url as string) : null;
-      if (found) {
-        setUrl(found);
-        setState("idle");
-        if (tab) tab.location.href = found;
-        indexes[kind] = loadIndex(kind).then((ix) => ({ ...ix, [item.id]: found }));
-      } else {
-        setState("none");
+      const found = await callDatasheets<Lookup>({ action: "find", kind, id: item.id });
+      if (current.current !== key) { tab?.close(); return; }
+      if (found.status === "found" && found.url && isOfficialUrl(found.url, item.b)) {
+        setResult({ key, url: found.url, status: "idle" });
+        rememberDatasheet(kind, item.id, found.url);
+        if (tab && !tab.closed) tab.location.replace(found.url);
+      } else if (found.status === "not_found" || found.status === "unsupported") {
+        setResult({ key, url: null, status: "none" });
         tab?.close();
-      }
+      } else throw new Error("Datasheet lookup unavailable");
     } catch {
-      setState("none");
+      if (current.current === key) setResult({ key, url: null, status: "error" });
       tab?.close();
     }
   };
 
   return (
-    <Button variant="outline" onClick={find} disabled={state === "searching"} className={className}>
-      {state === "searching" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-      {state === "searching" ? "Finding the datasheet…" : "Datasheet (PDF)"}
+    <Button variant="outline" onClick={find} disabled={state.status === "searching"} className={className} aria-live="polite">
+      {state.status === "searching" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : state.status === "error" ? <RefreshCw className="mr-2 h-4 w-4" /> : <FileText className="mr-2 h-4 w-4" />}
+      {state.status === "searching" ? "Finding the datasheet…" : state.status === "error" ? "Lookup unavailable — retry" : "Datasheet (PDF)"}
     </Button>
   );
 }
