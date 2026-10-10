@@ -56,3 +56,6 @@ Sitemap: https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/sitemap?kind=blog
 Sitemap: https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/sitemap?kind=models
 Sitemap: https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/sitemap?kind=images
 Sitemap: https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/sitemap?kind=news
+
+# Additional robot selection, spare-parts resources and catalogue model links.
+Sitemap: https://www.robotverse.in/sitemap-robot-resources.xml

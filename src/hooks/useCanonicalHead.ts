@@ -1,5 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import { RESOURCE_HUB_PATH, RESOURCE_HUB_TITLE, RESOURCE_HUB_DESCRIPTION } from "@/lib/seo/robotResourceHub";
+import { getRobotResource } from "@/lib/seo/robotResources";
+import { MODEL_INDEX_PATH, MODEL_INDEX_TITLE, MODEL_INDEX_DESCRIPTION } from "@/lib/seo/robotModelIndex";
 import {
   applicationGuide,
   applicationMeta,
@@ -109,6 +112,21 @@ export function useCanonicalHead() {
   useEffect(() => {
     let cancelled = false;
     const path = location.pathname;
+    // Add metadata only for the new guides; existing route builders below are unchanged.
+    const resource = getRobotResource(path);
+    if (resource || path.replace(/\/+$/, "") === MODEL_INDEX_PATH || path.replace(/\/+$/, "") === RESOURCE_HUB_PATH) {
+      desired.current = {
+        title: path.replace(/\/+$/, "") === RESOURCE_HUB_PATH ? RESOURCE_HUB_TITLE : resource?.title ?? MODEL_INDEX_TITLE,
+        description: path.replace(/\/+$/, "") === RESOURCE_HUB_PATH ? RESOURCE_HUB_DESCRIPTION : resource?.description ?? MODEL_INDEX_DESCRIPTION,
+        canonical: canonicalFor(path.replace(/\/+$/, "") === RESOURCE_HUB_PATH ? RESOURCE_HUB_PATH : resource ? `/robot-guides/${resource.slug}` : MODEL_INDEX_PATH),
+        robots: INDEXABLE_ROBOTS,
+      };
+      apply(desired.current);
+      const resourceTimers = [200, 900, 2500].map((delay) => window.setTimeout(() => {
+        if (desired.current) apply(desired.current);
+      }, delay));
+      return () => resourceTimers.forEach((timer) => window.clearTimeout(timer));
+    }
     const match = classifyPath(path);
     const guide = match.kind === "robot-application" ? applicationGuide(match.key ?? "") : null;
     const base = guide ? applicationMeta(guide) : staticMeta(match.kind);

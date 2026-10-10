@@ -43,6 +43,7 @@ import {
   getComponentTypeNameFromSlug,
 } from "@/constants/sparePartsCategories";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import PublicRobotResourceLinks from "@/components/SEO/PublicRobotResourceLinks";
 import { useDynamicSEOKeywords } from "@/hooks/useDynamicSEOKeywords";
 import { generateItemListSchema } from "@/utils/seo/modernSchemas";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
@@ -1024,6 +1025,9 @@ const Parts = () => {
 
 
       <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="spare_part" />
+      <div className="container mx-auto px-4 pb-10">
+        <PublicRobotResourceLinks />
+      </div>
     </div>
   );
 };

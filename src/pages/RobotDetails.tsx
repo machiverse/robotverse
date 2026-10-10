@@ -86,6 +86,7 @@ import { ListingRatingSummary } from "@/components/reviews/ListingRatingSummary"
 import { SEOHead } from "@/components/SEOHead";
 import { generateProductSchema } from "@/utils/seoSchemas";
 import { AEOContentBlock } from "@/components/SEO/AEOContentBlock";
+import PublicRobotResourceLinks from "@/components/SEO/PublicRobotResourceLinks";
 import { robotFaq } from "@/lib/seo/seoText";
 import { generateBreadcrumbSchema } from "@/utils/seo/modernSchemas";
 import { useRobotComparison } from "@/contexts/RobotComparisonContext";
@@ -1606,6 +1607,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               { name: robot.model || robot.name, url: `https://robotverse.in/robots/${robot.id}` },
             ])}
           />
+          <PublicRobotResourceLinks />
         </div>
       )}
     </div>

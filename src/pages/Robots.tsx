@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import PublicRobotResourceLinks from "@/components/SEO/PublicRobotResourceLinks";
 import { useDynamicSEOKeywords } from "@/hooks/useDynamicSEOKeywords";
 import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seo/modernSchemas";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
@@ -1306,6 +1307,9 @@ const Robots = () => {
 
       <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="robot" />
       {quoteRobot && <RobotQuoteModal isOpen={!!quoteRobot} onClose={() => setQuoteRobot(null)} robot={quoteRobot} />}
+      <div className="container mx-auto px-4 pb-10">
+        <PublicRobotResourceLinks />
+      </div>
     </div>
   );
 };
