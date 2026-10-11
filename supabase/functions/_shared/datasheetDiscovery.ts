@@ -134,6 +134,25 @@ export function sitemapProductPages(locations: string[], item: DatasheetModel): 
   }).sort((a, b) => Number(!a.includes("/en-us/")) - Number(!b.includes("/en-us/"))).slice(0, 2);
 }
 
+/** "IRB 6700-200/2.60" → "irb-6700": the family page that covers several variants. */
+export function familySlug(model: string): string | null {
+  const family = model.match(/^(.*?\d[A-Za-z0-9 ]*?)[-/]/)?.[1];
+  const slug = family ? slugOf(family) : "";
+  return slug.length >= 4 && slug !== slugOf(model) ? slug : null;
+}
+
+/** Family product pages, used only when no page exists for the exact model. */
+export function sitemapFamilyPages(locations: string[], item: DatasheetModel): string[] {
+  const slug = familySlug(item.m);
+  if (!slug) return [];
+  return locations.filter((location) => {
+    try {
+      const path = new URL(location).pathname.toLowerCase();
+      return !/\/used\//.test(path) && slugOf(decodeURIComponent(path.split("/").filter(Boolean).pop() ?? "")) === slug;
+    } catch { return false; }
+  }).sort((a, b) => Number(!/\/en[-/]/.test(a)) - Number(!/\/en[-/]/.test(b))).slice(0, 2);
+}
+
 const sitemapCache = new Map<string, Promise<string[]>>();
 /** Every page address in a manufacturer's sitemap (and its child sitemaps), cached per worker. */
 function sitemapLocations(brand: string, deadline: number): Promise<string[]> {
@@ -168,7 +187,11 @@ export function directCandidates(item: DatasheetModel): DatasheetCandidate[] {
   return [];
 }
 
-export function productPdfLinks(html: string, pageUrl: string, item: DatasheetModel): DatasheetCandidate[] {
+/**
+ * Datasheet links on a product page. On a family page (several variants), links need not name
+ * the exact model: the PDF text check then proves the model is in the document.
+ */
+export function productPdfLinks(html: string, pageUrl: string, item: DatasheetModel, family = false): DatasheetCandidate[] {
   const heading = [...html.matchAll(/<(?:title|h1)\b[^>]*>([\s\S]*?)<\/(?:title|h1)>/gi)].map((match) => strip(match[1])).join(" ");
   const pageMatches = matchesModel(heading, item.m);
   const out: DatasheetCandidate[] = [];
@@ -181,16 +204,21 @@ export function productPdfLinks(html: string, pageUrl: string, item: DatasheetMo
       const title = pageMatches && /datasheet|brochure|specification|technical data/i.test(label) ? `${item.m} ${label}` : label;
       const candidate = { url, title, source: "manufacturer-page" };
       if (candidateScore(candidate, item) >= 0) out.push(candidate);
+      else if (family && pdfPath(url) && isOfficialUrl(url, item.b) && !/manual|maintenance|instruction|handbuch|spare.parts/i.test(`${url} ${label}`))
+        out.push({ ...candidate, title: `${label} (family)`, source: "manufacturer-family" });
     } catch { /* Ignore malformed links. */ }
   }
-  return out.sort((a, b) => candidateScore(b, item) - candidateScore(a, item));
+  const rank = (c: DatasheetCandidate) => candidateScore(c, item) * 10 + (/data[-_ ]?sheet|specification|technical/i.test(`${c.url} ${c.title}`) ? 5 : 0);
+  return out.sort((a, b) => rank(b) - rank(a));
 }
 
 export async function verifyOfficialPdf(candidate: DatasheetCandidate, item: DatasheetModel, verifyModel: PdfModelVerifier, deadline = Infinity, trace: string[] = []): Promise<DatasheetResult | null> {
   // A known address built from the exact model on the manufacturer's site is itself the proof.
   const direct = candidate.source === "manufacturer-direct";
+  // Family brochures need not name the variant in their address; their text must (below).
+  const family = candidate.source === "manufacturer-family" && isOfficialUrl(candidate.url, item.b);
   const name = candidate.url.split("/").pop()?.slice(0, 60);
-  if (candidateScore(candidate, item) < 0) return null;
+  if (candidateScore(candidate, item) < 0 && !family) return null;
   const response = await readResponse(candidate.url, item.b, 12_000_000, false, deadline);
   if (!hasPdfSignature(response.bytes)) { trace.push(`${name}: not a PDF (${response.bytes.length} bytes)`); return null; }
   if (!direct && !await verifyModel(response.bytes, item)) { trace.push(`${name}: model not in PDF text`); return null; }
@@ -211,10 +239,8 @@ export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfMo
   // One search per manufacturer website: search engines return nothing for several
   // site: filters joined with OR. A general search follows; it still only accepts PDFs
   // on approved manufacturer domains.
-  const queries = [
-    ...domains.slice(0, 4).map((domain) => `site:${domain} ${item.m} datasheet pdf`),
-    `"${item.m}" ${item.b.split(" ")[0]} datasheet filetype:pdf`,
-  ];
+  // Search engines mostly block or ignore servers, so search is only a short last resort.
+  const queries = [`site:${domains[0]} ${item.m} datasheet pdf`];
   // Known addresses first: no search needed.
   for (const candidate of directCandidates(item)) {
     try {
@@ -226,11 +252,13 @@ export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfMo
   // Then the model's own product page from the manufacturer's sitemap, and the PDFs it links.
   {
     try {
-      const pages = sitemapProductPages(await sitemapLocations(item.b, deadline), item);
-      if (!pages.length) trace.push("sitemap: no product page for this model");
+      const locations = await sitemapLocations(item.b, deadline);
+      const exact = sitemapProductPages(locations, item);
+      const pages = exact.length ? exact : sitemapFamilyPages(locations, item);
+      if (!pages.length) trace.push(`sitemap: ${locations.length} pages, none for this model`);
       for (const pageUrl of pages) {
         const page = await readResponse(pageUrl, item.b, 3_000_000, false, deadline);
-        const links = productPdfLinks(new TextDecoder().decode(page.bytes), page.url, item).slice(0, 4);
+        const links = productPdfLinks(new TextDecoder().decode(page.bytes), page.url, item, !exact.length).slice(0, 4);
         if (!links.length) trace.push(`sitemap: no datasheet link on ${new URL(pageUrl).pathname.slice(-40)}`);
         for (const link of links) {
           tried.add(link.url.replace(/[?#].*$/, ""));

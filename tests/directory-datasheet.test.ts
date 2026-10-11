@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { candidateScore, hasPdfSignature, isOfficialUrl, isStoredDatasheet, matchesModel } from "../supabase/functions/_shared/datasheetPolicy";
-import { directCandidates, discoverDatasheet, sitemapProductPages, parseSearchResults, productPdfLinks, unwrapResultLink, verifyOfficialPdf } from "../supabase/functions/_shared/datasheetDiscovery";
+import { directCandidates, discoverDatasheet, familySlug, sitemapFamilyPages, sitemapProductPages, parseSearchResults, productPdfLinks, unwrapResultLink, verifyOfficialPdf } from "../supabase/functions/_shared/datasheetDiscovery";
 
 const model = { id: "RVRobot1517", b: "Universal Robots", m: "UR10e", n: "Universal Robots UR10e" };
 const candidate = { url: "https://www.universal-robots.com/download/UR10e-datasheet.pdf", title: "UR10e datasheet", source: "manufacturer-page" };
@@ -47,6 +47,15 @@ assert.deepEqual(sitemapProductPages([
 ], gp25), ["https://www.motoman.com/en-us/products/robots/industrial/assembly-handling/gp-series/gp25"]);
 const motomanLinks = productPdfLinks('<h1>GP25</h1><a href="/getdoc/x/Sales-Quote.aspx?model=GP25">Quote</a><a href="/getmedia/ee92/GP25.pdf.aspx">Spec Sheet</a>', "https://www.motoman.com/en-us/products/gp25", gp25);
 assert.deepEqual(motomanLinks.map((link) => link.url), ["https://www.motoman.com/getmedia/ee92/GP25.pdf.aspx"]);
+assert.equal(familySlug("IRB 6700-200/2.60"), "irb-6700");
+assert.equal(familySlug("KR 210 R2700-2"), "kr-210-r2700");
+assert.equal(familySlug("GP25"), null);
+const irb = { id: "RVRobot0087", b: "ABB", m: "IRB 6700-200/2.60", n: "ABB IRB 6700-200/2.60" };
+assert.deepEqual(sitemapFamilyPages(["https://new.abb.com/products/robotics/robots/articulated-robots/irb-6700", "https://new.abb.com/products/robotics/robots/articulated-robots/irb-6700-inverted"], irb),
+  ["https://new.abb.com/products/robotics/robots/articulated-robots/irb-6700"]);
+const familyLinks = productPdfLinks('<h1>IRB 6700</h1><a href="https://library.e.abb.com/public/a26/IRB_6700_EN.pdf">Data sheet</a><a href="https://library.e.abb.com/public/b1/IRB6700_manual.pdf">Product manual</a>', "https://new.abb.com/products/irb-6700", irb, true);
+assert.deepEqual(familyLinks.map((link) => link.source), ["manufacturer-family"]);
+assert.equal(productPdfLinks('<a href="https://library.e.abb.com/public/a26/IRB_6700_EN.pdf">Data sheet</a>', "https://new.abb.com/products/irb-6700", irb).length, 0, "exact-model pages stay strict");
 const rss = parseSearchResults("<rss><channel><item><title>UR10e datasheet</title><link>https://www.universal-robots.com/UR10e.pdf</link></item></channel></rss>", "bingrss");
 assert.equal(rss[0].url, "https://www.universal-robots.com/UR10e.pdf");
 
@@ -117,5 +126,15 @@ try {
   assert.equal(yaskawa.url, "https://www.motoman.com/getmedia/ee92/GP25.pdf.aspx");
   assert.equal(yaskawa.source, "manufacturer-sitemap");
   assert.equal(searched.length, 0);
+  // ABB: no page for the exact variant, so the family page's brochure is read; the PDF text decides.
+  globalThis.fetch = (async (input) => {
+    const url = String(input);
+    if (url.endsWith("sitemap.xml")) return new Response("<urlset><url><loc>https://www.abb.com/global/en/robots/irb-6700</loc></url></urlset>");
+    if (url.endsWith("/irb-6700")) return new Response('<h1>IRB 6700</h1><a href="https://library.e.abb.com/public/a26/IRB_6700_EN.pdf">Data sheet</a>');
+    if (url.endsWith(".pdf")) return new Response("%PDF-1.7\n");
+    return new Response("<p>No results</p>");
+  }) as typeof fetch;
+  assert.equal((await discoverDatasheet(irb, verifyModel)).url, "https://library.e.abb.com/public/a26/IRB_6700_EN.pdf");
+  assert.equal((await discoverDatasheet(irb, async () => false)).status, "not_found", "a family brochure without the variant is rejected");
 } finally { globalThis.fetch = originalFetch; }
 console.log("directory datasheets: official hosts, model matching, redirects, PDF bytes and lookup outcomes passed");
