@@ -153,11 +153,25 @@ export function sitemapFamilyPages(locations: string[], item: DatasheetModel): s
   }).sort((a, b) => Number(!/\/en[-/]/.test(a)) - Number(!/\/en[-/]/.test(b))).slice(0, 2);
 }
 
+/** Saved per-brand page lists, so the large sitemaps are read once rather than by every run. */
+export type SitemapStore = { read(brand: string): Promise<string[] | null>; write(brand: string, pages: string[]): Promise<void> };
+let sitemapStore: SitemapStore | null = null;
+export const useSitemapStore = (store: SitemapStore | null) => { sitemapStore = store; sitemapCache.clear(); };
+/** Only pages that can match a model: the last path segment has a digit, and it is not news or similar. */
+const productLike = (location: string) => {
+  try {
+    const path = new URL(location).pathname.toLowerCase();
+    return /\d/.test(path.split("/").filter(Boolean).pop() ?? "") && !/news|blog|press|event|career|job|webinar|case-stud|legal|privacy|cookie/.test(path);
+  } catch { return false; }
+};
+
 const sitemapCache = new Map<string, Promise<string[]>>();
 /** Every page address in a manufacturer's sitemap (and its child sitemaps), cached per worker. */
 function sitemapLocations(brand: string, deadline: number): Promise<string[]> {
   if (!sitemapCache.has(brand)) {
     const load = async () => {
+      const saved = await sitemapStore?.read(brand).catch(() => null);
+      if (saved) return saved;
       const out: string[] = [];
       // Known sitemaps, else those robots.txt lists for each approved domain, else /sitemap.xml.
       const queue = [...(SITEMAPS[brand] ?? [])];
@@ -187,9 +201,11 @@ function sitemapLocations(brand: string, deadline: number): Promise<string[]> {
         // Product and English child sitemaps first; image, video and news sitemaps never list products.
         const priority = (url: string) => (/product|robot/i.test(url) ? 0 : 2) + (/[/_-]en(?:[/_.-]|$)/i.test(url) ? 0 : 1);
         if (/<sitemapindex/i.test(xml)) queue.unshift(...locations.filter((location) => !/image|video|news|blog|press|event/i.test(location)).sort((a, b) => priority(a) - priority(b)));
-        else out.push(...locations);
+        else out.push(...locations.filter(productLike));
       }
-      return out;
+      const pages = [...new Set(out)];
+      await sitemapStore?.write(brand, pages).catch(() => undefined); // Empty lists are saved too: no re-reading.
+      return pages;
     };
     const promise = load();
     promise.catch(() => sitemapCache.delete(brand));
@@ -239,7 +255,12 @@ export async function verifyOfficialPdf(candidate: DatasheetCandidate, item: Dat
   if (candidateScore(candidate, item) < 0 && !family) return null;
   const response = await readResponse(candidate.url, item.b, 12_000_000, false, deadline);
   if (!hasPdfSignature(response.bytes)) { trace.push(`${name}: not a PDF (${response.bytes.length} bytes)`); return null; }
-  if (!direct && !await verifyModel(response.bytes, item)) { trace.push(`${name}: model not in PDF text`); return null; }
+  // A manufacturer PDF whose own address names the exact model (".../GP25.pdf") is proof enough;
+  // reading PDF text is costly, so it is reserved for family brochures and vaguer links.
+  let file = response.url;
+  try { file = decodeURIComponent(new URL(response.url).pathname.split("/").pop() ?? ""); } catch { /* keep the URL */ }
+  const named = matchesModel(file, item.m);
+  if (!direct && !named && !await verifyModel(response.bytes, item)) { trace.push(`${name}: model not in PDF text`); return null; }
   return { url: response.url, title: candidate.title, source: candidate.source,
     host: new URL(response.url).hostname, status: "found", checkedAt: new Date().toISOString(), bytes: response.bytes };
 }

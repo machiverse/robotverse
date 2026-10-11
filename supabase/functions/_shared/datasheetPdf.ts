@@ -5,8 +5,9 @@ import { matchesModel, type DatasheetModel } from "./datasheetPolicy.ts";
 export async function pdfContainsModel(bytes: Uint8Array, item: DatasheetModel): Promise<boolean> {
   const pdf = await getDocumentProxy(bytes, { isEvalSupported: false });
   try {
-    // Brochures may cover several models. Avoid unbounded parsing of large manuals.
-    for (let number = 1; number <= Math.min(pdf.numPages, 50); number++) {
+    // Brochures may cover several models; their spec tables are near the front. Few pages keep
+    // the check inside the edge function's CPU limit.
+    for (let number = 1; number <= Math.min(pdf.numPages, 6); number++) {
       const page = await pdf.getPage(number);
       const content = await page.getTextContent();
       // NFKC turns look-alikes (full-width "／", "Ｍ") into plain characters.

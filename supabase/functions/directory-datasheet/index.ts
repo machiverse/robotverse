@@ -1,6 +1,6 @@
 // Official PDF discovery. Writes only new datasheet files in the existing storage bucket.
 import { createClient } from "npm:@supabase/supabase-js@2.99.1";
-import { discoverDatasheet, type DatasheetResult } from "../_shared/datasheetDiscovery.ts";
+import { discoverDatasheet, useSitemapStore, type DatasheetResult } from "../_shared/datasheetDiscovery.ts";
 import { isOfficialUrl, isStoredDatasheet, OEM_SITES, type DatasheetModel } from "../_shared/datasheetPolicy.ts";
 import { DatasheetFiles } from "../_shared/datasheetFiles.ts";
 import { pdfContainsModel } from "../_shared/datasheetPdf.ts";
@@ -10,8 +10,8 @@ const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
 type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number };
 // Bump when discovery improves, so earlier "not found" outcomes are searched again.
-const SEARCH_VERSION = 10;
-type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number };
+const SEARCH_VERSION = 11;
+type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number; at?: string };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.
 const DIR = "directory/datasheets/verified-v2";
@@ -37,6 +37,16 @@ async function storePdf(kind: Kind, id: string, bytes: Uint8Array) {
 }
 /** The link the button opens: our stored copy, else the manufacturer's PDF. */
 const openUrl = (row: { url: string | null; file?: string }) => row.file && isStoredDatasheet(row.file) ? row.file : row.url;
+
+// Manufacturer page lists from sitemaps, refreshed weekly.
+const sitemapPath = (brand: string) => `${DIR}/sitemaps/${brand.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json`;
+useSitemapStore({
+  read: async (brand) => {
+    const saved = await readJson<{ at: string; pages: string[] }>(sitemapPath(brand));
+    return saved && Date.now() - new Date(saved.at).getTime() < 7 * 86400_000 ? saved.pages : null;
+  },
+  write: (brand, pages) => writeJson(sitemapPath(brand), { at: new Date().toISOString(), pages }),
+});
 
 async function readIndex(kind: Kind) {
   return (await readJson<Record<string, Row>>(indexPath(kind))) ?? {};
@@ -116,7 +126,10 @@ const background = (promise: Promise<unknown>) => {
 
 // Each invocation collects models for up to ~70 s, saving progress after every model,
 // then hands over to a fresh invocation. If a handoff fails, the next status read resumes.
-const SWEEP_BUDGET_MS = 70_000; // + one lookup (≤ 60 s) stays inside the 150 s function limit
+// Edge functions allow ~2 s of CPU per request (background work included), so each run
+// handles a few models and hands over; a run that is killed is resumed after 4 minutes.
+const SWEEP_BUDGET_MS = 40_000;
+const SWEEP_MODELS = 4;
 async function sweep(kind: Kind, runId: string, from: number, redo: boolean) {
   const started = Date.now();
   const job = await readJson<Job>(jobPath(kind));
@@ -130,8 +143,12 @@ async function sweep(kind: Kind, runId: string, from: number, redo: boolean) {
   const catalogue = await loadCatalogue(kind);
   let next = from;
   let failure: string | null = null;
-  while (next < catalogue.length && Date.now() - started < SWEEP_BUDGET_MS) {
+  while (next < catalogue.length && next - from < SWEEP_MODELS && Date.now() - started < SWEEP_BUDGET_MS) {
     const item = catalogue[next];
+    // Record which model is in progress, so a run that dies shows where.
+    const current = await readJson<Job>(jobPath(kind));
+    if (!current || current.run_id !== runId) return;
+    await writeJson(jobPath(kind), { ...current, at: item.id, updatedAt: new Date().toISOString() });
     try {
       await find(kind, item.id, redo);
       const row = await readResult(kind, item.id);
@@ -169,9 +186,12 @@ async function startJob(kind: Kind, redo: boolean) {
   if (!outdated && previous?.running && !stalled(previous) && Date.now() - new Date(previous.updatedAt).getTime() < 5 * 60_000)
     return json({ error: "Collection is already running" }, 409);
   const resume = !redo && !outdated && previous && previous.total === catalogue.length && previous.done < previous.total;
-  const job: Job = { kind, run_id: crypto.randomUUID(), done: resume ? previous.done : 0,
+  // A run that died while on a model (e.g. over the CPU limit) skips that model when resumed.
+  const skip = resume && stalled(previous) && previous.at === catalogue[previous.done]?.id ? 1 : 0;
+  const job: Job = { kind, run_id: crypto.randomUUID(), done: resume ? previous.done + skip : 0,
     total: catalogue.length, redo: resume ? previous.redo : redo, running: true,
-    updatedAt: new Date().toISOString(), last_error: null, v: SEARCH_VERSION };
+    updatedAt: new Date().toISOString(), v: SEARCH_VERSION,
+    last_error: skip ? `Skipped ${previous!.at}: the run stopped while checking it` : null };
   await writeJson(jobPath(kind), job);
   background(sweep(kind, job.run_id, job.done, job.redo));
   return json({ started: true, kind, redo: job.redo, from: job.done });

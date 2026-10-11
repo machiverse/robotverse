@@ -64,7 +64,8 @@ const verifyModel = async () => true;
 try {
   globalThis.fetch = (async () => new Response("%PDF-1.7\n", { headers: { "Content-Type": "application/octet-stream" } })) as typeof fetch;
   assert.equal((await verifyOfficialPdf(candidate, model, verifyModel))?.status, "found");
-  assert.equal(await verifyOfficialPdf(candidate, model, async () => false), null, "A PDF for a different model must be rejected");
+  assert.equal(await verifyOfficialPdf({ ...candidate, url: "https://www.universal-robots.com/download/e-series-brochure.pdf" }, model, async () => false), null, "A PDF whose address does not name the model needs the model in its text");
+  assert.equal((await verifyOfficialPdf(candidate, model, async () => false))?.status, "found", "a manufacturer file named for the exact model is accepted without reading its text");
   // The Content-Type alone must never make an HTML error page pass verification.
   globalThis.fetch = (async () => new Response("<html>error</html>", { headers: { "Content-Type": "application/pdf" } })) as typeof fetch;
   assert.equal(await verifyOfficialPdf(candidate, model, verifyModel), null);
