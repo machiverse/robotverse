@@ -23,6 +23,11 @@ export type DatasheetSource = {
   pages?: string[];
   /** Removed from our model name before looking for it in the PDF text (e.g. "Smart5 " for older Comau names). */
   strip?: string;
+  /**
+   * For pattern sources: a regex whose first group is the model's series ("IR-S10" from
+   * "IR-S10-60Z20S-INT"). A PDF naming the series is used when none names the exact variant.
+   */
+  family?: string;
 };
 
 export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
@@ -104,6 +109,37 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
   Estun: [
     { match: "ER20-1780", urls: ["https://en.estun.com/static/upload/file/20250310/1741587303987685.pdf"] },
   ],
+  Staubli: [
+    { match: "TX2-90", urls: ["https://www.staubli.com/content/dam/robotics/products/robots/tx2/TX2-90-6-axis-product-data-sheet-EN.pdf"] },
+    { match: "TX2-60", urls: ["https://www.staubli.com/content/dam/robotics/products/robots/tx2/TX2-60-6-axis-product-data-sheet-EN.pdf"] },
+    { match: "Staubli", urls: [], pattern: "^(TX2|TS2|TP80)", pages: ["https://www.staubli.com/global/en/robotics/products/industrial-robots/6-axis/{slug}.html", "https://www.staubli.com/global/en/robotics/products/industrial-robots/4-axis/{slug}.html"] },
+  ],
+  // Epson spec sheets on files.support.epson.com, one per series.
+  Epson: [
+    { match: "GX8", urls: ["https://files.support.epson.com/far/docs/scara_gx8_robot_specification_sheet_cpd-62188_final.pdf"], trust: true },
+    { match: "LS6", urls: ["https://files.support.epson.com/far/docs/ls6_robot_specification_sheet_cpd-55426.pdf"], trust: true },
+    { match: "T6", urls: ["https://files.support.epson.com/docid/cpd5/cpd55682.pdf"], trust: true },
+  ],
+  // One product page per model on www2.tm-robot.com ("Techman TM5S" → /en/tm5s/).
+  "Techman Robot": [
+    { match: "Techman", urls: [], pattern: ".", strip: "^Techman ", pages: ["https://www2.tm-robot.com/en/{slug}/"] },
+  ],
+  // Omron's TM cobot datasheets (Techman-built), current S series first.
+  Omron: [
+    { match: "TM", urls: ["https://robotics.omron.com/wp-content/uploads/TM-Collaborative-Robot-S-Series-Datasheet-RevB-202409.pdf", "https://assets.omron.eu/downloads/latest/datasheet/en/i837_collaborative_robots_datasheet_en.pdf", "https://assets.omron.com/m/265aa911102c2f30/original/TM12-TM14-Datasheet.pdf"], pattern: "^TM" },
+  ],
+  // Nachi: standard specification sheets per model, then the Total Robot catalogue.
+  Nachi: [
+    { match: "MZ04", urls: ["https://www.nachirobotics.com/wp-content/uploads/2017/05/MZ04_Specification.pdf"] },
+    { match: "MZ07", urls: ["https://www.nachirobotics.com/wp-content/uploads/2017/05/MZ07_Specification-1.pdf", "https://www.nachirobotics.com/wp-content/uploads/2023/02/MZ07F-MZ07LF-1.pdf"] },
+    { match: "Nachi", urls: ["https://www.nachirobotics.com/wp-content/uploads/2024/12/Total-Robot.pdf", "https://www.nachi-fujikoshi.co.jp/dcms_media/other/R7001E-24.pdf", "https://www.nachirobotics.com/wp-content/uploads/2023/02/MZ-Series-Catalog.pdf"], pattern: ".", family: "^([A-Z]+\\d+[A-Z]?)" },
+  ],
+  Rokae: [
+    { match: "Rokae", urls: ["https://static.rokae.com/Downloads/DataSheet/ROKAE_xMate%20CR_EN.pdf", "https://static.rokae.com/Downloads/DataSheet/ROKAE_xMate%20SR_EN.pdf"], pattern: ".", family: "^([A-Z]+\\d+)" },
+  ],
+  INOVANCE: [
+    { match: "Inovance", urls: ["https://portal-file.inovance.com/owfile/ProdDoc/CY/19120306-CY/A03/19120306-CY_A03_Inovance%20Robot%20Selection%20Guide_EN%2020251120_Web.pdf", "https://portal-file.inovance.com/owfile/ProdDoc/CY/19120415-CY/A02/19120415-CY_A02_INOVANCE%20ROBOT%20Selection%20Leaflet_20251120_Web.pdf"], pattern: ".", family: "^(IRS?\\d*-?[A-Z]*\\d+)" },
+  ],
 };
 
 const slug = (text: string) => text.toLowerCase().normalize("NFKC").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -125,10 +161,12 @@ export function researchedSources(item: DatasheetModel): { url: string; trust: b
   for (const { source } of hits) {
     for (const url of source.urls) {
       const known = out.get(url);
-      out.set(url, { trust: (known?.trust ?? false) || !!source.trust, ...(known ? { family: known.family } : source.pattern ? { fallback: true } : { family: source.match }), ...(source.strip ? { strip: source.strip } : {}) });
+      const series = source.family ? item.m.match(new RegExp(source.family, "i"))?.[1] : undefined;
+      const family = known ? known.family : source.pattern ? series : source.match;
+      out.set(url, { trust: (known?.trust ?? false) || !!source.trust, ...(known || !source.pattern ? {} : { fallback: true }), ...(family ? { family } : {}), ...(source.strip ? { strip: source.strip } : {}) });
     }
     for (const page of source.pages ?? []) {
-      const url = page.replace("{slug}", model);
+      const url = page.replace("{slug}", source.strip ? slug(item.m.replace(new RegExp(source.strip, "i"), "")) : model);
       if (!out.has(url)) out.set(url, { trust: false, page: true });
     }
   }

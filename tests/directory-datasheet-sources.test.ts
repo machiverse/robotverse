@@ -21,6 +21,7 @@ DATASHEET_SOURCES.ABB.push({ match: "large", urls: [], pattern: "^IRB 66\\d\\d",
 assert.deepEqual(researchedSources({ id: "x", b: "ABB", m: "IRB 6650S-125/3.5", n: "" }), [{ url: "https://new.abb.com/products/irb-66xx", trust: false, page: true }]);
 assert.deepEqual(researchedSources({ id: "x", b: "ABB", m: "IRB 7600-150/3.5", n: "" }), []);
 assert.ok(researchedSources({ id: "x", b: "Kawasaki", m: "RS007N", n: "" }).some((s) => s.page && s.url === "https://kawasakirobotics.com/products-robots/rs007n/"));
+assert.equal(researchedSources({ id: "x", b: "INOVANCE", m: "IR-S10-60Z20S-INT", n: "" })[0].family, "IR-S10");
 if (saved) DATASHEET_SOURCES.ABB = saved; else delete DATASHEET_SOURCES.ABB;
 
 // Every researched link is on an approved manufacturer domain for its brand.
