@@ -2,7 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.99.1";
 import { discoverDatasheet, fetchOfficial, setSitemapStore, type DatasheetResult } from "../_shared/datasheetDiscovery.ts";
 import { hasPdfSignature, isOfficialUrl, isStoredDatasheet, matchesModel, OEM_SITES, type DatasheetModel } from "../_shared/datasheetPolicy.ts";
-import { researchedUrls } from "../_shared/datasheetSources.ts";
+import { researchedSources } from "../_shared/datasheetSources.ts";
 import { DatasheetFiles } from "../_shared/datasheetFiles.ts";
 import { pdfContainsModel, pdfText } from "../_shared/datasheetPdf.ts";
 
@@ -11,7 +11,7 @@ const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
 type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number };
 // Bump when discovery improves, so earlier "not found" outcomes are searched again.
-const SEARCH_VERSION = 12;
+const SEARCH_VERSION = 13;
 type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number; at?: string };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.
@@ -94,13 +94,41 @@ function fresh(row: Row, item: DatasheetModel) {
  * every model of a family is checked against the saved text instead of parsing the PDF again.
  * Failed downloads are retried after a day.
  */
-type Doc = { url: string; file?: string; text?: string; error?: string; at: string };
-async function loadDoc(url: string, brand: string): Promise<Doc> {
+type Doc = { url: string; file?: string; text?: string; links?: string[]; error?: string; at: string };
+/** New downloads allowed per request: PDF parsing is the costly part of the CPU limit. */
+let downloadBudget = 2;
+class Pending extends Error {}
+const docPath = async (url: string) => {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(url)));
-  const key = [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 24);
-  const path = `${DIR}/docs/${key}.json`;
-  const saved = await readJson<Doc>(path);
-  if (saved && (saved.text !== undefined || Date.now() - new Date(saved.at).getTime() < 86400_000)) return saved;
+  return `${DIR}/docs/${[...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 24)}.json`;
+};
+// Loaded pages and PDF texts, kept for the life of the worker: many models share one brochure.
+const docMemo = new Map<string, Doc>();
+const usable = (saved: Doc | null | undefined) => saved && (saved.text !== undefined || saved.links !== undefined || Date.now() - new Date(saved.at).getTime() < 86400_000);
+/** A researched product page, read once: the official PDF links on it (brochures, data sheets). */
+async function loadPage(url: string, brand: string): Promise<Doc> {
+  const path = await docPath(url);
+  const saved = docMemo.get(path) ?? await readJson<Doc>(path);
+  if (usable(saved)) { docMemo.set(path, saved!); return saved!; }
+  if (downloadBudget-- <= 0) throw new Pending();
+  const at = new Date().toISOString();
+  let doc: Doc;
+  try {
+    const response = await fetchOfficial(url, brand);
+    const html = new TextDecoder().decode(response.bytes);
+    const links = [...html.matchAll(/href=["']([^"']+)["']/gi)].map((match) => { try { return new URL(match[1].replace(/&amp;/g, "&"), response.url).href; } catch { return ""; } })
+      .filter((link) => /\.pdf(?:[?#]|$)/i.test(link) && isOfficialUrl(link, brand) && !/manual|maintenance|instruction|handbuch|spare.parts|annual|report|catalogue|training/i.test(link));
+    doc = { url: response.url, links: [...new Set(links)].slice(0, 12), at };
+  } catch (error) { doc = { url, error: message(error), at }; }
+  await writeJson(path, doc);
+  return doc;
+}
+async function loadDoc(url: string, brand: string): Promise<Doc> {
+  const path = await docPath(url);
+  const saved = docMemo.get(path) ?? await readJson<Doc>(path);
+  if (usable(saved)) { docMemo.set(path, saved!); return saved!; }
+  if (downloadBudget-- <= 0) throw new Pending();
+  const key = path.split("/").pop()!.replace(".json", "");
   const at = new Date().toISOString();
   let doc: Doc;
   try {
@@ -118,13 +146,26 @@ async function loadDoc(url: string, brand: string): Promise<Doc> {
 /** The first researched PDF that really lists this model (in its text or its file name). */
 async function tryResearched(item: DatasheetModel): Promise<{ result: DatasheetResult | null; notes: string[] }> {
   const notes: string[] = [];
-  for (const url of researchedUrls(item)) {
+  // Product pages contribute the PDFs they link, checked after the directly listed PDFs.
+  const sources: { url: string; trust: boolean }[] = [];
+  const pages: string[] = [];
+  for (const source of researchedSources(item)) {
+    if (source.page) pages.push(source.url);
+    else sources.push(source);
+  }
+  for (const pageUrl of pages) {
+    if (!isOfficialUrl(pageUrl, item.b)) { notes.push(`${pageUrl.slice(0, 60)}: not an approved manufacturer domain`); continue; }
+    const page = await loadPage(pageUrl, item.b);
+    if (page.error) notes.push(`${pageUrl.slice(-40)}: ${page.error}`);
+    for (const link of page.links ?? []) if (!sources.some((source) => source.url === link)) sources.push({ url: link, trust: false });
+  }
+  for (const { url, trust } of sources) {
     if (!isOfficialUrl(url, item.b)) { notes.push(`${url.slice(0, 60)}: not an approved manufacturer domain`); continue; }
     const doc = await loadDoc(url, item.b);
     let name = doc.url;
     try { name = decodeURIComponent(new URL(doc.url).pathname.split("/").pop() ?? doc.url); } catch { /* keep the URL */ }
     if (doc.error) { notes.push(`${name.slice(0, 60)}: ${doc.error}`); continue; }
-    if (doc.file && (matchesModel(name, item.m) || matchesModel(doc.text ?? "", item.m)))
+    if (doc.file && (trust || matchesModel(name, item.m) || matchesModel(doc.text ?? "", item.m)))
       return { notes, result: { url: doc.url, file: doc.file, title: name, source: "researched", host: new URL(doc.url).hostname, status: "found", checkedAt: new Date().toISOString() } };
     notes.push(`${name.slice(0, 60)}: model not in this PDF`);
   }
@@ -140,7 +181,10 @@ async function find(kind: Kind, id: string, refresh: boolean): Promise<Datasheet
   }
   let result: DatasheetResult;
   // Researched manufacturer PDFs first, then the automatic lookup.
-  const researched = await tryResearched(item).catch((error) => ({ result: null, notes: [message(error)] }));
+  const researched = await tryResearched(item).catch((error) => {
+    if (error instanceof Pending) throw error; // More datasheets to download first: retried by the next run.
+    return { result: null, notes: [message(error)] };
+  });
   if (researched.result) result = researched.result;
   else {
     try { result = await discoverDatasheet(item, pdfContainsModel); }
@@ -181,6 +225,7 @@ const SWEEP_BUDGET_MS = 40_000;
 const SWEEP_MODELS = 4;
 async function sweep(kind: Kind, runId: string, from: number, redo: boolean) {
   const started = Date.now();
+  downloadBudget = 2;
   const job = await readJson<Job>(jobPath(kind));
   if (!job || job.run_id !== runId || !job.running || job.done !== from) return;
   const claimPath = `${DIR}/claims/${runId}/${from}.json`;
@@ -202,7 +247,11 @@ async function sweep(kind: Kind, runId: string, from: number, redo: boolean) {
       await find(kind, item.id, redo);
       const row = await readResult(kind, item.id);
       if (row) await indexResult(kind, row);
-    } catch (error) { failure = `${item.id}: ${message(error)}`; } // One model's failure never stops the run.
+    } catch (error) {
+      // Its datasheets are still downloading (a few per run): check the same model again next run.
+      if (error instanceof Pending) break;
+      failure = `${item.id}: ${message(error)}`; // One model's failure never stops the run.
+    }
     next++;
     const latest = await readJson<Job>(jobPath(kind));
     if (!latest || latest.run_id !== runId) return; // A newer run took over.
@@ -256,6 +305,7 @@ async function ensureCollecting(kind: Kind) {
 }
 
 Deno.serve(async (req) => {
+  downloadBudget = 2;
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (!["GET", "POST"].includes(req.method)) return json({ error: "Method not allowed" }, 405);
   try {
@@ -270,7 +320,12 @@ Deno.serve(async (req) => {
       if (!/^[A-Za-z0-9_-]{3,64}$/.test(id)) return json({ error: "Missing or invalid id" }, 400);
       const refresh = String(param("refresh")) === "true";
       if (refresh && !await isAdmin(req)) return json({ error: "Admins only" }, 403);
-      const result = await find(kind, id, refresh);
+      let result;
+      try { result = await find(kind, id, refresh); }
+      catch (error) {
+        if (error instanceof Pending) return json({ url: null, status: "error", note: "Datasheets for this model are still being collected; retry shortly" }, 503);
+        throw error;
+      }
       return json(result, result.status === "error" ? 503 : 200);
     }
     if (action === "index" || action === "status") {
