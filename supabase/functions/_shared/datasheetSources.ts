@@ -140,6 +140,23 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
   INOVANCE: [
     { match: "Inovance", urls: ["https://portal-file.inovance.com/owfile/ProdDoc/CY/19120306-CY/A03/19120306-CY_A03_Inovance%20Robot%20Selection%20Guide_EN%2020251120_Web.pdf", "https://portal-file.inovance.com/owfile/ProdDoc/CY/19120415-CY/A02/19120415-CY_A02_INOVANCE%20ROBOT%20Selection%20Leaflet_20251120_Web.pdf"], pattern: ".", family: "^(IRS?\\d*-?[A-Z]*\\d+)" },
   ],
+  // One tech sheet per model at a fixed address ("UR10e" → .../UR10e_techsheet_en.pdf).
+  "Universal Robots": [
+    { match: "UR", urls: ["https://www.universal-robots.com/manuals/EN/TechSheets/{model}_techsheet_pdf_online/{model}_techsheet_en.pdf", "https://www.universal-robots.com/manuals/EN/DataSheets/{model}_techsheet_pdf_online/{model}_techsheet_en.pdf"], pattern: "^UR\\d+e?$" },
+    { match: "UR5e", urls: ["https://www.universal-robots.com/media/1807465/ur5e_e-series_datasheets_web.pdf"] },
+    { match: "UR10e", urls: ["https://www.universal-robots.com/media/1807466/ur10e_e-series_datasheets_web.pdf"] },
+  ],
+  DUCO: [
+    { match: "GCR", urls: ["https://www.ducorobots.com/upload/down/1742433511462650.pdf"], pattern: "^GCR", family: "^(GCR\\d+)" },
+  ],
+  // One product page per model, grouped by series ("M1013" → /m-series/m1013/); "White" is a colour option.
+  "Doosan Robotics": [
+    { match: "M series", urls: [], pattern: "^M\\d", strip: " White$", pages: ["https://www.doosanrobotics.com/en/product-solutions/product/m-series/{slug}/"] },
+    { match: "H series", urls: [], pattern: "^H\\d", strip: " White$", pages: ["https://www.doosanrobotics.com/en/product-solutions/product/h-series/{slug}/"] },
+    { match: "A series", urls: [], pattern: "^A\\d", strip: " White$", pages: ["https://www.doosanrobotics.com/en/product-solutions/product/a-series/{slug}/"] },
+    { match: "E series", urls: [], pattern: "^E\\d", strip: " White$", pages: ["https://www.doosanrobotics.com/en/product-solutions/product/e-series/{slug}/"] },
+    { match: "P series", urls: [], pattern: "^P\\d", strip: " White$", pages: ["https://www.doosanrobotics.com/en/product-solutions/product/p-series/{slug}/"] },
+  ],
 };
 
 const slug = (text: string) => text.toLowerCase().normalize("NFKC").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -159,14 +176,17 @@ export function researchedSources(item: DatasheetModel): { url: string; trust: b
     .sort((a, b) => Number(!!a.source.pattern) - Number(!!b.source.pattern) || b.key.length - a.key.length);
   const out = new Map<string, { trust: boolean; page?: boolean; fallback?: boolean; family?: string; strip?: string }>();
   for (const { source } of hits) {
-    for (const url of source.urls) {
+    // "{model}": our model name as written, spaces removed ("UR10e"); "{slug}": lower case with dashes.
+    const name = source.strip ? item.m.replace(new RegExp(source.strip, "i"), "").trim() : item.m;
+    for (const template of source.urls) {
+      const url = template.replaceAll("{model}", encodeURIComponent(name.replace(/\s+/g, ""))).replaceAll("{slug}", slug(name));
       const known = out.get(url);
       const series = source.family ? item.m.match(new RegExp(source.family, "i"))?.[1] : undefined;
       const family = known ? known.family : source.pattern ? series : source.match;
       out.set(url, { trust: (known?.trust ?? false) || !!source.trust, ...(known || !source.pattern ? {} : { fallback: true }), ...(family ? { family } : {}), ...(source.strip ? { strip: source.strip } : {}) });
     }
     for (const page of source.pages ?? []) {
-      const url = page.replace("{slug}", source.strip ? slug(item.m.replace(new RegExp(source.strip, "i"), "")) : model);
+      const url = page.replaceAll("{slug}", slug(name)).replaceAll("{model}", encodeURIComponent(name.replace(/\s+/g, "")));
       if (!out.has(url)) out.set(url, { trust: false, page: true });
     }
   }

@@ -22,6 +22,9 @@ assert.deepEqual(researchedSources({ id: "x", b: "ABB", m: "IRB 6650S-125/3.5", 
 assert.deepEqual(researchedSources({ id: "x", b: "ABB", m: "IRB 7600-150/3.5", n: "" }), []);
 assert.ok(researchedSources({ id: "x", b: "Kawasaki", m: "RS007N", n: "" }).some((s) => s.page && s.url === "https://kawasakirobotics.com/products-robots/rs007n/"));
 assert.equal(researchedSources({ id: "x", b: "INOVANCE", m: "IR-S10-60Z20S-INT", n: "" })[0].family, "IR-S10");
+assert.equal(researchedUrls({ id: "x", b: "Universal Robots", m: "UR10e", n: "" })[0], "https://www.universal-robots.com/media/1807466/ur10e_e-series_datasheets_web.pdf");
+assert.ok(researchedUrls({ id: "x", b: "Universal Robots", m: "UR10e", n: "" }).includes("https://www.universal-robots.com/manuals/EN/TechSheets/UR10e_techsheet_pdf_online/UR10e_techsheet_en.pdf"));
+assert.ok(researchedSources({ id: "x", b: "Doosan Robotics", m: "M1013 White", n: "" }).some((s) => s.url === "https://www.doosanrobotics.com/en/product-solutions/product/m-series/m1013/"));
 if (saved) DATASHEET_SOURCES.ABB = saved; else delete DATASHEET_SOURCES.ABB;
 
 // Every researched link is on an approved manufacturer domain for its brand.
