@@ -112,6 +112,9 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
   Staubli: [
     { match: "TX2-90", urls: ["https://www.staubli.com/content/dam/robotics/products/robots/tx2/TX2-90-6-axis-product-data-sheet-EN.pdf"] },
     { match: "TX2-60", urls: ["https://www.staubli.com/content/dam/robotics/products/robots/tx2/TX2-60-6-axis-product-data-sheet-EN.pdf"] },
+    { match: "TX2-140", urls: ["https://www.staubli.com/content/dam/robotics/products/robots/tx2/TX2-140-160-datasheet-EN.pdf"] },
+    { match: "TX2-160", urls: ["https://www.staubli.com/content/dam/robotics/products/robots/tx2/TX2-140-160-datasheet-EN.pdf"] },
+    { match: "TS2 SCARA", urls: ["https://www.staubli.com/content/dam/robotics/products/robots/ts2/{model}-4-axis-product-data-sheet-EN.pdf", "https://www.staubli.com/content/dam/robotics/products/robots/ts2/{model}-4-axis-product-data-sheet-DE.pdf"], pattern: "^TS2-\\d+", strip: " .*$" },
     { match: "Staubli", urls: [], pattern: "^(TX2|TS2|TP80)", pages: ["https://www.staubli.com/global/en/robotics/products/industrial-robots/6-axis/{slug}.html", "https://www.staubli.com/global/en/robotics/products/industrial-robots/4-axis/{slug}.html"] },
   ],
   // Epson spec sheets on files.support.epson.com, one per series.
@@ -119,6 +122,7 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
     { match: "GX8", urls: ["https://files.support.epson.com/far/docs/scara_gx8_robot_specification_sheet_cpd-62188_final.pdf"], trust: true },
     { match: "LS6", urls: ["https://files.support.epson.com/far/docs/ls6_robot_specification_sheet_cpd-55426.pdf"], trust: true },
     { match: "T6", urls: ["https://files.support.epson.com/docid/cpd5/cpd55682.pdf"], trust: true },
+    { match: "Epson", urls: ["https://files.support.epson.com/far/docs/epson_robot_specification_2023_catalog_cpd-54833r3.pdf"], pattern: ".", family: "^([A-Z]+\\d+)" },
   ],
   // One product page per model on www2.tm-robot.com ("Techman TM5S" → /en/tm5s/).
   "Techman Robot": [
@@ -126,6 +130,7 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
   ],
   // Omron's TM cobot datasheets (Techman-built), current S series first.
   Omron: [
+    { match: "Omron robots", urls: ["https://robotics.omron.com/wp-content/uploads/industrial-robots_i822-e1_14_1_csm1050308.pdf"], pattern: "^(eCobra|i4|iX3)", family: "^((eCobra|i4|iX3)[ -]?\\d+)" },
     { match: "TM", urls: ["https://robotics.omron.com/wp-content/uploads/TM-Collaborative-Robot-S-Series-Datasheet-RevB-202409.pdf", "https://assets.omron.eu/downloads/latest/datasheet/en/i837_collaborative_robots_datasheet_en.pdf", "https://assets.omron.com/m/265aa911102c2f30/original/TM12-TM14-Datasheet.pdf"], pattern: "^TM" },
   ],
   // Nachi: standard specification sheets per model, then the Total Robot catalogue.
@@ -184,6 +189,21 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
   // Siasun's GCR cobots are DUCO's (a Siasun company): DUCO's GCR series spec sheet.
   Siasun: [
     { match: "GCR", urls: ["https://www.ducorobots.com/upload/down/1742433511462650.pdf"], pattern: "^GCR", family: "^(GCR\\d+)" },
+  ],
+  // Schneider: one product datasheet per reference (LXMRL…), plus the Lexium Cobot catalogue.
+  "Schneider Electric": [
+    { match: "Lexium", urls: ["https://www.se.com/us/en/product/download-pdf/{model}", "https://www.se.com/uk/en/download/document/DIA7ED2220801EN/"], pattern: "^Lexium", strip: "^Lexium (Cobot|SCARA) " },
+  ],
+  // Adept robots are now Omron's: Viper datasheet and the industrial robotics catalogue.
+  Adept: [
+    { match: "Viper", urls: ["https://robotics.omron.com/wp-content/uploads/Viper_Series_Articulated_Robots_Datasheet_OMRON_Robotics.pdf", "https://assets.omron.com/m/1df4491292d2f3b4/original/Articulated-Robot-Viper-650-850-Datasheet.pdf"], trust: true },
+    { match: "Adept", urls: ["https://robotics.omron.com/wp-content/uploads/industrial-robots_i822-e1_14_1_csm1050308.pdf"], pattern: ".", family: "^((e?Cobra|Viper|Six) ?s?\\d+)" },
+  ],
+  // Dobot: one product page per model, each with a "Download product information" PDF.
+  Dobot: [
+    { match: "CR", urls: [], pattern: "^CR\\d+[A-Z]?$", pages: ["https://www.dobot-robots.com/products/cr-series/{slug}.html", "https://www.dobot-robots.com/products/cra-series/{slug}.html"] },
+    { match: "Nova", urls: [], pattern: "^Nova", pages: ["https://www.dobot-robots.com/products/nova-series/{slug}.html", "https://www.dobot-robots.com/products/nova-series/dobot-nova-series.html"] },
+    { match: "MG400", urls: [], pages: ["https://www.dobot-robots.com/products/desktop-four-axis/mg400.html"] },
   ],
 };
 
