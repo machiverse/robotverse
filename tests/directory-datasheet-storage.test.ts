@@ -26,6 +26,10 @@ assert.equal(await files.read(`${prefix}missing.json`), null);
 await files.write(`${prefix}claims/run/0.json`, { claimed: true }, false);
 await assert.rejects(() => files.write(`${prefix}claims/run/0.json`, { claimed: true }, false), /already exists/);
 await assert.rejects(() => files.write(legacy, { changed: true }), /Invalid datasheet/);
+await files.writePdf(`${prefix}pdf/robots/model-a.pdf`, new TextEncoder().encode("%PDF-1.7\n"));
+assert.equal(await objects.get(`${prefix}pdf/robots/model-a.pdf`)!.text(), "%PDF-1.7\n");
+await assert.rejects(() => files.writePdf("directory/other.pdf", new Uint8Array()), /Invalid datasheet/);
+await assert.rejects(() => files.writePdf(`${prefix}pdf/robots/model-a.json`, new Uint8Array()), /Invalid datasheet/);
 await assert.rejects(() => files.write(`${prefix}../other.json`, {}), /Invalid datasheet/);
 const denied = new DatasheetFiles({
   async download() { return { data: null, error: { message: "Unauthorized", statusCode: 403 } }; },

@@ -8,6 +8,10 @@ export type DatasheetResult = {
   host?: string;
   note?: string;
   checkedAt: string;
+  /** Our stored copy of the PDF (public storage URL). */
+  file?: string;
+  /** The verified PDF bytes, for storing a copy; never written to the result JSON. */
+  bytes?: Uint8Array;
 };
 export type PdfModelVerifier = (bytes: Uint8Array, item: DatasheetModel) => Promise<boolean>;
 
@@ -71,8 +75,12 @@ export function parseSearchResults(html: string, engine: "duckduckgo" | "bing"):
   for (const match of html.matchAll(pattern)) {
     try {
       let url = decode(match[1]);
-      const wrapped = new URL(url, "https://html.duckduckgo.com").searchParams.get("uddg");
+      const link = new URL(url, "https://html.duckduckgo.com");
+      const wrapped = link.searchParams.get("uddg");
       if (wrapped) url = wrapped;
+      // Bing wraps results as bing.com/ck/a?...&u=a1<base64url of the real URL>.
+      const bing = link.hostname.endsWith("bing.com") ? link.searchParams.get("u") : null;
+      if (bing?.startsWith("a1")) url = atob(bing.slice(2).replace(/-/g, "+").replace(/_/g, "/"));
       out.push({ url, title: strip(match[2]), source: engine });
     } catch { /* Ignore malformed results. */ }
   }
@@ -97,13 +105,14 @@ export function productPdfLinks(html: string, pageUrl: string, item: DatasheetMo
   return out;
 }
 
-export async function verifyOfficialPdf(candidate: DatasheetCandidate, item: DatasheetModel, verifyModel: PdfModelVerifier, deadline = Infinity): Promise<DatasheetResult | null> {
+export async function verifyOfficialPdf(candidate: DatasheetCandidate, item: DatasheetModel, verifyModel: PdfModelVerifier, deadline = Infinity, trace: string[] = []): Promise<DatasheetResult | null> {
+  const name = candidate.url.split("/").pop()?.slice(0, 60);
   if (candidateScore(candidate, item) < 0) return null;
   const response = await readResponse(candidate.url, item.b, 12_000_000, false, deadline);
-  if (!hasPdfSignature(response.bytes)) return null;
-  if (!await verifyModel(response.bytes, item)) return null;
+  if (!hasPdfSignature(response.bytes)) { trace.push(`${name}: not a PDF (${response.bytes.length} bytes)`); return null; }
+  if (!await verifyModel(response.bytes, item)) { trace.push(`${name}: model not in PDF text`); return null; }
   return { url: response.url, title: candidate.title, source: candidate.source,
-    host: new URL(response.url).hostname, status: "found", checkedAt: new Date().toISOString() };
+    host: new URL(response.url).hostname, status: "found", checkedAt: new Date().toISOString(), bytes: response.bytes };
 }
 
 export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfModelVerifier): Promise<DatasheetResult> {
@@ -114,6 +123,8 @@ export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfMo
   let successfulSearches = 0;
   let unavailable = false;
   const tried = new Set<string>();
+  // Short reasons, saved with "not found" results so failed lookups can be diagnosed.
+  const trace: string[] = [];
   // One search per manufacturer website: search engines return nothing for several
   // site: filters joined with OR. A general search follows; it still only accepts PDFs
   // on approved manufacturer domains.
@@ -131,31 +142,34 @@ export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfMo
         const html = new TextDecoder().decode(response.bytes);
         if (/captcha|anomaly-modal|verify you are human/i.test(html)) throw new Error("Search challenge");
         successfulSearches++;
-        for (const candidate of parseSearchResults(html, engine)) {
+        const results = parseSearchResults(html, engine);
+        for (const candidate of results) {
           const key = candidate.url.replace(/[?#].*$/, "");
           if (!tried.has(key) && candidateScore(candidate, item) >= 0) candidates.set(key, candidate);
         }
+        trace.push(`${engine} "${query.slice(0, 50)}": ${results.length} results, ${candidates.size} usable`);
         // The second engine is only a fallback when the first finds nothing usable.
         if (candidates.size) break;
-      } catch { /* Try the other search provider. */ }
+      } catch (error) { trace.push(`${engine}: ${error instanceof Error ? error.message : "failed"}`); }
     }
     const ranked = [...candidates.entries()].sort(([, a], [, b]) => candidateScore(b, item) - candidateScore(a, item)).slice(0, 4);
     for (const [key, candidate] of ranked) {
       tried.add(key);
       try {
-        const pdf = await verifyOfficialPdf(candidate, item, verifyModel, deadline);
+        const pdf = await verifyOfficialPdf(candidate, item, verifyModel, deadline, trace);
         if (pdf) return pdf;
         if (pdfPath(candidate.url)) continue;
         const page = await readResponse(candidate.url, item.b, 2_000_000, false, deadline);
         const links = productPdfLinks(new TextDecoder().decode(page.bytes), page.url, item).slice(0, 3);
         for (const link of links) {
-          const verified = await verifyOfficialPdf(link, item, verifyModel, deadline);
+          const verified = await verifyOfficialPdf(link, item, verifyModel, deadline, trace);
           if (verified) return verified;
         }
-      } catch { unavailable = true; }
+      } catch (error) { unavailable = true; trace.push(`${key.split("/").pop()?.slice(0, 60)}: ${error instanceof Error ? error.message : "failed"}`); }
     }
   }
-  if (!successfulSearches) throw new Error("Manufacturer search unavailable; retry later");
-  if (unavailable) throw new Error("Manufacturer downloads unavailable; retry later");
-  return { url: null, status: "not_found", checkedAt, note: "No matching official PDF found" };
+  const why = trace.slice(-8).join(" | ").slice(0, 900);
+  if (!successfulSearches) throw new Error(`Manufacturer search unavailable; retry later. ${why}`);
+  if (unavailable) throw new Error(`Manufacturer downloads unavailable; retry later. ${why}`);
+  return { url: null, status: "not_found", checkedAt, note: `No matching official PDF found. ${why}` };
 }

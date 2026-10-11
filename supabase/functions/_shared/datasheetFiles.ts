@@ -25,6 +25,15 @@ export class DatasheetFiles {
     return JSON.parse(await data.text()) as T;
   }
 
+  /** Our own copy of a verified datasheet, served from the public bucket. */
+  async writePdf(path: string, bytes: Uint8Array) {
+    this.check(path);
+    if (!path.endsWith(".pdf")) throw new Error("Invalid datasheet storage path");
+    const { error } = await this.bucket.upload(path, new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/pdf" }),
+      { upsert: true, contentType: "application/pdf", cacheControl: "604800" });
+    if (error) throw new Error(`Could not save datasheet PDF: ${error.message}`);
+  }
+
   async write(path: string, value: unknown, upsert = true) {
     this.check(path);
     const { error } = await this.bucket.upload(path, new Blob([JSON.stringify(value)], { type: "application/json" }),

@@ -40,6 +40,17 @@ export function isOfficialUrl(url: string, brand: string): boolean {
   }
 }
 
+/** Our own stored copies of verified datasheets (public robot-images bucket). */
+export const STORED_DATASHEET_PATH = "/storage/v1/object/public/robot-images/directory/datasheets/verified-v2/pdf/";
+export function isStoredDatasheet(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && parsed.hostname.endsWith(".supabase.co") && parsed.pathname.startsWith(STORED_DATASHEET_PATH) && !parsed.pathname.includes("..");
+  } catch {
+    return false;
+  }
+}
+
 /** Require the whole model, not a generic family such as KUKA's 'KR'. */
 export function matchesModel(text: string, model: string): boolean {
   const groups = model.toLowerCase().match(/[a-z]+|[0-9]+/g);

@@ -1,6 +1,6 @@
 # Official robot datasheets
 
-The robot directory has 1,546 models across 98 brands. Each model page and directory detail dialog offers a **Datasheet (PDF)** button. Verified links open the manufacturer's PDF in a new tab. PDF files are not copied or embedded; this also avoids manufacturer iframe restrictions.
+The robot directory has 1,546 models across 98 brands. Each model page and directory detail dialog offers a **Datasheet (PDF)** button. Each verified PDF is copied into our storage (`robot-images/directory/datasheets/verified-v2/pdf/<kind>/<id>.pdf`) and the button opens that copy in a new tab; the manufacturer's URL is kept as `url`/`source_url`. If the copy cannot be saved (for example a bucket file-type limit), the result note says so and the button opens the manufacturer's PDF instead.
 
 ## Datasheet files and discovery
 
@@ -8,13 +8,13 @@ No database migrations, new tables, or writes to existing application tables are
 
 Each model has a separate result JSON file containing its verified URL, brand, model, source, check time, and outcome. Parallel visitor lookups write independent files. The collection worker builds a separate index for fast direct links; results discovered individually are remembered in the current page and included in the index when collection processes that model. Collection progress and duplicate-batch claims are also datasheet JSON files. Resume is best-effort storage-based progress, without database transactions or SQL functions.
 
-Only HTTPS URLs on reviewed manufacturer domains are accepted. Downloads and their redirects must stay on those domains. The PDF signature and extracted document text are checked; the requested complete model must appear. Brochures covering multiple models are acceptable when they name the requested model. Files stay on manufacturer websites and open in a new tab; only links and verification metadata are stored.
+Only HTTPS URLs on reviewed manufacturer domains are accepted. Downloads and their redirects must stay on those domains. The PDF signature and extracted document text are checked; the requested complete model must appear. Brochures covering multiple models are acceptable when they name the requested model. Verified files are copied to our storage with their source link and verification metadata.
 
 Downloads are limited to 12 MB and text inspection to 50 pages. Network discovery has a 110-second deadline, with a maximum 12 seconds per request including its body. Scanned PDFs without readable model text, oversized documents, and unapproved CDN hosts are not automatically accepted. Found results expire after 30 days, negative results after 21 days, and transient errors after 60 seconds. Network failures offer retry.
 
 ## Search
 
-Each approved manufacturer website is searched on its own (`site:fanucamerica.com M-20iD/25 datasheet pdf`), then a general `filetype:pdf` search; DuckDuckGo first, Bing as fallback. Joining several `site:` filters with OR returns no results, which made every model "not found". The standard model is preferred over special editions (food, cleanroom, foundry…). Results carry a search version; "not found" outcomes from an older version are searched again.
+Each approved manufacturer website is searched on its own (`site:fanucamerica.com M-20iD/25 datasheet pdf`), then a general `filetype:pdf` search; DuckDuckGo first, Bing as fallback. Joining several `site:` filters with OR returns no results, which made every model "not found". The standard model is preferred over special editions (food, cleanroom, foundry…). Results and collection jobs carry a search version; a status check restarts collection from the first model when the version changes, and "not found" outcomes from an older version are searched again.
 
 Each catalogue (robots, tools, axes, parts) starts collecting automatically the first time its status is read (for example when the admin panel opens). Later runs, resume and "Search again" stay admin-only.
 

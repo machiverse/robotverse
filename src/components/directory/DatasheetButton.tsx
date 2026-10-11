@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { FileText, Loader2, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { callDatasheets, loadDatasheetIndex, rememberDatasheet, type DatasheetItem, type DatasheetKind } from "./datasheetClient";
-import { isOfficialUrl, OEM_SITES } from "../../../supabase/functions/_shared/datasheetPolicy";
+import { isOfficialUrl, isStoredDatasheet, OEM_SITES } from "../../../supabase/functions/_shared/datasheetPolicy";
 export type { DatasheetItem, DatasheetKind } from "./datasheetClient";
 
 type Lookup = { url: string | null; status: "found" | "not_found" | "unsupported" | "error" };
@@ -19,7 +19,7 @@ export default function DatasheetButton({ kind, item, className }: { kind: Datas
     let live = true;
     loadDatasheetIndex(kind).then((index) => {
       const url = index[item.id];
-      if (live && url && isOfficialUrl(url, item.b)) setResult({ key, url, status: "idle" });
+      if (live && url && (isStoredDatasheet(url) || isOfficialUrl(url, item.b))) setResult({ key, url, status: "idle" });
     }).catch(() => { /* A click can retry when the background index is unavailable. */ });
     return () => { live = false; current.current = ""; };
   }, [key, kind, item.id, item.b]);
@@ -52,7 +52,7 @@ export default function DatasheetButton({ kind, item, className }: { kind: Datas
     try {
       const found = await callDatasheets<Lookup>({ action: "find", kind, id: item.id });
       if (current.current !== key) { tab?.close(); return; }
-      if (found.status === "found" && found.url && isOfficialUrl(found.url, item.b)) {
+      if (found.status === "found" && found.url && (isStoredDatasheet(found.url) || isOfficialUrl(found.url, item.b))) {
         setResult({ key, url: found.url, status: "idle" });
         rememberDatasheet(kind, item.id, found.url);
         if (tab && !tab.closed) tab.location.replace(found.url);

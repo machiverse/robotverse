@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { candidateScore, hasPdfSignature, isOfficialUrl, matchesModel } from "../supabase/functions/_shared/datasheetPolicy";
+import { candidateScore, hasPdfSignature, isOfficialUrl, isStoredDatasheet, matchesModel } from "../supabase/functions/_shared/datasheetPolicy";
 import { discoverDatasheet, parseSearchResults, productPdfLinks, verifyOfficialPdf } from "../supabase/functions/_shared/datasheetDiscovery";
 
 const model = { id: "RVRobot1517", b: "Universal Robots", m: "UR10e", n: "Universal Robots UR10e" };
@@ -17,6 +17,9 @@ assert.equal(matchesModel("M-20iD/35", "M-20iD/25"), false);
 assert.equal(candidateScore({ ...candidate, url: "https://reseller.test/UR10e.pdf" }, model), -1);
 assert.equal(candidateScore({ ...candidate, title: "UR10e maintenance manual" }, model), -1);
 assert.equal(candidateScore({ ...candidate, url: "https://www.universal-robots.com/UR20.pdf", title: "UR20 datasheet" }, model), -1);
+assert.ok(isStoredDatasheet("https://cmahwgetrqczytnijbuk.supabase.co/storage/v1/object/public/robot-images/directory/datasheets/verified-v2/pdf/robots/RVRobot0558.pdf"));
+assert.equal(isStoredDatasheet("https://evil.test/storage/v1/object/public/robot-images/directory/datasheets/verified-v2/pdf/robots/x.pdf"), false);
+assert.equal(isStoredDatasheet("https://cmahwgetrqczytnijbuk.supabase.co/storage/v1/object/public/robot-images/other.pdf"), false);
 assert.ok(hasPdfSignature(new TextEncoder().encode("%PDF-1.7\n")));
 assert.equal(hasPdfSignature(new TextEncoder().encode("<html>not a pdf")), false);
 
@@ -26,6 +29,9 @@ assert.equal(links[0].url, "https://www.universal-robots.com/downloads/data.pdf"
 assert.equal(productPdfLinks('<title>All robots</title><a href="/downloads/data.pdf">Technical data</a>', candidate.url, model).length, 0);
 const results = parseSearchResults('<a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.universal-robots.com%2FUR10e.pdf">UR10e datasheet</a>', "duckduckgo");
 assert.equal(results[0].url, "https://www.universal-robots.com/UR10e.pdf");
+const bingWrapped = `https://www.bing.com/ck/a?!&&p=abc&u=a1${btoa("https://www.universal-robots.com/UR10e.pdf").replace(/=+$/, "")}&ntb=1`;
+const bingResults = parseSearchResults(`<li class="b_algo"><h2><a href="${bingWrapped.replace(/&/g, "&amp;")}">UR10e datasheet</a></h2></li>`, "bing");
+assert.equal(bingResults[0].url, "https://www.universal-robots.com/UR10e.pdf");
 
 const originalFetch = globalThis.fetch;
 const verifyModel = async () => true;

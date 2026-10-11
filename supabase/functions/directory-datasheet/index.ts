@@ -1,7 +1,7 @@
 // Official PDF discovery. Writes only new datasheet files in the existing storage bucket.
 import { createClient } from "npm:@supabase/supabase-js@2.99.1";
 import { discoverDatasheet, type DatasheetResult } from "../_shared/datasheetDiscovery.ts";
-import { isOfficialUrl, OEM_SITES, type DatasheetModel } from "../_shared/datasheetPolicy.ts";
+import { isOfficialUrl, isStoredDatasheet, OEM_SITES, type DatasheetModel } from "../_shared/datasheetPolicy.ts";
 import { DatasheetFiles } from "../_shared/datasheetFiles.ts";
 import { pdfContainsModel } from "../_shared/datasheetPdf.ts";
 
@@ -10,8 +10,8 @@ const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
 type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number };
 // Bump when discovery improves, so earlier "not found" outcomes are searched again.
-const SEARCH_VERSION = 2;
-type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null };
+const SEARCH_VERSION = 3;
+type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.
 const DIR = "directory/datasheets/verified-v2";
@@ -26,8 +26,17 @@ const resultPath = (kind: Kind, id: string) => `${DIR}/${kind}/${id}.json`;
 const jobPath = (kind: Kind) => `${DIR}/jobs/${kind}.json`;
 const indexPath = (kind: Kind) => `${DIR}/index-${kind}.json`;
 const readResult = (kind: Kind, id: string) => readJson<Row>(resultPath(kind, id));
-const saveResult = (kind: Kind, item: DatasheetModel, result: DatasheetResult) =>
+const pdfPath = (kind: Kind, id: string) => `${DIR}/pdf/${kind}/${id}.pdf`;
+const saveResult = (kind: Kind, item: DatasheetModel, { bytes: _bytes, ...result }: DatasheetResult) =>
   writeJson(resultPath(kind, item.id), { ...result, brand: item.b, model: item.m, catalog_id: item.id, v: SEARCH_VERSION });
+/** Keep our own copy of the verified PDF so the button never depends on the manufacturer's site. */
+async function storePdf(kind: Kind, id: string, bytes: Uint8Array) {
+  const path = pdfPath(kind, id);
+  await files().writePdf(path, bytes);
+  return service().storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+/** The link the button opens: our stored copy, else the manufacturer's PDF. */
+const openUrl = (row: { url: string | null; file?: string }) => row.file && isStoredDatasheet(row.file) ? row.file : row.url;
 
 async function readIndex(kind: Kind) {
   return (await readJson<Record<string, Row>>(indexPath(kind))) ?? {};
@@ -62,23 +71,30 @@ const loadCatalogue = (kind: Kind): Promise<DatasheetModel[]> => (catalogues[kin
 function fresh(row: Row, item: DatasheetModel) {
   if (row.model !== item.m || row.brand !== item.b) return false;
   if (row.url && !isOfficialUrl(row.url, item.b)) return false;
+  // Found before PDFs were stored: fetch again to keep a copy.
+  if (row.status === "found" && !row.file) return false;
   if (row.status === "unsupported" && OEM_SITES[item.b]?.length) return false;
   if (row.status !== "found" && row.v !== SEARCH_VERSION) return false;
   const ttl = row.status === "found" ? 30 * 86400_000 : row.status === "error" ? 60_000 : 21 * 86400_000;
   return Date.now() - new Date(row.checkedAt).getTime() < ttl;
 }
-async function find(kind: Kind, id: string, refresh: boolean): Promise<DatasheetResult & { cached: boolean }> {
+async function find(kind: Kind, id: string, refresh: boolean): Promise<DatasheetResult & { cached: boolean; source_url?: string | null }> {
   const item = (await loadCatalogue(kind)).find((entry) => entry.id === id);
   if (!item) throw new Error("Unknown model");
   if (!refresh) {
     const known = await readResult(kind, id);
-    if (known && fresh(known, item)) return { ...known, cached: true };
+    if (known && fresh(known, item)) return { ...known, url: openUrl(known), source_url: known.url, cached: true };
   }
   let result: DatasheetResult;
   try { result = await discoverDatasheet(item, pdfContainsModel); }
   catch (error) { result = { url: null, status: "error", note: message(error), checkedAt: new Date().toISOString() }; }
+  if (result.status === "found" && result.bytes) {
+    try { result.file = await storePdf(kind, item.id, result.bytes); }
+    catch (error) { result.note = `PDF copy not stored: ${message(error)}`; /* The manufacturer link still works. */ }
+  }
   await saveResult(kind, item, result);
-  return { ...result, cached: false };
+  const { bytes: _bytes, ...response } = result;
+  return { ...response, url: openUrl(response), source_url: response.url, cached: false };
 }
 
 async function isAdmin(req: Request) {
@@ -145,12 +161,13 @@ async function startJob(kind: Kind, redo: boolean) {
   const catalogue = await loadCatalogue(kind);
   if (!catalogue.length) return json({ error: "Catalogue is empty" }, 400);
   const previous = await readJson<Job>(jobPath(kind));
-  if (previous?.running && Date.now() - new Date(previous.updatedAt).getTime() < 5 * 60_000)
+  const outdated = previous?.v !== SEARCH_VERSION;
+  if (!outdated && previous?.running && Date.now() - new Date(previous.updatedAt).getTime() < 5 * 60_000)
     return json({ error: "Collection is already running" }, 409);
-  const resume = !redo && previous && previous.total === catalogue.length && previous.done < previous.total;
+  const resume = !redo && !outdated && previous && previous.total === catalogue.length && previous.done < previous.total;
   const job: Job = { kind, run_id: crypto.randomUUID(), done: resume ? previous.done : 0,
     total: catalogue.length, redo: resume ? previous.redo : redo, running: true,
-    updatedAt: new Date().toISOString(), last_error: null };
+    updatedAt: new Date().toISOString(), last_error: null, v: SEARCH_VERSION };
   await writeJson(jobPath(kind), job);
   background(sweep(kind, job.run_id, job.done, job.redo));
   return json({ started: true, kind, redo: job.redo, from: job.done });
@@ -177,10 +194,11 @@ Deno.serve(async (req) => {
     if (action === "index" || action === "status") {
       const rows = Object.values(await readIndex(kind));
       const valid = rows.filter((row) => row.status === "found" && row.url && isOfficialUrl(row.url, row.brand));
-      if (action === "index") return json({ index: Object.fromEntries(valid.filter((row) => Date.now() - new Date(row.checkedAt).getTime() < 30 * 86400_000).map((row) => [row.catalog_id, row.url])) });
+      if (action === "index") return json({ index: Object.fromEntries(valid.filter((row) => Date.now() - new Date(row.checkedAt).getTime() < 30 * 86400_000).map((row) => [row.catalog_id, openUrl(row)])) });
       let job = await readJson<Job>(jobPath(kind));
       // Each catalogue is collected automatically the first time; later runs are admin-only.
-      if (!job) {
+      // ...and again from the start whenever the search itself has been improved.
+      if (!job || job.v !== SEARCH_VERSION) {
         await startJob(kind, false);
         job = await readJson<Job>(jobPath(kind));
       }
