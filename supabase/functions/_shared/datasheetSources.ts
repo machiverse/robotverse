@@ -205,6 +205,24 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
     { match: "Nova", urls: [], pattern: "^Nova", pages: ["https://www.dobot-robots.com/products/nova-series/{slug}.html", "https://www.dobot-robots.com/products/nova-series/dobot-nova-series.html"] },
     { match: "MG400", urls: [], pages: ["https://www.dobot-robots.com/products/desktop-four-axis/mg400.html"] },
   ],
+  // Brand brochure and download pages: their official PDFs are checked for each model's series.
+  "Hyundai Robotics": [
+    { match: "Hyundai", urls: [], pattern: ".", family: "^([A-Z]+\\d+)", pages: ["https://www.hyundai-robotics.com/english/publicity/publicity4.html"] },
+  ],
+  "Elite Robots": [
+    { match: "Elite", urls: [], pattern: ".", family: "^([A-Z]+\\d+)", pages: ["https://www.eliterobots.com/cobots/{slug}", "https://www.eliterobots.com/download"] },
+  ],
+  AUBO: [
+    { match: "AUBO", urls: [], pattern: ".", family: "^(AUBO-[a-zA-Z]+\\d+)", pages: ["https://www.aubo-cobot.com/public/download4", "https://www.aubo-cobot.com/public/download3"] },
+  ],
+  // JAKA: one product page per model ("Zu12" → /productDetails/JAKA_Zu12).
+  JAKA: [
+    { match: "JAKA", urls: [], pattern: ".", pages: ["https://www.jaka.com/en/productDetails/JAKA_{model}"] },
+  ],
+  Neura: [
+    { match: "LARA", urls: [], pages: ["https://neura-robotics.com/products/lara/"] },
+    { match: "MAiRA", urls: [], pages: ["https://neura-robotics.com/products/maira/"] },
+  ],
 };
 
 const slug = (text: string) => text.toLowerCase().normalize("NFKC").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
