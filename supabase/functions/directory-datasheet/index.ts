@@ -35,8 +35,11 @@ const sourcesKey = (item: DatasheetModel) => {
   for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) | 0;
   return `${text.length}:${hash}`;
 };
-const saveResult = (kind: Kind, item: DatasheetModel, { bytes: _bytes, ...result }: DatasheetResult) =>
-  writeJson(resultPath(kind, item.id), { ...result, brand: item.b, model: item.m, catalog_id: item.id, v: SEARCH_VERSION, src: sourcesKey(item) });
+async function saveResult(kind: Kind, item: DatasheetModel, { bytes: _bytes, ...result }: DatasheetResult): Promise<Row> {
+  const row: Row = { ...result, brand: item.b, model: item.m, catalog_id: item.id, v: SEARCH_VERSION, src: sourcesKey(item) };
+  await writeJson(resultPath(kind, item.id), row);
+  return row;
+}
 /** Keep our own copy of the verified PDF so the button never depends on the manufacturer's site. */
 async function storePdf(kind: Kind, id: string, bytes: Uint8Array) {
   const path = pdfPath(kind, id);
@@ -115,6 +118,17 @@ type Doc = { url: string; file?: string; text?: string; links?: string[]; error?
 /** New downloads allowed per request: PDF parsing is the costly part of the CPU limit. */
 let downloadBudget = 2;
 class Pending extends Error {}
+// Reading PDF text is what uses up a run's CPU allowance, so the automatic search reads only a
+// few candidate PDFs per run; a model cut short is saved as "error" and checked again later.
+let parseBudget = 3;
+let parseLimitHit = false;
+const verifyPdf = (bytes: Uint8Array, item: DatasheetModel) => {
+  if (parseBudget-- <= 0) {
+    parseLimitHit = true;
+    return Promise.reject(new Error("PDF reading limit for this run reached"));
+  }
+  return pdfContainsModel(bytes, item);
+};
 const docPath = async (url: string) => {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(url)));
   return `${DIR}/docs/${[...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 24)}.json`;
@@ -229,8 +243,10 @@ async function find(kind: Kind, id: string, refresh: boolean): Promise<Datasheet
   });
   if (researched.result) result = researched.result;
   else {
-    try { result = await discoverDatasheet(item, pdfContainsModel); }
+    parseLimitHit = false;
+    try { result = await discoverDatasheet(item, verifyPdf); }
     catch (error) { result = { url: null, status: "error", note: message(error), checkedAt: new Date().toISOString() }; }
+    if (parseLimitHit && result.status === "not_found") result = { ...result, status: "error", note: `Not fully checked (PDF reading limit). ${result.note ?? ""}`.slice(0, 2000) };
     if (researched.notes.length) result.note = `Researched: ${researched.notes.join("; ")} | ${result.note ?? ""}`.slice(0, 2000);
   }
   if (result.status === "found" && result.bytes) {
@@ -275,6 +291,7 @@ const supersededBy = async (job: Job) => {
 async function sweep(kind: Kind, start: Job) {
   const started = Date.now();
   downloadBudget = 2;
+  parseBudget = 3;
   const from = start.done;
   const runId = start.run_id;
   const redo = start.redo;
@@ -296,8 +313,9 @@ async function sweep(kind: Kind, start: Job) {
     // Record which model is in progress, so a run that dies shows where.
     job = { ...job, at: item.id, updatedAt: new Date().toISOString() };
     await writeJson(jobPath(kind), job);
+    let fresh = false;
     try {
-      await find(kind, item.id, redo);
+      fresh = !(await find(kind, item.id, redo)).cached;
       const row = await readResult(kind, item.id);
       if (row) await indexResult(kind, row);
     } catch (error) {
@@ -309,6 +327,8 @@ async function sweep(kind: Kind, start: Job) {
     if (await supersededBy(job)) return; // A newer run took over.
     job = { ...job, done: next, running: next < job.total, last_error: failure, updatedAt: new Date().toISOString() };
     await writeJson(jobPath(kind), job);
+    // A model that needed a new search used much of this run's CPU: the next one gets a fresh run.
+    if (fresh) break;
   }
   if (next >= catalogue.length) return;
   try {
@@ -338,6 +358,12 @@ async function startJob(kind: Kind, redo: boolean) {
   const resume = !redo && !outdated && previous && previous.total === catalogue.length && previous.done < previous.total;
   // A run that died while on a model (e.g. over the CPU limit) skips that model when resumed.
   const skip = resume && stalled(previous) && previous.at === catalogue[previous.done]?.id ? 1 : 0;
+  if (skip) {
+    // Recorded, so the button offers the manufacturer search instead of a check that stops the run.
+    const item = catalogue[previous!.done];
+    const row = await saveResult(kind, item, { url: null, status: "not_found", checkedAt: new Date().toISOString(), note: "Not checked automatically: checking this model stopped the collection run" });
+    await indexResult(kind, row).catch(() => { /* The saved result still answers a click on this model. */ });
+  }
   const job: Job = { kind, run_id: crypto.randomUUID(), done: resume ? previous.done + skip : 0,
     total: catalogue.length, redo: resume ? previous.redo : redo, running: true,
     updatedAt: new Date().toISOString(), started: new Date().toISOString(), v: SEARCH_VERSION,
@@ -361,6 +387,7 @@ async function ensureCollecting(kind: Kind) {
 
 Deno.serve(async (req) => {
   downloadBudget = 2;
+  parseBudget = 3;
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (!["GET", "POST"].includes(req.method)) return json({ error: "Method not allowed" }, 405);
   try {
