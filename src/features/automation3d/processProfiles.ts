@@ -24,7 +24,7 @@ export function processKind(process: Pick<ProcessCard, "name">): ProcessKind {
   if (/transport|material supply/.test(name)) return "transport";
   if (/weld|solder/.test(name)) return "welding";
   if (/polish|grind|finish|surface prep/.test(name)) return "finishing";
-  if (/sealant|adhesive|paint|coat|spray|dispens/.test(name)) return "coating";
+  if (/sealant|adhesive|paint|coat|spray|dispens|masking/.test(name)) return "coating";
   if (/inspect|test|scan|verification|measur|gaug/.test(name)) return "inspection";
   if (/pallet|stack/.test(name)) return "palletizing";
   if (/label|coding|serialisation/.test(name)) return "labeling";

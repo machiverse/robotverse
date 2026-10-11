@@ -53,6 +53,11 @@ export default function EngineeringCalculators() {
   const [g, setG] = useState({ part: 3, accel: 5, mu: 0.2, jaws: 2 });
   const [s, setS] = useState({ stop: 300, device: 20, res: 14 });
   const [c, setC] = useState({ fov: 200, feature: 0.5 });
+  const [o, setO] = useState({ planned: 450, down: 45, ideal: 30, total: 760, good: 740 });
+  const [r, setR] = useState({ cost: 2500000, operators: 2, shifts: 2, wage: 32000, other: 0 });
+  const [cv, setCv] = useState({ rate: 30, pitch: 300, length: 200 });
+  const [pl, setPl] = useState({ L: 1200, W: 1000, l: 400, w: 300, h: 250, max: 1500 });
+  const [a, setA] = useState({ bore: 32, stroke: 100, bar: 6, cycles: 10, double: 1 });
 
   const takt = calc.takt(t.hours, t.breaks, t.shifts, t.parts);
   const robots = calc.robotsFor(t.cycle, takt);
@@ -61,6 +66,12 @@ export default function EngineeringCalculators() {
   const grip = calc.gripForce(g.part, g.accel, g.mu, g.jaws);
   const dist = calc.safetyDistance(s.stop, s.device, s.res);
   const cam = calc.vision(c.fov, c.feature);
+  const oee = calc.oee(o.planned, o.down, o.ideal, o.total, o.good);
+  const pb = calc.payback(r.cost, r.operators, r.shifts, r.wage, r.other);
+  const belt = calc.conveyor(cv.rate, cv.pitch, cv.length);
+  const pal = calc.pallet(pl.L, pl.W, pl.l, pl.w, pl.h, pl.max);
+  const air = calc.air(a.bore, a.stroke, a.bar, a.cycles, !!a.double);
+  const pct = (v: number) => `${f1(v * 100)}%`;
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -126,6 +137,88 @@ export default function EngineeringCalculators() {
       <Card title="Camera resolution" why="Pixels needed to see the smallest feature reliably (4 px across it)." result={<>At least <b>{f0(cam.px)} px</b> across the view · about <b>{f1(cam.mp)} MP</b> camera</>}>
         <Num label="Field of view" unit="mm" value={c.fov} onChange={(x) => setC({ ...c, fov: x })} step={10} />
         <Num label="Smallest feature / defect" unit="mm" value={c.feature} onChange={(x) => setC({ ...c, feature: x })} step={0.1} />
+      </Card>
+
+      <Card
+        title="OEE"
+        why="Overall equipment effectiveness: availability × performance × quality."
+        ok={oee.oee >= 0.85}
+        result={
+          <>
+            OEE <b>{pct(oee.oee)}</b> · availability {pct(oee.availability)} · performance {pct(oee.performance)} · quality {pct(oee.quality)}
+            {oee.oee >= 0.85 ? " — world class" : " — world class is about 85%"}
+          </>
+        }
+      >
+        <Num label="Planned time" unit="min" value={o.planned} onChange={(x) => setO({ ...o, planned: x })} step={10} />
+        <Num label="Downtime" unit="min" value={o.down} onChange={(x) => setO({ ...o, down: x })} step={5} />
+        <Num label="Ideal cycle" unit="s" value={o.ideal} onChange={(x) => setO({ ...o, ideal: x })} step={0.5} />
+        <Num label="Parts made" value={o.total} onChange={(x) => setO({ ...o, total: x })} step={10} />
+        <Num label="Good parts" value={o.good} onChange={(x) => setO({ ...o, good: x })} step={10} />
+      </Card>
+
+      <Card
+        title="Payback"
+        why="Months until the cell pays for itself from labour freed and other savings."
+        ok={pb.months <= 36}
+        result={
+          <>
+            Saves <b>₹{f0(pb.yearly)}</b> a year · payback <b>{Number.isFinite(pb.months) ? `${f1(pb.months)} months` : "—"}</b>
+          </>
+        }
+      >
+        <Num label="Cell cost" unit="₹" value={r.cost} onChange={(x) => setR({ ...r, cost: x })} step={100000} />
+        <Num label="Operators per shift freed" value={r.operators} onChange={(x) => setR({ ...r, operators: x })} step={0.5} />
+        <Num label="Shifts per day" value={r.shifts} onChange={(x) => setR({ ...r, shifts: x })} min={1} />
+        <Num label="Cost per operator" unit="₹/month" value={r.wage} onChange={(x) => setR({ ...r, wage: x })} step={1000} />
+        <Num label="Other savings" unit="₹/month" value={r.other} onChange={(x) => setR({ ...r, other: x })} step={5000} />
+      </Card>
+
+      <Card
+        title="Conveyor speed"
+        why="Belt speed for the part rate at a fixed pitch, and the gap between parts."
+        ok={belt.gapMm > 0}
+        result={
+          <>
+            Belt speed <b>{f1(belt.speedMpm)} m/min</b> · gap <b>{f0(belt.gapMm)} mm</b>
+            {belt.gapMm > 0 ? "" : " — pitch must be longer than the part"}
+          </>
+        }
+      >
+        <Num label="Parts per minute" value={cv.rate} onChange={(x) => setCv({ ...cv, rate: x })} />
+        <Num label="Pitch (part to part)" unit="mm" value={cv.pitch} onChange={(x) => setCv({ ...cv, pitch: x })} step={10} />
+        <Num label="Part length" unit="mm" value={cv.length} onChange={(x) => setCv({ ...cv, length: x })} step={10} />
+      </Card>
+
+      <Card
+        title="Pallet pattern"
+        why="Cases per layer (block or two-block pattern), layers and cases per pallet."
+        result={
+          <>
+            <b>{pal.perLayer}</b> cases per layer × <b>{pal.layers}</b> layers = <b>{pal.total}</b> cases · {pct(pal.fill)} of the pallet area used
+          </>
+        }
+      >
+        <Num label="Pallet length" unit="mm" value={pl.L} onChange={(x) => setPl({ ...pl, L: x })} step={10} />
+        <Num label="Pallet width" unit="mm" value={pl.W} onChange={(x) => setPl({ ...pl, W: x })} step={10} />
+        <Num label="Case length" unit="mm" value={pl.l} onChange={(x) => setPl({ ...pl, l: x })} step={5} />
+        <Num label="Case width" unit="mm" value={pl.w} onChange={(x) => setPl({ ...pl, w: x })} step={5} />
+        <Num label="Case height" unit="mm" value={pl.h} onChange={(x) => setPl({ ...pl, h: x })} step={5} />
+        <Num label="Max stack height" unit="mm" value={pl.max} onChange={(x) => setPl({ ...pl, max: x })} step={50} />
+      </Card>
+
+      <Card title="Cylinder air use" why="Free air a pneumatic cylinder uses — add 20–30% for leaks when sizing the compressor." result={<>About <b>{f1(air)} L/min</b> free air · <b>{f1((air * 60) / 1000)} m³/h</b></>}>
+        <Num label="Bore" unit="mm" value={a.bore} onChange={(x) => setA({ ...a, bore: x })} step={2} />
+        <Num label="Stroke" unit="mm" value={a.stroke} onChange={(x) => setA({ ...a, stroke: x })} step={10} />
+        <Num label="Pressure" unit="bar" value={a.bar} onChange={(x) => setA({ ...a, bar: x })} step={0.5} />
+        <Num label="Cycles per minute" value={a.cycles} onChange={(x) => setA({ ...a, cycles: x })} />
+        <label className="text-xs">
+          <span className="text-muted-foreground">Type</span>
+          <select value={a.double} onChange={(e) => setA({ ...a, double: Number(e.target.value) })} className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm">
+            <option value={1}>Double acting</option>
+            <option value={0}>Single acting</option>
+          </select>
+        </label>
       </Card>
     </div>
   );
