@@ -111,38 +111,51 @@ export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfMo
   const deadline = Date.now() + 110_000;
   const domains = OEM_SITES[item.b] ?? [];
   if (!domains.length) return { url: null, status: "unsupported", checkedAt, note: "Manufacturer domain needs review" };
-  const candidates = new Map<string, DatasheetCandidate>();
   let successfulSearches = 0;
-  // Search engines discover URLs; every accepted file must still be on an approved OEM domain.
-  for (const engine of ["duckduckgo", "bing"] as const) {
-    const query = `${domains.map((domain) => `site:${domain}`).join(" OR ")} "${item.m}" datasheet PDF`;
-    const endpoint = engine === "duckduckgo" ? `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}` : `https://www.bing.com/search?q=${encodeURIComponent(query)}&setlang=en`;
-    try {
-      const response = await readResponse(endpoint, undefined, 2_000_000, false, deadline);
-      const html = new TextDecoder().decode(response.bytes);
-      if (/captcha|anomaly-modal|verify you are human/i.test(html)) throw new Error("Search challenge");
-      successfulSearches++;
-      for (const candidate of parseSearchResults(html, engine)) {
-        if (candidateScore(candidate, item) >= 0) candidates.set(candidate.url, candidate);
-      }
-    } catch { /* Try the other search provider. */ }
+  let unavailable = false;
+  const tried = new Set<string>();
+  // One search per manufacturer website: search engines return nothing for several
+  // site: filters joined with OR. A general search follows; it still only accepts PDFs
+  // on approved manufacturer domains.
+  const queries = [
+    ...domains.slice(0, 4).map((domain) => `site:${domain} ${item.m} datasheet pdf`),
+    `"${item.m}" ${item.b.split(" ")[0]} datasheet filetype:pdf`,
+  ];
+  for (const query of queries) {
+    if (Date.now() > deadline - 15_000) break;
+    const candidates = new Map<string, DatasheetCandidate>();
+    for (const engine of ["duckduckgo", "bing"] as const) {
+      const endpoint = engine === "duckduckgo" ? `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}` : `https://www.bing.com/search?q=${encodeURIComponent(query)}&setlang=en`;
+      try {
+        const response = await readResponse(endpoint, undefined, 2_000_000, false, deadline);
+        const html = new TextDecoder().decode(response.bytes);
+        if (/captcha|anomaly-modal|verify you are human/i.test(html)) throw new Error("Search challenge");
+        successfulSearches++;
+        for (const candidate of parseSearchResults(html, engine)) {
+          const key = candidate.url.replace(/[?#].*$/, "");
+          if (!tried.has(key) && candidateScore(candidate, item) >= 0) candidates.set(key, candidate);
+        }
+        // The second engine is only a fallback when the first finds nothing usable.
+        if (candidates.size) break;
+      } catch { /* Try the other search provider. */ }
+    }
+    const ranked = [...candidates.entries()].sort(([, a], [, b]) => candidateScore(b, item) - candidateScore(a, item)).slice(0, 4);
+    for (const [key, candidate] of ranked) {
+      tried.add(key);
+      try {
+        const pdf = await verifyOfficialPdf(candidate, item, verifyModel, deadline);
+        if (pdf) return pdf;
+        if (pdfPath(candidate.url)) continue;
+        const page = await readResponse(candidate.url, item.b, 2_000_000, false, deadline);
+        const links = productPdfLinks(new TextDecoder().decode(page.bytes), page.url, item).slice(0, 3);
+        for (const link of links) {
+          const verified = await verifyOfficialPdf(link, item, verifyModel, deadline);
+          if (verified) return verified;
+        }
+      } catch { unavailable = true; }
+    }
   }
   if (!successfulSearches) throw new Error("Manufacturer search unavailable; retry later");
-  const ranked = [...candidates.values()].sort((a, b) => candidateScore(b, item) - candidateScore(a, item)).slice(0, 4);
-  let unavailable = false;
-  for (const candidate of ranked) {
-    try {
-      const pdf = await verifyOfficialPdf(candidate, item, verifyModel, deadline);
-      if (pdf) return pdf;
-      if (pdfPath(candidate.url)) continue;
-      const page = await readResponse(candidate.url, item.b, 2_000_000, false, deadline);
-      const links = productPdfLinks(new TextDecoder().decode(page.bytes), page.url, item).slice(0, 3);
-      for (const link of links) {
-        const verified = await verifyOfficialPdf(link, item, verifyModel, deadline);
-        if (verified) return verified;
-      }
-    } catch { unavailable = true; }
-  }
   if (unavailable) throw new Error("Manufacturer downloads unavailable; retry later");
   return { url: null, status: "not_found", checkedAt, note: "No matching official PDF found" };
 }

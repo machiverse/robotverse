@@ -8,7 +8,9 @@ import { pdfContainsModel } from "../_shared/datasheetPdf.ts";
 const SITE_URL = (Deno.env.get("PUBLIC_SITE_URL") ?? "https://www.robotverse.in").replace(/\/$/, "");
 const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
-type Row = DatasheetResult & { brand: string; model: string; catalog_id: string };
+type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number };
+// Bump when discovery improves, so earlier "not found" outcomes are searched again.
+const SEARCH_VERSION = 2;
 type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.
@@ -25,7 +27,7 @@ const jobPath = (kind: Kind) => `${DIR}/jobs/${kind}.json`;
 const indexPath = (kind: Kind) => `${DIR}/index-${kind}.json`;
 const readResult = (kind: Kind, id: string) => readJson<Row>(resultPath(kind, id));
 const saveResult = (kind: Kind, item: DatasheetModel, result: DatasheetResult) =>
-  writeJson(resultPath(kind, item.id), { ...result, brand: item.b, model: item.m, catalog_id: item.id });
+  writeJson(resultPath(kind, item.id), { ...result, brand: item.b, model: item.m, catalog_id: item.id, v: SEARCH_VERSION });
 
 async function readIndex(kind: Kind) {
   return (await readJson<Record<string, Row>>(indexPath(kind))) ?? {};
@@ -61,6 +63,7 @@ function fresh(row: Row, item: DatasheetModel) {
   if (row.model !== item.m || row.brand !== item.b) return false;
   if (row.url && !isOfficialUrl(row.url, item.b)) return false;
   if (row.status === "unsupported" && OEM_SITES[item.b]?.length) return false;
+  if (row.status !== "found" && row.v !== SEARCH_VERSION) return false;
   const ttl = row.status === "found" ? 30 * 86400_000 : row.status === "error" ? 60_000 : 21 * 86400_000;
   return Date.now() - new Date(row.checkedAt).getTime() < ttl;
 }
@@ -138,6 +141,21 @@ async function sweep(kind: Kind, runId: string, from: number, redo: boolean) {
   }
 }
 
+async function startJob(kind: Kind, redo: boolean) {
+  const catalogue = await loadCatalogue(kind);
+  if (!catalogue.length) return json({ error: "Catalogue is empty" }, 400);
+  const previous = await readJson<Job>(jobPath(kind));
+  if (previous?.running && Date.now() - new Date(previous.updatedAt).getTime() < 5 * 60_000)
+    return json({ error: "Collection is already running" }, 409);
+  const resume = !redo && previous && previous.total === catalogue.length && previous.done < previous.total;
+  const job: Job = { kind, run_id: crypto.randomUUID(), done: resume ? previous.done : 0,
+    total: catalogue.length, redo: resume ? previous.redo : redo, running: true,
+    updatedAt: new Date().toISOString(), last_error: null };
+  await writeJson(jobPath(kind), job);
+  background(sweep(kind, job.run_id, job.done, job.redo));
+  return json({ started: true, kind, redo: job.redo, from: job.done });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (!["GET", "POST"].includes(req.method)) return json({ error: "Method not allowed" }, 405);
@@ -160,27 +178,20 @@ Deno.serve(async (req) => {
       const rows = Object.values(await readIndex(kind));
       const valid = rows.filter((row) => row.status === "found" && row.url && isOfficialUrl(row.url, row.brand));
       if (action === "index") return json({ index: Object.fromEntries(valid.filter((row) => Date.now() - new Date(row.checkedAt).getTime() < 30 * 86400_000).map((row) => [row.catalog_id, row.url])) });
-      const job = await readJson<Job>(jobPath(kind));
+      let job = await readJson<Job>(jobPath(kind));
+      // Each catalogue is collected automatically the first time; later runs are admin-only.
+      if (!job) {
+        await startJob(kind, false);
+        job = await readJson<Job>(jobPath(kind));
+      }
       const counts = Object.fromEntries(["not_found", "unsupported", "error"].map((status) => [status, rows.filter((row) => row.status === status).length]));
       return json({ kind, withDatasheet: valid.length, total: (await loadCatalogue(kind)).length, counts, job });
     }
     if (action === "start") {
       if (!await isAdmin(req)) return json({ error: "Admins only" }, 403);
       const redo = String(param("redo")) === "true";
-      const catalogue = await loadCatalogue(kind);
-      if (!catalogue.length) return json({ error: "Catalogue is empty" }, 400);
-      const previous = await readJson<Job>(jobPath(kind));
-      if (previous?.running && Date.now() - new Date(previous.updatedAt).getTime() < 5 * 60_000)
-        return json({ error: "Collection is already running" }, 409);
-      const resume = !redo && previous && previous.total === catalogue.length && previous.done < previous.total;
-      const job: Job = { kind, run_id: crypto.randomUUID(), done: resume ? previous.done : 0,
-        total: catalogue.length, redo: resume ? previous.redo : redo, running: true,
-        updatedAt: new Date().toISOString(), last_error: null };
-      await writeJson(jobPath(kind), job);
-      background(sweep(kind, job.run_id, job.done, job.redo));
-      return json({ started: true, kind, redo: job.redo, from: job.done });
+      return startJob(kind, redo);
     }
-
     if (action === "continue") {
       const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
       if (!key || req.headers.get("Authorization") !== `Bearer ${key}`) return json({ error: "Forbidden" }, 403);

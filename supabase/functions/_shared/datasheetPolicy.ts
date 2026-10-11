@@ -58,7 +58,12 @@ export function candidateScore(candidate: DatasheetCandidate, item: DatasheetMod
   if (!matchesModel(text, item.m)) return -1;
   // An operating manual is not a product datasheet.
   if (/manual|maintenance|instruction|handbuch|spare.parts/i.test(text)) return -1;
-  return /data[-_ ]?sheet|specification|technical[-_ ]data|brochure|leaflet|flyer|product[-_ ]sheet/i.test(text) ? 10 : 5;
+  let score = /data[-_ ]?sheet|specification|technical[-_ ]data|brochure|leaflet|flyer|product[-_ ]sheet/i.test(text) ? 10 : 5;
+  if (/\.pdf(?:[?#]|$)/i.test(location)) score += 2;
+  // Prefer the standard model over special editions (food, cleanroom, ...) unless the model is one.
+  const variant = text.match(/food|clean[-_ ]?room|wash[-_ ]?down|foundry|explosion|paint|ex[-_]proof/i)?.[0];
+  if (variant && !new RegExp(variant.replace(/[-_ ]/g, "."), "i").test(item.m)) score -= 3;
+  return score;
 }
 
 export function hasPdfSignature(bytes: Uint8Array): boolean {

@@ -12,6 +12,12 @@ Only HTTPS URLs on reviewed manufacturer domains are accepted. Downloads and the
 
 Downloads are limited to 12 MB and text inspection to 50 pages. Network discovery has a 110-second deadline, with a maximum 12 seconds per request including its body. Scanned PDFs without readable model text, oversized documents, and unapproved CDN hosts are not automatically accepted. Found results expire after 30 days, negative results after 21 days, and transient errors after 60 seconds. Network failures offer retry.
 
+## Search
+
+Each approved manufacturer website is searched on its own (`site:fanucamerica.com M-20iD/25 datasheet pdf`), then a general `filetype:pdf` search; DuckDuckGo first, Bing as fallback. Joining several `site:` filters with OR returns no results, which made every model "not found". The standard model is preferred over special editions (food, cleanroom, foundry…). Results carry a search version; "not found" outcomes from an older version are searched again.
+
+Each catalogue (robots, tools, axes, parts) starts collecting automatically the first time its status is read (for example when the admin panel opens). Later runs, resume and "Search again" stay admin-only.
+
 ## Activate and collect
 
 The migration and database test from the earlier implementation were removed before deployment. No remote database changes were made.

@@ -53,5 +53,21 @@ try {
     ? new Response("%PDF-1.7\n")
     : new Response(`<a class="result__a" href="${candidate.url}">UR10e datasheet</a>`)) as typeof fetch;
   assert.equal((await discoverDatasheet(model, verifyModel)).url, candidate.url);
+  // Search engines return nothing for several site: filters joined with OR, so each
+  // manufacturer website is searched on its own; the standard model beats special editions.
+  const fanuc = { id: "RVRobot0558", b: "Fanuc", m: "M-20iD/25", n: "Fanuc M-20iD/25" };
+  const standard = "https://www.fanucamerica.com/uploads/files/data-sheets/m-20id-25-datasheet.pdf";
+  const food = "https://www.fanucamerica.com/uploads/files/data-sheets/m-20id-25-food-datasheet.pdf";
+  const queries: string[] = [];
+  globalThis.fetch = (async (input) => {
+    const url = String(input);
+    if (url.endsWith(".pdf")) return new Response("%PDF-1.7\n");
+    const query = new URL(url).searchParams.get("q") ?? "";
+    queries.push(query);
+    if (query.includes(" OR ") || !query.includes("site:fanucamerica.com")) return new Response("<p>No results</p>");
+    return new Response(`<a class="result__a" href="${food}">M-20iD/25 Food datasheet</a><a class="result__a" href="${standard}">M-20iD/25 datasheet</a>`);
+  }) as typeof fetch;
+  assert.equal((await discoverDatasheet(fanuc, verifyModel)).url, standard);
+  assert.ok(queries.every((query) => !query.includes(" OR ")));
 } finally { globalThis.fetch = originalFetch; }
 console.log("directory datasheets: official hosts, model matching, redirects, PDF bytes and lookup outcomes passed");
