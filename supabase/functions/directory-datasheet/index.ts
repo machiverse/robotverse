@@ -10,7 +10,7 @@ const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
 type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number };
 // Bump when discovery improves, so earlier "not found" outcomes are searched again.
-const SEARCH_VERSION = 4;
+const SEARCH_VERSION = 5;
 type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.

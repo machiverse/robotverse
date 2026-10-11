@@ -32,6 +32,9 @@ assert.equal(results[0].url, "https://www.universal-robots.com/UR10e.pdf");
 const bingWrapped = `https://www.bing.com/ck/a?!&&p=abc&u=a1${btoa("https://www.universal-robots.com/UR10e.pdf").replace(/=+$/, "")}&ntb=1`;
 const bingResults = parseSearchResults(`<li class="b_algo"><h2><a href="${bingWrapped.replace(/&/g, "&amp;")}">UR10e datasheet</a></h2></li>`, "bing");
 assert.equal(bingResults[0].url, "https://www.universal-robots.com/UR10e.pdf");
+// Bing wraps its own relative links too; they must not break the page's other results.
+const bingInternal = `https://www.bing.com/ck/a?!&&u=a1${btoa("/images/search?q=UR10e").replace(/=+$/, "")}`;
+assert.equal(parseSearchResults(`<a href="${bingInternal}">Images</a><a href="${bingWrapped}">UR10e datasheet</a>`, "bing").length, 1);
 assert.equal(unwrapResultLink("https://r.search.yahoo.com/_ylt=A0/RV=2/RE=1/RO=10/RU=https%3a%2f%2fwww.kuka.com%2fkr6.pdf/RK=2/RS=x-"), "https://www.kuka.com/kr6.pdf");
 assert.equal(directCandidates({ id: "x", b: "Fanuc", m: "M-20iD/25", n: "" })[0].url, "https://www.fanucamerica.com/uploads/files/data-sheets/m-20id-25-datasheet.pdf");
 assert.equal(directCandidates(model).length, 0);

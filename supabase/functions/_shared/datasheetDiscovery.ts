@@ -69,8 +69,9 @@ async function readResponse(url: string, brand?: string, maxBytes = 2_000_000, p
 
 type Engine = "duckduckgo" | "bing" | "yahoo" | "mojeek";
 const ENGINES: Record<Engine, (query: string) => string> = {
-  duckduckgo: (q) => `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,
+  // Bing first: it answers Supabase's servers; DuckDuckGo shows them a challenge page.
   bing: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}&setlang=en&cc=us`,
+  duckduckgo: (q) => `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,
   yahoo: (q) => `https://search.yahoo.com/search?p=${encodeURIComponent(q)}`,
   mojeek: (q) => `https://www.mojeek.com/search?q=${encodeURIComponent(q)}`,
 };
@@ -82,7 +83,8 @@ export function unwrapResultLink(href: string): string | null {
     const ddg = link.searchParams.get("uddg");
     if (ddg) return ddg;
     const bing = link.hostname.endsWith("bing.com") ? link.searchParams.get("u") : null;
-    if (bing?.startsWith("a1")) return atob(bing.slice(2).replace(/-/g, "+").replace(/_/g, "/"));
+    // Bing also wraps its own relative links (/images/search...): resolve them, callers drop them.
+    if (bing?.startsWith("a1")) return new URL(atob(bing.slice(2).replace(/-/g, "+").replace(/_/g, "/")), "https://www.bing.com").href;
     const yahoo = link.hostname.endsWith("yahoo.com") ? link.pathname.match(/\/RU=([^/]+)\//)?.[1] : null;
     if (yahoo) return decodeURIComponent(yahoo);
     return /^https?:$/.test(link.protocol) ? link.href : null;
@@ -99,7 +101,9 @@ export function parseSearchResults(html: string, engine: Engine): DatasheetCandi
   const out = new Map<string, DatasheetCandidate>();
   for (const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     const url = unwrapResultLink(match[1]);
-    if (!url || /(?:^|\.)(?:duckduckgo|bing|yahoo|mojeek|microsoft|msn)\.com$/i.test(new URL(url).hostname)) continue;
+    let host = "";
+    try { host = url ? new URL(url).hostname : ""; } catch { /* Skip malformed links. */ }
+    if (!url || !host || /(?:^|\.)(?:duckduckgo|bing|yahoo|mojeek|microsoft|msn)\.com$/i.test(host)) continue;
     const previous = out.get(url);
     const title = strip(match[2]);
     if (!previous || title.length > previous.title.length) out.set(url, { url, title, source: engine });
@@ -203,7 +207,8 @@ export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfMo
       } catch (error) { unavailable = true; trace.push(`${key.split("/").pop()?.slice(0, 60)}: ${error instanceof Error ? error.message : "failed"}`); }
     }
   }
-  const why = trace.slice(-10).join(" | ").slice(0, 1500);
+  const direct = trace.filter((line) => line.startsWith("direct") || line.includes("datasheet.pdf"));
+  const why = [...new Set([...direct, ...trace.slice(-8)])].join(" | ").slice(0, 1500);
   if (!successfulSearches) throw new Error(`Manufacturer search unavailable; retry later. ${why}`);
   if (unavailable) throw new Error(`Manufacturer downloads unavailable; retry later. ${why}`);
   return { url: null, status: "not_found", checkedAt, note: `No matching official PDF found. ${why}` };
