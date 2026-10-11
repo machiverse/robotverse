@@ -106,8 +106,11 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
   Mitsubishi: [
     { match: "MELFA", urls: ["https://dl.mitsubishielectric.com/dl/fa/document/catalog/robot/l-09139eng/l09139n.pdf", "https://dl.mitsubishielectric.com/dl/fa/document/catalog/robot/l-09139eng/l09139a.pdf"], pattern: "." },
   ],
+  // Estun publishes robot-body operation instructions with specification tables (no separate data
+  // sheets); each is attached only to models named inside it.
   Estun: [
     { match: "ER20-1780", urls: ["https://en.estun.com/static/upload/file/20250310/1741587303987685.pdf"] },
+    { match: "Estun", urls: ["https://en.estun.com/static/upload/file/20250310/1741587303987685.pdf", "https://en.estun.com/static/upload/file/20240521/1716275668856580.pdf"], pattern: "^ER" },
   ],
   Staubli: [
     { match: "TX2-90", urls: ["https://www.staubli.com/content/dam/robotics/products/robots/tx2/TX2-90-6-axis-product-data-sheet-EN.pdf"] },
