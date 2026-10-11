@@ -42,6 +42,9 @@ export function isOfficialUrl(url: string, brand: string): boolean {
 
 /** Our own stored copies of verified datasheets (public robot-images bucket). */
 export const STORED_DATASHEET_PATH = "/storage/v1/object/public/robot-images/directory/datasheets/verified-v2/pdf/";
+/** Public list the collector keeps of each model's datasheet link and the models with none. */
+export const datasheetLinksPath = (kind: string) => `directory/datasheets/verified-v2/links-${kind}.json`;
+export type DatasheetLinks = { at: string; found: Record<string, string>; none: string[] };
 export function isStoredDatasheet(url: string): boolean {
   try {
     const parsed = new URL(url);

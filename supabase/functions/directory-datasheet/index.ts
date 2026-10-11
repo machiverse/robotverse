@@ -1,7 +1,7 @@
 // Official PDF discovery. Writes only new datasheet files in the existing storage bucket.
 import { createClient } from "npm:@supabase/supabase-js@2.99.1";
 import { discoverDatasheet, fetchOfficial, setSitemapStore, type DatasheetResult } from "../_shared/datasheetDiscovery.ts";
-import { hasPdfSignature, isOfficialUrl, isStoredDatasheet, matchesModel, OEM_SITES, type DatasheetModel } from "../_shared/datasheetPolicy.ts";
+import { datasheetLinksPath, hasPdfSignature, isOfficialUrl, isStoredDatasheet, matchesModel, OEM_SITES, type DatasheetLinks, type DatasheetModel } from "../_shared/datasheetPolicy.ts";
 import { researchedSources } from "../_shared/datasheetSources.ts";
 import { DatasheetFiles } from "../_shared/datasheetFiles.ts";
 import { pdfContainsModel, pdfText } from "../_shared/datasheetPdf.ts";
@@ -65,6 +65,14 @@ async function indexResult(kind: Kind, row: Row) {
   const index = await readIndex(kind);
   index[row.catalog_id] = row;
   await writeJson(indexPath(kind), index);
+  // The page reads this small public file directly, so the button is ready without calling the function.
+  await writeJson(datasheetLinksPath(kind), linksOf(Object.values(index))).catch(() => { /* The index action still answers. */ });
+}
+/** What the button needs: the PDF to open for each model, and the models with no official datasheet. */
+function linksOf(rows: Row[]): DatasheetLinks {
+  const found = rows.filter((row) => row.status === "found" && row.url && isOfficialUrl(row.url, row.brand) && Date.now() - new Date(row.checkedAt).getTime() < 30 * 86400_000);
+  const none = rows.filter((row) => (row.status === "not_found" || (row.status === "unsupported" && !OEM_SITES[row.brand]?.length)) && row.v === SEARCH_VERSION);
+  return { at: new Date().toISOString(), found: Object.fromEntries(found.map((row) => [row.catalog_id, openUrl(row) ?? row.url!])), none: none.map((row) => row.catalog_id) };
 }
 
 async function loadParts(): Promise<DatasheetModel[]> {
@@ -380,7 +388,10 @@ Deno.serve(async (req) => {
       const valid = rows.filter((row) => row.status === "found" && row.url && isOfficialUrl(row.url, row.brand));
       // Visitors' index reads keep collection going: a stalled or outdated run resumes in the background.
       if (action === "index") background(ensureCollecting(kind));
-      if (action === "index") return json({ index: Object.fromEntries(valid.filter((row) => Date.now() - new Date(row.checkedAt).getTime() < 30 * 86400_000).map((row) => [row.catalog_id, openUrl(row)])) });
+      if (action === "index") {
+        const links = linksOf(rows);
+        return json({ index: links.found, none: links.none });
+      }
       await ensureCollecting(kind);
       const job = await readJson<Job>(jobPath(kind));
       const counts = Object.fromEntries(["not_found", "unsupported", "error"].map((status) => [status, rows.filter((row) => row.status === status).length]));
