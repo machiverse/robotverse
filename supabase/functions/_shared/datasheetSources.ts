@@ -223,6 +223,40 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
     { match: "LARA", urls: [], pages: ["https://neura-robotics.com/products/lara/"] },
     { match: "MAiRA", urls: [], pages: ["https://neura-robotics.com/products/maira/"] },
   ],
+  HIWIN: [
+    { match: "HIWIN", urls: ["https://www.hiwin.com/wp-content/uploads/HIWIN-Robots-Catalog.pdf", "https://www.hiwin.com/pdf/multi_axis_robot.pdf"], pattern: ".", family: "^(R[AT]\\d+)" },
+  ],
+  // xArm technical specification (xArm 5, 6 and 7).
+  uFactory: [
+    { match: "xArm", urls: ["https://download.ufactory.cc/xarm/en/Specification%20for%20xArm_20191021.pdf"], pattern: "^xArm", trust: true },
+  ],
+  "Rainbow Robotics": [
+    { match: "RB", urls: [], pattern: "^RB", family: "^(RB\\d+)", pages: ["https://rainbow-robotics.com/en/download/", "https://rainbow-robotics.com/en/customer-support/resources/"] },
+  ],
+  FAIRINO: [
+    { match: "FR", urls: [], pattern: "^FR", family: "^(FR\\d+)", pages: ["https://www.frtech.fr/DOWNLOAD2"] },
+  ],
+  "Kassow Robots": [
+    { match: "KR", urls: [], pattern: "^KR", pages: ["https://www.kassowrobots.com/products/{slug}/", "https://www.kassowrobots.com/products/new-models"] },
+  ],
+  Neuromeka: [
+    { match: "Indy", urls: [], pattern: ".", pages: ["https://en.neuromeka.com/download"] },
+  ],
+  // Panasonic welding robot catalogues (TM/TL/TS/TA manipulators).
+  Panasonic: [
+    { match: "Panasonic", urls: ["https://industrial.panasonic.com/content/data/WS/PDF/201609_TMTL-G3_E.pdf", "https://industrial.panasonic.com/content/data/WS/PDF/201801_TAWERS_E.pdf", "https://industrial.panasonic.com/content/data/WS/PDF/WeldingRobots_E.pdf"], pattern: ".", family: "^(T[AMLS]-\\d+)" },
+  ],
+  Kinova: [
+    { match: "Gen3 lite", urls: ["https://www.kinovarobotics.com/uploads/Kinova_Onepager_Gen3-Lite_2024_EN_2024-07-11-171759_yykn.pdf"], trust: true },
+    { match: "Gen3", urls: ["https://www.kinovarobotics.com/uploads/Kinova_Onepager_Gen3_2026_EN.pdf", "https://www.kinovarobotics.com/uploads/Kinova_Onepager_Gen3_2024_EN.pdf"], trust: true },
+  ],
+  Flexiv: [
+    { match: "Rizon", urls: ["https://flexiv.com/uploaded/en/resource/file/2023/09/12/aazvzwrlzy.pdf"], pattern: "^Rizon", family: "^(Rizon \\d+)" },
+  ],
+  // Delta D-Bot DC series one-pager and cobot booklet.
+  "Delta Electronics": [
+    { match: "DC", urls: ["https://landing.deltaww.com/IA/downloadcenter/catalogue/10.Smart-System/D-BOT/102025_Cobot_OnePager_ENG.pdf", "https://landing.deltaww.com/IA/downloadcenter/catalogue/10.Smart-System/D-BOT/202510_Booklet_Cobot_EN.pdf"], pattern: "^DC\\d+" },
+  ],
 };
 
 const slug = (text: string) => text.toLowerCase().normalize("NFKC").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
