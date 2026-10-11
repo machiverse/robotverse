@@ -257,6 +257,10 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
   "Delta Electronics": [
     { match: "DC", urls: ["https://landing.deltaww.com/IA/downloadcenter/catalogue/10.Smart-System/D-BOT/102025_Cobot_OnePager_ENG.pdf", "https://landing.deltaww.com/IA/downloadcenter/catalogue/10.Smart-System/D-BOT/202510_Booklet_Cobot_EN.pdf"], pattern: "^DC\\d+" },
   ],
+  // FANUC: the model's own datasheet first (FANUC America's fixed address), then series and general catalogues.
+  Fanuc: [
+    { match: "Fanuc", urls: ["https://www.fanucamerica.com/uploads/files/data-sheets/{slug}-datasheet.pdf", "https://www.fanuc.co.jp/en/product/catalog/pdf/robot/RR-2000iC(E)-09a.pdf", "https://www.fanuc.co.jp/en/product/catalog/pdf/robot/RM-900iB(E)-09.pdf", "https://www.fanuc.co.jp/en/product/catalog/pdf/robot/ARCMate(E)-01.pdf", "https://www.fanucamerica.com/cmsmedia/datasheets/LR%20Mate%20200iC%20Series_10.pdf", "https://www.fanucamerica.com/cmsmedia/datasheets/M-420iA%20Series_16.pdf", "https://www.fanucamerica.com/cmsmedia/datasheets/Compact%20CR%20line%20up%20product%20information_251.pdf", "https://www.fanuc.co.jp/en/product/catalog/pdf/robot/Robot_General(E)-05.pdf", "https://www.fanucamerica.com/docs/default-source/default-document-library/2024-robot-product-overview-brochure.pdf"], pattern: ".", family: "^((?:LR Mate |ARC Mate )?[A-Z]+-?\\d+i[A-Z])" },
+  ],
 };
 
 const slug = (text: string) => text.toLowerCase().normalize("NFKC").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
