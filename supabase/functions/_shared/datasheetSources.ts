@@ -157,6 +157,34 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
     { match: "E series", urls: [], pattern: "^E\\d", strip: " White$", pages: ["https://www.doosanrobotics.com/en/product-solutions/product/e-series/{slug}/"] },
     { match: "P series", urls: [], pattern: "^P\\d", strip: " White$", pages: ["https://www.doosanrobotics.com/en/product-solutions/product/p-series/{slug}/"] },
   ],
+  // Brooks PreciseFlex: the series product pages link each series' technical datasheet.
+  Brooks: [
+    { match: "PreciseFlex c3", urls: ["https://manuals.brooks.com/getmedia/5cf9d3e9-c995-4cd1-a493-37898aedbea2/PreciseFlex-c3-datasheet,-prelim,-rev-x2.pdf"], pages: ["https://www.brooks.com/preciseflex-robots/preciseflex-c3-robot/"], trust: true },
+    { match: "PreciseFlex c3x", urls: ["https://manuals.brooks.com/getmedia/5cf9d3e9-c995-4cd1-a493-37898aedbea2/PreciseFlex-c3-datasheet,-prelim,-rev-x2.pdf"], trust: true },
+    { match: "PreciseFlex c5", urls: [], pages: ["https://www.brooks.com/preciseflex-robots/preciseflex-c5-robot/"] },
+    { match: "PreciseFlex 400", urls: [], pages: ["https://www.brooks.com/preciseflex-robots/preciseflex-400/"] },
+    { match: "PreciseFlex 3400", urls: [], pages: ["https://www.brooks.com/industrial-automation/collaborative-robots/preciseflex-3400/"] },
+  ],
+  // DENSO product sheets (two pages: features, specifications, dimensions) per series.
+  Denso: [
+    { match: "VS-068", urls: [], pages: ["https://www.densorobotics.com/download/vsa-068-087-series-product-sheet/"] },
+    { match: "VS-087", urls: [], pages: ["https://www.densorobotics.com/download/vsa-068-087-series-product-sheet/"] },
+    { match: "HS series", urls: [], pattern: "^HS0", family: "^(HS\\d+)", pages: ["https://www.densorobotics.com/download/hs-series-product-sheet/"] },
+    { match: "HSR series", urls: [], pattern: "^HSR", family: "^(HSR\\d+)", pages: ["https://www.densorobotics.com/products/4-axis/hsr-series/"] },
+    { match: "VP series", urls: [], pattern: "^VP-", pages: ["https://www.densorobotics.com/products/5-6-axis/vp-series/"] },
+  ],
+  // Shibaura SCARA catalogues, and one product page per model.
+  "Shibaura Machine": [
+    { match: "Shibaura", urls: ["https://www.shibaura-machine.co.jp/documents/en/product/robot/download/th/catalog/ROB-SCARA-EN-03.pdf", "https://www.shibaura-machine.co.jp/documents/en/product/robot/download/th/catalog/Generalcatalog_for_SCARA_robots_EN.pdf"], pattern: "^TH", family: "^(TH[EL]? ?\\d+)", pages: ["https://www.shibaura-machine.co.jp/en/product/robot/lineup/th/{model}.html", "https://www.shibaura-machine.co.jp/en/product/robot/lineup/th/{slug}.html"] },
+  ],
+  // OTC Daihen: the robotic welding systems brochure tabulates the FD series; collaborative FD-VC4 sheet.
+  "OTC Daihen": [
+    { match: "FD", urls: ["https://www.daihen-usa.com/wp-content/uploads/documents/OTC-5-Series-II-Robotic-Welding-2021.pdf"], pattern: "^FD-", family: "^(FD-[A-Z]+\\d+)" },
+  ],
+  // Siasun's GCR cobots are DUCO's (a Siasun company): DUCO's GCR series spec sheet.
+  Siasun: [
+    { match: "GCR", urls: ["https://www.ducorobots.com/upload/down/1742433511462650.pdf"], pattern: "^GCR", family: "^(GCR\\d+)" },
+  ],
 };
 
 const slug = (text: string) => text.toLowerCase().normalize("NFKC").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");

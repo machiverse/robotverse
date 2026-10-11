@@ -6,7 +6,7 @@ export const OEM_SITES: Record<string, string[]> = {
   Epson: ["epson.com", "epson.eu"], Brooks: ["brooks.com"], INOVANCE: ["inovance.eu", "inovance.com"], Nachi: ["nachi.com", "nachirobotics.com", "nachi-fujikoshi.co.jp"],
   Rokae: ["rokae.com"], Dobot: ["dobot-robots.com", "dobot.cc"], Denso: ["densorobotics.com", "denso-wave.com"], AUBO: ["aubo-cobot.com", "aubo-robotics.com"],
   Efort: ["efort.com.cn", "efortrobot.com"], JAKA: ["jaka.com", "jakarobotics.com"], "Doosan Robotics": ["doosanrobotics.com"],
-  "Shibaura Machine": ["shibaura-machine.co.jp"], "OTC Daihen": ["otc-daihen.de", "daihen-usa.com"], Siasun: ["siasun.com"], Neura: ["neura-robotics.com"],
+  "Shibaura Machine": ["shibaura-machine.co.jp"], "OTC Daihen": ["otc-daihen.de", "daihen-usa.com"], Siasun: ["siasun.com", "ducorobots.com"], Neura: ["neura-robotics.com"],
   DUCO: ["ducorobots.com"], "Elite Robots": ["eliterobots.com"], "Universal Robots": ["universal-robots.com"], HIWIN: ["hiwin.com", "hiwin.tw"],
   Panasonic: ["panasonic.com"], uFactory: ["ufactory.cc", "ufactory.us"], Kinova: ["kinovarobotics.com"], Flexiv: ["flexiv.com"],
   Yamaha: ["yamaha-motor.com", "global.yamaha-motor.com"], CLOOS: ["cloos.de"], "Kassow Robots": ["kassowrobots.com"],
