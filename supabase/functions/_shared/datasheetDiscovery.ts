@@ -159,16 +159,34 @@ function sitemapLocations(brand: string, deadline: number): Promise<string[]> {
   if (!sitemapCache.has(brand)) {
     const load = async () => {
       const out: string[] = [];
-      // Known sitemaps, else each approved manufacturer domain's standard /sitemap.xml.
-      const queue = SITEMAPS[brand] ?? (OEM_SITES[brand] ?? []).slice(0, 2).map((domain) => `https://www.${domain.replace(/^www\./, "")}/sitemap.xml`);
-      for (let fetched = 0; queue.length && fetched < 12; fetched++) {
+      // Known sitemaps, else those robots.txt lists for each approved domain, else /sitemap.xml.
+      const queue = [...(SITEMAPS[brand] ?? [])];
+      if (!queue.length) {
+        for (const domain of (OEM_SITES[brand] ?? []).slice(0, 2)) {
+          const host = `https://www.${domain.replace(/^www\./, "")}`;
+          try {
+            const robots = new TextDecoder().decode((await readResponse(`${host}/robots.txt`, brand, 200_000, false, deadline)).bytes);
+            queue.push(...[...robots.matchAll(/^\s*sitemap:\s*(\S+)/gim)].map((match) => match[1]).filter((url) => isOfficialUrl(url, brand)));
+          } catch { /* No robots.txt: fall back to /sitemap.xml. */ }
+          queue.push(`${host}/sitemap.xml`);
+        }
+      }
+      const seen = new Set<string>();
+      for (let fetched = 0; queue.length && fetched < 16; fetched++) {
+        const next = queue.shift()!;
+        if (seen.has(next)) { fetched--; continue; }
+        seen.add(next);
         let response;
-        try { response = await readResponse(queue.shift()!, brand, 8_000_000, false, deadline); }
+        try { response = await readResponse(next, brand, 8_000_000, false, deadline); }
         catch { continue; } // A missing or blocked sitemap: try the next one.
-        const xml = new TextDecoder().decode(response.bytes);
+        let bytes = response.bytes;
+        if (bytes[0] === 0x1f && bytes[1] === 0x8b) // gzipped sitemap (.xml.gz)
+          bytes = new Uint8Array(await new Response(new Blob([bytes as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+        const xml = new TextDecoder().decode(bytes);
         const locations = [...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((match) => decode(match[1]));
-        // English child sitemaps first; image, video and news sitemaps never list products.
-        if (/<sitemapindex/i.test(xml)) queue.push(...locations.filter((location) => !/image|video|news|blog/i.test(location)).sort((a, b) => Number(!/[/_-]en(?:[/_.-]|$)/i.test(a)) - Number(!/[/_-]en(?:[/_.-]|$)/i.test(b))));
+        // Product and English child sitemaps first; image, video and news sitemaps never list products.
+        const priority = (url: string) => (/product|robot/i.test(url) ? 0 : 2) + (/[/_-]en(?:[/_.-]|$)/i.test(url) ? 0 : 1);
+        if (/<sitemapindex/i.test(xml)) queue.unshift(...locations.filter((location) => !/image|video|news|blog|press|event/i.test(location)).sort((a, b) => priority(a) - priority(b)));
         else out.push(...locations);
       }
       return out;

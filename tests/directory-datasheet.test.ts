@@ -136,5 +136,19 @@ try {
   }) as typeof fetch;
   assert.equal((await discoverDatasheet(irb, verifyModel)).url, "https://library.e.abb.com/public/a26/IRB_6700_EN.pdf");
   assert.equal((await discoverDatasheet(irb, async () => false)).status, "not_found", "a family brochure without the variant is rejected");
+  // Sitemaps listed in robots.txt (here gzipped, behind a sitemap index) are found too.
+  const kawasaki = { id: "RVRobot0700", b: "Kawasaki", m: "RS007N", n: "Kawasaki RS007N" };
+  const gz = async (text: string) => new Uint8Array(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+  const productsGz = await gz("<urlset><url><loc>https://kawasakirobotics.com/products-robots/rs007n</loc></url></urlset>");
+  globalThis.fetch = (async (input) => {
+    const url = String(input);
+    if (url.endsWith("/robots.txt")) return new Response("User-agent: *\nSitemap: https://kawasakirobotics.com/sitemap_index.xml");
+    if (url.endsWith("sitemap_index.xml")) return new Response("<sitemapindex><sitemap><loc>https://kawasakirobotics.com/news-sitemap.xml</loc></sitemap><sitemap><loc>https://kawasakirobotics.com/product-sitemap.xml.gz</loc></sitemap></sitemapindex>");
+    if (url.endsWith("product-sitemap.xml.gz")) return new Response(productsGz);
+    if (url.endsWith("/rs007n")) return new Response('<h1>RS007N</h1><a href="/wp-content/uploads/RS007N-spec.pdf">Specification sheet</a>');
+    if (url.endsWith(".pdf")) return new Response("%PDF-1.7\n");
+    return new Response("Not found", { status: 404 });
+  }) as typeof fetch;
+  assert.equal((await discoverDatasheet(kawasaki, verifyModel)).url, "https://kawasakirobotics.com/wp-content/uploads/RS007N-spec.pdf");
 } finally { globalThis.fetch = originalFetch; }
 console.log("directory datasheets: official hosts, model matching, redirects, PDF bytes and lookup outcomes passed");
