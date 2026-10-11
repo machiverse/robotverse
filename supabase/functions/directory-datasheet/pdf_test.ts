@@ -48,3 +48,16 @@ Deno.test("Extract the model from PDF text and reject sibling models", async () 
     pdfContainsModel(new TextEncoder().encode("%PDF-invalid"), model)
   );
 });
+
+Deno.test("Find a model split across PDF text runs", async () => {
+  const model = { id: "RVRobot0558", b: "Fanuc", m: "M-20iD/25", n: "Fanuc M-20iD/25" };
+  // Two text runs: "M-2" then "0iD/25", as FANUC's datasheet tables are typeset.
+  assert.equal(await pdfContainsModel(makePdf("M-2) Tj (0iD/25"), model), true);
+  assert.equal(await pdfContainsModel(makePdf("M-2) Tj (0iD/35"), model), false);
+});
+
+Deno.test("Match a model written with unusual hyphens and slashes", async () => {
+  const model = { id: "RVRobot0558", b: "Fanuc", m: "M-20iD/25", n: "Fanuc M-20iD/25" };
+  assert.equal(await pdfContainsModel(makePdf("M_20iD 25 datasheet"), model), true);
+  assert.equal(await pdfContainsModel(makePdf("M-20iD/250 datasheet"), model), false);
+});

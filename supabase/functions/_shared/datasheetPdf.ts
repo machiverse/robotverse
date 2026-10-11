@@ -9,8 +9,11 @@ export async function pdfContainsModel(bytes: Uint8Array, item: DatasheetModel):
     for (let number = 1; number <= Math.min(pdf.numPages, 50); number++) {
       const page = await pdf.getPage(number);
       const content = await page.getTextContent();
-      const text = content.items.map((part) => "str" in part ? part.str : " ").join(" ");
-      if (matchesModel(text, item.m)) return true;
+      // NFKC turns look-alikes (full-width "／", "Ｍ") into plain characters.
+      const parts = content.items.map((part) => "str" in part ? part.str.normalize("NFKC") : " ");
+      // PDFs often split one word into several text runs ("M-2" + "0iD/25"), so also
+      // check the runs joined without spaces; the model's own boundaries still apply.
+      if (matchesModel(parts.join(" "), item.m) || matchesModel(parts.join(""), item.m)) return true;
       page.cleanup();
     }
     return false; // Scanned PDFs without readable model text require manual review.

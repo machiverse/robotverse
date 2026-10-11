@@ -38,6 +38,8 @@ assert.equal(parseSearchResults(`<a href="${bingInternal}">Images</a><a href="${
 assert.equal(unwrapResultLink("https://r.search.yahoo.com/_ylt=A0/RV=2/RE=1/RO=10/RU=https%3a%2f%2fwww.kuka.com%2fkr6.pdf/RK=2/RS=x-"), "https://www.kuka.com/kr6.pdf");
 assert.equal(directCandidates({ id: "x", b: "Fanuc", m: "M-20iD/25", n: "" })[0].url, "https://www.fanucamerica.com/uploads/files/data-sheets/m-20id-25-datasheet.pdf");
 assert.equal(directCandidates(model).length, 0);
+const rss = parseSearchResults("<rss><channel><item><title>UR10e datasheet</title><link>https://www.universal-robots.com/UR10e.pdf</link></item></channel></rss>", "bingrss");
+assert.equal(rss[0].url, "https://www.universal-robots.com/UR10e.pdf");
 
 const originalFetch = globalThis.fetch;
 const verifyModel = async () => true;
@@ -76,6 +78,7 @@ try {
   }) as typeof fetch;
   assert.equal((await discoverDatasheet(fanuc, verifyModel)).url, "https://www.fanucamerica.com/uploads/files/data-sheets/m-20id-25-datasheet.pdf");
   assert.equal(queries.length, 0);
+  assert.equal((await discoverDatasheet(fanuc, async () => false)).status, "found", "a direct manufacturer address needs no text match");
   // Search engines return nothing for several site: filters joined with OR, so each
   // manufacturer website is searched on its own; the standard model beats special editions.
   const kuka = { id: "RVRobot0907", b: "KUKA", m: "KR 210 R2700-2", n: "KUKA KR 210 R2700-2" };

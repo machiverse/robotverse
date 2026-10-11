@@ -67,9 +67,11 @@ async function readResponse(url: string, brand?: string, maxBytes = 2_000_000, p
   } finally { clearTimeout(timer); }
 }
 
-type Engine = "duckduckgo" | "bing" | "yahoo" | "mojeek";
+type Engine = "bingrss" | "duckduckgo" | "bing" | "yahoo" | "mojeek";
 const ENGINES: Record<Engine, (query: string) => string> = {
   // Bing first: it answers Supabase's servers; DuckDuckGo shows them a challenge page.
+  // Its RSS format keeps site: filters that the HTML page ignores for servers.
+  bingrss: (q) => `https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}`,
   bing: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}&setlang=en&cc=us`,
   duckduckgo: (q) => `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,
   yahoo: (q) => `https://search.yahoo.com/search?p=${encodeURIComponent(q)}`,
@@ -99,6 +101,11 @@ export function unwrapResultLink(href: string): string | null {
  */
 export function parseSearchResults(html: string, engine: Engine): DatasheetCandidate[] {
   const out = new Map<string, DatasheetCandidate>();
+  // RSS results: <item><title>…</title><link>…</link></item>
+  for (const match of html.matchAll(/<item>[\s\S]*?<title>([\s\S]*?)<\/title>[\s\S]*?<link>([\s\S]*?)<\/link>/gi)) {
+    const url = unwrapResultLink(match[2].trim());
+    if (url) out.set(url, { url, title: strip(match[1]), source: engine });
+  }
   for (const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     const url = unwrapResultLink(match[1]);
     let host = "";
@@ -137,11 +144,13 @@ export function productPdfLinks(html: string, pageUrl: string, item: DatasheetMo
 }
 
 export async function verifyOfficialPdf(candidate: DatasheetCandidate, item: DatasheetModel, verifyModel: PdfModelVerifier, deadline = Infinity, trace: string[] = []): Promise<DatasheetResult | null> {
+  // A known address built from the exact model on the manufacturer's site is itself the proof.
+  const direct = candidate.source === "manufacturer-direct";
   const name = candidate.url.split("/").pop()?.slice(0, 60);
   if (candidateScore(candidate, item) < 0) return null;
   const response = await readResponse(candidate.url, item.b, 12_000_000, false, deadline);
   if (!hasPdfSignature(response.bytes)) { trace.push(`${name}: not a PDF (${response.bytes.length} bytes)`); return null; }
-  if (!await verifyModel(response.bytes, item)) { trace.push(`${name}: model not in PDF text`); return null; }
+  if (!direct && !await verifyModel(response.bytes, item)) { trace.push(`${name}: model not in PDF text`); return null; }
   return { url: response.url, title: candidate.title, source: candidate.source,
     host: new URL(response.url).hostname, status: "found", checkedAt: new Date().toISOString(), bytes: response.bytes };
 }
