@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { candidateScore, hasPdfSignature, isOfficialUrl, isStoredDatasheet, matchesModel } from "../supabase/functions/_shared/datasheetPolicy";
-import { discoverDatasheet, parseSearchResults, productPdfLinks, verifyOfficialPdf } from "../supabase/functions/_shared/datasheetDiscovery";
+import { directCandidates, discoverDatasheet, parseSearchResults, productPdfLinks, unwrapResultLink, verifyOfficialPdf } from "../supabase/functions/_shared/datasheetDiscovery";
 
 const model = { id: "RVRobot1517", b: "Universal Robots", m: "UR10e", n: "Universal Robots UR10e" };
 const candidate = { url: "https://www.universal-robots.com/download/UR10e-datasheet.pdf", title: "UR10e datasheet", source: "manufacturer-page" };
@@ -32,6 +32,9 @@ assert.equal(results[0].url, "https://www.universal-robots.com/UR10e.pdf");
 const bingWrapped = `https://www.bing.com/ck/a?!&&p=abc&u=a1${btoa("https://www.universal-robots.com/UR10e.pdf").replace(/=+$/, "")}&ntb=1`;
 const bingResults = parseSearchResults(`<li class="b_algo"><h2><a href="${bingWrapped.replace(/&/g, "&amp;")}">UR10e datasheet</a></h2></li>`, "bing");
 assert.equal(bingResults[0].url, "https://www.universal-robots.com/UR10e.pdf");
+assert.equal(unwrapResultLink("https://r.search.yahoo.com/_ylt=A0/RV=2/RE=1/RO=10/RU=https%3a%2f%2fwww.kuka.com%2fkr6.pdf/RK=2/RS=x-"), "https://www.kuka.com/kr6.pdf");
+assert.equal(directCandidates({ id: "x", b: "Fanuc", m: "M-20iD/25", n: "" })[0].url, "https://www.fanucamerica.com/uploads/files/data-sheets/m-20id-25-datasheet.pdf");
+assert.equal(directCandidates(model).length, 0);
 
 const originalFetch = globalThis.fetch;
 const verifyModel = async () => true;
@@ -59,21 +62,31 @@ try {
     ? new Response("%PDF-1.7\n")
     : new Response(`<a class="result__a" href="${candidate.url}">UR10e datasheet</a>`)) as typeof fetch;
   assert.equal((await discoverDatasheet(model, verifyModel)).url, candidate.url);
+  // FANUC datasheets have a known address: found without any search.
+  const fanuc = { id: "RVRobot0558", b: "Fanuc", m: "M-20iD/25", n: "Fanuc M-20iD/25" };
+  const queries: string[] = [];
+  globalThis.fetch = (async (input) => {
+    const url = String(input);
+    if (url.endsWith(".pdf")) return new Response("%PDF-1.7\n");
+    queries.push(url);
+    return new Response("<p>No results</p>");
+  }) as typeof fetch;
+  assert.equal((await discoverDatasheet(fanuc, verifyModel)).url, "https://www.fanucamerica.com/uploads/files/data-sheets/m-20id-25-datasheet.pdf");
+  assert.equal(queries.length, 0);
   // Search engines return nothing for several site: filters joined with OR, so each
   // manufacturer website is searched on its own; the standard model beats special editions.
-  const fanuc = { id: "RVRobot0558", b: "Fanuc", m: "M-20iD/25", n: "Fanuc M-20iD/25" };
-  const standard = "https://www.fanucamerica.com/uploads/files/data-sheets/m-20id-25-datasheet.pdf";
-  const food = "https://www.fanucamerica.com/uploads/files/data-sheets/m-20id-25-food-datasheet.pdf";
-  const queries: string[] = [];
+  const kuka = { id: "RVRobot0907", b: "KUKA", m: "KR 210 R2700-2", n: "KUKA KR 210 R2700-2" };
+  const standard = "https://www.kuka.com/-/media/kuka-downloads/kr-210-r2700-2-datasheet.pdf";
+  const food = "https://www.kuka.com/-/media/kuka-downloads/kr-210-r2700-2-foundry-datasheet.pdf";
   globalThis.fetch = (async (input) => {
     const url = String(input);
     if (url.endsWith(".pdf")) return new Response("%PDF-1.7\n");
     const query = new URL(url).searchParams.get("q") ?? "";
     queries.push(query);
-    if (query.includes(" OR ") || !query.includes("site:fanucamerica.com")) return new Response("<p>No results</p>");
-    return new Response(`<a class="result__a" href="${food}">M-20iD/25 Food datasheet</a><a class="result__a" href="${standard}">M-20iD/25 datasheet</a>`);
+    if (query.includes(" OR ") || !query.includes("site:kuka.com")) return new Response("<p>No results</p>");
+    return new Response(`<a class="result__a" href="${food}">KR 210 R2700-2 Foundry datasheet</a><a class="result__a" href="${standard}">KR 210 R2700-2 datasheet</a>`);
   }) as typeof fetch;
-  assert.equal((await discoverDatasheet(fanuc, verifyModel)).url, standard);
+  assert.equal((await discoverDatasheet(kuka, verifyModel)).url, standard);
   assert.ok(queries.every((query) => !query.includes(" OR ")));
 } finally { globalThis.fetch = originalFetch; }
 console.log("directory datasheets: official hosts, model matching, redirects, PDF bytes and lookup outcomes passed");

@@ -67,24 +67,51 @@ async function readResponse(url: string, brand?: string, maxBytes = 2_000_000, p
   } finally { clearTimeout(timer); }
 }
 
-export function parseSearchResults(html: string, engine: "duckduckgo" | "bing"): DatasheetCandidate[] {
-  const pattern = engine === "duckduckgo"
-    ? /class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g
-    : /<li class="b_algo"[\s\S]*?<h2[^>]*><a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
-  const out: DatasheetCandidate[] = [];
-  for (const match of html.matchAll(pattern)) {
-    try {
-      let url = decode(match[1]);
-      const link = new URL(url, "https://html.duckduckgo.com");
-      const wrapped = link.searchParams.get("uddg");
-      if (wrapped) url = wrapped;
-      // Bing wraps results as bing.com/ck/a?...&u=a1<base64url of the real URL>.
-      const bing = link.hostname.endsWith("bing.com") ? link.searchParams.get("u") : null;
-      if (bing?.startsWith("a1")) url = atob(bing.slice(2).replace(/-/g, "+").replace(/_/g, "/"));
-      out.push({ url, title: strip(match[2]), source: engine });
-    } catch { /* Ignore malformed results. */ }
+type Engine = "duckduckgo" | "bing" | "yahoo" | "mojeek";
+const ENGINES: Record<Engine, (query: string) => string> = {
+  duckduckgo: (q) => `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,
+  bing: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}&setlang=en&cc=us`,
+  yahoo: (q) => `https://search.yahoo.com/search?p=${encodeURIComponent(q)}`,
+  mojeek: (q) => `https://www.mojeek.com/search?q=${encodeURIComponent(q)}`,
+};
+
+/** The real destination of a search-engine link (DuckDuckGo, Bing and Yahoo wrap their results). */
+export function unwrapResultLink(href: string): string | null {
+  try {
+    const link = new URL(decode(href), "https://html.duckduckgo.com");
+    const ddg = link.searchParams.get("uddg");
+    if (ddg) return ddg;
+    const bing = link.hostname.endsWith("bing.com") ? link.searchParams.get("u") : null;
+    if (bing?.startsWith("a1")) return atob(bing.slice(2).replace(/-/g, "+").replace(/_/g, "/"));
+    const yahoo = link.hostname.endsWith("yahoo.com") ? link.pathname.match(/\/RU=([^/]+)\//)?.[1] : null;
+    if (yahoo) return decodeURIComponent(yahoo);
+    return /^https?:$/.test(link.protocol) ? link.href : null;
+  } catch {
+    return null;
   }
-  return out;
+}
+
+/**
+ * Every outbound result link on a search page, whatever the engine's layout: callers keep
+ * only links on approved manufacturer domains that name the model, so page chrome is harmless.
+ */
+export function parseSearchResults(html: string, engine: Engine): DatasheetCandidate[] {
+  const out = new Map<string, DatasheetCandidate>();
+  for (const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    const url = unwrapResultLink(match[1]);
+    if (!url || /(?:^|\.)(?:duckduckgo|bing|yahoo|mojeek|microsoft|msn)\.com$/i.test(new URL(url).hostname)) continue;
+    const previous = out.get(url);
+    const title = strip(match[2]);
+    if (!previous || title.length > previous.title.length) out.set(url, { url, title, source: engine });
+  }
+  return [...out.values()];
+}
+
+/** Known datasheet addresses, tried before any search. */
+export function directCandidates(item: DatasheetModel): DatasheetCandidate[] {
+  const slug = item.m.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (item.b === "Fanuc") return [{ url: `https://www.fanucamerica.com/uploads/files/data-sheets/${slug}-datasheet.pdf`, title: `${item.m} datasheet`, source: "manufacturer-direct" }];
+  return [];
 }
 
 export function productPdfLinks(html: string, pageUrl: string, item: DatasheetModel): DatasheetCandidate[] {
@@ -132,11 +159,19 @@ export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfMo
     ...domains.slice(0, 4).map((domain) => `site:${domain} ${item.m} datasheet pdf`),
     `"${item.m}" ${item.b.split(" ")[0]} datasheet filetype:pdf`,
   ];
+  // Known addresses first: no search needed.
+  for (const candidate of directCandidates(item)) {
+    try {
+      const pdf = await verifyOfficialPdf(candidate, item, verifyModel, deadline, trace);
+      if (pdf) return pdf;
+    } catch (error) { trace.push(`direct: ${error instanceof Error ? error.message : "failed"}`); }
+    tried.add(candidate.url);
+  }
   for (const query of queries) {
     if (Date.now() > deadline - 15_000) break;
     const candidates = new Map<string, DatasheetCandidate>();
-    for (const engine of ["duckduckgo", "bing"] as const) {
-      const endpoint = engine === "duckduckgo" ? `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}` : `https://www.bing.com/search?q=${encodeURIComponent(query)}&setlang=en`;
+    for (const engine of Object.keys(ENGINES) as Engine[]) {
+      const endpoint = ENGINES[engine](query);
       try {
         const response = await readResponse(endpoint, undefined, 2_000_000, false, deadline);
         const html = new TextDecoder().decode(response.bytes);
@@ -147,10 +182,10 @@ export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfMo
           const key = candidate.url.replace(/[?#].*$/, "");
           if (!tried.has(key) && candidateScore(candidate, item) >= 0) candidates.set(key, candidate);
         }
-        trace.push(`${engine} "${query.slice(0, 50)}": ${results.length} results, ${candidates.size} usable`);
-        // The second engine is only a fallback when the first finds nothing usable.
+        trace.push(`${engine} "${query.slice(0, 40)}": ${results.length} links, ${candidates.size} usable${candidates.size ? "" : ` (${[...new Set(results.map((r) => new URL(r.url).hostname))].slice(0, 3).join(", ")})`}`);
         if (candidates.size) break;
       } catch (error) { trace.push(`${engine}: ${error instanceof Error ? error.message : "failed"}`); }
+      // Engines can block servers; the next one is only tried when this one found nothing usable.
     }
     const ranked = [...candidates.entries()].sort(([, a], [, b]) => candidateScore(b, item) - candidateScore(a, item)).slice(0, 4);
     for (const [key, candidate] of ranked) {
@@ -168,7 +203,7 @@ export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfMo
       } catch (error) { unavailable = true; trace.push(`${key.split("/").pop()?.slice(0, 60)}: ${error instanceof Error ? error.message : "failed"}`); }
     }
   }
-  const why = trace.slice(-8).join(" | ").slice(0, 900);
+  const why = trace.slice(-10).join(" | ").slice(0, 1500);
   if (!successfulSearches) throw new Error(`Manufacturer search unavailable; retry later. ${why}`);
   if (unavailable) throw new Error(`Manufacturer downloads unavailable; retry later. ${why}`);
   return { url: null, status: "not_found", checkedAt, note: `No matching official PDF found. ${why}` };
