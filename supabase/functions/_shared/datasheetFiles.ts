@@ -37,7 +37,8 @@ export class DatasheetFiles {
   async write(path: string, value: unknown, upsert = true) {
     this.check(path);
     const { error } = await this.bucket.upload(path, new Blob([JSON.stringify(value)], { type: "application/json" }),
-      { upsert, contentType: "application/json", cacheControl: "60" });
+      // Progress files are rewritten constantly: never serve a cached copy.
+      { upsert, contentType: "application/json", cacheControl: "0" });
     if (error) throw new Error(`Could not save datasheet file: ${error.message}`);
   }
 }

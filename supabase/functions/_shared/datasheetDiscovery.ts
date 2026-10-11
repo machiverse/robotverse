@@ -67,15 +67,13 @@ async function readResponse(url: string, brand?: string, maxBytes = 2_000_000, p
   } finally { clearTimeout(timer); }
 }
 
-type Engine = "bingrss" | "duckduckgo" | "bing" | "yahoo" | "mojeek";
+type Engine = "bingrss" | "bing" | "duckduckgo";
 const ENGINES: Record<Engine, (query: string) => string> = {
   // Bing first: it answers Supabase's servers; DuckDuckGo shows them a challenge page.
   // Its RSS format keeps site: filters that the HTML page ignores for servers.
   bingrss: (q) => `https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}`,
   bing: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}&setlang=en&cc=us`,
   duckduckgo: (q) => `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,
-  yahoo: (q) => `https://search.yahoo.com/search?p=${encodeURIComponent(q)}`,
-  mojeek: (q) => `https://www.mojeek.com/search?q=${encodeURIComponent(q)}`,
 };
 
 /** The real destination of a search-engine link (DuckDuckGo, Bing and Yahoo wrap their results). */
@@ -157,7 +155,7 @@ export async function verifyOfficialPdf(candidate: DatasheetCandidate, item: Dat
 
 export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfModelVerifier): Promise<DatasheetResult> {
   const checkedAt = new Date().toISOString();
-  const deadline = Date.now() + 110_000;
+  const deadline = Date.now() + 60_000;
   const domains = OEM_SITES[item.b] ?? [];
   if (!domains.length) return { url: null, status: "unsupported", checkedAt, note: "Manufacturer domain needs review" };
   let successfulSearches = 0;

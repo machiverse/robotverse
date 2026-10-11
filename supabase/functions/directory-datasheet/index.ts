@@ -10,7 +10,7 @@ const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
 type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number };
 // Bump when discovery improves, so earlier "not found" outcomes are searched again.
-const SEARCH_VERSION = 6;
+const SEARCH_VERSION = 7;
 type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.
@@ -114,8 +114,11 @@ const background = (promise: Promise<unknown>) => {
   if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(safe);
 };
 
-// One model per invocation. Progress and claims are datasheet-only storage files.
+// Each invocation collects models for up to ~70 s, saving progress after every model,
+// then hands over to a fresh invocation. If a handoff fails, the next status read resumes.
+const SWEEP_BUDGET_MS = 70_000; // + one lookup (≤ 60 s) stays inside the 150 s function limit
 async function sweep(kind: Kind, runId: string, from: number, redo: boolean) {
+  const started = Date.now();
   const job = await readJson<Job>(jobPath(kind));
   if (!job || job.run_id !== runId || !job.running || job.done !== from) return;
   const claimPath = `${DIR}/claims/${runId}/${from}.json`;
@@ -124,45 +127,46 @@ async function sweep(kind: Kind, runId: string, from: number, redo: boolean) {
     if (/already exists|duplicate/i.test(message(error))) return;
     throw error;
   }
+  const catalogue = await loadCatalogue(kind);
   let next = from;
   let failure: string | null = null;
-  try {
-    const catalogue = await loadCatalogue(kind);
-    if (from < catalogue.length) {
-      const item = catalogue[from];
+  while (next < catalogue.length && Date.now() - started < SWEEP_BUDGET_MS) {
+    const item = catalogue[next];
+    try {
       await find(kind, item.id, redo);
       const row = await readResult(kind, item.id);
       if (row) await indexResult(kind, row);
-      next = from + 1;
-    }
-  } catch (error) { failure = message(error); }
-  const latest = await readJson<Job>(jobPath(kind));
-  if (!latest || latest.run_id !== runId) return;
-  const updated = { ...latest, done: next, running: !failure && next < latest.total,
-    last_error: failure, updatedAt: new Date().toISOString() };
-  await writeJson(jobPath(kind), updated);
-  if (!updated.running) return;
+    } catch (error) { failure = `${item.id}: ${message(error)}`; } // One model's failure never stops the run.
+    next++;
+    const latest = await readJson<Job>(jobPath(kind));
+    if (!latest || latest.run_id !== runId) return; // A newer run took over.
+    await writeJson(jobPath(kind), { ...latest, done: next, running: next < latest.total, last_error: failure, updatedAt: new Date().toISOString() });
+  }
+  if (next >= catalogue.length) return;
   try {
     const response = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/directory-datasheet`, {
       method: "POST", signal: AbortSignal.timeout(15_000),
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`, apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "" },
       body: JSON.stringify({ action: "continue", kind, from: next, runId, redo }),
     });
-    const accepted = await response.json();
-    if (!response.ok || accepted.ok !== true) throw new Error("Collection handoff failed; resume from the admin panel");
+    const text = await response.text();
+    if (!response.ok || !text.includes('"ok":true')) throw new Error(`Collection handoff failed (HTTP ${response.status}: ${text.slice(0, 120)}); it resumes on the next status check`);
   } catch (error) {
     const current = await readJson<Job>(jobPath(kind));
     if (current?.run_id === runId && current.done === next)
-      await writeJson(jobPath(kind), { ...current, running: false, last_error: message(error), updatedAt: new Date().toISOString() });
+      await writeJson(jobPath(kind), { ...current, last_error: message(error), updatedAt: new Date().toISOString() });
   }
 }
+
+/** A run that has not saved progress for 4 minutes has stopped (failed handoff, timeout). */
+const stalled = (job: Job) => job.done < job.total && (job.running || !!job.last_error) && Date.now() - new Date(job.updatedAt).getTime() > 4 * 60_000;
 
 async function startJob(kind: Kind, redo: boolean) {
   const catalogue = await loadCatalogue(kind);
   if (!catalogue.length) return json({ error: "Catalogue is empty" }, 400);
   const previous = await readJson<Job>(jobPath(kind));
   const outdated = previous?.v !== SEARCH_VERSION;
-  if (!outdated && previous?.running && Date.now() - new Date(previous.updatedAt).getTime() < 5 * 60_000)
+  if (!outdated && previous?.running && !stalled(previous) && Date.now() - new Date(previous.updatedAt).getTime() < 5 * 60_000)
     return json({ error: "Collection is already running" }, 409);
   const resume = !redo && !outdated && previous && previous.total === catalogue.length && previous.done < previous.total;
   const job: Job = { kind, run_id: crypto.randomUUID(), done: resume ? previous.done : 0,
@@ -198,7 +202,7 @@ Deno.serve(async (req) => {
       let job = await readJson<Job>(jobPath(kind));
       // Each catalogue is collected automatically the first time; later runs are admin-only.
       // ...and again from the start whenever the search itself has been improved.
-      if (!job || job.v !== SEARCH_VERSION) {
+      if (!job || job.v !== SEARCH_VERSION || stalled(job)) {
         await startJob(kind, false);
         job = await readJson<Job>(jobPath(kind));
       }
