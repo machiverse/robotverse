@@ -1,6 +1,6 @@
 // Official PDF discovery. Writes only new datasheet files in the existing storage bucket.
 import { createClient } from "npm:@supabase/supabase-js@2.99.1";
-import { discoverDatasheet, useSitemapStore, type DatasheetResult } from "../_shared/datasheetDiscovery.ts";
+import { discoverDatasheet, setSitemapStore, type DatasheetResult } from "../_shared/datasheetDiscovery.ts";
 import { isOfficialUrl, isStoredDatasheet, OEM_SITES, type DatasheetModel } from "../_shared/datasheetPolicy.ts";
 import { DatasheetFiles } from "../_shared/datasheetFiles.ts";
 import { pdfContainsModel } from "../_shared/datasheetPdf.ts";
@@ -40,7 +40,7 @@ const openUrl = (row: { url: string | null; file?: string }) => row.file && isSt
 
 // Manufacturer page lists from sitemaps, refreshed weekly.
 const sitemapPath = (brand: string) => `${DIR}/sitemaps/${brand.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json`;
-useSitemapStore({
+setSitemapStore({
   read: async (brand) => {
     const saved = await readJson<{ at: string; pages: string[] }>(sitemapPath(brand));
     return saved && Date.now() - new Date(saved.at).getTime() < 7 * 86400_000 ? saved.pages : null;

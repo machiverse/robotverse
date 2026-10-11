@@ -156,7 +156,7 @@ export function sitemapFamilyPages(locations: string[], item: DatasheetModel): s
 /** Saved per-brand page lists, so the large sitemaps are read once rather than by every run. */
 export type SitemapStore = { read(brand: string): Promise<string[] | null>; write(brand: string, pages: string[]): Promise<void> };
 let sitemapStore: SitemapStore | null = null;
-export const useSitemapStore = (store: SitemapStore | null) => { sitemapStore = store; sitemapCache.clear(); };
+export const setSitemapStore = (store: SitemapStore | null) => { sitemapStore = store; sitemapCache.clear(); };
 /** Only pages that can match a model: the last path segment has a digit, and it is not news or similar. */
 const productLike = (location: string) => {
   try {
