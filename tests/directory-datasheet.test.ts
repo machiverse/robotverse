@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { candidateScore, hasPdfSignature, isOfficialUrl, isStoredDatasheet, matchesModel } from "../supabase/functions/_shared/datasheetPolicy";
-import { directCandidates, discoverDatasheet, parseSearchResults, productPdfLinks, unwrapResultLink, verifyOfficialPdf } from "../supabase/functions/_shared/datasheetDiscovery";
+import { directCandidates, discoverDatasheet, sitemapProductPages, parseSearchResults, productPdfLinks, unwrapResultLink, verifyOfficialPdf } from "../supabase/functions/_shared/datasheetDiscovery";
 
 const model = { id: "RVRobot1517", b: "Universal Robots", m: "UR10e", n: "Universal Robots UR10e" };
 const candidate = { url: "https://www.universal-robots.com/download/UR10e-datasheet.pdf", title: "UR10e datasheet", source: "manufacturer-page" };
@@ -38,6 +38,15 @@ assert.equal(parseSearchResults(`<a href="${bingInternal}">Images</a><a href="${
 assert.equal(unwrapResultLink("https://r.search.yahoo.com/_ylt=A0/RV=2/RE=1/RO=10/RU=https%3a%2f%2fwww.kuka.com%2fkr6.pdf/RK=2/RS=x-"), "https://www.kuka.com/kr6.pdf");
 assert.equal(directCandidates({ id: "x", b: "Fanuc", m: "M-20iD/25", n: "" })[0].url, "https://www.fanucamerica.com/uploads/files/data-sheets/m-20id-25-datasheet.pdf");
 assert.equal(directCandidates(model).length, 0);
+const gp25 = { id: "RVRobot1434", b: "Yaskawa Motoman", m: "GP25", n: "Yaskawa Motoman GP25" };
+assert.deepEqual(sitemapProductPages([
+  "https://www.motoman.com/en-us/products/robots/industrial/assembly-handling/gp-series/gp250",
+  "https://www.motoman.com/en-us/products/robots/industrial/assembly-handling/gp-series/gp25-12",
+  "https://www.motoman.com/en-us/products/robots/used/hs-277-demo-gp25",
+  "https://www.motoman.com/en-us/products/robots/industrial/assembly-handling/gp-series/gp25",
+], gp25), ["https://www.motoman.com/en-us/products/robots/industrial/assembly-handling/gp-series/gp25"]);
+const motomanLinks = productPdfLinks('<h1>GP25</h1><a href="/getdoc/x/Sales-Quote.aspx?model=GP25">Quote</a><a href="/getmedia/ee92/GP25.pdf.aspx">Spec Sheet</a>', "https://www.motoman.com/en-us/products/gp25", gp25);
+assert.deepEqual(motomanLinks.map((link) => link.url), ["https://www.motoman.com/getmedia/ee92/GP25.pdf.aspx"]);
 const rss = parseSearchResults("<rss><channel><item><title>UR10e datasheet</title><link>https://www.universal-robots.com/UR10e.pdf</link></item></channel></rss>", "bingrss");
 assert.equal(rss[0].url, "https://www.universal-robots.com/UR10e.pdf");
 
@@ -94,5 +103,19 @@ try {
   }) as typeof fetch;
   assert.equal((await discoverDatasheet(kuka, verifyModel)).url, standard);
   assert.ok(queries.every((query) => !query.includes(" OR ")));
+  // Yaskawa: sitemap → product page → its PDF link, with no search at all.
+  const searched: string[] = [];
+  globalThis.fetch = (async (input) => {
+    const url = String(input);
+    if (url.endsWith("sitemap.xml")) return new Response("<urlset><url><loc>https://www.motoman.com/en-us/products/robots/industrial/assembly-handling/gp-series/gp25</loc></url></urlset>");
+    if (url.endsWith("/gp25")) return new Response('<h1>GP25</h1><a href="/getmedia/ee92/GP25.pdf.aspx">Spec Sheet</a>');
+    if (url.endsWith("GP25.pdf.aspx")) return new Response("%PDF-1.7\n");
+    searched.push(url);
+    return new Response("<p>No results</p>");
+  }) as typeof fetch;
+  const yaskawa = await discoverDatasheet({ id: "RVRobot1434", b: "Yaskawa Motoman", m: "GP25", n: "Yaskawa Motoman GP25" }, verifyModel);
+  assert.equal(yaskawa.url, "https://www.motoman.com/getmedia/ee92/GP25.pdf.aspx");
+  assert.equal(yaskawa.source, "manufacturer-sitemap");
+  assert.equal(searched.length, 0);
 } finally { globalThis.fetch = originalFetch; }
 console.log("directory datasheets: official hosts, model matching, redirects, PDF bytes and lookup outcomes passed");

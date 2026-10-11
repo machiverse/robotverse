@@ -17,7 +17,8 @@ export type PdfModelVerifier = (bytes: Uint8Array, item: DatasheetModel) => Prom
 
 const decode = (text: string) => text.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 const strip = (text: string) => decode(text.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
-const pdfPath = (url: string) => /\.pdf(?:[?#]|$)|[?&](?:file|format)=pdf/i.test(url);
+// Includes ASP.NET media links such as Motoman's ".../GP25.pdf.aspx".
+const pdfPath = (url: string) => /\.pdf(?:\.aspx)?(?:[?#]|$)|[?&](?:file|format)=pdf/i.test(url);
 
 /** Bound both the request and its body, including servers that ignore Range. */
 async function readResponse(url: string, brand?: string, maxBytes = 2_000_000, prefixOnly = false, deadline = Infinity) {
@@ -116,6 +117,50 @@ export function parseSearchResults(html: string, engine: Engine): DatasheetCandi
   return [...out.values()];
 }
 
+/** Manufacturer sitemaps listing one product page per model (each page links its datasheet). */
+export const SITEMAPS: Record<string, string[]> = {
+  "Yaskawa Motoman": ["https://www.motoman.com/sitemap.xml"],
+};
+const slugOf = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** Product pages whose last path segment is exactly this model (gp25, not gp25-12); used-robot pages excluded. */
+export function sitemapProductPages(locations: string[], item: DatasheetModel): string[] {
+  const slug = slugOf(item.m);
+  return locations.filter((location) => {
+    try {
+      const path = new URL(location).pathname.toLowerCase();
+      return !/\/used\//.test(path) && slugOf(decodeURIComponent(path.split("/").filter(Boolean).pop() ?? "")) === slug;
+    } catch { return false; }
+  }).sort((a, b) => Number(!a.includes("/en-us/")) - Number(!b.includes("/en-us/"))).slice(0, 2);
+}
+
+const sitemapCache = new Map<string, Promise<string[]>>();
+/** Every page address in a manufacturer's sitemap (and its child sitemaps), cached per worker. */
+function sitemapLocations(brand: string, deadline: number): Promise<string[]> {
+  if (!sitemapCache.has(brand)) {
+    const load = async () => {
+      const out: string[] = [];
+      // Known sitemaps, else each approved manufacturer domain's standard /sitemap.xml.
+      const queue = SITEMAPS[brand] ?? (OEM_SITES[brand] ?? []).slice(0, 2).map((domain) => `https://www.${domain.replace(/^www\./, "")}/sitemap.xml`);
+      for (let fetched = 0; queue.length && fetched < 12; fetched++) {
+        let response;
+        try { response = await readResponse(queue.shift()!, brand, 8_000_000, false, deadline); }
+        catch { continue; } // A missing or blocked sitemap: try the next one.
+        const xml = new TextDecoder().decode(response.bytes);
+        const locations = [...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((match) => decode(match[1]));
+        // English child sitemaps first; image, video and news sitemaps never list products.
+        if (/<sitemapindex/i.test(xml)) queue.push(...locations.filter((location) => !/image|video|news|blog/i.test(location)).sort((a, b) => Number(!/[/_-]en(?:[/_.-]|$)/i.test(a)) - Number(!/[/_-]en(?:[/_.-]|$)/i.test(b))));
+        else out.push(...locations);
+      }
+      return out;
+    };
+    const promise = load();
+    promise.catch(() => sitemapCache.delete(brand));
+    sitemapCache.set(brand, promise);
+  }
+  return sitemapCache.get(brand)!;
+}
+
 /** Known datasheet addresses, tried before any search. */
 export function directCandidates(item: DatasheetModel): DatasheetCandidate[] {
   const slug = item.m.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -138,7 +183,7 @@ export function productPdfLinks(html: string, pageUrl: string, item: DatasheetMo
       if (candidateScore(candidate, item) >= 0) out.push(candidate);
     } catch { /* Ignore malformed links. */ }
   }
-  return out;
+  return out.sort((a, b) => candidateScore(b, item) - candidateScore(a, item));
 }
 
 export async function verifyOfficialPdf(candidate: DatasheetCandidate, item: DatasheetModel, verifyModel: PdfModelVerifier, deadline = Infinity, trace: string[] = []): Promise<DatasheetResult | null> {
@@ -177,6 +222,23 @@ export async function discoverDatasheet(item: DatasheetModel, verifyModel: PdfMo
       if (pdf) return pdf;
     } catch (error) { trace.push(`direct: ${error instanceof Error ? error.message : "failed"}`); }
     tried.add(candidate.url);
+  }
+  // Then the model's own product page from the manufacturer's sitemap, and the PDFs it links.
+  {
+    try {
+      const pages = sitemapProductPages(await sitemapLocations(item.b, deadline), item);
+      if (!pages.length) trace.push("sitemap: no product page for this model");
+      for (const pageUrl of pages) {
+        const page = await readResponse(pageUrl, item.b, 3_000_000, false, deadline);
+        const links = productPdfLinks(new TextDecoder().decode(page.bytes), page.url, item).slice(0, 4);
+        if (!links.length) trace.push(`sitemap: no datasheet link on ${new URL(pageUrl).pathname.slice(-40)}`);
+        for (const link of links) {
+          tried.add(link.url.replace(/[?#].*$/, ""));
+          const verified = await verifyOfficialPdf(link, item, verifyModel, deadline, trace);
+          if (verified) return { ...verified, source: "manufacturer-sitemap" };
+        }
+      }
+    } catch (error) { trace.push(`sitemap: ${error instanceof Error ? error.message : "failed"}`); }
   }
   for (const query of queries) {
     if (Date.now() > deadline - 15_000) break;
