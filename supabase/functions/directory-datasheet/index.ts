@@ -9,9 +9,9 @@ import { pdfContainsModel, pdfText } from "../_shared/datasheetPdf.ts";
 const SITE_URL = (Deno.env.get("PUBLIC_SITE_URL") ?? "https://www.robotverse.in").replace(/\/$/, "");
 const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
-type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number };
+type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number; src?: string };
 // Bump when discovery improves, so earlier "not found" outcomes are searched again.
-const SEARCH_VERSION = 20;
+const SEARCH_VERSION = 21;
 type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number; at?: string };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.
@@ -28,8 +28,15 @@ const jobPath = (kind: Kind) => `${DIR}/jobs/${kind}.json`;
 const indexPath = (kind: Kind) => `${DIR}/index-${kind}.json`;
 const readResult = (kind: Kind, id: string) => readJson<Row>(resultPath(kind, id));
 const pdfPath = (kind: Kind, id: string) => `${DIR}/pdf/${kind}/${id}.pdf`;
+/** Fingerprint of the researched sources a model was checked against: new research makes it stale. */
+const sourcesKey = (item: DatasheetModel) => {
+  const text = researchedSources(item).map((source) => source.url).join("|");
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) | 0;
+  return `${text.length}:${hash}`;
+};
 const saveResult = (kind: Kind, item: DatasheetModel, { bytes: _bytes, ...result }: DatasheetResult) =>
-  writeJson(resultPath(kind, item.id), { ...result, brand: item.b, model: item.m, catalog_id: item.id, v: SEARCH_VERSION });
+  writeJson(resultPath(kind, item.id), { ...result, brand: item.b, model: item.m, catalog_id: item.id, v: SEARCH_VERSION, src: sourcesKey(item) });
 /** Keep our own copy of the verified PDF so the button never depends on the manufacturer's site. */
 async function storePdf(kind: Kind, id: string, bytes: Uint8Array) {
   const path = pdfPath(kind, id);
@@ -86,6 +93,8 @@ function fresh(row: Row, item: DatasheetModel) {
   if (row.status === "found" && !row.file) return false;
   if (row.status === "unsupported" && OEM_SITES[item.b]?.length) return false;
   if (row.status !== "found" && row.v !== SEARCH_VERSION) return false;
+  // Researched sources were added for this model since it was checked: check again.
+  if (row.status !== "found" && row.src !== sourcesKey(item)) return false;
   const ttl = row.status === "found" ? 30 * 86400_000 : row.status === "error" ? 60_000 : 21 * 86400_000;
   return Date.now() - new Date(row.checkedAt).getTime() < ttl;
 }
@@ -326,7 +335,10 @@ async function startJob(kind: Kind, redo: boolean) {
  */
 async function ensureCollecting(kind: Kind) {
   const job = await readJson<Job>(jobPath(kind));
-  if (!job || job.v !== SEARCH_VERSION || stalled(job)) await startJob(kind, false);
+  // A finished run is repeated daily: found datasheets are kept, and models whose researched
+  // sources changed (or whose "not found" is old) are checked again.
+  const finishedLongAgo = job && job.done >= job.total && Date.now() - new Date(job.updatedAt).getTime() > 86400_000;
+  if (!job || job.v !== SEARCH_VERSION || stalled(job) || finishedLongAgo) await startJob(kind, false);
 }
 
 Deno.serve(async (req) => {
