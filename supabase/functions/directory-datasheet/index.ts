@@ -11,8 +11,8 @@ const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
 type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number; src?: string };
 // Bump when discovery improves, so earlier "not found" outcomes are searched again.
-const SEARCH_VERSION = 21;
-type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number; at?: string };
+const SEARCH_VERSION = 22;
+type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number; at?: string; started?: string; seq?: number };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.
 const DIR = "directory/datasheets/verified-v2";
@@ -257,26 +257,37 @@ const background = (promise: Promise<unknown>) => {
 // handles a few models and hands over; a run that is killed is resumed after 4 minutes.
 const SWEEP_BUDGET_MS = 40_000;
 const SWEEP_MODELS = 4;
-async function sweep(kind: Kind, runId: string, from: number, redo: boolean) {
+// Storage can serve a cached older copy of the job file for a short while after it is written,
+// so runs never rely on reading back their own writes: each run receives its job state directly
+// (from startJob, or in the handoff message), and only stops for a run that started later.
+const supersededBy = async (job: Job) => {
+  const latest = await readJson<Job>(jobPath(job.kind));
+  return !!latest && latest.run_id !== job.run_id && new Date(latest.started ?? latest.updatedAt).getTime() > new Date(job.started ?? 0).getTime();
+};
+async function sweep(kind: Kind, start: Job) {
   const started = Date.now();
   downloadBudget = 2;
-  const job = await readJson<Job>(jobPath(kind));
-  if (!job || job.run_id !== runId || !job.running || job.done !== from) return;
-  const claimPath = `${DIR}/claims/${runId}/${from}.json`;
+  const from = start.done;
+  const runId = start.run_id;
+  const redo = start.redo;
+  let job: Job = { ...start, kind };
+  // One run per handoff: a duplicate finds the claim taken (a database-level check). The sequence
+  // number advances even when the position does not (a model still waiting on downloads).
+  const claimPath = `${DIR}/claims/${runId}/${from}-${start.seq ?? 0}.json`;
   try { await writeJson(claimPath, { claimedAt: new Date().toISOString() }, false); }
   catch (error) {
     if (/already exists|duplicate/i.test(message(error))) return;
     throw error;
   }
+  if (await supersededBy(job)) return;
   const catalogue = await loadCatalogue(kind);
   let next = from;
-  let failure: string | null = null;
+  let failure: string | null = start.last_error ?? null;
   while (next < catalogue.length && next - from < SWEEP_MODELS && Date.now() - started < SWEEP_BUDGET_MS) {
     const item = catalogue[next];
     // Record which model is in progress, so a run that dies shows where.
-    const current = await readJson<Job>(jobPath(kind));
-    if (!current || current.run_id !== runId) return;
-    await writeJson(jobPath(kind), { ...current, at: item.id, updatedAt: new Date().toISOString() });
+    job = { ...job, at: item.id, updatedAt: new Date().toISOString() };
+    await writeJson(jobPath(kind), job);
     try {
       await find(kind, item.id, redo);
       const row = await readResult(kind, item.id);
@@ -287,23 +298,21 @@ async function sweep(kind: Kind, runId: string, from: number, redo: boolean) {
       failure = `${item.id}: ${message(error)}`; // One model's failure never stops the run.
     }
     next++;
-    const latest = await readJson<Job>(jobPath(kind));
-    if (!latest || latest.run_id !== runId) return; // A newer run took over.
-    await writeJson(jobPath(kind), { ...latest, done: next, running: next < latest.total, last_error: failure, updatedAt: new Date().toISOString() });
+    if (await supersededBy(job)) return; // A newer run took over.
+    job = { ...job, done: next, running: next < job.total, last_error: failure, updatedAt: new Date().toISOString() };
+    await writeJson(jobPath(kind), job);
   }
   if (next >= catalogue.length) return;
   try {
     const response = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/directory-datasheet`, {
       method: "POST", signal: AbortSignal.timeout(15_000),
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`, apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "" },
-      body: JSON.stringify({ action: "continue", kind, from: next, runId, redo }),
+      body: JSON.stringify({ action: "continue", kind, job: { ...job, done: next, seq: (start.seq ?? 0) + 1 } }),
     });
     const text = await response.text();
     if (!response.ok || !text.includes('"ok":true')) throw new Error(`Collection handoff failed (HTTP ${response.status}: ${text.slice(0, 120)}); it resumes on the next status check`);
   } catch (error) {
-    const current = await readJson<Job>(jobPath(kind));
-    if (current?.run_id === runId && current.done === next)
-      await writeJson(jobPath(kind), { ...current, last_error: message(error), updatedAt: new Date().toISOString() });
+    await writeJson(jobPath(kind), { ...job, done: next, last_error: message(error), updatedAt: new Date().toISOString() });
   }
 }
 
@@ -322,10 +331,10 @@ async function startJob(kind: Kind, redo: boolean) {
   const skip = resume && stalled(previous) && previous.at === catalogue[previous.done]?.id ? 1 : 0;
   const job: Job = { kind, run_id: crypto.randomUUID(), done: resume ? previous.done + skip : 0,
     total: catalogue.length, redo: resume ? previous.redo : redo, running: true,
-    updatedAt: new Date().toISOString(), v: SEARCH_VERSION,
+    updatedAt: new Date().toISOString(), started: new Date().toISOString(), v: SEARCH_VERSION,
     last_error: skip ? `Skipped ${previous!.at}: the run stopped while checking it` : null };
   await writeJson(jobPath(kind), job);
-  background(sweep(kind, job.run_id, job.done, job.redo));
+  background(sweep(kind, job));
   return json({ started: true, kind, redo: job.redo, from: job.done });
 }
 
@@ -384,10 +393,9 @@ Deno.serve(async (req) => {
     if (action === "continue") {
       const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
       if (!key || req.headers.get("Authorization") !== `Bearer ${key}`) return json({ error: "Forbidden" }, 403);
-      const from = Number(param("from"));
-      const runId = String(param("runId") ?? "");
-      if (!Number.isSafeInteger(from) || from < 0 || !/^[0-9a-f-]{36}$/i.test(runId)) return json({ error: "Invalid continuation" }, 400);
-      background(sweep(kind, runId, from, String(param("redo")) === "true"));
+      const job = body.job as Job | undefined;
+      if (!job || job.kind !== kind || !Number.isSafeInteger(job.done) || job.done < 0 || !/^[0-9a-f-]{36}$/i.test(String(job.run_id))) return json({ error: "Invalid continuation" }, 400);
+      background(sweep(kind, job));
       return json({ ok: true });
     }
     return json({ error: "Unknown action" }, 400);
