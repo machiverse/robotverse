@@ -177,6 +177,15 @@ async function startJob(kind: Kind, redo: boolean) {
   return json({ started: true, kind, redo: job.redo, from: job.done });
 }
 
+/**
+ * Each catalogue is collected automatically the first time, again from the start whenever the
+ * search improves (new SEARCH_VERSION), and resumed when a run stalls. Other runs are admin-only.
+ */
+async function ensureCollecting(kind: Kind) {
+  const job = await readJson<Job>(jobPath(kind));
+  if (!job || job.v !== SEARCH_VERSION || stalled(job)) await startJob(kind, false);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (!["GET", "POST"].includes(req.method)) return json({ error: "Method not allowed" }, 405);
@@ -198,14 +207,11 @@ Deno.serve(async (req) => {
     if (action === "index" || action === "status") {
       const rows = Object.values(await readIndex(kind));
       const valid = rows.filter((row) => row.status === "found" && row.url && isOfficialUrl(row.url, row.brand));
+      // Visitors' index reads keep collection going: a stalled or outdated run resumes in the background.
+      if (action === "index") background(ensureCollecting(kind));
       if (action === "index") return json({ index: Object.fromEntries(valid.filter((row) => Date.now() - new Date(row.checkedAt).getTime() < 30 * 86400_000).map((row) => [row.catalog_id, openUrl(row)])) });
-      let job = await readJson<Job>(jobPath(kind));
-      // Each catalogue is collected automatically the first time; later runs are admin-only.
-      // ...and again from the start whenever the search itself has been improved.
-      if (!job || job.v !== SEARCH_VERSION || stalled(job)) {
-        await startJob(kind, false);
-        job = await readJson<Job>(jobPath(kind));
-      }
+      await ensureCollecting(kind);
+      const job = await readJson<Job>(jobPath(kind));
       const counts = Object.fromEntries(["not_found", "unsupported", "error"].map((status) => [status, rows.filter((row) => row.status === status).length]));
       return json({ kind, withDatasheet: valid.length, total: (await loadCatalogue(kind)).length, counts, job });
     }
