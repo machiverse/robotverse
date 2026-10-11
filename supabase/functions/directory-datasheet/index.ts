@@ -11,7 +11,7 @@ const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
 type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number };
 // Bump when discovery improves, so earlier "not found" outcomes are searched again.
-const SEARCH_VERSION = 14;
+const SEARCH_VERSION = 15;
 type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number; at?: string };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.
@@ -94,7 +94,7 @@ function fresh(row: Row, item: DatasheetModel) {
  * every model of a family is checked against the saved text instead of parsing the PDF again.
  * Failed downloads are retried after a day.
  */
-type Doc = { url: string; file?: string; text?: string; links?: string[]; error?: string; at: string };
+type Doc = { url: string; file?: string; text?: string; links?: string[]; error?: string; parsing?: boolean; at: string };
 /** New downloads allowed per request: PDF parsing is the costly part of the CPU limit. */
 let downloadBudget = 2;
 class Pending extends Error {}
@@ -117,7 +117,7 @@ async function loadPage(url: string, brand: string): Promise<Doc> {
     const response = await fetchOfficial(url, brand);
     const html = new TextDecoder().decode(response.bytes);
     const links = [...html.matchAll(/href=["']([^"']+)["']/gi)].map((match) => { try { return new URL(match[1].replace(/&amp;/g, "&"), response.url).href; } catch { return ""; } })
-      .filter((link) => /\.pdf(?:[?#]|$)/i.test(link) && isOfficialUrl(link, brand) && !/manual|maintenance|instruction|handbuch|spare.parts|annual|report|catalogue|training/i.test(link));
+      .filter((link) => /\.pdf(?:[?#]|$)/i.test(link) && isOfficialUrl(link, brand) && !/manual|maintenance|instruction|handbuch|spare.parts|annual|report|training|[23]d|drawing|cad|working.?area|dimension|certificate|declaration/i.test(link));
     doc = { url: response.url, links: [...new Set(links)].slice(0, 12), at };
   } catch (error) { doc = { url, error: message(error), at }; }
   await writeJson(path, doc);
@@ -125,8 +125,14 @@ async function loadPage(url: string, brand: string): Promise<Doc> {
 }
 async function loadDoc(url: string, brand: string): Promise<Doc> {
   const path = await docPath(url);
-  const saved = docMemo.get(path) ?? await readJson<Doc>(path);
-  if (usable(saved)) { docMemo.set(path, saved!); return saved!; }
+  let saved = docMemo.get(path) ?? await readJson<Doc>(path);
+  // A parse that never finished (the run was stopped, e.g. at the CPU limit): do not try again.
+  if (saved?.parsing && Date.now() - new Date(saved.at).getTime() > 3 * 60_000) {
+    saved = { url, error: "PDF too large to read", at: new Date().toISOString() };
+    await writeJson(path, saved);
+  }
+  if (usable(saved) && !saved!.parsing) { docMemo.set(path, saved!); return saved!; }
+  if (saved?.parsing) throw new Pending(); // Another run is reading it right now.
   if (downloadBudget-- <= 0) throw new Pending();
   const key = path.split("/").pop()!.replace(".json", "");
   const at = new Date().toISOString();
@@ -139,7 +145,9 @@ async function loadDoc(url: string, brand: string): Promise<Doc> {
       return fetchOfficial(plain, brand);
     });
     if (!hasPdfSignature(response.bytes)) throw new Error(`not a PDF (${response.bytes.length} bytes)`);
-    const text = (await pdfText(response.bytes)).slice(0, 400_000);
+    await writeJson(path, { url, parsing: true, at: new Date().toISOString() });
+    // Catalogues list models deep inside; each researched PDF is read once and its text kept.
+    const text = (await pdfText(response.bytes, 40)).slice(0, 600_000);
     const copy = `${DIR}/pdf/docs/${key}.pdf`;
     await files().writePdf(copy, response.bytes);
     doc = { url: response.url, file: service().storage.from(BUCKET).getPublicUrl(copy).data.publicUrl, text, at };
@@ -153,8 +161,8 @@ async function tryResearched(item: DatasheetModel): Promise<{ result: DatasheetR
   const notes: string[] = [];
   // Product pages contribute the PDFs they link, checked after the directly listed PDFs.
   // Order: PDFs listed for this model or family, then PDFs on its product pages, then broad brochures.
-  const sources: { url: string; trust: boolean; family?: string }[] = [];
-  const fallbacks: { url: string; trust: boolean; family?: string }[] = [];
+  const sources: { url: string; trust: boolean; family?: string; strip?: string }[] = [];
+  const fallbacks: { url: string; trust: boolean; family?: string; strip?: string }[] = [];
   const pages: string[] = [];
   for (const source of researchedSources(item)) {
     if (source.page) pages.push(source.url);
@@ -170,13 +178,14 @@ async function tryResearched(item: DatasheetModel): Promise<{ result: DatasheetR
   // A family datasheet that does not list this exact variant (e.g. an older brochure): used only
   // when no researched PDF names the exact model.
   let familyDoc: { doc: Doc; name: string } | null = null;
-  for (const { url, trust, family } of sources) {
+  for (const { url, trust, family, strip } of sources) {
+    const model = strip ? item.m.replace(new RegExp(strip, "i"), "").trim() || item.m : item.m;
     if (!isOfficialUrl(url, item.b)) { notes.push(`${url.slice(0, 60)}: not an approved manufacturer domain`); continue; }
     const doc = await loadDoc(url, item.b);
     let name = doc.url;
     try { name = decodeURIComponent(new URL(doc.url).pathname.split("/").pop() ?? doc.url); } catch { /* keep the URL */ }
     if (doc.error) { notes.push(`${name.slice(0, 60)}: ${doc.error}`); continue; }
-    if (doc.file && (trust || matchesModel(name, item.m) || matchesModel(doc.text ?? "", item.m)))
+    if (doc.file && (trust || matchesModel(name, model) || matchesModel(doc.text ?? "", model)))
       return { notes, result: { url: doc.url, file: doc.file, title: name, source: "researched", host: new URL(doc.url).hostname, status: "found", checkedAt: new Date().toISOString() } };
     if (!familyDoc && doc.file && family && matchesModel(doc.text ?? "", family)) familyDoc = { doc, name };
     notes.push(`${name.slice(0, 60)}: model not in this PDF`);

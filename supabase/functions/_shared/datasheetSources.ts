@@ -21,6 +21,8 @@ export type DatasheetSource = {
    * "{slug}" is replaced by the model in lower case with dashes ("RS007N" → "rs007n").
    */
   pages?: string[];
+  /** Removed from our model name before looking for it in the PDF text (e.g. "Smart5 " for older Comau names). */
+  strip?: string;
 };
 
 export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
@@ -90,6 +92,18 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
     { match: "CP300L", urls: ["https://kawasakirobotics.com/uploads/sites/2/2022/01/CP300L-A-E-1.pdf"] },
     { match: "BA013L", urls: ["https://kawasakirobotics.com/uploads/sites/2/2022/10/90151-0386DED.pdf"], trust: true },
   ],
+  // Comau's compact catalogues list every current model's data; older "Smart5" names drop the prefix.
+  Comau: [
+    { match: "Comau", urls: ["https://www.comau.com/wp-content/uploads/2025/07/Comau_Robotics_CompactCatalogue2025_EN.pdf", "https://www.comau.com/wp-content/uploads/2023/10/Comau_Robotics_Compact-Catalogue_2023.pdf", "https://www.comau.com/wp-content/uploads/2021/06/Comau_Compact_Catalogue_Robotics-1.pdf"], pattern: ".", strip: "^Smart5? " },
+    { match: "N-220", urls: ["https://www.comau.com/wp-content/uploads/2022/04/Brochure-N-220-robot-web-HD.pdf"] },
+  ],
+  // MELFA product-line catalogue: specification tables for every RV/RH series robot.
+  Mitsubishi: [
+    { match: "MELFA", urls: ["https://dl.mitsubishielectric.com/dl/fa/document/catalog/robot/l-09139eng/l09139n.pdf", "https://dl.mitsubishielectric.com/dl/fa/document/catalog/robot/l-09139eng/l09139a.pdf"], pattern: "." },
+  ],
+  Estun: [
+    { match: "ER20-1780", urls: ["https://en.estun.com/static/upload/file/20250310/1741587303987685.pdf"] },
+  ],
 };
 
 const slug = (text: string) => text.toLowerCase().normalize("NFKC").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -99,7 +113,7 @@ const slug = (text: string) => text.toLowerCase().normalize("NFKC").replace(/[^a
  * `fallback`: from a pattern source (broad brochures), checked after the model's own pages.
  * `family`: the family name the PDF was researched for, used when no PDF names the exact variant.
  */
-export function researchedSources(item: DatasheetModel): { url: string; trust: boolean; page?: boolean; fallback?: boolean; family?: string }[] {
+export function researchedSources(item: DatasheetModel): { url: string; trust: boolean; page?: boolean; fallback?: boolean; family?: string; strip?: string }[] {
   const model = slug(item.m);
   const hits = (DATASHEET_SOURCES[item.b] ?? [])
     .map((source) => ({ source, key: slug(source.match) }))
@@ -107,11 +121,11 @@ export function researchedSources(item: DatasheetModel): { url: string; trust: b
       ? new RegExp(source.pattern, "i").test(item.m)
       : key && (model === key || (model.startsWith(key) && model[key.length] === "-")))
     .sort((a, b) => Number(!!a.source.pattern) - Number(!!b.source.pattern) || b.key.length - a.key.length);
-  const out = new Map<string, { trust: boolean; page?: boolean; fallback?: boolean; family?: string }>();
+  const out = new Map<string, { trust: boolean; page?: boolean; fallback?: boolean; family?: string; strip?: string }>();
   for (const { source } of hits) {
     for (const url of source.urls) {
       const known = out.get(url);
-      out.set(url, { trust: (known?.trust ?? false) || !!source.trust, ...(known ? { family: known.family } : source.pattern ? { fallback: true } : { family: source.match }) });
+      out.set(url, { trust: (known?.trust ?? false) || !!source.trust, ...(known ? { family: known.family } : source.pattern ? { fallback: true } : { family: source.match }), ...(source.strip ? { strip: source.strip } : {}) });
     }
     for (const page of source.pages ?? []) {
       const url = page.replace("{slug}", model);
