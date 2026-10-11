@@ -1,22 +1,28 @@
 import { getDocumentProxy } from "npm:unpdf@0.12.1";
 import { matchesModel, type DatasheetModel } from "./datasheetPolicy.ts";
 
-/** Confirm the model appears in PDF text, rather than trusting a search title. */
-export async function pdfContainsModel(bytes: Uint8Array, item: DatasheetModel): Promise<boolean> {
+/**
+ * Readable text of a PDF's first pages, normalised (NFKC turns look-alikes such as "／" into
+ * plain characters). Each page appears twice: runs joined with spaces and without, because PDFs
+ * often split one word into several runs ("M-2" + "0iD/25"). Few pages keep the edge function
+ * inside its CPU limit; spec tables are near the front.
+ */
+export async function pdfText(bytes: Uint8Array, maxPages = 8): Promise<string> {
   const pdf = await getDocumentProxy(bytes, { isEvalSupported: false });
   try {
-    // Brochures may cover several models; their spec tables are near the front. Few pages keep
-    // the check inside the edge function's CPU limit.
-    for (let number = 1; number <= Math.min(pdf.numPages, 6); number++) {
+    const out: string[] = [];
+    for (let number = 1; number <= Math.min(pdf.numPages, maxPages); number++) {
       const page = await pdf.getPage(number);
-      const content = await page.getTextContent();
-      // NFKC turns look-alikes (full-width "／", "Ｍ") into plain characters.
-      const parts = content.items.map((part) => "str" in part ? part.str.normalize("NFKC") : " ");
-      // PDFs often split one word into several text runs ("M-2" + "0iD/25"), so also
-      // check the runs joined without spaces; the model's own boundaries still apply.
-      if (matchesModel(parts.join(" "), item.m) || matchesModel(parts.join(""), item.m)) return true;
+      const parts = (await page.getTextContent()).items.map((part) => "str" in part ? part.str.normalize("NFKC") : " ");
+      out.push(parts.join(" "), parts.join(""));
       page.cleanup();
     }
-    return false; // Scanned PDFs without readable model text require manual review.
+    return out.join("\n");
   } finally { await pdf.destroy(); }
+}
+
+/** Confirm the model appears in PDF text, rather than trusting a search title. */
+export async function pdfContainsModel(bytes: Uint8Array, item: DatasheetModel): Promise<boolean> {
+  // Scanned PDFs without readable model text require manual review.
+  return matchesModel(await pdfText(bytes, 6), item.m);
 }

@@ -1,16 +1,17 @@
 // Official PDF discovery. Writes only new datasheet files in the existing storage bucket.
 import { createClient } from "npm:@supabase/supabase-js@2.99.1";
-import { discoverDatasheet, setSitemapStore, type DatasheetResult } from "../_shared/datasheetDiscovery.ts";
-import { isOfficialUrl, isStoredDatasheet, OEM_SITES, type DatasheetModel } from "../_shared/datasheetPolicy.ts";
+import { discoverDatasheet, fetchOfficial, setSitemapStore, type DatasheetResult } from "../_shared/datasheetDiscovery.ts";
+import { hasPdfSignature, isOfficialUrl, isStoredDatasheet, matchesModel, OEM_SITES, type DatasheetModel } from "../_shared/datasheetPolicy.ts";
+import { researchedUrls } from "../_shared/datasheetSources.ts";
 import { DatasheetFiles } from "../_shared/datasheetFiles.ts";
-import { pdfContainsModel } from "../_shared/datasheetPdf.ts";
+import { pdfContainsModel, pdfText } from "../_shared/datasheetPdf.ts";
 
 const SITE_URL = (Deno.env.get("PUBLIC_SITE_URL") ?? "https://www.robotverse.in").replace(/\/$/, "");
 const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
 type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number };
 // Bump when discovery improves, so earlier "not found" outcomes are searched again.
-const SEARCH_VERSION = 11;
+const SEARCH_VERSION = 12;
 type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number; at?: string };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.
@@ -88,6 +89,48 @@ function fresh(row: Row, item: DatasheetModel) {
   const ttl = row.status === "found" ? 30 * 86400_000 : row.status === "error" ? 60_000 : 21 * 86400_000;
   return Date.now() - new Date(row.checkedAt).getTime() < ttl;
 }
+/**
+ * A researched PDF (see datasheetSources.ts), downloaded once: our stored copy plus its text, so
+ * every model of a family is checked against the saved text instead of parsing the PDF again.
+ * Failed downloads are retried after a day.
+ */
+type Doc = { url: string; file?: string; text?: string; error?: string; at: string };
+async function loadDoc(url: string, brand: string): Promise<Doc> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(url)));
+  const key = [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 24);
+  const path = `${DIR}/docs/${key}.json`;
+  const saved = await readJson<Doc>(path);
+  if (saved && (saved.text !== undefined || Date.now() - new Date(saved.at).getTime() < 86400_000)) return saved;
+  const at = new Date().toISOString();
+  let doc: Doc;
+  try {
+    const response = await fetchOfficial(url, brand);
+    if (!hasPdfSignature(response.bytes)) throw new Error(`not a PDF (${response.bytes.length} bytes)`);
+    const text = (await pdfText(response.bytes)).slice(0, 400_000);
+    const copy = `${DIR}/pdf/docs/${key}.pdf`;
+    await files().writePdf(copy, response.bytes);
+    doc = { url: response.url, file: service().storage.from(BUCKET).getPublicUrl(copy).data.publicUrl, text, at };
+  } catch (error) { doc = { url, error: message(error), at }; }
+  await writeJson(path, doc);
+  return doc;
+}
+
+/** The first researched PDF that really lists this model (in its text or its file name). */
+async function tryResearched(item: DatasheetModel): Promise<{ result: DatasheetResult | null; notes: string[] }> {
+  const notes: string[] = [];
+  for (const url of researchedUrls(item)) {
+    if (!isOfficialUrl(url, item.b)) { notes.push(`${url.slice(0, 60)}: not an approved manufacturer domain`); continue; }
+    const doc = await loadDoc(url, item.b);
+    let name = doc.url;
+    try { name = decodeURIComponent(new URL(doc.url).pathname.split("/").pop() ?? doc.url); } catch { /* keep the URL */ }
+    if (doc.error) { notes.push(`${name.slice(0, 60)}: ${doc.error}`); continue; }
+    if (doc.file && (matchesModel(name, item.m) || matchesModel(doc.text ?? "", item.m)))
+      return { notes, result: { url: doc.url, file: doc.file, title: name, source: "researched", host: new URL(doc.url).hostname, status: "found", checkedAt: new Date().toISOString() } };
+    notes.push(`${name.slice(0, 60)}: model not in this PDF`);
+  }
+  return { result: null, notes };
+}
+
 async function find(kind: Kind, id: string, refresh: boolean): Promise<DatasheetResult & { cached: boolean; source_url?: string | null }> {
   const item = (await loadCatalogue(kind)).find((entry) => entry.id === id);
   if (!item) throw new Error("Unknown model");
@@ -96,8 +139,14 @@ async function find(kind: Kind, id: string, refresh: boolean): Promise<Datasheet
     if (known && fresh(known, item)) return { ...known, url: openUrl(known), source_url: known.url, cached: true };
   }
   let result: DatasheetResult;
-  try { result = await discoverDatasheet(item, pdfContainsModel); }
-  catch (error) { result = { url: null, status: "error", note: message(error), checkedAt: new Date().toISOString() }; }
+  // Researched manufacturer PDFs first, then the automatic lookup.
+  const researched = await tryResearched(item).catch((error) => ({ result: null, notes: [message(error)] }));
+  if (researched.result) result = researched.result;
+  else {
+    try { result = await discoverDatasheet(item, pdfContainsModel); }
+    catch (error) { result = { url: null, status: "error", note: message(error), checkedAt: new Date().toISOString() }; }
+    if (researched.notes.length) result.note = `Researched: ${researched.notes.join("; ")} | ${result.note ?? ""}`.slice(0, 2000);
+  }
   if (result.status === "found" && result.bytes) {
     try { result.file = await storePdf(kind, item.id, result.bytes); }
     catch (error) { result.note = `PDF copy not stored: ${message(error)}`; /* The manufacturer link still works. */ }

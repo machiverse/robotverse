@@ -98,6 +98,9 @@ export function unwrapResultLink(href: string): string | null {
  * Every outbound result link on a search page, whatever the engine's layout: callers keep
  * only links on approved manufacturer domains that name the model, so page chrome is harmless.
  */
+/** Download from an approved manufacturer domain only (redirects included), up to 12 MB. */
+export const fetchOfficial = (url: string, brand: string, deadline = Date.now() + 30_000) => readResponse(url, brand, 12_000_000, false, deadline);
+
 export function parseSearchResults(html: string, engine: Engine): DatasheetCandidate[] {
   const out = new Map<string, DatasheetCandidate>();
   // RSS results: <item><title>…</title><link>…</link></item>
