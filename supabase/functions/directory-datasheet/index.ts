@@ -11,7 +11,7 @@ const KINDS = ["robots", "tools", "axes", "parts"] as const;
 type Kind = (typeof KINDS)[number];
 type Row = DatasheetResult & { brand: string; model: string; catalog_id: string; v?: number };
 // Bump when discovery improves, so earlier "not found" outcomes are searched again.
-const SEARCH_VERSION = 13;
+const SEARCH_VERSION = 14;
 type Job = { kind: Kind; run_id: string; done: number; total: number; redo: boolean; running: boolean; updatedAt: string; last_error: string | null; v?: number; at?: string };
 const BUCKET = "robot-images";
 // Separate prefix preserves all existing legacy datasheet files and database data.
@@ -132,7 +132,12 @@ async function loadDoc(url: string, brand: string): Promise<Doc> {
   const at = new Date().toISOString();
   let doc: Doc;
   try {
-    const response = await fetchOfficial(url, brand);
+    // Search-indexed links can carry an expired signature (ABB's "x-sign"): retry without it.
+    const response = await fetchOfficial(url, brand).catch((error) => {
+      const plain = url.replace(/[?&]x-sign=[^&]*/, "").replace(/\?$/, "");
+      if (plain === url) throw error;
+      return fetchOfficial(plain, brand);
+    });
     if (!hasPdfSignature(response.bytes)) throw new Error(`not a PDF (${response.bytes.length} bytes)`);
     const text = (await pdfText(response.bytes)).slice(0, 400_000);
     const copy = `${DIR}/pdf/docs/${key}.pdf`;
@@ -147,11 +152,13 @@ async function loadDoc(url: string, brand: string): Promise<Doc> {
 async function tryResearched(item: DatasheetModel): Promise<{ result: DatasheetResult | null; notes: string[] }> {
   const notes: string[] = [];
   // Product pages contribute the PDFs they link, checked after the directly listed PDFs.
-  const sources: { url: string; trust: boolean }[] = [];
+  // Order: PDFs listed for this model or family, then PDFs on its product pages, then broad brochures.
+  const sources: { url: string; trust: boolean; family?: string }[] = [];
+  const fallbacks: { url: string; trust: boolean; family?: string }[] = [];
   const pages: string[] = [];
   for (const source of researchedSources(item)) {
     if (source.page) pages.push(source.url);
-    else sources.push(source);
+    else (source.fallback ? fallbacks : sources).push(source);
   }
   for (const pageUrl of pages) {
     if (!isOfficialUrl(pageUrl, item.b)) { notes.push(`${pageUrl.slice(0, 60)}: not an approved manufacturer domain`); continue; }
@@ -159,7 +166,11 @@ async function tryResearched(item: DatasheetModel): Promise<{ result: DatasheetR
     if (page.error) notes.push(`${pageUrl.slice(-40)}: ${page.error}`);
     for (const link of page.links ?? []) if (!sources.some((source) => source.url === link)) sources.push({ url: link, trust: false });
   }
-  for (const { url, trust } of sources) {
+  sources.push(...fallbacks.filter((fallback) => !sources.some((source) => source.url === fallback.url)));
+  // A family datasheet that does not list this exact variant (e.g. an older brochure): used only
+  // when no researched PDF names the exact model.
+  let familyDoc: { doc: Doc; name: string } | null = null;
+  for (const { url, trust, family } of sources) {
     if (!isOfficialUrl(url, item.b)) { notes.push(`${url.slice(0, 60)}: not an approved manufacturer domain`); continue; }
     const doc = await loadDoc(url, item.b);
     let name = doc.url;
@@ -167,7 +178,12 @@ async function tryResearched(item: DatasheetModel): Promise<{ result: DatasheetR
     if (doc.error) { notes.push(`${name.slice(0, 60)}: ${doc.error}`); continue; }
     if (doc.file && (trust || matchesModel(name, item.m) || matchesModel(doc.text ?? "", item.m)))
       return { notes, result: { url: doc.url, file: doc.file, title: name, source: "researched", host: new URL(doc.url).hostname, status: "found", checkedAt: new Date().toISOString() } };
+    if (!familyDoc && doc.file && family && matchesModel(doc.text ?? "", family)) familyDoc = { doc, name };
     notes.push(`${name.slice(0, 60)}: model not in this PDF`);
+  }
+  if (familyDoc) {
+    const { doc, name } = familyDoc;
+    return { notes, result: { url: doc.url, file: doc.file, title: `${name} (family datasheet)`, source: "researched-family", host: new URL(doc.url).hostname, status: "found", checkedAt: new Date().toISOString() } };
   }
   return { result: null, notes };
 }

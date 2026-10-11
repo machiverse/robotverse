@@ -15,11 +15,12 @@ assert.deepEqual(abb("IRB 6700-150/3.20"), ["https://library.e.abb.com/irb6700.p
 assert.deepEqual(abb("IRB 1200-7/0.7"), [], "IRB 120 must not match IRB 1200");
 assert.deepEqual(abb("IRB 120"), ["https://library.e.abb.com/irb120.pdf"]);
 DATASHEET_SOURCES.ABB.push({ match: "CRB 15000", urls: ["https://library.e.abb.com/gofa.pdf"], trust: true });
-assert.deepEqual(researchedSources({ id: "x", b: "ABB", m: "CRB 15000 GoFa 12", n: "" }), [{ url: "https://library.e.abb.com/gofa.pdf", trust: true }]);
+assert.deepEqual(researchedSources({ id: "x", b: "ABB", m: "CRB 15000 GoFa 12", n: "" }), [{ url: "https://library.e.abb.com/gofa.pdf", trust: true, family: "CRB 15000" }]);
 // Pattern sources (KUKA names carry no family) and product pages.
 DATASHEET_SOURCES.ABB.push({ match: "large", urls: [], pattern: "^IRB 66\\d\\d", pages: ["https://new.abb.com/products/irb-66xx"] });
 assert.deepEqual(researchedSources({ id: "x", b: "ABB", m: "IRB 6650S-125/3.5", n: "" }), [{ url: "https://new.abb.com/products/irb-66xx", trust: false, page: true }]);
 assert.deepEqual(researchedSources({ id: "x", b: "ABB", m: "IRB 7600-150/3.5", n: "" }), []);
+assert.ok(researchedSources({ id: "x", b: "Kawasaki", m: "RS007N", n: "" }).some((s) => s.page && s.url === "https://kawasakirobotics.com/products-robots/rs007n/"));
 if (saved) DATASHEET_SOURCES.ABB = saved; else delete DATASHEET_SOURCES.ABB;
 
 // Every researched link is on an approved manufacturer domain for its brand.

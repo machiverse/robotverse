@@ -16,7 +16,10 @@ export type DatasheetSource = {
   trust?: boolean;
   /** Instead of a prefix: a case-insensitive pattern tested against the model (e.g. KUKA, whose names carry no family). */
   pattern?: string;
-  /** Manufacturer product pages whose linked PDFs (brochures, data sheets) are checked like `urls`. */
+  /**
+   * Manufacturer product pages whose linked PDFs (brochures, data sheets) are checked like `urls`.
+   * "{slug}" is replaced by the model in lower case with dashes ("RS007N" → "rs007n").
+   */
   pages?: string[];
 };
 
@@ -79,12 +82,24 @@ export const DATASHEET_SOURCES: Record<string, DatasheetSource[]> = {
     { match: "LBR iiwa", urls: [], pages: ["https://www.kuka.com/en-us/products/robotics-systems/industrial-robots/lbr-iiwa"] },
     { match: "iisy", urls: [], pages: ["https://www.kuka.com/en-us/products/robotics-systems/industrial-robots/lbr-iisy-cobot"] },
   ],
+  // One product page per model, each linking its "Standard Specifications" sheet; lineup brochures as backup.
+  Kawasaki: [
+    { match: "Kawasaki", urls: ["https://kawasakirobotics.com/uploads/sites/2/2022/01/RS_EN_20250723.pdf", "https://kawasakirobotics.com/uploads/sites/2/2022/01/B_Z_E_221011.pdf", "https://kawasakirobotics.com/uploads/sites/2/2022/01/Palletizing_EN_240527.pdf", "https://kawasakirobotics.com/uploads/sites/2/2024/05/Lineup_EN_240527.pdf"], pattern: ".", pages: ["https://kawasakirobotics.com/products-robots/{slug}/"] },
+    { match: "RS007N", urls: ["https://kawasakirobotics.com/uploads/sites/2/2022/01/specifications_robots_small-medium-payload-robots_rs_rs007n_en_01_2021.pdf"] },
+    { match: "RS007L", urls: ["https://kawasakirobotics.com/uploads/sites/2/2022/01/specifications_robots_small-medium-payload-robots_rs_rs007l_en_01_2021.pdf"] },
+    { match: "CP300L", urls: ["https://kawasakirobotics.com/uploads/sites/2/2022/01/CP300L-A-E-1.pdf"] },
+    { match: "BA013L", urls: ["https://kawasakirobotics.com/uploads/sites/2/2022/10/90151-0386DED.pdf"], trust: true },
+  ],
 };
 
 const slug = (text: string) => text.toLowerCase().normalize("NFKC").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 /** Researched PDFs for this model: exact-model entries first, then the longest family match. */
-export function researchedSources(item: DatasheetModel): { url: string; trust: boolean; page?: boolean }[] {
+/**
+ * `fallback`: from a pattern source (broad brochures), checked after the model's own pages.
+ * `family`: the family name the PDF was researched for, used when no PDF names the exact variant.
+ */
+export function researchedSources(item: DatasheetModel): { url: string; trust: boolean; page?: boolean; fallback?: boolean; family?: string }[] {
   const model = slug(item.m);
   const hits = (DATASHEET_SOURCES[item.b] ?? [])
     .map((source) => ({ source, key: slug(source.match) }))
@@ -92,10 +107,16 @@ export function researchedSources(item: DatasheetModel): { url: string; trust: b
       ? new RegExp(source.pattern, "i").test(item.m)
       : key && (model === key || (model.startsWith(key) && model[key.length] === "-")))
     .sort((a, b) => Number(!!a.source.pattern) - Number(!!b.source.pattern) || b.key.length - a.key.length);
-  const out = new Map<string, { trust: boolean; page?: boolean }>();
+  const out = new Map<string, { trust: boolean; page?: boolean; fallback?: boolean; family?: string }>();
   for (const { source } of hits) {
-    for (const url of source.urls) out.set(url, { trust: (out.get(url)?.trust ?? false) || !!source.trust });
-    for (const url of source.pages ?? []) if (!out.has(url)) out.set(url, { trust: false, page: true });
+    for (const url of source.urls) {
+      const known = out.get(url);
+      out.set(url, { trust: (known?.trust ?? false) || !!source.trust, ...(known ? { family: known.family } : source.pattern ? { fallback: true } : { family: source.match }) });
+    }
+    for (const page of source.pages ?? []) {
+      const url = page.replace("{slug}", model);
+      if (!out.has(url)) out.set(url, { trust: false, page: true });
+    }
   }
   return [...out].map(([url, flags]) => ({ url, ...flags }));
 }
