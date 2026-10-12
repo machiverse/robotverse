@@ -16,7 +16,7 @@
 import { processKind, type ProcessKind } from "./processProfiles";
 import { stepLabel, type SimStep } from "./robotSim.js";
 
-export type StationKey = "conveyor" | "out" | "table" | "weld" | "cnc" | "pallet" | "vision" | "carton" | "rack";
+export type StationKey = "conveyor" | "out" | "table" | "weld" | "cnc" | "press" | "mould" | "test" | "marker" | "bin" | "pallet" | "vision" | "carton" | "rack";
 
 /** The cell equipment a user can place around a robot. */
 export const CELL_STATIONS: { key: StationKey; label: string; hint: string }[] = [
@@ -24,13 +24,20 @@ export const CELL_STATIONS: { key: StationKey; label: string; hint: string }[] =
   { key: "out", label: "Outfeed conveyor", hint: "Takes finished parts away, or on to the next robot" },
   { key: "table", label: "Work table / fixture", hint: "Holds the part while a tool works on it" },
   { key: "weld", label: "Welding table", hint: "Welding fixture with clamps" },
-  { key: "cnc", label: "CNC machine", hint: "A machine the robot loads and unloads" },
+  { key: "cnc", label: "CNC machine", hint: "A machine tool the robot loads and unloads" },
+  { key: "press", label: "Press / press brake", hint: "Stamping press, press brake or forging press the robot loads" },
+  { key: "mould", label: "Moulding / die-casting machine", hint: "The robot takes the part out each time the mould opens" },
+  { key: "test", label: "Test / gauging station", hint: "Leak, function or dimensional test of every part" },
+  { key: "marker", label: "Laser marking station", hint: "Marks a code or serial number on each part" },
+  { key: "bin", label: "Parts bin + 3D camera", hint: "Loose, jumbled parts the robot finds with a 3D camera" },
   { key: "pallet", label: "Pallet", hint: "Stacks finished parts, or supplies raw parts" },
   { key: "vision", label: "Vision camera station", hint: "Fixed camera that checks every part" },
   { key: "carton", label: "Packing carton", hint: "Cartons the robot packs products into" },
   { key: "rack", label: "Tool stand", hint: "Holds the second tool for the tool changer" },
 ];
 export const stationLabel = (k: string) => (k === "in" ? "Transfer conveyor" : CELL_STATIONS.find((s) => s.key === k)?.label ?? k);
+/** A station's name inside a sentence. */
+const lower = (k: string) => stationLabel(k).toLowerCase().replace(/\b3d\b/g, "3D");
 
 /** End-of-arm tool families (see eoatKind in robotSim.js). */
 export const GRIP_TOOLS = ["parallel", "dual", "vacuum", "magnet", "fork"];
@@ -61,6 +68,24 @@ const WORK: Record<ProcessKind, Work> = {
 };
 const PROCESS_KIND: Record<string, ProcessKind> = { torch: "welding", spindle: "finishing", nozzle: "coating", driver: "assembly" };
 const WORD: Record<string, string> = { weld: "welds the seam", finish: "grinds / polishes the part", apply: "applies the coating or bead", assemble: "assembles the part", fill: "fills the container", cap: "caps and seals it", label: "applies the label" };
+
+/** The machine a job's robot tends, from the job name: moulding is not machining is not pressing. */
+const MACHINES: [RegExp, StationKey][] = [
+  [/mould|mold|die ?cast/i, "mould"],
+  [/press|stamp|bend|brake|forg/i, "press"],
+  [/leak|test|measur|gaug/i, "test"],
+  [/laser mark|marking|engrav|coding/i, "marker"],
+  [/cnc|machin|mill|turning|lathe|sheet load|tending/i, "cnc"],
+];
+export const machineFor = (job: string, kind: ProcessKind): StationKey | null =>
+  MACHINES.find(([re]) => re.test(job))?.[1] ?? (kind === "machining" ? "cnc" : null);
+const MACHINE_DO: Partial<Record<StationKey, [string, string, string]>> = {
+  // [load label, cycle label, unload label]
+  cnc: ["Load the CNC machine", "Run the machining cycle", "Unload the CNC machine"],
+  press: ["Load the press", "Press stroke", "Unload the press"],
+  test: ["Place in the test station", "Run the test", "Take out of the test station"],
+  marker: ["Place under the laser marker", "Laser mark the part", "Take out of the marker"],
+};
 
 export interface ProgramNote {
   level: "info" | "warn" | "stop";
@@ -96,7 +121,7 @@ export interface ProgramInput {
   fromPrev?: boolean;
 }
 
-const putOn = (k: string) => (k === "pallet" ? "stacks it on the pallet" : k === "carton" ? "packs it into the carton" : `puts it on the ${stationLabel(k).toLowerCase()}`);
+const putOn = (k: string) => (k === "pallet" ? "stacks it on the pallet" : k === "carton" ? "packs it into the carton" : `puts it on the ${lower(k)}`);
 const step = (action: string, station: string, label?: string, extra: Partial<SimStep> = {}): SimStep => {
   const s = { action, station, label: "", ...extra } as SimStep;
   s.label = label || stepLabel(s);
@@ -128,10 +153,13 @@ export function cellProgram(p: ProgramInput): CellProgram {
   // Where raw parts come from and where finished parts go, from the equipment the user placed.
   const work = WORK[kind];
   const workAt: StationKey | null = work && "at" in work ? work.at : null;
+  const depal = /depallet/i.test(p.job);
+  const kitting = /kit/i.test(p.job);
   const destOrder: StationKey[] =
-    kind === "packing" ? ["carton", "out", "pallet"] : kind === "palletizing" ? ["pallet", "out", "carton"] : ["out", "pallet", "carton"];
-  let source: string | null = p.fromPrev ? "in" : has.has("conveyor") ? "conveyor" : null;
-  let dest: StationKey | null = destOrder.find((k) => has.has(k)) ?? null;
+    kind === "packing" || kitting ? ["carton", "out", "pallet"] : kind === "palletizing" ? ["pallet", "out", "carton"] : depal ? ["out", "carton", "table"] : ["out", "pallet", "carton"];
+  // Raw parts: from the previous robot, a parts bin (bin picking), the infeed, or a pallet (depalletizing).
+  let source: string | null = p.fromPrev ? "in" : /bin pick/i.test(p.job) && has.has("bin") ? "bin" : depal && has.has("pallet") ? "pallet" : has.has("conveyor") ? "conveyor" : has.has("bin") ? "bin" : null;
+  let dest: StationKey | null = destOrder.find((k) => has.has(k) && k !== source) ?? null;
   // A pallet with no other source supplies the parts (depalletizing).
   if (!source && has.has("pallet") && dest !== "pallet") source = "pallet";
   if (!dest && has.has("table") && workAt !== "table" && source !== "table") dest = "table";
@@ -151,26 +179,64 @@ export function cellProgram(p: ProgramInput): CellProgram {
     cur = i;
   };
   const at = (k: string) => k !== "in" && uses.add(k as StationKey);
-  const pickFrom = (k: string, label?: string) => (at(k), steps.push(step("pick", k, label)));
+  const pickFrom = (k: string, label?: string) => {
+    // Loose parts in a bin: the 3D camera finds one first.
+    if (k === "bin") steps.push(step("scan", "bin", "Find a part with the 3D camera"));
+    at(k);
+    steps.push(step("pick", k, label));
+  };
   const placeOn = (k: string, label?: string) => (at(k), steps.push(step("place", k, label)));
   const finishPart = () => {
     if (has.has("vision")) {
       uses.add("vision");
       steps.push(step("inspect", "vision", "Check the part with the camera"));
     }
-    if (dest) placeOn(dest, dest === "out" ? "Place on outfeed conveyor" : undefined);
+    if (dest) placeOn(dest, dest === "out" ? "Place on outfeed conveyor" : dest === "carton" && kitting ? "Place in the kit tray" : undefined);
   };
   const say: string[] = [];
 
-  /* A tool works on the part: weld, grind, coat, assemble, fill, cap or label. */
-  if (work && "tools" in work) {
+  const machine = machineFor(p.job, kind);
+  /* Machine tending: load, run the machine, unload — or take parts out of a moulding machine. */
+  if (machine && (kind === "machining" || has.has(machine))) {
+    const M = machine;
+    const name = lower(M);
+    const extract = M === "mould";
+    if (grip < 0) notes.push({ level: "stop", text: `${p.job || "Machine tending"} needs a gripper — a ${toolName(arm)} cannot ${extract ? "take parts out of" : "load"} the ${name}` });
+    else if (!has.has(M)) notes.push({ level: "stop", text: `Add a ${name} for the robot to tend` });
+    else if (!extract && !source) notes.push({ level: "stop", text: `Add an infeed conveyor, a pallet or a parts bin with parts for the ${name}` });
+    else if (extract && !dest) notes.push({ level: "stop", text: "Add a pallet, carton or outfeed conveyor for the moulded parts" });
+    if (grip >= 0 && has.has(M) && (extract ? !!dest : !!source)) {
+      holdTool(grip);
+      uses.add(M);
+      if (extract) {
+        steps.push(step("process", M, /die ?cast/i.test(p.job) ? "Die-casting shot" : "Moulding cycle"));
+        pickFrom(M, "Take the part out of the open mould");
+        say.push(`waits for the ${name} to open`, "takes the part out");
+      } else {
+        const [load, cycle, unload] = MACHINE_DO[M] ?? MACHINE_DO.cnc!;
+        pickFrom(source!);
+        placeOn(M, load);
+        steps.push(step("process", M, cycle));
+        pickFrom(M, unload);
+        say.push(`loads the ${name} from the ${lower(source!)}`, `waits for the ${M === "test" ? "test" : M === "marker" ? "marking" : "cycle"}`, "unloads it");
+      }
+      if (dest) {
+        finishPart();
+        say.push(putOn(dest));
+      } else {
+        notes.push({ level: "warn", text: `Add a pallet, carton or outfeed conveyor for the finished parts` });
+        placeOn(M, "Return the part to the machine");
+      }
+    }
+  } else if (work && "tools" in work) {
+    /* A tool works on the part: weld, grind, coat, assemble, fill, cap or label. */
     const W = work.at;
     // The working tool: a process tool first; a gripper only where it can do the work itself.
     const proc = find(work.tools.filter((t) => !GRIP_TOOLS.includes(t))) >= 0 ? find(work.tools.filter((t) => !GRIP_TOOLS.includes(t))) : find(work.tools);
     if (proc < 0) {
       notes.push({ level: "stop", text: `${p.job || "This job"} needs a ${toolName(work.tools[0])} — ${usable.filter(Boolean).length ? `a ${toolName(arm)} cannot do it` : "add one"}${grip >= 0 ? ". The robot only moves the parts" : ""}` });
     } else if (!has.has(W)) {
-      notes.push({ level: "stop", text: `Add a ${stationLabel(W).toLowerCase()} — the ${toolName(usable[proc])} works on a part held there` });
+      notes.push({ level: "stop", text: `Add a ${lower(W)} — the ${toolName(usable[proc])} works on a part held there` });
     }
     if (proc >= 0 && has.has(W)) {
       uses.add(W);
@@ -179,14 +245,14 @@ export function cellProgram(p: ProgramInput): CellProgram {
         holdTool(grip);
         pickFrom(source!);
         placeOn(W, W === "weld" ? "Load welding fixture" : "Place on work table");
-        say.push(`picks from the ${stationLabel(source!).toLowerCase()} with the ${toolName(usable[grip])}`, `loads the ${stationLabel(W).toLowerCase()}`);
+        say.push(`picks from the ${lower(source!)} with the ${toolName(usable[grip])}`, `loads the ${lower(W)}`);
       } else {
         // Nobody loads the fixture: an operator does it each cycle.
         steps.push(step("manual", W, "Operator loads a part"));
         if (grip < 0 && (has.has("conveyor") || has.has("pallet") || p.fromPrev))
-          notes.push({ level: "warn", text: `A ${toolName(usable[proc])} cannot pick parts — the operator loads the ${stationLabel(W).toLowerCase()}. Add a gripper on a tool changer to load it automatically` });
+          notes.push({ level: "warn", text: `A ${toolName(usable[proc])} cannot pick parts — the operator loads the ${lower(W)}. Add a gripper on a tool changer to load it automatically` });
         else if (grip >= 0 && !source) notes.push({ level: "warn", text: "Add an infeed conveyor or a pallet so the robot can load parts itself — until then the operator loads them" });
-        say.push(`waits while the operator loads the ${stationLabel(W).toLowerCase()}`);
+        say.push(`waits while the operator loads the ${lower(W)}`);
       }
       if (cur >= 0 && proc !== cur) say.push(`changes to the ${toolName(usable[proc])}`);
       holdTool(proc);
@@ -206,41 +272,22 @@ export function cellProgram(p: ProgramInput): CellProgram {
       holdTool(grip);
       pickFrom(source);
       finishPart();
-      say.push(`only moves parts from the ${stationLabel(source).toLowerCase()} to the ${stationLabel(dest).toLowerCase()}`);
-    }
-  } else if (work && work.action === "process") {
-    /* Machine tending: the gripper loads and unloads the CNC machine. */
-    if (grip < 0) notes.push({ level: "stop", text: `Machine tending needs a gripper — a ${toolName(arm)} cannot load the machine` });
-    else if (!has.has("cnc")) notes.push({ level: "stop", text: "Add a CNC machine for the robot to tend" });
-    else if (!source) notes.push({ level: "stop", text: "Add an infeed conveyor or a pallet with raw parts for the machine" });
-    if (grip >= 0 && has.has("cnc") && source) {
-      holdTool(grip);
-      pickFrom(source);
-      placeOn("cnc");
-      steps.push(step("process", "cnc", p.job || undefined));
-      pickFrom("cnc");
-      say.push(`loads the CNC machine from the ${stationLabel(source).toLowerCase()}`, "waits for the cycle", "unloads it");
-      if (dest) {
-        finishPart();
-        say.push(putOn(dest));
-      } else {
-        notes.push({ level: "warn", text: "Add a pallet, carton or outfeed conveyor for machined parts" });
-        placeOn("cnc", "Return part to the machine");
-      }
+      say.push(`only moves parts from the ${lower(source)} to the ${lower(dest)}`);
     }
   } else {
     /* Pick and place: handling, transport, palletizing, packing and inspection. */
     if (grip < 0) {
       notes.push({ level: "stop", text: `${p.job || "Pick and place"} needs a gripper — a ${toolName(arm)} cannot hold parts${p.changer ? "; put a gripper on the tool stand" : ""}` });
     } else {
-      if (!source) notes.push({ level: "stop", text: "Add an infeed conveyor or a pallet: the robot has nothing to pick" });
+      if (!source) notes.push({ level: "stop", text: `Add ${depal ? "a pallet with the incoming load" : /bin pick/i.test(p.job) ? "a parts bin with a 3D camera" : "an infeed conveyor, a parts bin or a pallet"}: the robot has nothing to pick` });
       if (!dest) notes.push({ level: "stop", text: `Add ${kind === "packing" ? "a packing carton" : kind === "palletizing" ? "a pallet" : "a pallet, carton or outfeed conveyor"} to put the parts on` });
-      if (kind === "inspection" && !has.has("vision") && !p.camera) notes.push({ level: "warn", text: "Add a vision camera station or a wrist camera to inspect the parts" });
+      if (kind === "inspection" && !has.has("vision") && !p.camera)
+        notes.push({ level: "warn", text: machine ? `Add a ${lower(machine)} to test every part` : "Add a vision camera station or a wrist camera to inspect the parts" });
     }
     if (grip >= 0 && source && dest) {
       holdTool(grip);
       pickFrom(source);
-      say.push(`picks from the ${stationLabel(source).toLowerCase()}`);
+      say.push(`picks from the ${lower(source)}`);
       if (kind === "inspection" && !has.has("vision") && p.camera) {
         steps.push(step("check", "", "Check the part with the wrist camera"));
         say.push("checks it with the wrist camera");
@@ -269,7 +316,14 @@ export function stationsFor(job: string, tools: (string | undefined)[], changer 
   const grip = usable.some((k) => GRIP_TOOLS.includes(k));
   const work = WORK[kind];
   const out: StationKey[] = [];
-  if (work && "tools" in work) {
+  const machine = machineFor(job, kind);
+  if (machine === "mould") out.push("mould", "pallet");
+  else if (machine && /sheet/i.test(job)) out.push("pallet", "cnc", "out");
+  else if (machine) out.push("conveyor", machine, "pallet");
+  else if (/bin pick/i.test(job)) out.push("bin", "pallet");
+  else if (/depallet/i.test(job)) out.push("pallet", "out");
+  else if (/kit/i.test(job)) out.push("conveyor", "carton");
+  else if (work && "tools" in work) {
     if (grip) out.push("conveyor");
     out.push(work.at);
     if (grip) out.push("pallet");

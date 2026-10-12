@@ -71,3 +71,21 @@ for (const b of BLOCKS) {
   assert.ok(!p.notes.some((n) => n.level !== "info"), `${b.name}: ${p.notes.map((n) => n.text).join("; ")}`);
 }
 console.log(`cell programs: ${BLOCKS.length} builder jobs verified`);
+
+// Machines and stations of their own: each job gets its real equipment and flow.
+assert.equal(seq(run("Press Tending & Stamping", ["parallel"], ["conveyor", "press", "pallet"])), "pick@conveyor place@press process@press pick@press place@pallet");
+// A moulding machine is only unloaded: the robot waits for the mould to open and takes the part out.
+assert.equal(seq(run("Injection Moulding Tending", ["vacuum"], ["mould", "pallet"])), "process@mould pick@mould place@pallet");
+assert.ok(run("Injection Moulding Tending", ["vacuum"], ["mould"]).notes.some((n) => n.level === "stop" && /moulded parts/.test(n.text)));
+assert.ok(run("Die Casting Extraction", ["parallel"], ["conveyor", "pallet"]).notes.some((n) => /moulding \/ die-casting machine/.test(n.text)));
+assert.equal(seq(run("Leak Testing", ["parallel"], ["conveyor", "test", "pallet"])), "pick@conveyor place@test process@test pick@test place@pallet");
+// Without a test station a leak test falls back to the camera, and says what is missing.
+assert.ok(run("Leak Testing", ["parallel"], ["conveyor", "pallet"]).notes.some((n) => /test \/ gauging station/.test(n.text)));
+assert.equal(seq(run("Laser Marking & Coding", ["parallel"], ["conveyor", "marker", "out"])), "pick@conveyor place@marker process@marker pick@marker place@out");
+// Bin picking: the 3D camera finds a part before every pick.
+assert.equal(seq(run("Bin Picking", ["parallel"], ["bin", "conveyor", "pallet"])), "scan@bin pick@bin place@pallet");
+assert.equal(seq(run("Depalletizing", ["vacuum"], ["pallet", "out"])), "pick@pallet place@out");
+assert.ok(run("Kitting & Sequencing", ["parallel"], ["conveyor", "carton"]).steps.some((s) => s.label === "Place in the kit tray"));
+assert.deepEqual(stationsFor("Injection Moulding Tending", ["parallel"]), ["mould", "pallet"]);
+assert.deepEqual(stationsFor("Bin Picking", ["parallel"]), ["bin", "pallet"]);
+console.log("cell programs: machines, bin picking, depalletizing and kitting verified");

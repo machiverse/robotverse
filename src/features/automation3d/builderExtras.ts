@@ -24,6 +24,8 @@ export const STARTERS: { id: string; name: string; what: string; jobs: string[];
   { id: "weld-pal", name: "Weld & palletize", what: "Weld, pass on the outfeed, stack on the pallet", jobs: ["MIG/MAG Welding", "Palletizing"], cells: [{ stations: ["conveyor", "weld", "out", "rack"], swap: true }, { stations: ["pallet"] }] },
   { id: "cnc", name: "CNC machine tending", what: "Load and unload a CNC machine", jobs: ["CNC Machining"], cells: [{ stations: ["conveyor", "cnc", "pallet"] }] },
   { id: "pack", name: "Pick & pack", what: "Pick from conveyor, pack into cartons", jobs: ["Loading & Unloading", "Packing & Box Forming"], cells: [{ stations: ["conveyor", "out"] }, { stations: ["carton"] }] },
+  { id: "mould", name: "Moulding machine tending", what: "Take parts out when the mould opens, stack them", jobs: ["Injection Moulding Tending"], cells: [{ stations: ["mould", "pallet"] }] },
+  { id: "bin", name: "Bin picking", what: "3D camera finds loose parts, robot feeds the outfeed", jobs: ["Bin Picking"], cells: [{ stations: ["bin", "out"] }] },
   { id: "pal", name: "End-of-line palletizing", what: "Stack cartons or bags on pallets", jobs: ["Palletizing"], cells: [{ stations: ["conveyor", "pallet"] }] },
   { id: "finish", name: "Grind & polish", what: "Grind, pass on, polish — gripper and spindle on tool changers", jobs: ["Grinding & Surface Prep", "Polishing"], cells: [{ stations: ["conveyor", "table", "out", "rack"], swap: true }, { stations: ["table", "pallet", "rack"], swap: true }] },
 ];

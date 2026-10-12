@@ -319,6 +319,9 @@ export const JOB_NOTES: Record<string, string[]> = {
   "Dimensional Measurement & Gauging": ["Measurement error should be under 10% of the tolerance (Gauge R&R)", "Temperature changes part size: measure in a stable area or compensate", "Robot-held scanners need a calibrated reference artefact"],
   "Leak Testing": ["Pressure decay for larger leaks; helium or tracer gas for very small leaks", "Temperature and seal wear cause false results — verify daily with a master leak", "Seal fixtures must suit every variant"],
   "Cartoning (Product into Cartons)": ["Count and orient products before the robot picks", "Delta robots with conveyor tracking for high speeds", "The carton erector and closer set the line pace — size them first"],
+  "Forging Handling": ["Heat-resistant jaws or tongs, and a foundry jacket on the robot", "Move the billet from furnace to press within a few seconds so it stays hot", "Interlock with the press stroke and spray die lubricant between shots"],
+  "Testing & Validation": ["A fixture that contacts or seals every variant the same way", "Log each result against the part serial and divert failed parts to a red bin", "Run a known-good and a known-bad master part every shift"],
+  "Laser Marking & Coding": ["Present the part flat and at the laser's focal distance (about ±1 mm)", "Read each code back with a verifier camera and grade it (ISO/IEC 29158)", "Class 1 enclosure and fume extraction around the marker"],
   "Bag & Sack Palletizing": ["Flatten and shape bags before picking for stable stacks", "Fork or claw grippers support the bag from below", "Interlock the layers and check layer height"],
 };
 

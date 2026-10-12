@@ -23,6 +23,11 @@ export const STATION_NAMES = {
   in: "Transfer conveyor",
   out: "Transfer conveyor",
   rack: "Tool stand",
+  press: "Press",
+  mould: "Moulding machine",
+  test: "Test station",
+  marker: "Laser marker",
+  bin: "Parts bin",
 };
 
 /* Tool operations the robot performs on a part sitting on the work table.
@@ -90,7 +95,9 @@ export function stepLabel(step) {
       if (step.station === "pallet") return "Stack on pallet";
       return `Place on ${n.toLowerCase()}`;
     case "process":
-      return "Run CNC cycle";
+      return { press: "Press stroke", mould: "Moulding cycle", test: "Run the test", marker: "Laser mark the part" }[step.station] || "Run CNC cycle";
+    case "scan":
+      return "Find a part with the 3D camera";
     case "inspect":
       return "Inspect with camera";
     case "weld":
@@ -1050,6 +1057,244 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       stations.carton = { slots, parts: [], point: slots[0], lid, tape, closeT: 0 };
     }
 
+    /* Machines and small stations placed in the cell builder, each in a free place around the robot
+       (the fixed stations above keep theirs). Big machines stand to the side, small ones in front. */
+    const SPOTS = { left: [-1.38, 0.1], right: [1.38, 0.05], frontLeft: [-1.0, 0.98], front: [0.1, 1.08], frontRight: [1.0, 0.88] };
+    const taken = new Set(
+      [needed.has("cnc") && "left", needed.has("vision") && "right", needed.has("carton") && "frontLeft", needed.has("table") && "front", needed.has("pallet") && "frontRight"].filter(Boolean)
+    );
+    const spotFor = (prefs) => {
+      const k = prefs.find((x) => !taken.has(x)) || prefs[0];
+      taken.add(k);
+      return { x: SPOTS[k][0], z: SPOTS[k][1] };
+    };
+    const flash = (light, on) => light.material.emissive.setHex(on);
+
+    if (needed.has("press")) {
+      // Stamping press / press brake: the robot loads the die, the ram strokes, the robot unloads.
+      const sp = spotFor(["left", "right"]);
+      const side = Math.sign(sp.x) || -1;
+      const g = new THREE.Group();
+      g.position.set(X + sp.x, 0, sp.z);
+      g.rotation.y = side > 0 ? Math.PI : 0;
+      const base = box(0.8, 0.82, 0.85, M.machine);
+      base.position.set(-0.05, 0.41, 0);
+      g.add(base);
+      const bolster = box(0.6, 0.05, 0.6, M.steel);
+      bolster.position.set(0.05, 0.845, 0);
+      g.add(bolster);
+      for (const dz of [-0.36, 0.36]) {
+        const col = box(0.14, 1.45, 0.12, M.machine);
+        col.position.set(-0.28, 1.55, dz);
+        g.add(col);
+      }
+      const crown = box(0.82, 0.32, 0.9, M.machine);
+      crown.position.set(-0.05, 2.35, 0);
+      g.add(crown);
+      const ram = box(0.5, 0.3, 0.55, M.dark);
+      const ramY = 1.75;
+      ram.position.set(0.05, ramY, 0);
+      g.add(ram);
+      const beacon = cyl(0.04, 0.12, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000 }));
+      beacon.position.set(-0.3, 2.58, 0.36);
+      g.add(beacon);
+      const lbl = makeLabel(STATION_NAMES.press);
+      lbl.position.set(0, 2.8, 0);
+      g.add(lbl);
+      add(g);
+      const topY = 0.87;
+      const st = {
+        point: V(sp.x - side * 0.25, topY + PART.h / 2, sp.z),
+        part: null,
+        process: () =>
+          dwell(
+            1.5,
+            () => flash(beacon, 0x2a8a3a),
+            () => {
+              ram.position.y = ramY;
+              flash(beacon, 0x000000);
+              if (st.part) {
+                st.part.material = partMats.machined;
+                st.part.scale.set(1.15, 0.7, 1.15);
+              }
+            },
+            // Down onto the part and back up.
+            (k) => (ram.position.y = ramY - (ramY - (topY + PART.h + 0.15)) * Math.sin(Math.PI * k))
+          ),
+      };
+      stations.press = st;
+    }
+
+    if (needed.has("mould")) {
+      // Injection-moulding / die-casting machine: the mould closes, opens, and the robot takes the part out.
+      const sp = spotFor(["left", "right"]);
+      const side = Math.sign(sp.x) || -1;
+      const g = new THREE.Group();
+      g.position.set(X + sp.x, 0, sp.z + 0.12);
+      g.rotation.y = side > 0 ? Math.PI : 0;
+      const base = box(0.75, 0.75, 1.15, M.machine);
+      base.position.set(-0.05, 0.375, 0);
+      g.add(base);
+      const fixed = box(0.62, 0.8, 0.1, M.steel);
+      fixed.position.set(0, 1.15, -0.25);
+      g.add(fixed);
+      const moving = box(0.62, 0.8, 0.1, M.steel);
+      moving.position.set(0, 1.15, 0.25);
+      g.add(moving);
+      for (const dy of [-0.3, 0.3]) for (const dx of [-0.25, 0.25]) {
+        const bar = cyl(0.025, 0.95, M.steel, 12);
+        bar.rotation.x = Math.PI / 2;
+        bar.position.set(dx, 1.15 + dy, 0.12);
+        g.add(bar);
+      }
+      const barrel = cyl(0.09, 0.55, M.dark, 16);
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.set(-0.05, 1.15, -0.55);
+      g.add(barrel);
+      const hopper = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.25, 16), M.amber);
+      hopper.rotation.x = Math.PI;
+      hopper.position.set(-0.05, 1.42, -0.62);
+      g.add(hopper);
+      const beacon = cyl(0.04, 0.12, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000 }));
+      beacon.position.set(-0.3, 1.62, -0.25);
+      g.add(beacon);
+      const lbl = makeLabel(STATION_NAMES.mould);
+      lbl.position.set(0, 1.95, 0);
+      g.add(lbl);
+      add(g);
+      const st = {
+        point: V(sp.x - side * 0.22, 1.1, sp.z + 0.12),
+        part: null,
+        process: () =>
+          dwell(
+            2.0,
+            () => flash(beacon, 0x2a8a3a),
+            () => {
+              moving.position.z = 0.25;
+              flash(beacon, 0x000000);
+              // A new moulded part is ready between the open platens.
+              if (!st.part) {
+                st.part = spawnPart(st.point);
+                st.part.material = partMats.coated;
+              }
+            },
+            // Close, hold (inject and cool), open.
+            (k) => (moving.position.z = 0.25 - 0.13 * (k < 0.25 ? k / 0.25 : k > 0.75 ? (1 - k) / 0.25 : 1))
+          ),
+      };
+      stations.mould = st;
+    }
+
+    const smallStation = (key, prefs, top) => {
+      const sp = spotFor(prefs);
+      return { ...makeTable(sp.x, sp.z, STATION_NAMES[key], top), sp };
+    };
+
+    if (needed.has("test")) {
+      // Leak / function / gauging station: a hood closes over the part, the lamp shows the result.
+      const t = smallStation("test", ["frontLeft", "right", "front", "left"]);
+      const hood = box(0.32, 0.22, 0.32, M.glass);
+      hood.position.set(X + t.sp.x, 1.15, t.sp.z);
+      t.group.add(hood);
+      const lamp = cyl(0.035, 0.1, new THREE.MeshStandardMaterial({ color: 0x64748b, emissive: 0x000000 }));
+      lamp.position.set(X + t.sp.x + 0.18, 1.18, t.sp.z - 0.12);
+      t.group.add(lamp);
+      const st = {
+        ...t,
+        process: () =>
+          dwell(
+            1.6,
+            () => (hood.position.y = 0.86),
+            () => {
+              hood.position.y = 1.15;
+              lamp.material.color.setHex(0x22c55e);
+              flash(lamp, 0x15803d);
+              if (st.part) st.part.userData.tested = true;
+            },
+            (k) => {
+              lamp.material.color.setHex(0xf59e0b);
+              flash(lamp, Math.floor(k * 8) % 2 ? 0x92400e : 0x000000);
+            }
+          ),
+      };
+      stations.test = st;
+    }
+
+    if (needed.has("marker")) {
+      // Laser marker: a head above the part burns a code onto it.
+      const t = smallStation("marker", ["front", "frontLeft", "right", "left"], M.dark);
+      const post = box(0.05, 0.6, 0.05, M.frame);
+      post.position.set(X + t.sp.x - 0.18, 1.02, t.sp.z);
+      t.group.add(post);
+      const head = box(0.2, 0.08, 0.1, M.dark);
+      head.position.set(X + t.sp.x - 0.08, 1.28, t.sp.z);
+      t.group.add(head);
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 1, 6), new THREE.MeshBasicMaterial({ color: 0xff3b30 }));
+      beam.visible = false;
+      t.group.add(beam);
+      const st = {
+        ...t,
+        process: () =>
+          dwell(
+            1.1,
+            () => {
+              const len = 1.24 - (t.topY + PART.h);
+              beam.scale.set(1, len, 1);
+              beam.position.set(X + t.sp.x, t.topY + PART.h + len / 2, t.sp.z);
+              beam.visible = true;
+            },
+            () => {
+              beam.visible = false;
+              if (st.part) addOn(st.part, new THREE.BoxGeometry(0.05, 0.002, 0.03), 0x111827, new THREE.Vector3(0, PART.h / 2 + 0.001, 0));
+            },
+            (k) => (beam.position.x = X + t.sp.x + Math.sin(k * Math.PI * 6) * 0.02)
+          ),
+      };
+      stations.marker = st;
+    }
+
+    if (needed.has("bin")) {
+      // Bin of loose, jumbled parts under a 3D camera (bin picking).
+      const sp = spotFor(["frontLeft", "frontRight", "front", "right"]);
+      const g = new THREE.Group();
+      const bx = X + sp.x, bz = sp.z, h = 0.45, w = 0.5, d = 0.4, t = 0.02;
+      const floorB = box(w, t, d, M.frame);
+      floorB.position.set(bx, 0.2, bz);
+      g.add(floorB);
+      for (const [dx, dz, ww, dd] of [[0, -d / 2, w, t], [0, d / 2, w, t], [-w / 2, 0, t, d], [w / 2, 0, t, d]]) {
+        const wall = box(ww, h - 0.2, dd, M.accent);
+        wall.position.set(bx + dx, 0.2 + (h - 0.2) / 2, bz + dz);
+        g.add(wall);
+      }
+      for (let i = 0; i < 7; i++) {
+        const loose = new THREE.Mesh(partGeo, partMats.raw);
+        loose.position.set(bx + (Math.random() - 0.5) * 0.3, 0.27 + Math.random() * 0.06, bz + (Math.random() - 0.5) * 0.22);
+        loose.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+        loose.scale.setScalar(0.85);
+        g.add(loose);
+      }
+      const post = box(0.05, 1.5, 0.05, M.frame);
+      post.position.set(bx - w / 2 - 0.05, 0.75, bz);
+      g.add(post);
+      const cam = box(0.14, 0.07, 0.1, M.dark);
+      cam.position.set(bx, 1.45, bz);
+      g.add(cam);
+      const arm = box(w / 2 + 0.05, 0.04, 0.04, M.frame);
+      arm.position.set(bx - w / 4 - 0.02, 1.48, bz);
+      g.add(arm);
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(0.3, 1.05, 32, 1, true),
+        new THREE.MeshBasicMaterial({ color: 0x4a90e2, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide })
+      );
+      cone.position.set(bx, 0.92, bz);
+      g.add(cone);
+      const lbl = makeLabel(STATION_NAMES.bin);
+      lbl.position.set(bx, 1.7, bz);
+      g.add(lbl);
+      add(g);
+      stations.bin = { point: V(sp.x, 0.3 + PART.h / 2, sp.z), part: null, cone };
+    }
+
     // Tool stand: the tool changer parks the tool that is not on the arm here.
     if (needed.has("rack")) {
       const g = new THREE.Group();
@@ -1598,6 +1843,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           break;
         }
         case "process": {
+          // Press, moulding machine, test station and laser marker run their own cycle.
+          if (stations[s] && stations[s].process) {
+            out.push(stations[s].process());
+            break;
+          }
           const c = stations.cnc;
           out.push(
             dwell(
@@ -1657,6 +1907,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
             })
           );
           out.push(linearMove(() => above(B), "weld", 0.35));
+          break;
+        }
+        case "scan": {
+          // The 3D camera over the bin finds the next part to pick.
+          const bn = stations.bin;
+          out.push(
+            dwell(
+              0.9,
+              () => bn && (bn.cone.material.opacity = 0.2),
+              () => bn && (bn.cone.material.opacity = 0),
+              (k) => bn && (bn.cone.material.opacity = 0.12 + 0.08 * Math.sin(k * Math.PI * 4))
+            )
+          );
           break;
         }
         case "toolchange": {
@@ -1903,7 +2166,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
 
     function clearParts() {
       held = null;
-      for (const k of ["table", "weld", "cnc"]) if (stations[k]) stations[k].part = null;
+      for (const k of ["table", "weld", "cnc", "press", "mould", "test", "marker"]) if (stations[k]) stations[k].part = null;
       if (stations.pallet) stations.pallet.parts = [];
       if (stations.carton) {
         stations.carton.parts = [];
