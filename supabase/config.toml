@@ -119,6 +119,9 @@ verify_jwt = false
 [functions.directory-photo-harvest]
 verify_jwt = false
 
+[functions.directory-datasheet]
+verify_jwt = false
+
 [functions.directory-parts-harvest]
 verify_jwt = false
 

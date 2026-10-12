@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import seoStatic from "./seoStatic";
+import robotResourcesStatic from "./robotResourcesStatic";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -20,6 +21,7 @@ export default defineConfig(({ mode }) => ({
     componentTagger(),
     // Per-page HTML, static sitemaps and llms-full.txt for crawlers (production build only; never fails the build).
     seoStatic(loadEnv(mode, process.cwd(), "")),
+    robotResourcesStatic(),
   ].filter(Boolean),
   resolve: {
     alias: {

@@ -6,6 +6,7 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import ItemImage from "@/components/directory/ItemImage";
+import DatasheetButton from "@/components/directory/DatasheetButton";
 import { enquiryMailto, type CatalogItem, type CatalogKind } from "@/components/directory/directoryTypes";
 import { DIRECTORY_FILE, DIRECTORY_TYPES, directoryItemSeo, directorySlug, type DirectoryType } from "@/lib/seo/seoText";
 import { encodeLine } from "@/features/automation3d/builderExtras";
@@ -130,6 +131,7 @@ export default function DirectoryModelPage() {
                   <Wrench className="mr-2 h-4 w-4" /> {item.b} spare parts
                 </Link>
               </Button>
+              <DatasheetButton kind={kind} item={item} />
               <Button variant="ghost" asChild>
                 <a href={enquiryMailto(item)}>
                   <Mail className="mr-2 h-4 w-4" /> Enquire

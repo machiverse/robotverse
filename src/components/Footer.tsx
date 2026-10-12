@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Phone, MapPin, Facebook, Youtube, Linkedin, Instagram } from "lucide-react";
 import BrandLogo from "@/components/BrandLogo";
+import PublicRobotResourceLinks from "@/components/SEO/PublicRobotResourceLinks";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -162,6 +163,7 @@ const Footer = () => {
           </div>
         </div>
 
+        <PublicRobotResourceLinks />
         <Separator className="my-8" />
 
         {/* Bottom Bar */}

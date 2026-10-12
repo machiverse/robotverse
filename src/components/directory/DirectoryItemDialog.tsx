@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
+import DatasheetButton from "./DatasheetButton";
 import { directorySlug } from "@/lib/seo/seoText";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import ItemImage from "./ItemImage";
 import RobotComponents from "./RobotComponents";
-import { enquiryMailto, oemPhotoSearchUrl, type CatalogItem, type CatalogKind, type Photo } from "./directoryTypes";
+import { enquiryMailto, type CatalogItem, type CatalogKind, type Photo } from "./directoryTypes";
 
 interface Props {
   kind: CatalogKind;
@@ -91,12 +92,7 @@ const DirectoryItemDialog = ({ kind, item, photo, onOpenChange }: Props) => {
               Enquire about this
             </a>
           </Button>
-          <Button variant="outline" asChild>
-            <a href={oemPhotoSearchUrl(item)} target="_blank" rel="noopener noreferrer">
-              <ImageIcon className="mr-2 h-4 w-4" />
-              Find OEM photos
-            </a>
-          </Button>
+          <DatasheetButton kind={kind} item={item} />
         </div>
 
         <p className="text-xs text-muted-foreground">

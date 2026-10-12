@@ -1,3 +1,4 @@
+import DatasheetAdminPanel from "@/components/directory/DatasheetAdminPanel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, EyeOff, ImageOff, Loader2, Pause, Play, RefreshCw, Save, Server, Square } from "lucide-react";
@@ -145,6 +146,7 @@ export default function DirectoryPhotosAdmin() {
 
   return (
     <Shell>
+      <DatasheetAdminPanel />
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Directory real photos</h1>

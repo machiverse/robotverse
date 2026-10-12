@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { mailto } from "./directoryTypes";
 import { COMPONENT_GUIDE } from "./robotBom";
+import DatasheetButton from "./DatasheetButton";
 
 export interface Part {
   id: string;
@@ -284,6 +285,7 @@ export default function PartsDirectory() {
                     <Mail className="mr-2 h-4 w-4" /> Send enquiry
                   </a>
                 </Button>
+                <DatasheetButton kind="parts" item={{ id: open.id, b: open.brand, m: open.model || open.name }} />
                 <Button variant="outline" asChild>
                   <a href={`/parts?search=${encodeURIComponent(open.model)}`}>Find in RobotVerse spare parts</a>
                 </Button>

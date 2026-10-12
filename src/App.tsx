@@ -69,6 +69,7 @@ import ApiDocs from "./pages/ApiDocs";
 import Contact from "./pages/Contact";
 // Loaded on demand so the Directory adds nothing to the main bundle
 import WithBack from "./components/navigation/WithBack";
+const RobotResourcePage = lazy(() => import("./pages/RobotResourcePage"));
 const AutomationStudioBuildPage = lazy(() => import("./pages/AutomationStudioBuildPage"));
 const AutomationPlaybookPage = lazy(() => import("./pages/AutomationPlaybookPage"));
 const AboutPage = lazy(() => import("./pages/About"));
@@ -180,6 +181,8 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/account-status" element={<AccountStatus />} />
               <Route path="/robots" element={<Robots />} />
+              <Route path="/robot-guides" element={<Suspense fallback={null}><RobotResourcePage /></Suspense>} />
+              <Route path="/robot-guides/:slug" element={<Suspense fallback={null}><RobotResourcePage /></Suspense>} />
               <Route path="/robots/compare" element={<RobotComparison />} />
               {/* Programmatic SEO landing pages (must precede dynamic /robots/:id) */}
               <Route path="/robots/city/:city" element={<CityRobots />} />

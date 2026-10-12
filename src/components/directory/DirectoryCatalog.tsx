@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,7 @@ import {
   Wrench,
 } from "lucide-react";
 import DirectoryItemDialog from "./DirectoryItemDialog";
+import { loadDatasheetIndex } from "./datasheetClient";
 import ItemImage from "./ItemImage";
 import { enquiryMailto, mailto, type CatalogItem, type CatalogKind, type PhotoMap } from "./directoryTypes";
 
@@ -177,6 +178,8 @@ const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
     refetchInterval: 60 * 1000,
     refetchOnWindowFocus: true,
   });
+  // Load the datasheet list with the catalogue, so a robot's "Datasheet (PDF)" opens at once.
+  useEffect(() => { loadDatasheetIndex(kind).catch(() => { /* The button retries on click. */ }); }, [kind]);
 
   const [, setSearchParams] = useSearchParams();
   const [query, setQuery] = useDebouncedUrlParam("q", "");

@@ -144,9 +144,9 @@ const Contact = () => {
                     <div>
                       <h3 className="font-medium">Our Office</h3>
                       <p className="text-muted-foreground text-sm">
-                        SIPCOT IT Park, 5-B/9,<br />
-                        6th Cross St, Siruseri,<br />
-                        Chennai, Tamil Nadu 603103
+                        No. 309A, ECR, Near PEC & PU, <br />
+                         Pillaichavady, Vanur Taluk, Villupuram District,<br />
+                       Tamil Nadu 605014, India
                       </p>
                     </div>
                   </div>

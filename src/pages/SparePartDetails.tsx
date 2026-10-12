@@ -48,6 +48,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { ListingRatingSummary } from "@/components/reviews/ListingRatingSummary";
 import type { SparePartSEOData } from "@/utils/seo";
 import { AEOContentBlock } from "@/components/SEO/AEOContentBlock";
+import PublicRobotResourceLinks from "@/components/SEO/PublicRobotResourceLinks";
 import { generateSparePartFAQs } from "@/utils/seo/programmaticSEO";
 import { generateBreadcrumbSchema } from "@/utils/seo/modernSchemas";
 
@@ -928,6 +929,7 @@ const SparePartDetails = () => {
               { name: sparePart.name, url: `https://robotverse.in/parts/${sparePart.id}` },
             ])}
           />
+          <PublicRobotResourceLinks />
         </div>
       </div>
 

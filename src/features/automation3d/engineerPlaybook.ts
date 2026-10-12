@@ -304,6 +304,22 @@ export const JOB_NOTES: Record<string, string[]> = {
   "Labeling & Weighing": ["Verify every label with a code reader", "Checkweighers for sale by weight must meet Legal Metrology rules"],
   "Packing & Box Forming": ["Above about 60 picks per minute use a delta robot with conveyor tracking", "Carton erector and sealer set the line pace — size them first"],
   "Palletizing": ["Pattern software builds layers and interlocking from case size", "Plan slip sheets, stretch wrapping and pallet quality checks"],
+  "Depalletizing": ["3D vision finds each case when layer patterns vary or cases shift in transit", "Remove slip sheets with a vacuum strip or a second tool", "Single-SKU pallets can use the known pattern; mixed pallets need vision"],
+  "Kitting & Sequencing": ["Kit trays with one pocket per part make a missing part obvious", "Check each kit with pick-to-light or vision before it leaves", "Sequence kits to the assembly line's build order (just-in-sequence)"],
+  "Mobile Manipulator Machine Tending": ["Docking is only accurate to a few mm: use reference markers or a touch-off at each machine", "Battery and charging time decide how many machines one robot can serve", "Platform safety to ISO 3691-4 and arm safety to ISO 10218 — plan speed limits and scanner fields"],
+  "Die Casting Extraction": ["Extract, check the part is complete, quench and trim in one robot cycle", "Heat-resistant jacket and gripper; the same robot can spray die release", "Interlock die-open and ejector signals with the casting machine"],
+  "Press Brake Bending": ["The robot follows the sheet as it bends, synchronised with the ram", "Plan a regrip station for parts that need several bends", "Angle measurement and back-gauge keep bends in tolerance"],
+  "Sheet Loading & Nested Part Sorting": ["Peel the top sheet and check for double sheets before loading", "Micro-joints keep nested parts in place until the robot sorts them", "Sort by order and destination; plan skeleton removal and scrap handling"],
+  "Laser Welding": ["Fit-up gap must be tiny (about 10% of sheet thickness) — fixtures matter most", "Class 4 laser: fully enclosed cell with laser-safe windows and interlocks", "Seam tracking or vision, because the laser spot is under 1 mm"],
+  "Ultrasonic Plastic Welding": ["Design energy directors into the parts; the joint design decides the weld", "Weld to energy, time or collapse distance, and log every weld", "The robot either carries the welding stack or loads a fixed welding press"],
+  "Potting, Gap Filler & Conformal Coating": ["Meter-mix two-part materials and purge before the pot life ends", "Slow flow or vacuum potting avoids voids", "Mask connectors or use a selective coating valve; inspect under UV light"],
+  "Laser Cleaning & Surface Prep": ["Tune pulse energy and overlap for each coating and base metal", "Class 4 laser enclosure and fume extraction are required", "Keep a constant stand-off with the robot path or a distance sensor"],
+  "Riveting Assembly": ["Monitor force and stroke on every self-pierce or blind rivet", "Access from both sides, or one side for blind rivets, decides the tool", "C-frame riveting tools are heavy: size the robot for the tool, not the part"],
+  "Wire Harness Assembly": ["Routing cables on the board is the hardest step: use dual-arm robots or cable guides", "Test continuity of every circuit at the end", "Start by automating cutting, stripping and crimping"],
+  "Dimensional Measurement & Gauging": ["Measurement error should be under 10% of the tolerance (Gauge R&R)", "Temperature changes part size: measure in a stable area or compensate", "Robot-held scanners need a calibrated reference artefact"],
+  "Leak Testing": ["Pressure decay for larger leaks; helium or tracer gas for very small leaks", "Temperature and seal wear cause false results — verify daily with a master leak", "Seal fixtures must suit every variant"],
+  "Cartoning (Product into Cartons)": ["Count and orient products before the robot picks", "Delta robots with conveyor tracking for high speeds", "The carton erector and closer set the line pace — size them first"],
+  "Bag & Sack Palletizing": ["Flatten and shape bags before picking for stable stacks", "Fork or claw grippers support the bag from below", "Interlock the layers and check layer height"],
 };
 
 /* ------------------------------------------------------ core engineering skills */
@@ -327,6 +343,10 @@ export const CORE_SKILLS: CoreSkill[] = [
   { name: "Simulation and offline programming", goal: "Prove the cell before buying steel.", steps: ["Check reach and collisions for every point", "Measure cycle time and find the bottleneck", "Generate robot programs offline to shorten commissioning"], rule: "Simulated cycle times are usually within 10% of real ones." },
   { name: "Commissioning and acceptance", goal: "The cell does what was promised, at rate.", steps: ["Agree FAT/SAT criteria at order: cycle, quality, uptime", "Run at rate for several hours with real parts", "Train operators and maintenance; hand over spares list"], rule: "Write acceptance criteria into the purchase order." },
   { name: "OEE and maintenance", goal: "The cell keeps running after hand-over.", steps: ["OEE = availability × performance × quality", "Plan greasing, battery and cable checks", "Keep critical spares: gripper parts, cables, cups, tips"], rule: "World-class OEE is about 85%; most new cells start near 60–70%." },
+  { name: "Pneumatics and utilities", goal: "Enough air, vacuum and power for every tool.", steps: ["List every cylinder, gripper and blow-off with its size and cycles", "Air use = cylinder volume × pressure ratio × strokes per minute", "Add 20–30% for leaks and supply dry, filtered air"], rule: "Leaks often waste 20–30% of compressed air: check them at hand-over." },
+  { name: "Conveyors and buffers", goal: "Parts reach each robot on time without stopping the line.", steps: ["Belt speed = parts per minute × pitch", "Put buffers before slow or less reliable stations", "Use accumulation or zero-pressure conveyors where parts must not touch"], rule: "A few minutes of buffer stops one fault from stopping the whole line." },
+  { name: "Palletizing patterns", goal: "Stable, full pallets at the required rate.", steps: ["Fit cases per layer from pallet and case size", "Interlock alternate layers and add slip sheets", "Check the robot's picks per minute against the case rate"], rule: "No overhang, and keep stack height within truck and racking limits." },
+  { name: "Business case and payback", goal: "Show when the robot cell pays for itself.", steps: ["Savings = operators freed × shifts × yearly cost, plus scrap and quality gains", "Cost = robot, tooling, safety, integration and training", "Payback = cost ÷ yearly savings"], rule: "Many projects aim for payback within one to three years." },
 ];
 
 /* --------------------------------------------------------------- calculators */
@@ -370,5 +390,45 @@ export const calc = {
   vision(fovMm: number, featureMm: number, pxPerFeature = 4) {
     const px = featureMm > 0 ? Math.ceil((fovMm / featureMm) * pxPerFeature) : 0;
     return { px, mp: (px * px * 0.75) / 1e6 };
+  },
+  /** OEE = availability × performance × quality, from one shift's numbers. */
+  oee(plannedMin: number, downMin: number, idealCycleS: number, totalParts: number, goodParts: number) {
+    const runMin = Math.max(0, plannedMin - downMin);
+    const availability = plannedMin > 0 ? runMin / plannedMin : 0;
+    const performance = runMin > 0 ? Math.min(1, (idealCycleS * totalParts) / (runMin * 60)) : 0;
+    const quality = totalParts > 0 ? Math.min(1, goodParts / totalParts) : 0;
+    return { availability, performance, quality, oee: availability * performance * quality };
+  },
+  /** Simple payback: cell cost against the yearly labour freed plus other savings. */
+  payback(cellCost: number, operators: number, shifts: number, monthlyCostPerOperator: number, otherMonthly = 0) {
+    const monthly = operators * shifts * monthlyCostPerOperator + otherMonthly;
+    return { monthly, yearly: monthly * 12, months: monthly > 0 ? cellCost / monthly : Infinity };
+  },
+  /** Conveyor speed for a part rate at a given pitch, and the gap left between parts. */
+  conveyor(partsPerMin: number, pitchMm: number, partLengthMm: number) {
+    return { speedMpm: (partsPerMin * pitchMm) / 1000, gapMm: pitchMm - partLengthMm };
+  },
+  /** Cases per layer (best block or two-block pattern), layers and cases per pallet. */
+  pallet(palletL: number, palletW: number, caseL: number, caseW: number, caseH: number, maxStackMm: number) {
+    const fit = (L: number, W: number, a: number, b: number) => {
+      if (a <= 0 || b <= 0) return 0;
+      let best = 0;
+      // i rows of a×b cases along L, the rest of L filled with the case turned 90°.
+      for (let i = 0; i <= Math.floor(L / a); i++) {
+        const n = i * Math.floor(W / b) + Math.floor((L - i * a) / b) * Math.floor(W / a);
+        best = Math.max(best, n);
+      }
+      return best;
+    };
+    const perLayer = Math.max(fit(palletL, palletW, caseL, caseW), fit(palletW, palletL, caseL, caseW));
+    const layers = caseH > 0 ? Math.floor(maxStackMm / caseH) : 0;
+    const area = palletL * palletW;
+    return { perLayer, layers, total: perLayer * layers, fill: area > 0 ? (perLayer * caseL * caseW) / area : 0 };
+  },
+  /** Free-air consumption of a pneumatic cylinder, litres per minute. */
+  air(boreMm: number, strokeMm: number, bar: number, cyclesPerMin: number, doubleActing: boolean) {
+    const litresPerStroke = (Math.PI / 4) * boreMm ** 2 * strokeMm * 1e-6;
+    const strokes = doubleActing ? 2 : 1;
+    return litresPerStroke * strokes * ((bar + 1.013) / 1.013) * cyclesPerMin;
   },
 };
