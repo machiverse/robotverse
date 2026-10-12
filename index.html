@@ -137,6 +137,24 @@
     </script>
 
 
+    <!-- Zoho SalesIQ visitor tracking (chat widget hidden, tracking only) -->
+    <script>
+      window.$zoho = window.$zoho || {};
+      $zoho.salesiq = $zoho.salesiq || {
+        ready: function () {
+          // Track visitors only — never display the chat float button
+          try {
+            $zoho.salesiq.floatbutton.visible("hide");
+          } catch (e) {}
+        }
+      };
+    </script>
+    <script
+      id="zsiqscript"
+      src="https://salesiq.zohopublic.in/widget?wc=siq3059947f424d9ad32c855c87a158c031dfcf1b8b40fa338cd70fa9317dba2065"
+      defer
+    ></script>
+
     <!-- Cloudflare Web Analytics -->
     <script
       defer
