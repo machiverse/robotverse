@@ -18,7 +18,7 @@ import { loadDirectoryRobots, loadDirectoryTools, loadMarketRobots, loadMarketTo
 import { mailto } from "@/components/directory/directoryTypes";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
-import { budgetFor, CycleTracker, decodeLine, encodeLine, reportHtml, roi, STARTERS, STEP_GROUP, suggest, suggestSwap, type Raw, type StarterCell, type StepTime } from "./builderExtras";
+import { budgetFor, CycleTracker, decodeLine, encodeLine, isCobotMatch, reportHtml, roi, STARTERS, STEP_GROUP, suggest, suggestSwap, type Raw, type StarterCell, type StepTime } from "./builderExtras";
 import { inr as inrShort } from "./solutionCost";
 import { KIND_JOB, thinkCell, type Thought } from "./engineerPlaybook";
 import { attachmentIssues, type FitIssue } from "./attachmentFit";
@@ -83,7 +83,7 @@ const marketTool = (t: Record<string, unknown>): Match => ({
 
 // Cell equipment that does not go on the arm (stations, power sources, feeders).
 const NOT_ON_ARM = /cleaning|reamer|station|power source|wire feeder|feeder|proportioner|controller/i;
-const isCobot = (m?: Match) => !!m && (m.reasons.includes("Collaborative") || /cobot|collaborative|\bur\d|crx|techman|doosan|gofa|crb\s?1|iisy/i.test(`${m.type} ${m.name}`));
+const isCobot = isCobotMatch;
 const ROBOT_TYPES = ["All", "6-Axis", "Cobot", "SCARA", "Delta", "Palletizing", "7-Axis"] as const;
 const SLOTS: { key: Slot; label: string; icon: typeof Bot }[] = [
   { key: "robot", label: "Robot arm", icon: Bot },
@@ -380,11 +380,11 @@ export default function CellBuilder() {
   // A ready-made line: robot, tools and cell equipment for each job (the user changes anything after).
   const applyStarter = (jobs: string[], specs?: StarterCell[]) => {
     const needs = needsFor(jobs);
-    const swap = raw ? suggestSwap(raw) : {};
     const next: Cell[] = jobs.map((job, i) => {
       const spec = specs?.[i];
       let choice: Choice = raw ? suggest(job, needs[i] ?? 10, raw) : {};
-      // Robots that load their own parts carry a gripper on the tool stand and a tool changer.
+      // Robots that load their own parts carry a gripper on the tool stand and a tool changer, both for that robot.
+      const swap = raw && spec?.swap ? suggestSwap(raw, choice.robot) : {};
       const swapping = !!spec?.swap && !!swap.tool2 && !!swap.changer;
       if (swapping) choice = { ...choice, tool2: swap.tool2, changer: swap.changer };
       const stations = spec && (swapping || !spec.swap) ? spec.stations : stationsFor(job, [toolKindOf(choice.tool), toolKindOf(choice.tool2)], !!choice.changer);
@@ -397,7 +397,8 @@ export default function CellBuilder() {
   const suggestFor = (i: number) => {
     if (!raw || !cells[i]) return;
     const need = plan?.robots[i]?.minPayload ?? 10;
-    const pick = suggest(cells[i].job, need, raw);
+    // An open (cobot) cell the user chose stays a cobot cell.
+    const pick = suggest(cells[i].job, need, raw, cells[i].fenced === false);
     update(i, (c) => ({ ...c, choice: { ...c.choice, ...pick }, fenced: pick.robot ? !isCobot(pick.robot) : c.fenced }));
   };
   const applyTyped = (tasks: JobTask[], target: number | "new") => {

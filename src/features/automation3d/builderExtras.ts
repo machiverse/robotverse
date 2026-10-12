@@ -10,6 +10,7 @@ import {
 } from "./equipmentMatch";
 import { eoatKind } from "./robotSim.js";
 import type { StationKey } from "./cellProgram";
+import { gearFor, isCobotName } from "./jobGear";
 
 /* ---------------------------------------------------------- starter cells */
 
@@ -39,33 +40,51 @@ export interface Raw {
   mt: Record<string, unknown>[];
 }
 const CELL_REACH_MM = 1400;
-const NOT_ON_ARM = /cleaning|reamer|station|power source|feeder|proportioner|controller/i;
+/** A robot is a cobot when its maker lists it as collaborative, or by its well-known name. */
+export const isCobotMatch = (m?: Match) => !!m && (m.reasons.includes("Collaborative") || isCobotName(`${m.type} ${m.name}`));
+/** Brand, model and class of the robot a tool goes on, so a tool made for one robot is offered only for it. */
+const armOf = (m?: Match) => (m ? `${m.brand} ${m.name}${isCobotMatch(m) ? " collaborative" : ""}` : undefined);
 
-/** The best robot and tool for a job: listed on the marketplace first, else from the Directory. */
+/**
+ * The best robot and tool for a job: listed on the marketplace first, else from the Directory.
+ * The robot is chosen for the job (a spot-welding robot for spot welding, a palletizer for stacking),
+ * then the tool for the job and for that robot (the family the job's program uses, sized for the part).
+ */
 export function suggest(job: string, needKg: number, raw: Raw, cobot = false): Choice {
   const kind = processKind({ name: job });
   // The 3D cell's stations sit about 1.4 m from the robot, so suggested arms must reach that far.
-  // Payload with a 25% margin for acceleration and inertia, as an integrator sizes it.
-  const need: StationNeed = { kind, payload: Math.ceil(needKg * 1.25), reach: CELL_REACH_MM, cobot, robotType: null };
+  // Light jobs get a 25% payload margin for acceleration and inertia; heavy jobs (100 kg and up) are
+  // already sized as a robot class with the gripper or gun included.
+  const payload = needKg >= 100 ? Math.ceil(needKg) : Math.ceil(needKg * 1.25);
+  const need: StationNeed = { kind, job, payload, reach: CELL_REACH_MM, cobot: cobot || !!gearFor(job, kind).robot.cobot, robotType: null };
   const robot = matchMarketRobots(need, raw.mr, 1)[0] ?? matchOemRobots(need, raw.dr, 1)[0];
-  const tool = [...matchMarketTools(need, raw.mt, job, 3), ...matchOemTools(need, raw.dt, job, 6)].find((t) => !NOT_ON_ARM.test(t.name));
+  const onArm = { ...need, arm: armOf(robot), cobot: need.cobot || isCobotMatch(robot) };
+  // The job already chose the tool family and head (gearFor); its name is not a hint on top.
+  const tool = matchMarketTools(onArm, raw.mt, "", 1)[0] ?? matchOemTools(onArm, raw.dt, "", 1)[0];
   return { ...(robot ? { robot } : {}), ...(tool ? { tool } : {}) };
 }
 
 const CHANGER = /tool ?changer|quick ?change|\bqc-?\d|\bqcs?\b/i;
 /**
  * A gripper and a tool changer for a robot that loads its own parts and then swaps to its process
- * tool. Marketplace listings first, else the Directory.
+ * tool: a gripper sized for the part and made for that robot, and the robot-side half of a changer
+ * of its class (cobot plug-and-play or industrial). Marketplace listings first, else the Directory.
  */
-export function suggestSwap(raw: Raw): { tool2?: Match; changer?: Match } {
-  const need: StationNeed = { kind: "handling", payload: 12, reach: CELL_REACH_MM, cobot: false, robotType: null };
-  const tool2 = [...matchMarketTools(need, raw.mt, "parallel gripper", 6), ...matchOemTools(need, raw.dt, "parallel gripper", 12)].find(
-    (t) => !NOT_ON_ARM.test(t.name) && !/yumi/i.test(t.name) && ["parallel", "dual"].includes(eoatKind(`${t.name} ${t.type ?? ""}`)),
+export function suggestSwap(raw: Raw, robot?: Match, partKg = 8): { tool2?: Match; changer?: Match } {
+  const cobot = isCobotMatch(robot);
+  const need: StationNeed = { kind: "handling", job: "Loading & Unloading", payload: Math.ceil(partKg), reach: CELL_REACH_MM, cobot, robotType: null, arm: armOf(robot) };
+  const tool2 = [...matchMarketTools(need, raw.mt, "", 6), ...matchOemTools(need, raw.dt, "", 12)].find(
+    (t) => ["parallel", "dual"].includes(eoatKind(`${t.name} ${t.type ?? ""}`)),
   );
-  // A real tool changer by its name first; the catalogue's "Tool Changer" category also holds other tools.
-  const fromDir = raw.dt.find((t) => CHANGER.test(t.n)) ?? raw.dt.find((t) => /tool ?changer/i.test(t.c) && !/deburr|spindle|grip|compliance/i.test(t.n));
+  // A real tool changer by its name, the half that bolts to the robot; the catalogue's "Tool Changer"
+  // group also holds deburring tools.
+  const changers = raw.dt.filter((t) => CHANGER.test(t.n) && !/\(tool/i.test(t.n) && !/deburr|spindle|grip|compliance/i.test(t.n));
+  const forClass = cobot ? /onrobot|zimmer .*(?:hrc|lwr|match)|robotiq/i : /\bATI\b|SCHUNK|Zimmer WWR/i;
+  // A dual changer carries two tools at once; swapping at a tool stand needs a single one.
+  const single = (t: DirTool) => (/dual/i.test(t.n) ? 1 : 0);
+  const fromDir = changers.filter((t) => forClass.test(t.n)).sort((a, b) => single(a) - single(b))[0] ?? changers[0] ?? raw.dt.find((t) => /tool ?changer/i.test(t.c) && !/deburr|spindle|grip|compliance/i.test(t.n));
   const changer: Match | undefined = fromDir
-    ? { source: "oem", kind: "tool", id: fromDir.id, name: fromDir.n, brand: fromDir.b, model: fromDir.m, type: fromDir.c, file: { img: fromDir.img, th: fromDir.th }, href: `/directory?tab=tools&q=${encodeURIComponent(fromDir.n)}`, score: 0, reasons: [] }
+    ? { source: "oem", kind: "tool", id: fromDir.id, name: fromDir.n, brand: fromDir.b, model: fromDir.m, type: fromDir.c, file: { img: fromDir.img, th: fromDir.th }, href: `/directory?tab=tools&q=${encodeURIComponent(fromDir.n)}`, score: 0, reasons: [cobot ? "For a cobot flange" : "For an industrial robot"] }
     : undefined;
   return { ...(tool2 ? { tool2 } : {}), ...(changer ? { changer } : {}) };
 }
