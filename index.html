@@ -137,6 +137,31 @@
     </script>
 
 
+    <!-- Zoho SalesIQ visitor tracking (chat widget hidden, tracking only) -->
+    <style>
+      /* Tracking only: never show the SalesIQ chat button or window */
+      #zsiq_float, #zsiq_chat_wrap, #zsiq_floatbutton { display: none !important; }
+    </style>
+    <script>
+      window.$zoho = window.$zoho || {};
+      $zoho.salesiq = $zoho.salesiq || {
+        ready: function () {
+          // Track visitors only — hide the chat widget (retry until the widget is up)
+          var tries = 0;
+          var hide = function () {
+            try { $zoho.salesiq.floatbutton.visible("hide"); } catch (e) {}
+            if (++tries < 20) { setTimeout(hide, 500); } 
+          };
+          hide();
+        }
+      };
+    </script>
+    <script
+      id="zsiqscript"
+      src="https://salesiq.zohopublic.in/widget?wc=siq3059947f424d9ad32c855c87a158c031dfcf1b8b40fa338cd70fa9317dba2065"
+      defer
+    ></script>
+
     <!-- Cloudflare Web Analytics -->
     <script
       defer
