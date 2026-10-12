@@ -1,5 +1,5 @@
 // Types for the framework-free simulation engine in robotSim.js.
-export type SimStep = { action: string; station: string; label: string; auto?: boolean; text?: string };
+export type SimStep = { action: string; station: string; label: string; auto?: boolean; text?: string; /** Tool to change to (0 = arm tool, 1 = tool-stand tool). */ tool?: number };
 
 export interface SimUpdate {
   playing: boolean;
@@ -20,7 +20,8 @@ export interface SimUpdate {
 }
 
 export interface SimPlan {
-  cells: { title?: string; steps: SimStep[] }[];
+  /** stations: equipment to show even when no step uses it (cell builder); startTool: tool in use when a cycle starts. */
+  cells: { title?: string; steps: SimStep[]; stations?: string[]; startTool?: number }[];
 }
 
 export interface Simulation {
@@ -49,6 +50,8 @@ export interface Simulation {
     eq: {
       robot?: { name: string; brand?: string; reachMm?: number | null; payloadKg?: number | null; collaborative?: boolean };
       eoat?: { name: string; kind?: string };
+      /** Tools the robot can use: on the arm first, then on the tool stand (tool changer). */
+      tools?: { name: string; kind?: string }[];
       accessories?: ("changer" | "sensor" | "camera")[];
     } | null,
   ): void;

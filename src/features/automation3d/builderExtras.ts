@@ -8,16 +8,24 @@ import {
   matchMarketRobots, matchMarketTools, matchOemRobots, matchOemTools,
   type DirRobot, type DirTool, type Match, type StationNeed,
 } from "./equipmentMatch";
+import { eoatKind } from "./robotSim.js";
+import type { StationKey } from "./cellProgram";
 
 /* ---------------------------------------------------------- starter cells */
 
-export const STARTERS: { id: string; name: string; what: string; jobs: string[] }[] = [
-  { id: "weld", name: "Welding cell", what: "MIG/MAG welding on a fixture table", jobs: ["MIG/MAG Welding"] },
-  { id: "weld-pal", name: "Weld & palletize", what: "Weld, then stack finished parts", jobs: ["MIG/MAG Welding", "Palletizing"] },
-  { id: "cnc", name: "CNC machine tending", what: "Load and unload a CNC machine", jobs: ["CNC Machining"] },
-  { id: "pack", name: "Pick & pack", what: "Pick from conveyor, pack into cartons", jobs: ["Loading & Unloading", "Packing & Box Forming"] },
-  { id: "pal", name: "End-of-line palletizing", what: "Stack cartons or bags on pallets", jobs: ["Palletizing"] },
-  { id: "finish", name: "Grind & polish", what: "Remove weld spatter, then polish", jobs: ["Grinding & Surface Prep", "Polishing"] },
+/** One cell of a ready-made line: its equipment, and whether the robot swaps a gripper and a process tool. */
+export interface StarterCell {
+  stations: StationKey[];
+  /** Gripper on the tool stand + tool changer: the robot loads parts itself, then changes to the process tool. */
+  swap?: boolean;
+}
+export const STARTERS: { id: string; name: string; what: string; jobs: string[]; cells: StarterCell[] }[] = [
+  { id: "weld", name: "Welding cell", what: "Gripper loads the fixture, tool changer swaps to the MIG torch", jobs: ["MIG/MAG Welding"], cells: [{ stations: ["conveyor", "weld", "pallet", "rack"], swap: true }] },
+  { id: "weld-pal", name: "Weld & palletize", what: "Weld, pass on the outfeed, stack on the pallet", jobs: ["MIG/MAG Welding", "Palletizing"], cells: [{ stations: ["conveyor", "weld", "out", "rack"], swap: true }, { stations: ["pallet"] }] },
+  { id: "cnc", name: "CNC machine tending", what: "Load and unload a CNC machine", jobs: ["CNC Machining"], cells: [{ stations: ["conveyor", "cnc", "pallet"] }] },
+  { id: "pack", name: "Pick & pack", what: "Pick from conveyor, pack into cartons", jobs: ["Loading & Unloading", "Packing & Box Forming"], cells: [{ stations: ["conveyor", "out"] }, { stations: ["carton"] }] },
+  { id: "pal", name: "End-of-line palletizing", what: "Stack cartons or bags on pallets", jobs: ["Palletizing"], cells: [{ stations: ["conveyor", "pallet"] }] },
+  { id: "finish", name: "Grind & polish", what: "Grind, pass on, polish — gripper and spindle on tool changers", jobs: ["Grinding & Surface Prep", "Polishing"], cells: [{ stations: ["conveyor", "table", "out", "rack"], swap: true }, { stations: ["table", "pallet", "rack"], swap: true }] },
 ];
 
 /* --------------------------------------------------------- best-fit picks */
@@ -40,6 +48,24 @@ export function suggest(job: string, needKg: number, raw: Raw, cobot = false): C
   const robot = matchMarketRobots(need, raw.mr, 1)[0] ?? matchOemRobots(need, raw.dr, 1)[0];
   const tool = [...matchMarketTools(need, raw.mt, job, 3), ...matchOemTools(need, raw.dt, job, 6)].find((t) => !NOT_ON_ARM.test(t.name));
   return { ...(robot ? { robot } : {}), ...(tool ? { tool } : {}) };
+}
+
+const CHANGER = /tool ?changer|quick ?change|\bqc-?\d|\bqcs?\b/i;
+/**
+ * A gripper and a tool changer for a robot that loads its own parts and then swaps to its process
+ * tool. Marketplace listings first, else the Directory.
+ */
+export function suggestSwap(raw: Raw): { tool2?: Match; changer?: Match } {
+  const need: StationNeed = { kind: "handling", payload: 12, reach: CELL_REACH_MM, cobot: false, robotType: null };
+  const tool2 = [...matchMarketTools(need, raw.mt, "parallel gripper", 6), ...matchOemTools(need, raw.dt, "parallel gripper", 12)].find(
+    (t) => !NOT_ON_ARM.test(t.name) && !/yumi/i.test(t.name) && ["parallel", "dual"].includes(eoatKind(`${t.name} ${t.type ?? ""}`)),
+  );
+  // A real tool changer by its name first; the catalogue's "Tool Changer" category also holds other tools.
+  const fromDir = raw.dt.find((t) => CHANGER.test(t.n)) ?? raw.dt.find((t) => /tool ?changer/i.test(t.c) && !/deburr|spindle|grip|compliance/i.test(t.n));
+  const changer: Match | undefined = fromDir
+    ? { source: "oem", kind: "tool", id: fromDir.id, name: fromDir.n, brand: fromDir.b, model: fromDir.m, type: fromDir.c, file: { img: fromDir.img, th: fromDir.th }, href: `/directory?tab=tools&q=${encodeURIComponent(fromDir.n)}`, score: 0, reasons: [] }
+    : undefined;
+  return { ...(tool2 ? { tool2 } : {}), ...(changer ? { changer } : {}) };
 }
 
 /* ------------------------------------------------------ cycle breakdown */
@@ -90,9 +116,11 @@ export class CycleTracker {
 export const STEP_GROUP = (action: string): { key: string; label: string; color: string } => {
   if (/pick/.test(action)) return { key: "pick", label: "Pick", color: "#60a5fa" };
   if (/place/.test(action)) return { key: "place", label: "Place", color: "#a78bfa" };
-  if (/weld|grind|polish|paint|spray|dispens|glue|process|screw|assemble|fill|cap|label|seal|deburr/.test(action))
+  if (/weld|grind|polish|finish|paint|spray|apply|dispens|glue|process|screw|assemble|fill|cap|label|seal|deburr/.test(action))
     return { key: "work", label: "Process", color: "#f97316" };
-  if (/inspect/.test(action)) return { key: "inspect", label: "Inspect", color: "#22c55e" };
+  if (/inspect|check/.test(action)) return { key: "inspect", label: "Inspect", color: "#22c55e" };
+  if (/toolchange/.test(action)) return { key: "change", label: "Tool change", color: "#eab308" };
+  if (/manual/.test(action)) return { key: "manual", label: "Operator", color: "#f472b6" };
   return { key: "move", label: "Move", color: "#94a3b8" };
 };
 
@@ -125,11 +153,11 @@ export function roi(total: [number, number], operators: number, shifts: number, 
 
 /* ----------------------------------------------------------- share link */
 
-type SharedCell = { j: string; u?: string; f?: boolean; s: Record<string, string> };
+type SharedCell = { j: string; u?: string; f?: boolean; s: Record<string, string>; t?: string[] };
 /** Compact, URL-safe description of the line (job, safety, and source:id of each part). */
-export function encodeLine(cells: { job: string; custom?: string; fenced?: boolean; choice: Choice }[]): string {
+export function encodeLine(cells: { job: string; custom?: string; fenced?: boolean; choice: Choice; stations?: string[] }[]): string {
   const data: SharedCell[] = cells.map((c) => ({
-    j: c.job, u: c.custom, f: c.fenced,
+    j: c.job, u: c.custom, f: c.fenced, t: c.stations,
     s: Object.fromEntries(Object.entries(c.choice).filter(([, m]) => m).map(([k, m]) => [k, `${(m as Match).source}:${(m as Match).id}`])),
   }));
   return btoa(unescape(encodeURIComponent(JSON.stringify(data)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");

@@ -22,6 +22,7 @@ export const STATION_NAMES = {
   carton: "Packing carton",
   in: "Transfer conveyor",
   out: "Transfer conveyor",
+  rack: "Tool stand",
 };
 
 /* Tool operations the robot performs on a part sitting on the work table.
@@ -94,6 +95,14 @@ export function stepLabel(step) {
       return "Inspect with camera";
     case "weld":
       return "Weld seam";
+    case "toolchange":
+      return "Change tool";
+    case "manual":
+      return "Operator changes the part";
+    case "check":
+      return "Camera check";
+    case "idle":
+      return "Waiting";
     default:
       if (TOOL_ACTIONS[step.action]) return step.text ? capitalise(step.text) : TOOL_ACTIONS[step.action].label;
       return "Wait";
@@ -722,6 +731,15 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         if (this.autoSpawn && !this.items.length && this.owner && this.owner.started()) {
           this.push(spawnPart(this.startPoint.clone()));
         }
+        // An outfeed carries finished parts out of the cell.
+        if (this.sink && this.items.length && Math.abs(this.items[0].mesh.position.x - toX) < 1e-3) {
+          const it = this.items[0];
+          it.t = (it.t || 0) + dt;
+          if (it.t > 0.6) {
+            this.items.shift();
+            removePart(it.mesh);
+          }
+        }
         this.items.forEach((it, i) => {
           const target = toX - dir * i * (PART.w + 0.06);
           const x = it.mesh.position.x;
@@ -754,8 +772,91 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     if (events.length > 6) events.length = 6;
   };
 
-  /* One robot with the stations its steps use, at world x = X */
-  function createCell(index, X, steps, title, links) {
+  /** One end-of-arm tool, built in the robot's flange frame (x along the tool axis). */
+  function makeEoat(kind) {
+    const group = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0x3a4250, metalness: 0.5, roughness: 0.4 });
+    const fingerTool = kind === "parallel" || kind === "dual";
+    const addTool = (mesh, x, y = 0, z = 0) => {
+      mesh.position.set(x, y, z);
+      group.add(mesh);
+      return mesh;
+    };
+    const gBody = box(0.07, 0.09, kind === "dual" ? 0.3 : 0.16, M.dark);
+    gBody.position.x = 0.045;
+    gBody.visible = fingerTool;
+    group.add(gBody);
+    const fingers = [];
+    for (const sgn of [-1, 1]) {
+      const f = box(0.09, 0.035, 0.018, M.steel);
+      f.position.set(0.12, 0, sgn * 0.075);
+      f.visible = fingerTool;
+      group.add(f);
+      fingers.push(f);
+    }
+    if (kind === "dual") {
+      // Second gripper on the other side of the wrist for raw / finished parts.
+      for (const sgn of [-1, 1]) {
+        const f = box(0.09, 0.035, 0.018, M.steel);
+        f.position.set(0.12, 0.1, sgn * 0.075);
+        group.add(f);
+      }
+    } else if (kind === "vacuum") {
+      addTool(box(0.03, 0.2, 0.2, mat), 0.05);
+      for (const [y, z] of [[-0.06, -0.06], [-0.06, 0.06], [0.06, -0.06], [0.06, 0.06]]) {
+        const stem = cyl(0.008, 0.07, M.steel, 10);
+        stem.rotation.z = Math.PI / 2;
+        addTool(stem, 0.1, y, z);
+        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.016, 0.025, 16), new THREE.MeshStandardMaterial({ color: 0x1a1d22, roughness: 0.9 }));
+        cup.rotation.z = -Math.PI / 2;
+        addTool(cup, 0.145, y, z);
+      }
+    } else if (kind === "magnet") {
+      addTool(box(0.04, 0.16, 0.16, mat), 0.05);
+      addTool(cyl(0.07, 0.05, new THREE.MeshStandardMaterial({ color: 0xb91c1c, metalness: 0.3, roughness: 0.5 })), 0.12).rotation.z = Math.PI / 2;
+    } else if (kind === "fork") {
+      addTool(box(0.04, 0.26, 0.28, mat), 0.05);
+      for (const z of [-0.09, 0, 0.09]) addTool(box(0.2, 0.02, 0.03, M.steel), 0.16, -0.12, z);
+      addTool(box(0.03, 0.12, 0.26, M.amber), 0.1, 0.08);
+    } else if (kind === "torch") {
+      const neck = cyl(0.022, 0.16, new THREE.MeshStandardMaterial({ color: 0x111418, roughness: 0.6 }), 12);
+      neck.rotation.z = Math.PI / 2;
+      addTool(neck, 0.09);
+      const bend = cyl(0.018, 0.08, new THREE.MeshStandardMaterial({ color: 0x111418, roughness: 0.6 }), 12);
+      bend.rotation.z = Math.PI / 2 + 0.6;
+      addTool(bend, 0.18, -0.02);
+      const tipC = cyl(0.014, 0.04, new THREE.MeshStandardMaterial({ color: 0xc27a3a, metalness: 0.8, roughness: 0.3 }), 12);
+      tipC.rotation.z = Math.PI / 2 + 0.6;
+      addTool(tipC, 0.215, -0.045);
+    } else if (kind === "spindle") {
+      const motor = cyl(0.045, 0.14, mat, 16);
+      motor.rotation.z = Math.PI / 2;
+      addTool(motor, 0.08);
+      const disc = cyl(0.07, 0.012, new THREE.MeshStandardMaterial({ color: 0x8b5e34, roughness: 0.95 }), 24);
+      disc.rotation.z = Math.PI / 2;
+      addTool(disc, 0.16);
+    } else if (kind === "driver") {
+      const body = cyl(0.03, 0.14, new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.3, roughness: 0.4 }), 14);
+      body.rotation.z = Math.PI / 2;
+      addTool(body, 0.08);
+      const bit = cyl(0.006, 0.06, M.steel, 8);
+      bit.rotation.z = Math.PI / 2;
+      addTool(bit, 0.18);
+    } else if (kind === "nozzle") {
+      const gun = cyl(0.028, 0.12, new THREE.MeshStandardMaterial({ color: 0x0e7490, metalness: 0.3, roughness: 0.4 }), 14);
+      gun.rotation.z = Math.PI / 2;
+      addTool(gun, 0.075);
+      const nz = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.014, 0.05, 10), M.steel);
+      nz.rotation.z = Math.PI / 2;
+      addTool(nz, 0.16);
+    }
+    return { kind, group, fingers, fingerTool, mat };
+  }
+  const PROCESS_TOOLS = ["torch", "spindle", "driver", "nozzle"];
+
+  /* One robot with the stations its steps use, at world x = X.
+     extra.stations: equipment the user placed (shown even if unused); extra.startTool: tool at cycle start. */
+  function createCell(index, X, steps, title, links, extra = {}) {
     const layout = LAYOUT[mode];
     const V = (x, y, z) => new THREE.Vector3(X + x, y, z);
     const groups = [];
@@ -764,8 +865,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       groups.push(g);
       return g;
     };
-    const needed = new Set(steps.map((s) => s.station));
+    const needed = new Set([...steps.map((s) => s.station), ...(extra.stations || [])]);
     if (steps.some((s) => TOOL_ACTIONS[s.action])) needed.add("table");
+    const startTool = extra.startTool || 0;
     const stations = {};
     let zoneGroup = null;
     let zoneLine = null;
@@ -948,6 +1050,44 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       stations.carton = { slots, parts: [], point: slots[0], lid, tape, closeT: 0 };
     }
 
+    // Tool stand: the tool changer parks the tool that is not on the arm here.
+    if (needed.has("rack")) {
+      const g = new THREE.Group();
+      const rx = X - 0.5, rz = 0.72;
+      const post = box(0.06, 0.9, 0.06, M.frame);
+      post.position.set(rx, 0.45, rz + 0.09);
+      g.add(post);
+      const shelf = box(0.32, 0.03, 0.22, M.steel);
+      shelf.position.set(rx, 0.88, rz);
+      g.add(shelf);
+      const cradle = box(0.16, 0.04, 0.02, M.amber);
+      cradle.position.set(rx, 0.91, rz - 0.07);
+      g.add(cradle);
+      const lbl = makeLabel(STATION_NAMES.rack);
+      lbl.position.set(rx, 1.5, rz);
+      g.add(lbl);
+      add(g);
+      let parked = null;
+      stations.rack = {
+        group: g,
+        point: V(-0.5, 1.2, rz),
+        show(kind) {
+          if (parked) {
+            g.remove(parked.group);
+            parked.group.traverse((o) => o.geometry && o.geometry.dispose());
+            parked.mat.dispose();
+            parked = null;
+          }
+          if (!kind || kind === "none") return;
+          parked = makeEoat(kind);
+          // Hangs tool-down in the cradle.
+          parked.group.rotation.z = -Math.PI / 2;
+          parked.group.position.set(rx, 1.13, rz);
+          g.add(parked.group);
+        },
+      };
+    }
+
     // Effects: sparks (welding, grinding, spraying) and a liquid stream (filling)
     const sparkCount = 60;
     const sparkGeo = new THREE.BufferGeometry();
@@ -1057,83 +1197,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       const flange = cyl(0.05, 0.02, trim);
       flange.rotation.z = Math.PI / 2;
       j6.add(flange);
-      // End-of-arm tool: the chosen product's family, else a parallel gripper.
-      const eoat = (model && model.eoat) || (buildMode ? "none" : "parallel");
-      const fingerTool = eoat === "parallel" || eoat === "dual";
-      const gBody = box(0.07, 0.09, eoat === "dual" ? 0.3 : 0.16, M.dark);
-      gBody.position.x = 0.045;
-      gBody.visible = fingerTool;
-      j6.add(gBody);
-      const fingers = [];
-      for (const sgn of [-1, 1]) {
-        const f = box(0.09, 0.035, 0.018, M.steel);
-        f.position.set(0.12, 0, sgn * 0.075);
-        f.visible = fingerTool;
-        j6.add(f);
-        fingers.push(f);
-      }
-      const eoatMat = new THREE.MeshStandardMaterial({ color: 0x3a4250, metalness: 0.5, roughness: 0.4 });
-      const addTool = (mesh, x, y = 0, z = 0) => {
-        mesh.position.set(x, y, z);
-        j6.add(mesh);
-        return mesh;
-      };
-      if (eoat === "dual") {
-        // Second gripper on the other side of the wrist for raw / finished parts.
-        for (const sgn of [-1, 1]) {
-          const f = box(0.09, 0.035, 0.018, M.steel);
-          f.position.set(0.12, 0.1, sgn * 0.075);
-          j6.add(f);
-        }
-      } else if (eoat === "vacuum") {
-        addTool(box(0.03, 0.2, 0.2, eoatMat), 0.05);
-        for (const [y, z] of [[-0.06, -0.06], [-0.06, 0.06], [0.06, -0.06], [0.06, 0.06]]) {
-          const stem = cyl(0.008, 0.07, M.steel, 10);
-          stem.rotation.z = Math.PI / 2;
-          addTool(stem, 0.1, y, z);
-          const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.016, 0.025, 16), new THREE.MeshStandardMaterial({ color: 0x1a1d22, roughness: 0.9 }));
-          cup.rotation.z = -Math.PI / 2;
-          addTool(cup, 0.145, y, z);
-        }
-      } else if (eoat === "magnet") {
-        addTool(box(0.04, 0.16, 0.16, eoatMat), 0.05);
-        addTool(cyl(0.07, 0.05, new THREE.MeshStandardMaterial({ color: 0xb91c1c, metalness: 0.3, roughness: 0.5 })), 0.12).rotation.z = Math.PI / 2;
-      } else if (eoat === "fork") {
-        addTool(box(0.04, 0.26, 0.28, eoatMat), 0.05);
-        for (const z of [-0.09, 0, 0.09]) addTool(box(0.2, 0.02, 0.03, M.steel), 0.16, -0.12, z);
-        addTool(box(0.03, 0.12, 0.26, M.amber), 0.1, 0.08);
-      } else if (eoat === "torch") {
-        const neck = cyl(0.022, 0.16, new THREE.MeshStandardMaterial({ color: 0x111418, roughness: 0.6 }), 12);
-        neck.rotation.z = Math.PI / 2;
-        addTool(neck, 0.09);
-        const bend = cyl(0.018, 0.08, new THREE.MeshStandardMaterial({ color: 0x111418, roughness: 0.6 }), 12);
-        bend.rotation.z = Math.PI / 2 + 0.6;
-        addTool(bend, 0.18, -0.02);
-        const tipC = cyl(0.014, 0.04, new THREE.MeshStandardMaterial({ color: 0xc27a3a, metalness: 0.8, roughness: 0.3 }), 12);
-        tipC.rotation.z = Math.PI / 2 + 0.6;
-        addTool(tipC, 0.215, -0.045);
-      } else if (eoat === "spindle") {
-        const motor = cyl(0.045, 0.14, eoatMat, 16);
-        motor.rotation.z = Math.PI / 2;
-        addTool(motor, 0.08);
-        const disc = cyl(0.07, 0.012, new THREE.MeshStandardMaterial({ color: 0x8b5e34, roughness: 0.95 }), 24);
-        disc.rotation.z = Math.PI / 2;
-        addTool(disc, 0.16);
-      } else if (eoat === "driver") {
-        const body = cyl(0.03, 0.14, new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.3, roughness: 0.4 }), 14);
-        body.rotation.z = Math.PI / 2;
-        addTool(body, 0.08);
-        const bit = cyl(0.006, 0.06, M.steel, 8);
-        bit.rotation.z = Math.PI / 2;
-        addTool(bit, 0.18);
-      } else if (eoat === "nozzle") {
-        const gun = cyl(0.028, 0.12, new THREE.MeshStandardMaterial({ color: 0x0e7490, metalness: 0.3, roughness: 0.4 }), 14);
-        gun.rotation.z = Math.PI / 2;
-        addTool(gun, 0.075);
-        const nz = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.014, 0.05, 10), M.steel);
-        nz.rotation.z = Math.PI / 2;
-        addTool(nz, 0.16);
-      }
+      // End-of-arm tools: the chosen products' families (arm tool first, then the tool-stand tool), else a parallel gripper.
+      const kinds = model && model.tools && model.tools.length ? model.tools : [(model && model.eoat) || (buildMode ? "none" : "parallel")];
+      const toolSets = kinds.map((k) => {
+        const t = makeEoat(k);
+        t.group.visible = false;
+        j6.add(t.group);
+        return t;
+      });
       // Accessories the user attached in the configurator: tool changer / force-torque sensor at the
       // flange, a vision camera on the side of the wrist.
       const acc = (model && model.accessories) || [];
@@ -1185,7 +1256,6 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       toolTip.position.x = 0.15;
       toolHead.add(toolBody, toolTip);
       toolHead.visible = false;
-      if (["torch", "spindle", "driver", "nozzle"].includes(eoat)) toolHead.scale.setScalar(0.001);
       j6.add(toolHead);
 
       // Model label under the robot's title, e.g. "FANUC M-20iD/25 · 25 kg · 1811 mm".
@@ -1198,7 +1268,23 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
 
       root.visible = !(buildMode && !(model && model.hasRobot));
       scene.add(root);
-      return { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers, fingerTool, dims, q: [0, 0, 0, 0, 0, 0], toolHead, toolMat, paint, trim, eoatMat, modelLabel };
+      const r = { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers: [], fingerTool: false, dims, q: [0, 0, 0, 0, 0, 0], toolHead, toolMat, paint, trim, toolSets, modelLabel, activeTool: 0, eoat: kinds[0] };
+      /** Put tool i on the flange (tool changer); the gripper animation follows the active tool. */
+      r.setTool = (i) => {
+        const k = clamp(Math.round(Number(i) || 0), 0, toolSets.length - 1);
+        toolSets.forEach((t, n) => (t.group.visible = n === k));
+        const t = toolSets[k];
+        r.fingers = t.fingers;
+        r.fingerTool = t.fingerTool;
+        r.activeTool = k;
+        r.eoat = t.kind;
+        // A real process tool on the arm replaces the generic tool head.
+        toolHead.scale.setScalar(PROCESS_TOOLS.includes(t.kind) ? 0.001 : 1);
+      };
+      /** The tool that waits on the tool stand. */
+      r.parkedKind = () => (toolSets.length > 1 ? toolSets[r.activeTool === 0 ? 1 : 0].kind : null);
+      r.setTool(startTool);
+      return r;
     }
 
     function disposeRobot() {
@@ -1207,7 +1293,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       robot.root.traverse((o) => o.geometry && o.geometry.dispose());
       robot.paint.dispose();
       robot.trim.dispose();
-      robot.eoatMat.dispose();
+      robot.toolSets.forEach((t) => t.mat.dispose());
       if (robot.modelLabel) {
         robot.modelLabel.material.map.dispose();
         robot.modelLabel.material.dispose();
@@ -1573,6 +1659,46 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           out.push(linearMove(() => above(B), "weld", 0.35));
           break;
         }
+        case "toolchange": {
+          // Tool changer: park the current tool on the stand and lock the other one on.
+          const tgt = step.tool || 0;
+          const rk = stations.rack;
+          const swap = () => {
+            robot.setTool(tgt);
+            setFingers(true);
+            if (rk) rk.show(robot.parkedKind());
+            log(`Tool change: ${robot.eoat}`);
+          };
+          if (rk) {
+            out.push(jointMove(() => above(rk.point), "rack"));
+            out.push(linearMove(() => rk.point, "rack", 0.3));
+            out.push(dwell(0.7, null, swap));
+            out.push(linearMove(() => above(rk.point), "rack", 0.35));
+          } else out.push(dwell(0.9, null, swap));
+          break;
+        }
+        case "manual": {
+          // The operator takes the finished part off the fixture and loads a new one.
+          const w = stations[s];
+          out.push(
+            dwell(
+              1.6,
+              () => {
+                if (w && w.part) {
+                  removePart(w.part);
+                  w.part = null;
+                }
+              },
+              () => {
+                if (w) w.part = spawnPart(w.point);
+              }
+            )
+          );
+          break;
+        }
+        case "idle":
+          out.push(dwell(1.5));
+          break;
         default:
           if (TOOL_ACTIONS[step.action]) out.push(...toolSegments(step));
           else out.push(dwell(1));
@@ -1793,8 +1919,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       stream.visible = false;
       sparks.visible = false;
       if (robot) {
+        robot.setTool(startTool);
         robot.toolHead.visible = false;
         robot.fingers.forEach((f) => (f.visible = robot.fingerTool));
+        if (stations.rack) stations.rack.show(robot.parkedKind());
       }
     }
 
@@ -1838,6 +1966,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         disposeRobot();
         robot = buildRobot(scale);
         cell.setPaint(paintIndustrial);
+        if (stations.rack) stations.rack.show(robot.parkedKind());
       },
       setModel(m) {
         model = m;
@@ -1944,28 +2073,64 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const list = (plan && plan.cells && plan.cells.length ? plan.cells : [{ steps: [] }]).map((c) => ({
       title: c.title,
       steps: (c.steps || []).map((s) => ({ ...s, label: s.label || stepLabel(s) })),
+      stations: c.stations || [],
+      startTool: c.startTool || 0,
     }));
-    mode = list.length > 1 ? "line" : "single";
+    // The cell builder always uses the line layout, so one cell looks the same as the first of several.
+    mode = buildMode || list.length > 1 ? "line" : "single";
     const layout = LAYOUT[mode];
     const infeed = makeConveyor(layout.infeed[0], layout.infeed[1], STATION_NAMES.conveyor, true);
     conveyors.push(infeed);
+    const picks = (c, k) => c.steps.some((s) => s.station === k);
+    const has = (c, k) => picks(c, k) || c.stations.includes(k);
     const transfers = [];
+    const ownInfeed = [];
     for (let i = 0; i < list.length - 1; i++) {
       const X = i * CELL_SPACING;
-      const t = makeConveyor(X + 0.9, X + CELL_SPACING - 0.75, `Transfer to Robot ${i + 2}`, false);
+      // Cell builder: the belt between two robots is a transfer only when the first robot has an
+      // outfeed; otherwise it is the next robot's own infeed, if the user placed one.
+      const passes = !buildMode || has(list[i], "out");
+      const own = buildMode && !passes && has(list[i + 1], "conveyor");
+      const t = makeConveyor(X + 0.9, X + CELL_SPACING - 0.75, own ? STATION_NAMES.conveyor : `Transfer to Robot ${i + 2}`, false);
+      if (buildMode) {
+        t.group.visible = passes || own;
+        // Parts the next robot does not take leave the line at the end of the belt.
+        t.sink = passes && !picks(list[i + 1], "in");
+        if (own) {
+          t.autoSpawn = picks(list[i + 1], "conveyor");
+          ownInfeed[i + 1] = t;
+        }
+      }
       conveyors.push(t);
-      transfers.push(t);
+      transfers.push(passes ? t : null);
+    }
+    // Cell builder: an outfeed conveyor after the last robot, when the user placed one.
+    const last = list.length - 1;
+    let outfeed = null;
+    if (buildMode && has(list[last], "out")) {
+      const X = last * CELL_SPACING;
+      outfeed = makeConveyor(X + 0.9, X + 2.4, "Outfeed conveyor", false);
+      outfeed.sink = true;
+      conveyors.push(outfeed);
     }
     cells = list.map((c, i) =>
-      createCell(i, i * CELL_SPACING, c.steps, list.length > 1 ? c.title || `Robot ${i + 1}` : c.title, {
-        infeed: i === 0 ? infeed : null,
-        in: transfers[i - 1] || null,
-        out: transfers[i] || null,
-      })
+      createCell(
+        i,
+        i * CELL_SPACING,
+        c.steps,
+        list.length > 1 ? c.title || `Robot ${i + 1}` : c.title,
+        {
+          infeed: i === 0 ? infeed : ownInfeed[i] || null,
+          in: transfers[i - 1] || null,
+          out: transfers[i] || (i === last ? outfeed : null),
+        },
+        { stations: buildMode ? c.stations : [], startTool: c.startTool }
+      )
     );
-    // Hide the infeed when the first robot never picks from it.
+    ownInfeed.forEach((t, i) => t && (t.owner = cells[i]));
+    // Hide the infeed when the first robot never picks from it (the builder shows it once placed).
     const usesInfeed = cells[0].steps.some((s) => s.station === "conveyor");
-    infeed.group.visible = usesInfeed;
+    infeed.group.visible = usesInfeed || (buildMode && list[0].stations.includes("conveyor"));
     infeed.autoSpawn = usesInfeed;
     infeed.owner = cells[0];
     cells.forEach((c) => {
@@ -2443,6 +2608,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           paint: r ? brandPaint(r.brand || r.name, r.collaborative) : null,
           label: r ? [r.name, r.payloadKg ? `${r.payloadKg} kg` : "", reachM ? `${Math.round(reachM * 1000)} mm` : ""].filter(Boolean).join(" · ") : eq.eoat ? eq.eoat.name : "",
           eoat: eq.eoat ? eq.eoat.kind || eoatKind(eq.eoat.name) : null,
+          tools: (eq.tools || []).map((t) => t.kind || eoatKind(t.name)),
           hasRobot: !!r,
           reachM: reachM,
           accessories: eq.accessories || [],

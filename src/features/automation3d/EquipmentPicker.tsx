@@ -13,7 +13,8 @@ import {
 } from "./equipmentMatch";
 
 /** What the user put on one robot: the arm, the end-of-arm tool and optional wrist accessories. */
-export type Choice = { robot?: Match; tool?: Match; changer?: Match; sensor?: Match; camera?: Match };
+/** tool2: a second tool parked on the tool stand, used through the tool changer (cell builder). */
+export type Choice = { robot?: Match; tool?: Match; tool2?: Match; changer?: Match; sensor?: Match; camera?: Match };
 type Data = {
   oemRobots: Awaited<ReturnType<typeof loadDirectoryRobots>>;
   oemTools: Awaited<ReturnType<typeof loadDirectoryTools>>;
