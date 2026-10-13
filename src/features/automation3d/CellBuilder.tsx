@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { processesFromSkills } from "@/utils/processAnalyzer";
-import { createSimulation, STATION_NAMES, type Simulation, type SimUpdate } from "./robotSim.js";
+import { createSimulation, eoatKind, STATION_NAMES, type Simulation, type SimUpdate } from "./robotSim.js";
 import { planLine, type LinePlan } from "./robotKnowledge";
 import { Thumb, type Choice } from "./EquipmentPicker";
 import { BLOCKS } from "./ProcessBuilder";
@@ -18,17 +18,18 @@ import { loadDirectoryRobots, loadDirectoryTools, loadMarketRobots, loadMarketTo
 import { mailto } from "@/components/directory/directoryTypes";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
-import { budgetFor, CycleTracker, decodeLine, encodeLine, reportHtml, roi, STARTERS, STEP_GROUP, suggest, type Raw, type StepTime } from "./builderExtras";
+import { budgetFor, CycleTracker, decodeLine, encodeLine, isCobotMatch, reportHtml, roi, STARTERS, STEP_GROUP, suggest, suggestSwap, type Raw, type StarterCell, type StepTime } from "./builderExtras";
 import { inr as inrShort } from "./solutionCost";
 import { KIND_JOB, thinkCell, type Thought } from "./engineerPlaybook";
 import { attachmentIssues, type FitIssue } from "./attachmentFit";
 import { analyzeJob, JOB_EXAMPLES, type JobTask } from "./customJob";
 import { processKind } from "./processProfiles";
+import { CELL_STATIONS, cellProgram, stationLabel, stationsFor, TOOL_NAMES, type CellProgram, type StationKey } from "./cellProgram";
 
 /* ------------------------------------------------------------------ data */
 
 type Slot = keyof Choice;
-type DragKind = "robot" | "tool" | "job" | "fence";
+type DragKind = "robot" | "tool" | "job" | "fence" | "station";
 interface TouchItem {
   payload: string;
   kind: DragKind;
@@ -51,8 +52,10 @@ interface Cell {
   choice: Choice;
   /** undefined until the user picks safety: fence (true) or open cobot cell (false). */
   fenced?: boolean;
+  /** Cell equipment the user placed: conveyors, tables, machine, pallet, camera, tool stand. */
+  stations?: StationKey[];
 }
-type PaletteTab = "robots" | "tools" | "acc" | "cell";
+type PaletteTab = "robots" | "tools" | "acc" | "layout" | "cell";
 
 const str = (v: unknown) => (typeof v === "string" ? v : v == null ? "" : String(v));
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -80,12 +83,13 @@ const marketTool = (t: Record<string, unknown>): Match => ({
 
 // Cell equipment that does not go on the arm (stations, power sources, feeders).
 const NOT_ON_ARM = /cleaning|reamer|station|power source|wire feeder|feeder|proportioner|controller/i;
-const isCobot = (m?: Match) => !!m && (m.reasons.includes("Collaborative") || /cobot|collaborative|\bur\d|crx|techman|doosan|gofa|crb\s?1|iisy/i.test(`${m.type} ${m.name}`));
+const isCobot = isCobotMatch;
 const ROBOT_TYPES = ["All", "6-Axis", "Cobot", "SCARA", "Delta", "Palletizing", "7-Axis"] as const;
 const SLOTS: { key: Slot; label: string; icon: typeof Bot }[] = [
   { key: "robot", label: "Robot arm", icon: Bot },
   { key: "tool", label: "End-of-arm tool", icon: Wrench },
   { key: "changer", label: "Tool changer", icon: Cog },
+  { key: "tool2", label: "2nd tool (on the tool stand)", icon: Wrench },
   { key: "sensor", label: "Force / torque sensor", icon: Gauge },
   { key: "camera", label: "Wrist camera", icon: Camera },
 ];
@@ -94,6 +98,11 @@ const cellLabel = (c?: { job: string; custom?: string }) => (c?.custom ? c.custo
 const newId = () => Math.random().toString(36).slice(2, 9);
 const STORE = "rv-cell-builder";
 const inr = (v: number) => `₹${Math.round(v).toLocaleString("en-IN")}`;
+const STATION_KEYS = new Set<string>(CELL_STATIONS.map((s) => s.key));
+const toolKindOf = (m?: Match) => (m ? eoatKind(`${m.name} ${m.type ?? ""}`) : undefined);
+/** Cells saved before the user chose the equipment get what their job used to show. */
+const withStations = (c: Cell): Cell =>
+  Array.isArray(c.stations) ? c : { ...c, stations: c.job ? stationsFor(c.job, [toolKindOf(c.choice?.tool), toolKindOf(c.choice?.tool2)], !!c.choice?.changer) : [] };
 
 /* ------------------------------------------------------------- component */
 
@@ -113,7 +122,7 @@ export default function CellBuilder() {
   const [cells, setCells] = useState<Cell[]>(() => {
     try {
       const v = JSON.parse(localStorage.getItem(STORE) || "null");
-      return Array.isArray(v) ? v : [];
+      return Array.isArray(v) ? v.map(withStations) : [];
     } catch {
       return [];
     }
@@ -228,18 +237,50 @@ export default function CellBuilder() {
     };
   }, [cells]);
 
+  // Each robot's program, written from the equipment really in its cell (tools, stations, changer).
+  const programs: CellProgram[] = useMemo(() => {
+    const out: CellProgram[] = [];
+    cells.forEach((c, i) => {
+      const prev = out[i - 1];
+      out.push(
+        cellProgram({
+          job: c.job,
+          tools: [toolKindOf(c.choice.tool), toolKindOf(c.choice.tool2)],
+          changer: !!c.choice.changer,
+          stations: c.stations ?? [],
+          camera: !!c.choice.camera,
+          // The previous robot hands parts over on its outfeed conveyor.
+          fromPrev: !!prev && !!cells[i - 1]?.choice.robot && prev.steps.some((s) => s.action === "place" && s.station === "out"),
+        }),
+      );
+    });
+    return out;
+  }, [cells]);
+  const simPlan = useMemo(
+    () => ({
+      cells: cells.map((c, i) => ({
+        title: plan?.sim.cells[i]?.title ?? `Robot ${i + 1}`,
+        // A cell runs its program once it has a robot.
+        steps: c.choice.robot ? programs[i].steps : [],
+        stations: c.stations ?? [],
+        startTool: programs[i].startTool,
+      })),
+    }),
+    [cells, programs, plan],
+  );
+
   // Push the plan and every cell's equipment into the 3D scene.
-  const planKey = cells.map((c) => c.job).join("|");
+  const planKey = JSON.stringify(simPlan.cells.map((c) => [c.title, c.steps.map((s) => `${s.action}@${s.station}${s.tool ?? ""}`), c.stations, c.startTool]));
   useEffect(() => {
     const s = simRef.current;
     if (!s) return;
-    if (!plan) {
+    if (!cells.length) {
       s.setPlan({ cells: [{ steps: [] }] });
       return;
     }
-    s.setPlan(plan.sim);
-    stepsRef.current = plan.sim.cells.map((c) => c.steps.map((st) => ({ label: st.label, action: st.action })));
-    tracker.current.reset(plan.sim.cells.length);
+    s.setPlan(simPlan);
+    stepsRef.current = simPlan.cells.map((c) => c.steps.map((st) => ({ label: st.label, action: st.action })));
+    tracker.current.reset(simPlan.cells.length);
     setBreakdown([]);
     // The line was rebuilt with planned robots: every cell's equipment and fencing must be applied again.
     eqKeys.current = [];
@@ -265,13 +306,16 @@ export default function CellBuilder() {
       if (eqKeys.current[i] === key) return;
       eqKeys.current[i] = key;
       changed = true;
-      const any = eq.robot || eq.tool || eq.changer || eq.sensor || eq.camera;
+      const any = eq.robot || eq.tool || eq.tool2 || eq.changer || eq.sensor || eq.camera;
+      const tools = [eq.tool, eq.tool2].filter(Boolean).map((m) => ({ name: `${m!.name} ${m!.type ?? ""}` }));
       s.setEquipment(
         i,
         any
           ? {
               robot: eq.robot ? { name: eq.robot.name, brand: eq.robot.brand, reachMm: eq.robot.reach, payloadKg: eq.robot.payload, collaborative: isCobot(eq.robot) } : undefined,
-              eoat: eq.tool ? { name: `${eq.tool.name} ${eq.tool.type ?? ""}` } : undefined,
+              eoat: tools[0],
+              // Arm tool first, then the tool on the stand (the robot swaps them with the tool changer).
+              tools: eq.tool ? tools : [{ name: "none", kind: "none" }, ...tools],
               accessories: [eq.changer && "changer", eq.sensor && "sensor", eq.camera && "camera"].filter(Boolean) as ("changer" | "sensor" | "camera")[],
             }
           : null,
@@ -324,7 +368,7 @@ export default function CellBuilder() {
   const addCell = (patch: Partial<Cell> = {}) => {
     if (cells.length >= 6) return;
     // Nothing is assumed: the job and safety stay empty until the user chooses them.
-    const cell: Cell = { id: newId(), job: "", choice: {}, ...patch };
+    const cell: Cell = { id: newId(), job: "", choice: {}, stations: [], ...patch };
     setCells((cs) => [...cs, cell]);
     setSelected(cells.length);
   };
@@ -333,11 +377,18 @@ export default function CellBuilder() {
     const input = jobs.map((j) => processesFromSkills([j])[0] ?? { name: j });
     return planLine(input, "balanced", { splitBefore: input.map((x) => x.name), robots: jobs.length }).robots.map((r) => r.minPayload);
   };
-  const applyStarter = (jobs: string[]) => {
+  // A ready-made line: robot, tools and cell equipment for each job (the user changes anything after).
+  const applyStarter = (jobs: string[], specs?: StarterCell[]) => {
     const needs = needsFor(jobs);
-    const next = jobs.map((job, i) => {
-      const choice = raw ? suggest(job, needs[i] ?? 10, raw) : {};
-      return { id: newId(), job, choice, fenced: !isCobot(choice.robot) };
+    const next: Cell[] = jobs.map((job, i) => {
+      const spec = specs?.[i];
+      let choice: Choice = raw ? suggest(job, needs[i] ?? 10, raw) : {};
+      // Robots that load their own parts carry a gripper on the tool stand and a tool changer, both for that robot.
+      const swap = raw && spec?.swap ? suggestSwap(raw, choice.robot) : {};
+      const swapping = !!spec?.swap && !!swap.tool2 && !!swap.changer;
+      if (swapping) choice = { ...choice, tool2: swap.tool2, changer: swap.changer };
+      const stations = spec && (swapping || !spec.swap) ? spec.stations : stationsFor(job, [toolKindOf(choice.tool), toolKindOf(choice.tool2)], !!choice.changer);
+      return { id: newId(), job, choice, fenced: !isCobot(choice.robot), stations };
     });
     quietFit.current = true;
     setCells(next);
@@ -346,14 +397,15 @@ export default function CellBuilder() {
   const suggestFor = (i: number) => {
     if (!raw || !cells[i]) return;
     const need = plan?.robots[i]?.minPayload ?? 10;
-    const pick = suggest(cells[i].job, need, raw);
+    // An open (cobot) cell the user chose stays a cobot cell.
+    const pick = suggest(cells[i].job, need, raw, cells[i].fenced === false);
     update(i, (c) => ({ ...c, choice: { ...c.choice, ...pick }, fenced: pick.robot ? !isCobot(pick.robot) : c.fenced }));
   };
   const applyTyped = (tasks: JobTask[], target: number | "new") => {
     const custom = tasks.length === 1 && jobText.trim() ? jobText.trim() : undefined;
     if (target === "new") {
       const room = Math.max(0, 6 - cells.length);
-      const add = tasks.slice(0, room).map((t) => ({ id: newId(), job: t.name, custom: tasks.length === 1 ? custom : undefined, choice: {} }));
+      const add = tasks.slice(0, room).map((t) => ({ id: newId(), job: t.name, custom: tasks.length === 1 ? custom : undefined, choice: {}, stations: [] as StationKey[] }));
       if (!add.length) return;
       setCells((cs) => [...cs, ...add]);
       setSelected(cells.length);
@@ -383,10 +435,19 @@ export default function CellBuilder() {
   };
   const update = (i: number, fn: (c: Cell) => Cell) => setCells((cs) => cs.map((c, k) => (k === i ? fn(c) : c)));
   const put = (i: number, m: Match) => {
-    const slot: Slot = m.kind === "robot" ? "robot" : slotOf(m);
+    let slot: Slot = m.kind === "robot" ? "robot" : slotOf(m);
     if (!cells[i]) return addCell({ choice: { [slot]: m } });
-    update(i, (c) => ({ ...c, choice: { ...c.choice, [slot]: m } }));
+    // With a tool changer, a second tool goes on the tool stand instead of replacing the first.
+    const c = cells[i];
+    if (slot === "tool" && c.choice.tool && c.choice.changer && !c.choice.tool2) slot = "tool2";
+    update(i, (x) => ({ ...x, choice: { ...x.choice, [slot]: m } }));
   };
+  // Cell equipment: only what the user places is in the cell.
+  const addStation = (i: number | "new", k: StationKey) => {
+    if (i === "new" || !cells[i]) return addCell({ stations: [k] });
+    update(i, (c) => ({ ...c, stations: (c.stations ?? []).includes(k) ? c.stations : [...(c.stations ?? []), k] }));
+  };
+  const removeStation = (i: number, k: StationKey) => update(i, (c) => ({ ...c, stations: (c.stations ?? []).filter((x) => x !== k) }));
   // Tap "Add" (touch screens): a robot goes to the selected cell if it has none, else a new cell.
   const add = (m: Match) => {
     if (m.kind === "robot" && (!cells.length || cells[selected]?.choice.robot)) return addCell({ choice: { robot: m } });
@@ -441,7 +502,8 @@ export default function CellBuilder() {
           custom: typeof c.u === "string" ? c.u.slice(0, 120) : undefined,
           fenced: typeof c.f === "boolean" ? c.f : undefined,
           choice: Object.fromEntries(Object.entries(c.s ?? {}).map(([k, key]) => [k, byKey.get(key)]).filter(([, m]) => m)) as Choice,
-        })),
+          stations: Array.isArray(c.t) ? (c.t.filter((k) => STATION_KEYS.has(k)) as StationKey[]) : undefined,
+        })).map(withStations),
       );
       setSelected(0);
     }
@@ -469,6 +531,11 @@ export default function CellBuilder() {
     if (p.startsWith("job:")) {
       const job = p.slice(4);
       return cellIndex === "new" || !cells[cellIndex] ? addCell({ job }) : update(cellIndex, (c) => ({ ...c, job, custom: undefined }));
+    }
+    if (p.startsWith("station:")) {
+      const k = p.slice(8);
+      if (STATION_KEYS.has(k)) addStation(cellIndex, k as StationKey);
+      return;
     }
     if (p === "fence:on" || p === "fence:off") {
       const fenced = p === "fence:on";
@@ -633,7 +700,11 @@ export default function CellBuilder() {
       "Please quote the robot cell I built in Automation Studio:",
       "",
       ...cells.map((c, i) =>
-        [`Cell ${i + 1} — ${cellLabel(c)}${c.fenced === undefined ? " (safety not chosen)" : c.fenced ? " (fenced)" : " (open / collaborative)"}`, ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `  ${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`)].join("\n"),
+        [
+          `Cell ${i + 1} — ${cellLabel(c)}${c.fenced === undefined ? " (safety not chosen)" : c.fenced ? " (fenced)" : " (open / collaborative)"}`,
+          ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `  ${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`),
+          ...(c.stations?.length ? [`  Cell equipment: ${c.stations.map(stationLabel).join(", ")}`] : []),
+        ].join("\n"),
       ),
       "",
       "Name:",
@@ -646,7 +717,15 @@ export default function CellBuilder() {
 
   /* ------------------------------------------------------------- analysis */
 
-  const checks: CheckItem[][] = cells.map((c, i) => checkCell(c.job, c.choice, plan?.robots[i]?.minPayload, c.fenced, isCobot(c.choice.robot)));
+  const checks: CheckItem[][] = cells.map((c, i) => [
+    ...checkCell(c.job, c.choice, plan?.robots[i]?.minPayload, c.fenced, isCobot(c.choice.robot)),
+    // What the robot program could not do with the equipment in the cell.
+    ...(c.choice.robot
+      ? programs[i].notes
+          .filter((n) => n.level !== "info")
+          .map((n): CheckItem => ({ state: n.level === "stop" ? "missing" : "warn", label: "Program", detail: n.text }))
+      : []),
+  ]);
   const states: CheckState[] = checks.map(cellState);
   const cycleOf = (i: number) => {
     const v = sim?.cells?.[i]?.lastCycle;
@@ -669,7 +748,12 @@ export default function CellBuilder() {
     const total = b?.reduce((n, x) => n + x.seconds, 0) || 0;
     const split: Record<string, number> = {};
     if (b && total) b.forEach((x) => (split[STEP_GROUP(x.action).label] = (split[STEP_GROUP(x.action).label] ?? 0) + x.seconds / total));
-    return thinkCell({ job: c.job, choice: c.choice, needKg: plan?.robots[i]?.minPayload, fenced: c.fenced, cobot: isCobot(c.choice.robot), cycle: cycles[i], checks: checks[i], split });
+    const program: Thought = {
+      step: "Robot program",
+      thought: [programs[i].summary, ...programs[i].notes.map((n) => n.text)].join(" "),
+      state: programs[i].idle ? "todo" : programs[i].notes.some((n) => n.level !== "info") ? "warn" : "ok",
+    };
+    return [program, ...thinkCell({ job: c.job, choice: c.choice, needKg: plan?.robots[i]?.minPayload, fenced: c.fenced, cobot: isCobot(c.choice.robot), cycle: cycles[i], checks: checks[i], split })];
   });
   const onQuote = chosen.filter((m) => !(m.source === "market" && m.price)).length;
   const budget = useMemo(() => (plan ? budgetFor(plan, cells.map((c) => c.choice)) : null), [plan, cells]);
@@ -691,30 +775,33 @@ export default function CellBuilder() {
   const robotsDone = cells.length > 0 && cells.every((c) => c.choice.robot);
   const toolsDone = robotsDone && cells.every((c) => c.choice.tool);
   const jobsDone = toolsDone && cells.every((c) => c.job);
-  const safetyDone = jobsDone && cells.every((c) => c.fenced !== undefined);
+  const layoutDone = jobsDone && cells.every((c, i) => (c.stations?.length ?? 0) > 0 && !programs[i].idle);
+  const safetyDone = layoutDone && cells.every((c) => c.fenced !== undefined);
   const runDone = safetyDone && bottleneck != null;
   const STEPS = [
     { n: 1, label: "Robot", done: robotsDone, hint: "Drag a robot onto the empty floor — one per station.", go: () => setTab("robots") },
-    { n: 2, label: "Tool", done: toolsDone, hint: "Drop a gripper, torch or other tool on each robot. Accessories are optional.", go: () => setTab("tools") },
-    { n: 3, label: "Job", done: jobsDone, hint: "Pick a job or type your own — its stations appear around the robot.", go: () => setTab("cell") },
-    { n: 4, label: "Safety", done: safetyDone, hint: "Choose a safety fence or an open cobot cell.", go: () => setTab("cell") },
-    { n: 5, label: "Run", done: runDone, hint: "Watch the line run, then open the report for cycle time, checks and cost.", go: () => setReportOpen(true) },
+    { n: 2, label: "Tool", done: toolsDone, hint: "Drop a gripper, torch or other tool on each robot. A tool changer and a 2nd tool let it swap tools.", go: () => setTab("tools") },
+    { n: 3, label: "Job", done: jobsDone, hint: "Pick a job or type your own — what the robot should do.", go: () => setTab("cell") },
+    { n: 4, label: "Layout", done: layoutDone, hint: "Place the cell equipment: conveyors, tables, machine, pallet, camera, tool stand.", go: () => setTab("layout") },
+    { n: 5, label: "Safety", done: safetyDone, hint: "Choose a safety fence or an open cobot cell.", go: () => setTab("layout") },
+    { n: 6, label: "Run", done: runDone, hint: "Watch the line run, then open the report for cycle time, checks and cost.", go: () => setReportOpen(true) },
   ];
-  const current = STEPS.find((st) => !st.done)?.n ?? 4;
+  const current = STEPS.find((st) => !st.done)?.n ?? 5;
 
   const reportCsv = () => {
     const q = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = [
-      ["Cell", "Job", "Robot", "Tool", "Accessories", "Safety", "Cycle (s)", "Parts / hour", "Status", "Notes"],
+      ["Cell", "Job", "Robot", "Tool", "2nd tool", "Accessories", "Cell equipment", "Program", "Safety", "Cycle (s)", "Parts / hour", "Status", "Notes"],
       ...cells.map((c, i) => [
-        i + 1, cellLabel(c), c.choice.robot?.name, c.choice.tool?.name,
+        i + 1, cellLabel(c), c.choice.robot?.name, c.choice.tool?.name, c.choice.tool2?.name,
         [c.choice.changer, c.choice.sensor, c.choice.camera].filter(Boolean).map((m) => m!.name).join(" + "),
+        (c.stations ?? []).map(stationLabel).join(" + "), programs[i].summary,
         c.fenced === undefined ? "Not chosen" : c.fenced ? "Fenced" : "Open (cobot)", cycles[i]?.toFixed(1), cycles[i] ? Math.floor(3600 / cycles[i]!) : "",
         states[i] === "ok" ? "Ready" : states[i] === "warn" ? "Check" : "Incomplete",
         checks[i].filter((x) => x.state !== "ok").map((x) => `${x.label}: ${x.detail}`).join("; "),
       ]),
       [],
-      ["Line", "", "", "", "", "", bottleneck?.toFixed(1) ?? "", perHour ?? "", "", `Marketplace total ${total ? inr(total) : "-"}; ${onQuote} item(s) on quotation`],
+      ["Line", "", "", "", "", "", "", "", "", bottleneck?.toFixed(1) ?? "", perHour ?? "", "", `Marketplace total ${total ? inr(total) : "-"}; ${onQuote} item(s) on quotation`],
     ];
     const url = URL.createObjectURL(new Blob([rows.map((r) => r.map(q).join(",")).join("\n")], { type: "text/csv" }));
     const a = document.createElement("a");
@@ -732,11 +819,11 @@ export default function CellBuilder() {
     setPlaying(!playing);
   };
 
-  const what = drag?.kind === "robot" ? "robot" : drag?.kind === "job" ? "job" : drag?.kind === "fence" ? "safety" : drag?.slot === "tool" ? "tool" : "accessory";
+  const what = drag?.kind === "robot" ? "robot" : drag?.kind === "job" ? "job" : drag?.kind === "fence" ? "safety" : drag?.kind === "station" ? "equipment" : drag?.slot === "tool" ? "tool" : "accessory";
   const dropHint = !cells.length
     ? "Drop to create your first robot cell"
     : hover >= 0 && hover < cells.length
-      ? `Drop on Cell ${hover + 1} · ${cellLabel(cells[hover])} — ${drag?.kind === "robot" && cells[hover].choice.robot ? "replace the robot" : `set the ${what}`}`
+      ? `Drop on Cell ${hover + 1} · ${cellLabel(cells[hover])} — ${drag?.kind === "robot" && cells[hover].choice.robot ? "replace the robot" : drag?.kind === "station" ? "add it to this cell" : `set the ${what}`}`
       : hover === cells.length
         ? `Drop here to add Cell ${cells.length + 1}`
         : drag?.kind === "robot"
@@ -758,7 +845,7 @@ export default function CellBuilder() {
           {ghost.label}
         </div>
       )}
-    <ol aria-label="Steps" className="grid grid-cols-5 gap-1.5 sm:gap-2">
+    <ol aria-label="Steps" className="grid grid-cols-6 gap-1 sm:gap-2">
       {STEPS.map((st) => {
         const active = st.n === current;
         return (
@@ -778,7 +865,7 @@ export default function CellBuilder() {
               <span className="min-w-0">
                 <b className="block text-xs sm:text-sm">{st.label}</b>
                 <span className="hidden text-xs text-muted-foreground sm:block">
-                  {st.done ? (st.n === 5 ? `Line runs · ${perHour} parts/hour — open the report` : "Done") : st.n === 5 && safetyDone ? (stalled.some(Boolean) ? "A cell is not completing its cycle — open the report to see why" : "Measuring cycle time… the first full cycle takes a moment") : st.hint}
+                  {st.done ? (st.n === 6 ? `Line runs · ${perHour} parts/hour — open the report` : "Done") : st.n === 6 && safetyDone ? (stalled.some(Boolean) ? "A cell is not completing its cycle — open the report to see why" : "Measuring cycle time… the first full cycle takes a moment") : st.hint}
                 </span>
               </span>
             </button>
@@ -888,7 +975,7 @@ export default function CellBuilder() {
                     key={st.id}
                     type="button"
                     disabled={!raw}
-                    onClick={() => applyStarter(st.jobs)}
+                    onClick={() => applyStarter(st.jobs, st.cells)}
                     className="rounded-lg border border-border p-2.5 text-left transition-colors duration-150 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
                   >
                     <b className="block text-sm">{st.name}</b>
@@ -910,8 +997,8 @@ export default function CellBuilder() {
           !showLib && "lg:hidden",
         )}
       >
-        <div className="grid grid-cols-4 gap-0.5 border-b border-border p-1 text-[11px]" role="tablist">
-          {([["robots", "Robots", Bot], ["tools", "EOAT", Wrench], ["acc", "Accessories", Cog], ["cell", "Job & safety", Workflow]] as const).map(([k, label, Icon]) => (
+        <div className="grid grid-cols-5 gap-0.5 border-b border-border p-1 text-[11px]" role="tablist">
+          {([["robots", "Robots", Bot], ["tools", "EOAT", Wrench], ["acc", "Accessories", Cog], ["layout", "Layout", Factory], ["cell", "Job", Workflow]] as const).map(([k, label, Icon]) => (
             <button
               key={k}
               role="tab"
@@ -923,7 +1010,7 @@ export default function CellBuilder() {
             </button>
           ))}
         </div>
-        {tab !== "cell" && (
+        {tab !== "cell" && tab !== "layout" && (
           <div className="space-y-2 border-b border-border p-2">
             <label className="relative block">
               <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -958,7 +1045,70 @@ export default function CellBuilder() {
           <span className="[@media(hover:hover)]:hidden">Hold an item, then drag it onto a robot in the 3D view — or tap <b>Add</b>.</span>
         </p>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {tab === "cell" ? (
+          {tab === "layout" ? (
+            <div className="space-y-3 p-2">
+              <div>
+                <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cell equipment</p>
+                <p className="mb-1.5 px-1 text-[11px] text-muted-foreground">
+                  Only what you place is in the cell — the robot program uses it. Cell {cells[selected] ? selected + 1 : "—"} is selected.
+                </p>
+                {CELL_STATIONS.map((st) => {
+                  const placed = !!cells[selected]?.stations?.includes(st.key);
+                  return (
+                    <div
+                      key={st.key}
+                      draggable
+                      onDragStart={(e) => onDragStart(e, `station:${st.key}`, "station")}
+                      onDragEnd={endDrag}
+                      {...touchDrag({ payload: `station:${st.key}`, kind: "station", label: st.label })}
+                      className="mb-1 flex cursor-grab select-none items-center [-webkit-touch-callout:none] gap-2 rounded-md border border-border p-2 text-xs active:cursor-grabbing"
+                    >
+                      <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1">
+                        <b className="block">{st.label}</b>
+                        <span className="text-muted-foreground">{st.hint}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={tapped(() => (placed ? removeStation(selected, st.key) : addStation(cells[selected] ? selected : "new", st.key)))}
+                        className={cn("rounded border px-1.5 py-1 text-[11px]", placed ? "border-emerald-500/60 text-emerald-600 hover:border-red-500 hover:text-red-600" : "border-border hover:border-primary")}
+                        aria-label={placed ? `Remove ${st.label} from cell ${selected + 1}` : `Add ${st.label}`}
+                      >
+                        {placed ? "Added ✓" : "Add"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <div>
+                <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Safety</p>
+                {([["fence:on", "Safety fence + interlocked door", "Industrial robots work behind a fence (ISO 10218-2)"], ["fence:off", "Open collaborative cell", "Cobots next to people, speed & force limited"]] as const).map(([k, label, hint]) => (
+                  <div
+                    key={k}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, k, "fence")}
+                    onDragEnd={endDrag}
+                    {...touchDrag({ payload: k, kind: "fence", label })}
+                    className="mb-1 flex cursor-grab select-none items-center [-webkit-touch-callout:none] gap-2 rounded-md border border-border p-2 text-xs active:cursor-grabbing"
+                  >
+                    <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <ShieldCheck className={cn("h-5 w-5 shrink-0", k === "fence:on" ? "text-amber-500" : "text-emerald-500")} />
+                    <span className="min-w-0 flex-1">
+                      <b className="block">{label}</b>
+                      <span className="text-muted-foreground">{hint}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={tapped(() => cells[selected] && update(selected, (c) => ({ ...c, fenced: k === "fence:on" })))}
+                      className="rounded border border-border px-1.5 py-1 text-[11px] hover:border-primary"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : tab === "cell" ? (
             <div className="space-y-3 p-2">
               <div className="rounded-lg border border-primary/40 bg-primary/5 p-2">
                 <label htmlFor="own-job" className="mb-1 block px-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
@@ -1041,7 +1191,7 @@ export default function CellBuilder() {
                       key={st.id}
                       type="button"
                       disabled={!raw}
-                      onClick={() => applyStarter(st.jobs)}
+                      onClick={() => applyStarter(st.jobs, st.cells)}
                       title={st.what}
                       className="rounded-md border border-border px-2 py-1.5 text-left text-[11px] font-medium hover:border-primary disabled:opacity-50"
                     >
@@ -1050,33 +1200,6 @@ export default function CellBuilder() {
                   ))}
                 </div>
                 <p className="mt-1 px-1 text-[10px] text-muted-foreground">Replaces the current line.</p>
-              </div>
-              <div>
-                <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Safety</p>
-                {([["fence:on", "Safety fence + interlocked door", "Industrial robots work behind a fence (ISO 10218-2)"], ["fence:off", "Open collaborative cell", "Cobots next to people, speed & force limited"]] as const).map(([k, label, hint]) => (
-                  <div
-                    key={k}
-                    draggable
-                    onDragStart={(e) => onDragStart(e, k, "fence")}
-                    onDragEnd={endDrag}
-                    {...touchDrag({ payload: k, kind: "fence", label })}
-                    className="mb-1 flex cursor-grab select-none items-center [-webkit-touch-callout:none] gap-2 rounded-md border border-border p-2 text-xs active:cursor-grabbing"
-                  >
-                    <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <ShieldCheck className={cn("h-5 w-5 shrink-0", k === "fence:on" ? "text-amber-500" : "text-emerald-500")} />
-                    <span className="min-w-0 flex-1">
-                      <b className="block">{label}</b>
-                      <span className="text-muted-foreground">{hint}</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={tapped(() => cells[selected] && update(selected, (c) => ({ ...c, fenced: k === "fence:on" })))}
-                      className="rounded border border-border px-1.5 py-1 text-[11px] hover:border-primary"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                ))}
               </div>
               {[...new Set(BLOCKS.map((b) => b.group))].map((g) => (
                 <div key={g}>
@@ -1211,7 +1334,10 @@ export default function CellBuilder() {
                 <ul className="mt-2 space-y-1">
                   {SLOTS.map((s) => {
                     const m = c.choice[s.key];
-                    const target = drag && drag.kind !== "job" && drag.kind !== "fence" && drag.slot === s.key;
+                    // The 2nd tool belongs on the tool stand: shown once the robot has a tool changer.
+                    if (s.key === "tool2" && !m && !c.choice.changer) return null;
+                    const dragSlot = drag?.slot === "tool" && c.choice.tool && c.choice.changer && !c.choice.tool2 ? "tool2" : drag?.slot;
+                    const target = drag && drag.kind !== "job" && drag.kind !== "fence" && drag.kind !== "station" && dragSlot === s.key;
                     return (
                       <li key={s.key} className={cn("flex items-center gap-2 rounded-md border px-1.5 py-1 text-xs", m ? "border-border" : "border-dashed border-border", target && "border-primary bg-primary/5")}>
                         <s.icon className="h-4 w-4 shrink-0 text-primary" />
@@ -1244,6 +1370,62 @@ export default function CellBuilder() {
                   <StateBadge state={states[i]} />
                   {cycles[i] && <span className="ml-auto tabular-nums text-muted-foreground">{cycles[i]!.toFixed(1)} s · {cellSim?.cycles ?? 0} parts</span>}
                 </div>
+                {(() => {
+                  // Cell equipment the user placed, and what this job usually needs (one click to add).
+                  const placed = c.stations ?? [];
+                  const kinds = [toolKindOf(c.choice.tool), toolKindOf(c.choice.tool2)];
+                  const uses = programs[i]?.uses ?? [];
+                  // Parts already have somewhere to go, or arrive from the previous robot: no need to suggest more.
+                  const DEST = ["out", "pallet", "carton"];
+                  const hasDest = placed.some((k) => DEST.includes(k));
+                  const fed = programs[i]?.steps.some((st) => st.station === "in");
+                  const wanted = (c.job || kinds[0] ? stationsFor(c.job, kinds, !!c.choice.changer) : []).filter(
+                    (k) => !placed.includes(k) && !(hasDest && DEST.includes(k)) && !(fed && k === "conveyor"),
+                  );
+                  return (
+                    <div className="mt-2 flex flex-wrap items-center gap-1 text-[11px]">
+                      {placed.map((k) => (
+                        <span
+                          key={k}
+                          title={uses.includes(k) ? "Used by the robot program" : "Not used by the robot program"}
+                          className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5", uses.includes(k) ? "border-primary/50" : "border-dashed border-border text-muted-foreground")}
+                        >
+                          {stationLabel(k)}
+                          <button type="button" aria-label={`Remove ${stationLabel(k)}`} onClick={(e) => (e.stopPropagation(), removeStation(i, k))} className="rounded hover:text-red-600">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                      {wanted.map((k) => (
+                        <button
+                          key={k}
+                          type="button"
+                          title="Suggested for this job — click to add it"
+                          onClick={(e) => (e.stopPropagation(), addStation(i, k))}
+                          className="rounded-full border border-dashed border-primary/60 px-2 py-0.5 text-primary hover:bg-primary/10"
+                        >
+                          + {stationLabel(k)}
+                        </button>
+                      ))}
+                      {!placed.length && !wanted.length && <span className="text-muted-foreground">No cell equipment yet — add it from Layout</span>}
+                    </div>
+                  );
+                })()}
+                {c.choice.robot && programs[i] && (
+                  <p className="mt-1.5 flex gap-1 text-[11px]">
+                    <Workflow className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
+                    <span>
+                      {programs[i].summary}
+                      {(c.choice.tool || c.choice.tool2) && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          Tools: {[c.choice.tool, c.choice.tool2].filter(Boolean).map((m) => TOOL_NAMES[toolKindOf(m) ?? ""] ?? "tool").join(" + ")}
+                          {c.choice.tool2 && !c.choice.changer ? " (no tool changer)" : ""}.
+                        </span>
+                      )}
+                    </span>
+                  </p>
+                )}
                 {checks[i].find((x) => x.state !== "ok") && (
                   <p className="mt-1.5 text-[11px] text-muted-foreground">
                     {(() => {

@@ -56,13 +56,17 @@ export function checkCell(job: string, c: Choice, needKg: number | undefined, fe
   }
 
   const want = job ? TOOL_FOR[kind] : [];
-  if (!t) out.push({ state: "missing", label: "Tool", detail: want.length ? `Add a ${TOOL_NAME[want[0]]}` : "Add a gripper or camera" });
+  // With a tool changer, the tool on the stand counts too.
+  const t2 = c.changer ? c.tool2 : undefined;
+  if (!t && !t2) out.push({ state: "missing", label: "Tool", detail: want.length ? `Add a ${TOOL_NAME[want[0]]}` : "Add a gripper or camera" });
   else {
-    const k = eoatKind(`${t.name} ${t.type ?? ""}`);
+    const k = t ? eoatKind(`${t.name} ${t.type ?? ""}`) : "";
+    const k2 = t2 ? eoatKind(`${t2.name} ${t2.type ?? ""}`) : "";
+    const fit = !want.length || want.includes(k) || want.includes(k2);
     out.push(
-      !want.length || want.includes(k)
-        ? { state: "ok", label: "Tool", detail: `${t.name} fits the job` }
-        : { state: "warn", label: "Tool", detail: `This looks like a ${TOOL_NAME[k] ?? "tool"}; ${job.toLowerCase()} needs a ${TOOL_NAME[want[0]]}` },
+      fit
+        ? { state: "ok", label: "Tool", detail: `${(want.includes(k) || !want.length ? t ?? t2 : t2)!.name} fits the job` }
+        : { state: "warn", label: "Tool", detail: `This looks like a ${TOOL_NAME[k || k2] ?? "tool"}; ${job.toLowerCase()} needs a ${TOOL_NAME[want[0]]}` },
     );
   }
 

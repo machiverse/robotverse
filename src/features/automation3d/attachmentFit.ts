@@ -74,11 +74,16 @@ export function attachmentIssues(job: string, c: Choice): FitIssue[] {
   const tool = c.tool;
   const tt = text(tool);
   const tk = tool ? eoatKind(tt) : null;
+  // The tool on the stand: the robot swaps to it with a tool changer.
+  const tool2 = c.tool2;
+  const tk2 = tool2 ? eoatKind(text(tool2)) : null;
 
   // 1. Weight at the wrist against the robot's payload.
   if (r?.payload) {
     const parts = (["tool", "changer", "sensor", "camera"] as const).filter((s) => c[s]);
-    const kg = parts.reduce((n, s) => n + toolWeightKg(c[s]!, s), 0);
+    // The arm carries one tool at a time: the heavier of the two when a changer swaps them.
+    const toolKg = Math.max(tool ? toolWeightKg(tool, "tool") : 0, tool2 && c.changer ? toolWeightKg(tool2, "tool") : 0);
+    const kg = toolKg + parts.filter((s) => s !== "tool").reduce((n, s) => n + toolWeightKg(c[s]!, s), 0);
     if (kg > 0 && kg >= r.payload)
       out.push({
         level: "stop", slot: tool ? "tool" : parts[0],
@@ -91,6 +96,16 @@ export function attachmentIssues(job: string, c: Choice): FitIssue[] {
         title: "Little payload left for the part",
         detail: `About ${kg.toFixed(1)} kg of tooling leaves only ${(r.payload - kg).toFixed(1)} kg of the robot's ${r.payload} kg for the part and acceleration.`,
       });
+  }
+
+  if (tool2 && !c.changer)
+    out.push({ level: "warn", slot: "tool", title: "The 2nd tool needs a tool changer", detail: `${tool2.name} waits on the tool stand, but the robot has no tool changer to pick it up — add a tool changer, or the robot only uses ${tool ? tool.name : "its arm tool"}.` });
+  if (tool2 && c.changer && tk && tk2 && tk === tk2)
+    out.push({ level: "warn", slot: "tool", title: "Both tools do the same work", detail: "The tool changer is worth it when the second tool does something different (for example a gripper and a welding torch)." });
+  if (tool2 && c.changer && r && NEEDS_TILT.has(tk2 ?? "")) {
+    const rType = `${r.type ?? ""} ${r.name}`.toLowerCase();
+    if (/delta|parallel link|spider|flexpicker|scara|palletiz/.test(rType) || r.axes === 4)
+      out.push({ level: "stop", slot: "tool", title: "This robot cannot tilt the 2nd tool", detail: `${tool2.name} has to be angled to the work — use a 6-axis robot.` });
   }
 
   // 2. The wrist the tool needs.
@@ -143,13 +158,13 @@ export function attachmentIssues(job: string, c: Choice): FitIssue[] {
       out.push({ level: "warn", slot: "sensor", title: "Force sensor is not used for arc welding", detail: "Welding uses a torch collision sensor and seam tracking; a force/torque sensor would only take heat and spatter." });
     if (c.sensor && (kind === "palletizing" || kind === "transport"))
       out.push({ level: "warn", slot: "sensor", title: "Force sensor not needed here", detail: "Palletizing and transfer do not need force control — it adds cost and weight without benefit." });
-    if (c.changer && tk === "torch")
+    if (c.changer && tk === "torch" && !tool2)
       out.push({ level: "warn", slot: "changer", title: "Tool changer with a welding torch", detail: "Torches usually mount directly with a collision sensor and a through-arm cable. Use a changer only to swap torches or to switch to a gripper." });
     if (c.changer && kind === "coating")
       out.push({ level: "warn", slot: "changer", title: "Tool changer in a paint cell", detail: "Paint lines and colour-change valves run to the gun; a changer needs paint and air passages and an explosion-proof rating." });
   }
 
-  // 6. Tool against the job (only when both are chosen).
+  // 6. Tool against the job (only when both are chosen); with a tool changer either tool may do it.
   if (kind && tool && tk) {
     const grip = ["parallel", "dual", "vacuum", "magnet", "fork"];
     const fits: Record<ProcessKind, string[]> = {
@@ -157,7 +172,7 @@ export function attachmentIssues(job: string, c: Choice): FitIssue[] {
       welding: ["torch"], coating: ["nozzle"], finishing: ["spindle"], assembly: ["parallel", "dual", "driver", "vacuum"],
       inspection: [...grip], filling: ["nozzle", "parallel", "vacuum"], sealing: ["nozzle", "parallel", "driver"], labeling: ["vacuum", "parallel", "nozzle"],
     };
-    if (!fits[kind].includes(tk)) {
+    if (!fits[kind].includes(tk) && !(c.changer && tk2 && fits[kind].includes(tk2))) {
       const name: Record<string, string> = { torch: "a welding torch", spindle: "a grinding spindle", nozzle: "a spray/dispense nozzle", driver: "a screwdriver", fork: "a palletizing fork gripper", magnet: "a magnetic gripper", vacuum: "a vacuum gripper", parallel: "a finger gripper", dual: "a dual gripper" };
       out.push({ level: "stop", slot: "tool", title: "Tool does not do this job", detail: `${tool.name} looks like ${name[tk] ?? "another tool"}; ${job.toLowerCase()} needs ${name[fits[kind][0]] ?? "a different tool"}.` });
     }
