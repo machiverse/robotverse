@@ -1599,12 +1599,12 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
             ].filter(Boolean) as { title: string; text: string }[]}
             faq={robotFaq(robot as any)}
             jsonld={generateBreadcrumbSchema([
-              { name: "Home", url: "https://robotverse.in/" },
-              { name: "Industrial Robots", url: "https://robotverse.in/robots" },
+              { name: "Home", url: "https://www.robotverse.in/" },
+              { name: "Industrial Robots", url: "https://www.robotverse.in/robots" },
               ...(robot.brand
-                ? [{ name: String(robot.brand), url: `https://robotverse.in/robots/brand/${String(robot.brand).toLowerCase()}` }]
+                ? [{ name: String(robot.brand), url: `https://www.robotverse.in/robots/brand/${String(robot.brand).toLowerCase()}` }]
                 : []),
-              { name: robot.model || robot.name, url: `https://robotverse.in/robots/${robot.id}` },
+              { name: robot.model || robot.name, url: `https://www.robotverse.in/robots/${robot.id}` },
             ])}
           />
           <PublicRobotResourceLinks />

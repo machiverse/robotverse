@@ -53,6 +53,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { pushEvent } from "@/lib/analytics";
 import {
   INDUSTRIES,
   buildInventory,
@@ -72,6 +73,9 @@ import { requestSolution, solutionProcesses, type AiSolution } from "@/features/
 import { engineSolution } from "@/features/automation3d/solutionEngine";
 import BriefAssistant from "@/features/automation3d/BriefAssistant";
 import EquipmentPicker from "@/features/automation3d/EquipmentPicker";
+import { proposalHtml, proposalSummary } from "@/features/automation3d/studioProposal";
+import LeadDialog from "@/components/leads/LeadDialog";
+import QuickPlan from "@/features/automation3d/QuickPlan";
 
 const simLink = (text: string, title?: string) =>
   `/automation-studio/3d?process=${encodeURIComponent(text)}${title ? `&title=${encodeURIComponent(title)}` : ""}`;
@@ -252,6 +256,16 @@ function AutomationStudioAI() {
     reach: process.robot.reach,
   }));
   const roiCards = ROI_CARDS.map((c) => ({ ...c, value: blueprint.roi[c.field] }));
+  // The end of the study: talk to an engineer, ask for a quote, or print the proposal.
+  const [lead, setLead] = useState<"engineer" | "quote" | null>(null);
+  const proposal = { brief: description, industry: blueprint, processes, inventory };
+  const printProposal = () => {
+    const w = window.open("", "_blank");
+    if (!w) return toast({ title: "Allow pop-ups to download the proposal", description: "Your browser blocked the proposal window." });
+    w.document.write(proposalHtml(proposal));
+    w.document.close();
+    pushEvent("studio_proposal_download", { industry: blueprint.label, stations: processes.length });
+  };
 
   const addFiles = useCallback((incoming: FileList | null) => {
     if (!incoming) return;
@@ -276,7 +290,12 @@ function AutomationStudioAI() {
     const finish = () => {
       if (!live) return;
       // Keep the analysis screen up for a moment so the steps read naturally.
-      window.setTimeout(() => live && setStep(3), Math.max(0, 2500 - (Date.now() - started)));
+      window.setTimeout(() => {
+        if (!live) return;
+        setStep(3);
+        // Conversion event: a visitor reached a finished plan.
+        pushEvent("studio_plan_complete", { industry: industry ?? "general", brief_length: description.trim().length });
+      }, Math.max(0, 2500 - (Date.now() - started)));
     };
     const cap = window.setTimeout(finish, 45000);
     const text = description.trim();
@@ -341,6 +360,11 @@ function AutomationStudioAI() {
                 ))}
               </div>
             </div>
+          </section>
+
+          {/* Value before sign-in: a free plan for the visitor's own job. */}
+          <section className="container mx-auto px-4 pt-10">
+            <QuickPlan onSignIn={() => navigate("/auth?redirect=" + encodeURIComponent("/automation-studio?mode=ai"))} />
           </section>
 
           <section className="container mx-auto px-4 py-10">
@@ -758,9 +782,13 @@ function AutomationStudioAI() {
                         <span className="text-xs text-muted-foreground">Payload {p.robot.payload}</span>
                         <span className="text-xs text-muted-foreground">Reach {p.robot.reach}</span>
                         <span className="text-xs text-muted-foreground">{p.robot.controller}</span>
-                        <Badge variant={p.robot.stock === "In Stock" ? "default" : "secondary"} className="text-[10px]">
-                          {p.robot.stock}
+                        {/* The model is a typical example for this station, not stock on hand: link to live listings. */}
+                        <Badge variant="secondary" className="text-[10px]" title="Example model for this station — not a live listing">
+                          Typical model
                         </Badge>
+                        <Link to={`/robots?search=${encodeURIComponent(p.robot.model.replace(/^(FANUC|ABB|KUKA|Yaskawa|Kawasaki)\s+/i, ""))}`} className="text-[11px] font-medium text-primary hover:underline">
+                          Find used / new →
+                        </Link>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -1039,7 +1067,7 @@ function AutomationStudioAI() {
 
             <Card className="mt-6">
               <CardHeader>
-                <CardTitle className="text-base">Inventory matched</CardTitle>
+                <CardTitle className="text-base">Robots needed (typical models)</CardTitle>
               </CardHeader>
               <CardContent className="overflow-x-auto">
                 <Table>
@@ -1086,24 +1114,13 @@ function AutomationStudioAI() {
 
             <Card className="mt-6">
               <CardContent className="flex flex-wrap items-center justify-center gap-3 p-6">
-                <Button
-                  className="whitespace-normal min-w-fit w-auto"
-                  onClick={() => toast({ title: "Cart coming soon", description: "The matched robot list will be added to your cart once checkout goes live." })}
-                >
-                  <ShoppingCart className="mr-2 h-4 w-4" /> Add All to Cart
+                <Button className="whitespace-normal min-w-fit w-auto" onClick={() => setLead("quote")}>
+                  <ShoppingCart className="mr-2 h-4 w-4" /> Get a quote for this cell
                 </Button>
-                <Button
-                  variant="outline"
-                  className="whitespace-normal min-w-fit w-auto"
-                  onClick={() => toast({ title: "Proposal PDF coming soon", description: "You will be able to download this study as a branded proposal." })}
-                >
+                <Button variant="outline" className="whitespace-normal min-w-fit w-auto" onClick={printProposal}>
                   <Download className="mr-2 h-4 w-4" /> Download Proposal PDF
                 </Button>
-                <Button
-                  variant="outline"
-                  className="whitespace-normal min-w-fit w-auto"
-                  onClick={() => toast({ title: "Request noted", description: "An automation engineer will be connected to this study shortly." })}
-                >
+                <Button variant="outline" className="whitespace-normal min-w-fit w-auto" onClick={() => setLead("engineer")}>
                   <MessageSquare className="mr-2 h-4 w-4" /> Talk to an Engineer
                 </Button>
                 <Button asChild variant="outline" className="whitespace-normal min-w-fit w-auto">
@@ -1111,8 +1128,26 @@ function AutomationStudioAI() {
                     <Bot className="mr-2 h-4 w-4" /> Discuss with RobotVerse AI
                   </Link>
                 </Button>
+                <p className="w-full text-center text-xs text-muted-foreground">
+                  A conceptual plan, not an engineering design: an engineer checks every plan against your parts, site and ISO 10218 safety before a quote.
+                </p>
               </CardContent>
             </Card>
+            <LeadDialog
+              open={lead !== null}
+              onOpenChange={(o) => !o && setLead(null)}
+              kind={lead ?? "engineer"}
+              source="automation-studio"
+              title={lead === "quote" ? "Get a quote for this cell" : "Talk to an automation engineer"}
+              intro={
+                lead === "quote"
+                  ? "We send the plan to our engineers and matched sellers, and come back with robots, tooling and an integration price."
+                  : "An automation engineer reviews this plan with you on WhatsApp or a call — free."
+              }
+              item={{ type: "automation_plan", name: `${blueprint.label} automation plan · ${processes.length} station${processes.length === 1 ? "" : "s"}` }}
+              details={proposalSummary(proposal)}
+              action={lead === "quote" ? "Request quote" : "Request a call"}
+            />
 
             <div className="mt-8 flex flex-wrap justify-between gap-3">
               <Button variant="outline" className="whitespace-normal min-w-fit w-auto" onClick={() => setStep(3)}>

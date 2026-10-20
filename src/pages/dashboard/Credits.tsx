@@ -64,8 +64,8 @@ const Credits = () => {
                 <Shield className="h-6 w-6 text-success" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Verified Leads</p>
-                <p className="text-lg font-semibold">100% Genuine</p>
+                <p className="text-sm text-muted-foreground">Buyer enquiries</p>
+                <p className="text-lg font-semibold">From RobotVerse buyers</p>
               </div>
             </CardContent>
           </Card>

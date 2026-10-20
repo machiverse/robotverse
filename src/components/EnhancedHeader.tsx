@@ -1336,6 +1336,14 @@ const EnhancedHeader = () => {
                   <span>Directory</span>
                 </Link>
               </div>
+
+              {/* Automation Studio: the free cell planner, in the main menu */}
+              <div className="flex-1">
+                <Link to="/automation-studio" title="Plan your robot cell — free" className="nav-item flex items-center justify-center gap-2 w-full">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Plan a Cell</span>
+                </Link>
+              </div>
             </div>
           </div>
         </nav>
@@ -1729,6 +1737,16 @@ const EnhancedHeader = () => {
               >
                 <Library className="h-4 w-4" />
                 Directory
+              </Link>
+
+              {/* Automation Studio */}
+              <Link
+                to="/automation-studio"
+                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Sparkles className="h-4 w-4" />
+                Plan your robot cell — free
               </Link>
             </nav>
 

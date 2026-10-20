@@ -4,10 +4,10 @@ import { directorySlug } from "@/lib/seo/seoText";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail } from "lucide-react";
 import ItemImage from "./ItemImage";
 import RobotComponents from "./RobotComponents";
-import { enquiryMailto, type CatalogItem, type CatalogKind, type Photo } from "./directoryTypes";
+import { type CatalogItem, type CatalogKind, type Photo } from "./directoryTypes";
+import DirectoryLeadButton from "./DirectoryLeadButton";
 
 interface Props {
   kind: CatalogKind;
@@ -86,12 +86,7 @@ const DirectoryItemDialog = ({ kind, item, photo, onOpenChange }: Props) => {
           <Button variant="outline" asChild>
             <Link to={`/directory/${KIND_TYPE[kind]}/${directorySlug(item.n)}`}>Full specifications page</Link>
           </Button>
-          <Button asChild>
-            <a href={enquiryMailto(item)}>
-              <Mail className="mr-2 h-4 w-4" />
-              Enquire about this
-            </a>
-          </Button>
+          <DirectoryLeadButton lead="enquiry" catalog={kind} item={item} label="Enquire about this" />
           <DatasheetButton kind={kind} item={item} />
         </div>
 

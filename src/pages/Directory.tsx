@@ -57,7 +57,7 @@ const Directory = () => {
           "robot programming workshop",
           "FANUC ABB KUKA Yaskawa robots",
         ]}
-        canonicalUrl="https://robotverse.in/directory"
+        canonicalUrl="https://www.robotverse.in/directory"
       />
       <EnhancedHeader />
 

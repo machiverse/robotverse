@@ -2,7 +2,7 @@ import DOMPurify from "dompurify";
 
 // Always use the canonical production domain for shareable URLs,
 // regardless of where the app is being previewed from.
-export const SITE_URL = "https://robotverse.in";
+export const SITE_URL = "https://www.robotverse.in";
 
 export function slugify(input: string): string {
   return (input || "")

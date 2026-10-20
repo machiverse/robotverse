@@ -15,7 +15,7 @@ import { Thumb, type Choice } from "./EquipmentPicker";
 import { BLOCKS } from "./ProcessBuilder";
 import { slotOf } from "./RobotConfigurator";
 import { loadDirectoryRobots, loadDirectoryTools, loadMarketRobots, loadMarketTools, type DirRobot, type DirTool, type Match } from "./equipmentMatch";
-import { mailto } from "@/components/directory/directoryTypes";
+import LeadDialog from "@/components/leads/LeadDialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
 import { budgetFor, CycleTracker, decodeLine, encodeLine, isCobotMatch, reportHtml, roi, STARTERS, STEP_GROUP, suggest, suggestSwap, type Raw, type StarterCell, type StepTime } from "./builderExtras";
@@ -147,6 +147,7 @@ export default function CellBuilder() {
   const lastEmit = useRef(0);
   const cellCount = useRef(0);
   const [reportOpen, setReportOpen] = useState(false);
+  const [quoteOpen, setQuoteOpen] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [raw, setRaw] = useState<Raw | null>(null);
   const tracker = useRef(new CycleTracker());
@@ -722,29 +723,15 @@ export default function CellBuilder() {
   );
   const priced = chosen.filter((m) => m.source === "market" && m.price);
   const total = priced.reduce((s, m) => s + (m.price ?? 0), 0);
-  const quote = mailto(
-    "Quote request: my robot cell (Automation Studio)",
+  // The line as the sales team reads it: every cell's equipment, safety, components and software.
+  const quoteLines = cells.map((c, i) =>
     [
-      "Hello RobotVerse team,",
-      "",
-      "Please quote the robot cell I built in Automation Studio:",
-      "",
-      ...cells.map((c, i) =>
-        [
-          `Cell ${i + 1} — ${cellLabel(c)}${c.fenced === undefined ? " (safety not chosen)" : c.fenced ? " (fenced)" : " (open / collaborative)"}`,
-          ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `  ${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`),
-          ...(c.stations?.length ? [`  Cell equipment: ${c.stations.map(stationLabel).join(", ")}`] : []),
-          ...(c.parts?.length ? [`  Components: ${c.parts.map((m) => m.name).join(", ")}`] : []),
-          ...(kits[i]?.software.length ? [`  Software: ${kits[i].software.map((x) => `${x.maker} ${x.name}`).join(", ")}`] : []),
-        ].join("\n"),
-      ),
-      "",
-      "Name:",
-      "Company:",
-      "Phone:",
-      "",
-      "Thank you.",
-    ].join("\n"),
+      `Cell ${i + 1} — ${cellLabel(c)}${c.fenced === undefined ? " (safety not chosen)" : c.fenced ? " (fenced)" : " (open / collaborative)"}`,
+      ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`),
+      ...(c.stations?.length ? [`Cell equipment: ${c.stations.map(stationLabel).join(", ")}`] : []),
+      ...(c.parts?.length ? [`Components: ${c.parts.map((m) => m.name).join(", ")}`] : []),
+      ...(kits[i]?.software.length ? [`Software: ${kits[i].software.map((x) => `${x.maker} ${x.name}`).join(", ")}`] : []),
+    ].join(" | "),
   );
 
   /* ------------------------------------------------------------- analysis */
@@ -1566,10 +1553,8 @@ export default function CellBuilder() {
             )}
           </p>
           <div className="flex gap-2">
-            <Button size="sm" className="flex-1" asChild disabled={!chosen.length}>
-              <a href={chosen.length ? quote : undefined} aria-disabled={!chosen.length}>
-                <Mail className="mr-1.5 h-3.5 w-3.5" /> Request quote
-              </a>
+            <Button size="sm" className="flex-1" disabled={!chosen.length} onClick={() => setQuoteOpen(true)}>
+              <Mail className="mr-1.5 h-3.5 w-3.5" /> Request quote
             </Button>
             {cells.length > 0 && (
               <Button size="sm" variant="outline" onClick={() => setReportOpen(true)}>
@@ -1799,8 +1784,8 @@ export default function CellBuilder() {
               </div>
               <p className="text-xs text-muted-foreground">Cycle times come from the 3D simulation and are indicative; real times depend on part, tooling and programming.</p>
               <div className="flex flex-wrap gap-2">
-                <Button asChild disabled={!chosen.length}>
-                  <a href={chosen.length ? quote : undefined}><Mail className="mr-1.5 h-4 w-4" /> Request quote</a>
+                <Button disabled={!chosen.length} onClick={() => (setReportOpen(false), setQuoteOpen(true))}>
+                  <Mail className="mr-1.5 h-4 w-4" /> Request quote
                 </Button>
                 <Button variant="outline" onClick={printReport}>
                   <Printer className="mr-1.5 h-4 w-4" /> Print / save PDF
@@ -1816,6 +1801,23 @@ export default function CellBuilder() {
           )}
         </DialogContent>
       </Dialog>
+      <LeadDialog
+        open={quoteOpen}
+        onOpenChange={setQuoteOpen}
+        kind="quote"
+        source="cell-builder"
+        title="Get a quote for this line"
+        intro="Our engineers check the line and come back with robots, tooling, components and an integration price."
+        item={{ type: "robot_cell", name: `${cells.length} robot cell${cells.length === 1 ? "" : "s"}: ${cells.map((c) => cellLabel(c)).join(", ")}` }}
+        details={{
+          cells: quoteLines,
+          lineCycle: bottleneck ? `${bottleneck.toFixed(1)} s` : "not measured",
+          partsPerHour: perHour ?? "not measured",
+          marketplaceTotal: total ? inr(total) : "",
+          openLine: typeof window !== "undefined" && cells.length ? `${window.location.origin}/automation-studio/build#line=${encodeLine(cells)}` : "",
+        }}
+        action="Request quote"
+      />
     </div>
   );
 }
