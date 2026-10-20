@@ -65,6 +65,7 @@ import type { VisualStation } from "@/components/automation-studio/visualTypes";
 const RobotCell3D = lazy(() => import("@/features/automation3d/AutomationStudio3D"));
 import { processKind, PROCESS_PROFILES } from "@/features/automation3d/processProfiles";
 import { JOB_NOTES, PLAYBOOK } from "@/features/automation3d/engineerPlaybook";
+import { kitGuide } from "@/features/automation3d/jobKit";
 import { processToText, PRESETS } from "@/features/automation3d/robotSim.js";
 import AiSolutionPanel from "@/features/automation3d/AiSolutionPanel";
 import { requestSolution, solutionProcesses, type AiSolution } from "@/features/automation3d/aiSolution";
@@ -974,6 +975,23 @@ function AutomationStudioAI() {
                                   <b>For {current.name.toLowerCase()}:</b> <span className="text-muted-foreground">{JOB_NOTES[current.name].join(". ")}.</span>
                                 </p>
                               )}
+                              {(() => {
+                                // Everything besides the robot: tool, accessories, components, other equipment and software.
+                                const g = kitGuide(current.name);
+                                const rows: [string, string[]][] = [["Tool", [g.tool]], ["Accessories", g.accessories], ["Components", g.components], ["Also needed", g.also], ["Software", g.software]];
+                                return (
+                                  <dl className="mt-3 space-y-1 text-xs">
+                                    {rows
+                                      .filter(([, v]) => v.length)
+                                      .map(([k, v]) => (
+                                        <div key={k} className="grid grid-cols-[6.5rem_1fr] gap-2">
+                                          <dt className="font-semibold">{k}</dt>
+                                          <dd className="text-muted-foreground">{v.join(" · ")}</dd>
+                                        </div>
+                                      ))}
+                                  </dl>
+                                );
+                              })()}
                               <div className="mt-3 flex flex-wrap gap-3 text-xs">
                                 <Link to={`/automation-studio/build#job=${encodeURIComponent(current.name)}`} className="font-medium text-primary hover:underline">
                                   Build this cell with real robots →

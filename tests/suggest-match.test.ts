@@ -43,8 +43,16 @@ const pick = (job: string, cobot = false) => suggest(job, kgFor(job), raw, cobot
   assert.ok(isArcRobot(mig.robot!.name) && !/spot/i.test(mig.tool!.name), `${mig.robot!.name} + ${mig.tool!.name}`);
   const spot = pick("Spot Welding");
   assert.ok(/spot/i.test(spot.tool!.name) && (spot.robot!.payload ?? 0) >= 200, `${spot.robot!.name} + ${spot.tool!.name}`);
-  // No laser welding head in the Directory: the nearest torch says so.
-  assert.match(pick("Laser Welding").tool!.reasons[0], /No laser welding head listed/);
+}
+// The job's own tool from the Directory, including the tools added for jobs that had none.
+for (const [job, re] of [
+  ["Laser Welding", /laser weld/i], ["TIG Welding", /\btig\b/i], ["Ultrasonic Plastic Welding", /ultrason/i], ["Riveting Assembly", /rivet/i],
+  ["Laser Cleaning & Surface Prep", /laser clean/i], ["Bag & Sack Palletizing", /sack/i], ["CNC Machining", /dual/i], ["Labeling & Weighing", /label/i],
+  ["Capping", /capping/i], ["Filling", /filling/i],
+] as const) {
+  const t = pick(job).tool!;
+  assert.match(t.name, re, `${job}: ${t.name}`);
+  assert.ok(!/nearest tool/.test(t.reasons.join(" ")), `${job}: the right tool, not the nearest`);
 }
 // End of line: palletizers with vacuum or sack grippers.
 for (const job of ["Palletizing", "Bag & Sack Palletizing", "Depalletizing"]) {
@@ -53,14 +61,13 @@ for (const job of ["Palletizing", "Bag & Sack Palletizing", "Depalletizing"]) {
   assert.ok(["vacuum", "fork"].includes(family(s.tool!.name, s.tool!.type)!), `${job}: ${s.tool!.name}`);
 }
 // Machines and packing: the gripper family each one needs.
-for (const [job, fam] of [["Injection Moulding Tending", "vacuum"], ["Press Tending & Stamping", "vacuum"], ["Cartoning (Product into Cartons)", "vacuum"], ["Labeling & Weighing", "vacuum"], ["Screw Driving", "driver"], ["Filling", "nozzle"], ["CNC Machining", "parallel"]] as const) {
+for (const [job, fam] of [["Injection Moulding Tending", "vacuum"], ["Press Tending & Stamping", "vacuum"], ["Cartoning (Product into Cartons)", "vacuum"], ["Labeling & Weighing", "vacuum"], ["Screw Driving", "driver"], ["Filling", "nozzle"], ["CNC Machining", "dual"], ["Capping", "driver"]] as const) {
   const s = pick(job);
   assert.equal(family(s.tool!.name, s.tool!.type), fam, `${job}: ${s.tool!.name}`);
 }
 assert.match(pick("Painting & Coating").tool!.name, /spray|paint/i);
 assert.match(pick("Polishing").tool!.name, /sander|polish/i);
 assert.match(pick("Grinding & Surface Prep").tool!.name, /grind/i);
-assert.match(pick("Capping").tool!.name, /3FG|centric/i);
 // Cobots: the mobile manipulator, and any cell the user made an open (cobot) cell.
 for (const s of [pick("Mobile Manipulator Machine Tending"), pick("Loading & Unloading", true)]) {
   assert.ok(isCobotMatch(s.robot), `${s.robot!.name} is a cobot`);

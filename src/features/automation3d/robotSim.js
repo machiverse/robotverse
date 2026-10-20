@@ -292,8 +292,8 @@ export function eoatKind(text) {
   if (/magnet/.test(t)) return "magnet";
   if (/fork|sack|bag|claw|clamp|palletiz|slip sheet/.test(t)) return "fork";
   if (/torch|weld|mig|tig|\barc\b|spot/.test(t)) return "torch";
-  if (/grind|sand|polish|deburr|spindle|milling|router|cutter/.test(t)) return "spindle";
-  if (/screw|nutrunner|driver|fasten/.test(t)) return "driver";
+  if (/grind|sand|polish|deburr|spindle|milling|router|cutter|laser clean|ablat/.test(t)) return "spindle";
+  if (/screw|nutrunner|driver|fasten|rivet|capping/.test(t)) return "driver";
   if (/dispens|glue|paint|spray|nozzle|applicator|extru|dosing/.test(t)) return "nozzle";
   return "parallel";
 }

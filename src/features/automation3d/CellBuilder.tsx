@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
-  AlertTriangle, Bot, Brain, Link2, PanelLeft, PanelRight, Printer, Wand2, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
+  AlertTriangle, AppWindow, Bot, Boxes, Brain, PackagePlus, Link2, PanelLeft, PanelRight, Printer, Wand2, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,8 @@ import { attachmentIssues, type FitIssue } from "./attachmentFit";
 import { analyzeJob, JOB_EXAMPLES, type JobTask } from "./customJob";
 import { processKind } from "./processProfiles";
 import { CELL_STATIONS, cellProgram, stationLabel, stationsFor, TOOL_NAMES, type CellProgram, type StationKey } from "./cellProgram";
+import { isComponent } from "./jobGear";
+import { jobKit, type JobKit } from "./jobKit";
 
 /* ------------------------------------------------------------------ data */
 
@@ -54,6 +56,8 @@ interface Cell {
   fenced?: boolean;
   /** Cell equipment the user placed: conveyors, tables, machine, pallet, camera, tool stand. */
   stations?: StationKey[];
+  /** Components the user added: power source, wire feeder, torch cleaner, vacuum generator, adapters… */
+  parts?: Match[];
 }
 type PaletteTab = "robots" | "tools" | "acc" | "layout" | "cell";
 
@@ -82,7 +86,11 @@ const marketTool = (t: Record<string, unknown>): Match => ({
 });
 
 // Cell equipment that does not go on the arm (stations, power sources, feeders).
-const NOT_ON_ARM = /cleaning|reamer|station|power source|wire feeder|feeder|proportioner|controller/i;
+/** A component: not the working tool or an arm accessory (power source, feeder, cleaner, adapter, spare cups). */
+const isPart = (m: Match) => m.kind === "tool" && isComponent(m.name, m.type);
+/** The slot a catalogue item fills; components have none (they go in the cell's component list). */
+const slotFor = (m: Match): Slot | undefined => (m.kind === "robot" ? "robot" : isPart(m) ? undefined : slotOf(m));
+const sameItem = (a: Match, b: Match) => a.source === b.source && a.id === b.id;
 const isCobot = isCobotMatch;
 const ROBOT_TYPES = ["All", "6-Axis", "Cobot", "SCARA", "Delta", "Palletizing", "7-Axis"] as const;
 const SLOTS: { key: Slot; label: string; icon: typeof Bot }[] = [
@@ -435,6 +443,7 @@ export default function CellBuilder() {
   };
   const update = (i: number, fn: (c: Cell) => Cell) => setCells((cs) => cs.map((c, k) => (k === i ? fn(c) : c)));
   const put = (i: number, m: Match) => {
+    if (isPart(m)) return addPart(i, m);
     let slot: Slot = m.kind === "robot" ? "robot" : slotOf(m);
     if (!cells[i]) return addCell({ choice: { [slot]: m } });
     // With a tool changer, a second tool goes on the tool stand instead of replacing the first.
@@ -448,6 +457,19 @@ export default function CellBuilder() {
     update(i, (c) => ({ ...c, stations: (c.stations ?? []).includes(k) ? c.stations : [...(c.stations ?? []), k] }));
   };
   const removeStation = (i: number, k: StationKey) => update(i, (c) => ({ ...c, stations: (c.stations ?? []).filter((x) => x !== k) }));
+  // Components: beside the robot or between flange and tool, as many as the cell needs.
+  const addPart = (i: number | "new", m: Match) => {
+    if (i === "new" || !cells[i]) return addCell({ parts: [m] });
+    update(i, (c) => ({ ...c, parts: (c.parts ?? []).some((x) => sameItem(x, m)) ? c.parts : [...(c.parts ?? []), m] }));
+  };
+  const removePart = (i: number, m: Match) => update(i, (c) => ({ ...c, parts: (c.parts ?? []).filter((x) => !sameItem(x, m)) }));
+  // Everything the job kit suggests for a cell, in one click: accessories into empty slots, components to the list.
+  const addKit = (i: number, kit: JobKit) =>
+    update(i, (c) => ({
+      ...c,
+      choice: { ...Object.fromEntries(kit.accessories.map((a) => [a.slot, a.match])), ...c.choice },
+      parts: [...(c.parts ?? []), ...kit.components.map((x) => x.match).filter((m) => !(c.parts ?? []).some((x) => sameItem(x, m)))],
+    }));
   // Tap "Add" (touch screens): a robot goes to the selected cell if it has none, else a new cell.
   const add = (m: Match) => {
     if (m.kind === "robot" && (!cells.length || cells[selected]?.choice.robot)) return addCell({ choice: { robot: m } });
@@ -503,6 +525,7 @@ export default function CellBuilder() {
           fenced: typeof c.f === "boolean" ? c.f : undefined,
           choice: Object.fromEntries(Object.entries(c.s ?? {}).map(([k, key]) => [k, byKey.get(key)]).filter(([, m]) => m)) as Choice,
           stations: Array.isArray(c.t) ? (c.t.filter((k) => STATION_KEYS.has(k)) as StationKey[]) : undefined,
+          parts: Array.isArray(c.p) ? c.p.map((k) => byKey.get(k)).filter((m): m is Match => !!m) : undefined,
         })).map(withStations),
       );
       setSelected(0);
@@ -544,6 +567,7 @@ export default function CellBuilder() {
     }
     const m = byKey.get(p);
     if (!m) return;
+    if (isPart(m)) return addPart(cellIndex, m);
     if (cellIndex === "new") return addCell({ choice: { [m.kind === "robot" ? "robot" : slotOf(m)]: m } });
     put(cellIndex, m);
   };
@@ -682,14 +706,20 @@ export default function CellBuilder() {
           (rtype === "All" || (rtype === "Cobot" ? isCobot(m) : (m.type ?? "").toLowerCase().includes(rtype.toLowerCase()))),
       );
     const tools = data.tools.filter((m) => (source === "all" || m.source === source) && matchQ(m));
-    return tab === "acc" ? tools.filter((m) => slotOf(m) !== "tool") : tools.filter((m) => slotOf(m) === "tool" && !NOT_ON_ARM.test(m.name));
+    // Accessories on the arm and the components around it; the EOAT tab holds working tools only.
+    return tab === "acc" ? tools.filter((m) => isPart(m) || slotOf(m) !== "tool") : tools.filter((m) => slotOf(m) === "tool" && !isPart(m));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, tab, q, source, rtype]);
   useEffect(() => setShown(40), [tab, q, source, rtype]);
 
   /* ------------------------------------------------------------ summary */
 
-  const chosen = cells.flatMap((c) => Object.values(c.choice).filter(Boolean) as Match[]);
+  const chosen = cells.flatMap((c) => [...(Object.values(c.choice).filter(Boolean) as Match[]), ...(c.parts ?? [])]);
+  // Accessories, components, other equipment and software each job needs with the chosen robot and tools.
+  const kits: JobKit[] = useMemo(
+    () => cells.map((c) => jobKit({ job: c.job, ...c.choice, fenced: c.fenced, stations: c.stations }, data?.tools ?? [])),
+    [cells, data],
+  );
   const priced = chosen.filter((m) => m.source === "market" && m.price);
   const total = priced.reduce((s, m) => s + (m.price ?? 0), 0);
   const quote = mailto(
@@ -704,6 +734,8 @@ export default function CellBuilder() {
           `Cell ${i + 1} — ${cellLabel(c)}${c.fenced === undefined ? " (safety not chosen)" : c.fenced ? " (fenced)" : " (open / collaborative)"}`,
           ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `  ${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`),
           ...(c.stations?.length ? [`  Cell equipment: ${c.stations.map(stationLabel).join(", ")}`] : []),
+          ...(c.parts?.length ? [`  Components: ${c.parts.map((m) => m.name).join(", ")}`] : []),
+          ...(kits[i]?.software.length ? [`  Software: ${kits[i].software.map((x) => `${x.maker} ${x.name}`).join(", ")}`] : []),
         ].join("\n"),
       ),
       "",
@@ -753,7 +785,7 @@ export default function CellBuilder() {
       thought: [programs[i].summary, ...programs[i].notes.map((n) => n.text)].join(" "),
       state: programs[i].idle ? "todo" : programs[i].notes.some((n) => n.level !== "info") ? "warn" : "ok",
     };
-    return [program, ...thinkCell({ job: c.job, choice: c.choice, needKg: plan?.robots[i]?.minPayload, fenced: c.fenced, cobot: isCobot(c.choice.robot), cycle: cycles[i], checks: checks[i], split })];
+    return [program, ...thinkCell({ job: c.job, choice: c.choice, needKg: plan?.robots[i]?.minPayload, fenced: c.fenced, cobot: isCobot(c.choice.robot), cycle: cycles[i], checks: checks[i], split, kit: kits[i], parts: c.parts })];
   });
   const onQuote = chosen.filter((m) => !(m.source === "market" && m.price)).length;
   const budget = useMemo(() => (plan ? budgetFor(plan, cells.map((c) => c.choice)) : null), [plan, cells]);
@@ -764,7 +796,10 @@ export default function CellBuilder() {
     if (!w) return;
     w.document.write(
       reportHtml({
-        cells: cells.map((c, i) => ({ job: cellLabel(c), choice: c.choice, fenced: c.fenced, cycle: cycles[i], checks: checks[i], thoughts: thoughts[i] })),
+        cells: cells.map((c, i) => ({
+          job: cellLabel(c), choice: c.choice, fenced: c.fenced, cycle: cycles[i], checks: checks[i], thoughts: thoughts[i],
+          parts: (c.parts ?? []).map((m) => m.name), also: kits[i].also, software: kits[i].software,
+        })),
         bottleneck, perHour, budget, roi: payback, inputs: { operators, shifts: roiIn.shifts, wage: roiIn.wage },
       }),
     );
@@ -791,17 +826,18 @@ export default function CellBuilder() {
   const reportCsv = () => {
     const q = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = [
-      ["Cell", "Job", "Robot", "Tool", "2nd tool", "Accessories", "Cell equipment", "Program", "Safety", "Cycle (s)", "Parts / hour", "Status", "Notes"],
+      ["Cell", "Job", "Robot", "Tool", "2nd tool", "Accessories", "Components", "Also needed", "Software", "Cell equipment", "Program", "Safety", "Cycle (s)", "Parts / hour", "Status", "Notes"],
       ...cells.map((c, i) => [
         i + 1, cellLabel(c), c.choice.robot?.name, c.choice.tool?.name, c.choice.tool2?.name,
         [c.choice.changer, c.choice.sensor, c.choice.camera].filter(Boolean).map((m) => m!.name).join(" + "),
+        (c.parts ?? []).map((m) => m.name).join(" + "), kits[i].also.join("; "), kits[i].software.map((x) => `${x.maker} ${x.name}`).join("; "),
         (c.stations ?? []).map(stationLabel).join(" + "), programs[i].summary,
         c.fenced === undefined ? "Not chosen" : c.fenced ? "Fenced" : "Open (cobot)", cycles[i]?.toFixed(1), cycles[i] ? Math.floor(3600 / cycles[i]!) : "",
         states[i] === "ok" ? "Ready" : states[i] === "warn" ? "Check" : "Incomplete",
         checks[i].filter((x) => x.state !== "ok").map((x) => `${x.label}: ${x.detail}`).join("; "),
       ]),
       [],
-      ["Line", "", "", "", "", "", "", "", "", bottleneck?.toFixed(1) ?? "", perHour ?? "", "", `Marketplace total ${total ? inr(total) : "-"}; ${onQuote} item(s) on quotation`],
+      ["Line", "", "", "", "", "", "", "", "", "", "", "", bottleneck?.toFixed(1) ?? "", perHour ?? "", "", `Marketplace total ${total ? inr(total) : "-"}; ${onQuote} item(s) on quotation`],
     ];
     const url = URL.createObjectURL(new Blob([rows.map((r) => r.map(q).join(",")).join("\n")], { type: "text/csv" }));
     const a = document.createElement("a");
@@ -1234,9 +1270,9 @@ export default function CellBuilder() {
                 <li
                   key={`${m.source}:${m.id}`}
                   draggable
-                  onDragStart={(e) => onDragStart(e, `${m.source}:${m.id}`, m.kind, m.kind === "robot" ? "robot" : slotOf(m))}
+                  onDragStart={(e) => onDragStart(e, `${m.source}:${m.id}`, m.kind, slotFor(m))}
                   onDragEnd={endDrag}
-                  {...touchDrag({ payload: `${m.source}:${m.id}`, kind: m.kind, slot: m.kind === "robot" ? "robot" : slotOf(m), label: m.name })}
+                  {...touchDrag({ payload: `${m.source}:${m.id}`, kind: m.kind, slot: slotFor(m), label: m.name })}
                   className="flex cursor-grab select-none items-center gap-2 p-2 active:cursor-grabbing [-webkit-touch-callout:none]"
                 >
                   <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -1408,6 +1444,79 @@ export default function CellBuilder() {
                         </button>
                       ))}
                       {!placed.length && !wanted.length && <span className="text-muted-foreground">No cell equipment yet — add it from Layout</span>}
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  // Accessories and components the user added, what this job and robot still need (one click
+                  // each, or all at once), other equipment, and the software to program and run the cell.
+                  const kit = kits[i];
+                  const parts = c.parts ?? [];
+                  const acc = kit.accessories.filter((a) => !c.choice[a.slot]);
+                  const comp = kit.components.filter((x) => !parts.some((m) => sameItem(m, x.match)));
+                  if (!parts.length && !acc.length && !comp.length && !kit.software.length) return null;
+                  return (
+                    <div className="mt-2 space-y-1 text-[11px]">
+                      {(parts.length > 0 || acc.length > 0 || comp.length > 0) && (
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Boxes className="h-3 w-3 shrink-0 text-primary" aria-hidden />
+                          {parts.map((m) => (
+                            <span key={`${m.source}:${m.id}`} title={m.type} className="inline-flex items-center gap-1 rounded-full border border-primary/50 px-2 py-0.5">
+                              {m.name}
+                              <button type="button" aria-label={`Remove ${m.name}`} onClick={(e) => (e.stopPropagation(), removePart(i, m))} className="rounded hover:text-red-600">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                          {acc.map((a) => (
+                            <button
+                              key={`a-${a.slot}`}
+                              type="button"
+                              title={`${a.why} — click to add`}
+                              onClick={(e) => (e.stopPropagation(), update(i, (x) => ({ ...x, choice: { ...x.choice, [a.slot]: a.match } })))}
+                              className="rounded-full border border-dashed border-primary/60 px-2 py-0.5 text-primary hover:bg-primary/10"
+                            >
+                              + {a.match.name}
+                            </button>
+                          ))}
+                          {comp.map((x) => (
+                            <button
+                              key={`c-${x.match.id}`}
+                              type="button"
+                              title={`${x.why} — click to add`}
+                              onClick={(e) => (e.stopPropagation(), addPart(i, x.match))}
+                              className="rounded-full border border-dashed border-primary/60 px-2 py-0.5 text-primary hover:bg-primary/10"
+                            >
+                              + {x.match.name}
+                            </button>
+                          ))}
+                          {acc.length + comp.length > 1 && (
+                            <button
+                              type="button"
+                              title="Add every suggested accessory and component for this job"
+                              onClick={(e) => (e.stopPropagation(), addKit(i, { ...kit, accessories: acc, components: comp }))}
+                              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary hover:bg-primary/20"
+                            >
+                              <PackagePlus className="h-3 w-3" /> Add all
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {selected === i && kit.also.length > 0 && (
+                        <p className="text-muted-foreground">
+                          <b className="font-medium text-foreground">Also needed:</b> {kit.also.join(" · ")}
+                        </p>
+                      )}
+                      {kit.software.length > 0 && (
+                        <p className="flex flex-wrap items-center gap-1">
+                          <AppWindow className="h-3 w-3 shrink-0 text-primary" aria-label="Software" />
+                          {kit.software.map((x) => (
+                            <span key={x.name} title={`${x.maker}: ${x.does}`} className="rounded bg-muted px-1.5 py-0.5">
+                              {x.name}
+                            </span>
+                          ))}
+                        </p>
+                      )}
                     </div>
                   );
                 })()}

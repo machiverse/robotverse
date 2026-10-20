@@ -13,7 +13,7 @@ import type { AiStation } from "./aiSolution";
 import { eoatKind } from "./robotSim.js";
 import {
   COBOT_EOAT, GRIP_FAMILIES, GRIP_PART, INDUSTRIAL_EOAT, SPECIALTY_GRIP, gearFor, gripSize, isArcRobot, isCobotName, isCurrentRobot, isEduRobot,
-  isLabRobot, isMountVariant, isPaintRobot, lockedOut, sizeFor, type ToolFamily,
+  isComponent, isLabRobot, isMountVariant, isPaintRobot, lockedOut, sizeFor, type ToolFamily,
 } from "./jobGear";
 
 export type Source = "market" | "oem";
@@ -262,12 +262,10 @@ function hintScore(text: string, hints: string[], reasons: string[]) {
   return hit.length * 25;
 }
 
-/** Not a tool the arm works with: welding power sources, feeders and cleaning stations stand beside the robot. */
-export const NOT_ON_ARM = /cleaning|reamer|station|power source|feeder|proportioner|controller|vacuum generator/i;
-/** The tool family of a catalogue tool, or null when it is not a working tool (camera, sensor, adapter, changer). */
+/** The tool family of a catalogue tool, or null when it is not a working tool (camera, sensor, component, changer). */
 export function toolFamily(name: string, category = ""): ToolFamily | null {
-  if (/vision|sensing|calibration|mounting|adapter|additive|generic demo|taping/i.test(category)) return null;
-  if (NOT_ON_ARM.test(name) || /hand-eye|verification|pencil|\bbracket\b|flange/i.test(name)) return null;
+  if (/vision|sensing|calibration|additive|generic demo|taping/i.test(category)) return null;
+  if (isComponent(name, category) || /hand-eye|verification|pencil/i.test(name)) return null;
   const kind = eoatKind(`${name} ${category.replace(/tool changer|handling/gi, "")}`) as ToolFamily;
   // The catalogue's "Tool Changer" group also holds deburring tools; a changer itself is not a working tool.
   if (/tool changer|quick.?change/i.test(`${name} ${category}`) && kind === "parallel") return null;
@@ -344,7 +342,7 @@ export function matchMarketTools(need: StationNeed, list: Record<string, unknown
     const text = [t.name, t.category, t.main_category, t.sub_category, t.component_type].map(str).join(" ");
     if (!words.test(text)) continue;
     const family = eoatKind(text) as ToolFamily;
-    if (!gear.tools.includes(family) || NOT_ON_ARM.test(str(t.name)) || lockedOut(text, need.arm)) continue;
+    if (!gear.tools.includes(family) || isComponent(str(t.name)) || lockedOut(text, need.arm)) continue;
     const cond = str(t.condition);
     const reasons = ["Listed on RobotVerse", ...(cond ? [cond] : [])];
     const score = toolFit(str(t.name), family, need, gear, hints, []) + (num(t.price) ? 5 : 0) + hintScore(text, hints, reasons);

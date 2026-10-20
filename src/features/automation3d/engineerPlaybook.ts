@@ -13,6 +13,8 @@ import { SKILLS } from "./robotKnowledge";
 import type { Choice } from "./EquipmentPicker";
 import type { CheckItem } from "./cellCheck";
 import { attachmentIssues } from "./attachmentFit";
+import type { JobKit } from "./jobKit";
+import type { Match } from "./equipmentScore";
 
 /* ------------------------------------------------------------ project stages */
 
@@ -185,6 +187,10 @@ export function thinkCell(r: {
   checks: CheckItem[];
   /** Share of the cycle per step group, e.g. { Pick: 0.6 }. */
   split?: Record<string, number>;
+  /** Accessories, components, other equipment and software the job needs (jobKit). */
+  kit?: JobKit;
+  /** Components the user added to the cell. */
+  parts?: Match[];
 }): Thought[] {
   if (!r.job)
     return [
@@ -240,6 +246,21 @@ export function thinkCell(r: {
         : { step: "Vision", thought: "Add a camera and lighting for the inspection.", state: "warn" },
     );
   out.push({ step: "Around the robot", thought: book.around.join(", ") + ".", state: "todo" });
+
+  // The rest of the bill of materials: accessories, components, other equipment and software.
+  if (r.kit) {
+    const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
+    const parts = r.parts ?? [];
+    const accLeft = r.kit.accessories.filter((a) => !r.choice[a.slot]);
+    const compLeft = r.kit.components.filter((x) => !parts.some((m) => m.source === x.match.source && m.id === x.match.id));
+    const have = [r.choice.changer, r.choice.sensor, r.choice.camera, ...parts].filter(Boolean).map((m) => m!.name);
+    if (accLeft.length || compLeft.length)
+      out.push({ step: "Accessories & components", thought: [...accLeft, ...compLeft].map((x) => `${x.match.name}: ${lc(x.why)}`).join(". ") + ".", state: "todo" });
+    else if (have.length) out.push({ step: "Accessories & components", thought: `In the cell: ${have.join(", ")}.`, state: "ok" });
+    if (r.kit.also.length) out.push({ step: "Also needed", thought: r.kit.also.join(", ") + ".", state: "todo" });
+    if (r.kit.software.length)
+      out.push({ step: "Software", thought: r.kit.software.map((x) => `${x.name} (${x.maker}): ${lc(x.does)}`).join(". ") + ".", state: "todo" });
+  }
 
   const safety = check("Safety");
   if (safety) out.push({ step: "Safety", thought: `${safety.detail}. Run a risk assessment (ISO 12100) for loading, teaching and fault recovery.`, state: safety.state === "ok" ? "ok" : "warn" });
@@ -341,6 +362,7 @@ export const CORE_SKILLS: CoreSkill[] = [
   { name: "Reach and layout", goal: "Every station inside the robot's comfortable working zone.", steps: ["Keep stations within about 80% of rated reach", "Avoid wrist singularities and positions behind the base", "Place operator loading outside the robot's zone"], rule: "If one robot cannot reach everything, use a track, a second robot or move the stations." },
   { name: "Gripper design", goal: "Hold the part safely at full acceleration.", steps: ["Choose principle: fingers, vacuum, magnet, needles", "Calculate holding force with a safety factor", "Add part-present sensing and a plan for power loss"], rule: "Safety factor 2 for lifting; 4 when vacuum or friction carries the part sideways." },
   { name: "Safety design", goal: "People are protected in every mode: run, teach, maintenance.", steps: ["Risk assessment for every task (ISO 12100)", "Required performance level for each function (ISO 13849)", "Safety distance for guards and light curtains (ISO 13855)"], rule: "Cobots still need a risk assessment; force limits follow ISO/TS 15066." },
+  { name: "Accessories, components and software", goal: "A complete bill of materials, not just a robot and a tool.", steps: ["On the arm: tool changer, force/torque sensor, camera or seam sensor", "Beside the robot: power source, feeders, cleaners, vacuum generator, screw or rivet feeder", "Software: the robot maker's simulation and job package, vision or CAM, PLC and safety configuration"], rule: "List every component with its interface (I/O, fieldbus, air, power) before the quote, or it shows up as an extra later." },
   { name: "Controls and integration", goal: "Robot, machines and line talk reliably.", steps: ["Write the I/O list: ready, start, done, fault, part present", "Choose the fieldbus (PROFINET, EtherNet/IP)", "Define recovery after a fault or power cut"], rule: "Every handshake needs a timeout and a clear alarm text." },
   { name: "Vision", goal: "The camera finds or checks every part, every time.", steps: ["Field of view and smallest feature decide the resolution", "Pick lighting before the camera", "Test with bad parts, not only good ones"], rule: "3–4 pixels across the smallest feature or defect." },
   { name: "Simulation and offline programming", goal: "Prove the cell before buying steel.", steps: ["Check reach and collisions for every point", "Measure cycle time and find the bottleneck", "Generate robot programs offline to shorten commissioning"], rule: "Simulated cycle times are usually within 10% of real ones." },
