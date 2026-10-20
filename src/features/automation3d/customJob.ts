@@ -11,7 +11,7 @@ import { processesFromSkills } from "@/utils/processAnalyzer";
 import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, SKILLS } from "./robotKnowledge";
 import { STATION_NAMES } from "./robotSim.js";
-import { PLAYBOOK } from "./engineerPlaybook";
+import { JOB_NOTES, PLAYBOOK } from "./engineerPlaybook";
 import { understandJob, type Confidence } from "./jobUnderstanding";
 
 export interface JobTask {
@@ -49,14 +49,15 @@ export function analyzeJob(text: string): JobTask[] {
         name: card.name,
         kind,
         family: PROCESS_PROFILES[kind].label,
-        does: SKILLS[kind].does,
+        // The job's own words first; the family's general line only when the library has none.
+        does: card.automated?.[0] ? `${card.automated[0]}.` : SKILLS[kind].does,
         tool: card.eoat[0] ?? SKILLS[kind].toolName,
         tools: card.eoat,
         robot: `${card.robot.model} (${card.robot.payload}, ${card.robot.reach})`,
         payloadKg: plan.robots[0]?.minPayload ?? SKILLS[kind].minPayload,
         stations,
         cycle: PLAYBOOK[kind].cycle,
-        key: PLAYBOOK[kind].key,
+        key: JOB_NOTES[card.name]?.[0] ?? PLAYBOOK[kind].key,
         confidence: byName.get(card.name)?.confidence ?? "medium",
         why: byName.get(card.name)?.why ?? "",
       };

@@ -145,6 +145,10 @@ const RULES: [RegExp, JobGear][] = [
   [/harness/i, { tools: ["parallel"], prefer: /EGP|EGK|Hand-E|2F-85|RG2|PGN-plus-P (?:40|50)\b/i, robot: {} }],
   [/assembl/i, { tools: ["parallel", "driver", "dual"], robot: {} }],
   // Machines: what an integrator puts on the arm for each.
+  [/stone slab|granite slab|marble slab|quartz slab/i, { tools: ["vacuum"], prefer: /area|FXCB|FMP/i, robot: {} }],
+  [/bobbin|yarn|\bcones?\b/i, { tools: ["parallel"], prefer: /3FG|centric|PZN/i, robot: {} }],
+  [/compression mou?ld|rubber mou?ld/i, { tools: ["parallel", "vacuum"], prefer: /PGN|PZN|EGU/i, robot: {} }],
+  [/bag plac|rotary packer|packer spout/i, { tools: ["vacuum"], prefer: /area|FXCB|FMP|vacuum/i, robot: {} }],
   [/glass|panel/i, { tools: ["vacuum"], prefer: /area|FXCB|FMP/i, robot: {} }],
   [/tyre|tire|wheel/i, { tools: ["parallel"], prefer: /PZN|centric/i, robot: {} }],
   [/food|tray loading|bakery/i, { tools: ["vacuum", "parallel"], prefer: /soft|vacuum|piCOBOT|VG\d/i, robot: {} }],

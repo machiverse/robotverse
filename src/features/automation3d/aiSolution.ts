@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { processesFromSkills, SKILL_LIBRARY } from "@/utils/processAnalyzer";
 import { providerPlan, understandJob, type ProviderPlan } from "./jobUnderstanding";
+import { thinkSolution, type EngineerThinking } from "./engineerThinking";
 
 export interface AiStation {
   name: string;
@@ -55,6 +56,8 @@ export interface AiSolution {
   questions: string[];
   /** How a solution provider takes it forward: feasibility, URS, scope, acceptance, documents, terms, support. */
   provider?: ProviderPlan;
+  /** The engineer's methods applied: decision matrix, motion check, line balance, safety PL, FMEA, review, sensitivity. */
+  thinking?: EngineerThinking;
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -90,7 +93,7 @@ export function requestSolution(brief: string, industry?: string | null): Promis
     if (!data || data.error) throw new Error(data?.error || "No solution returned.");
     const solution = normalize(data);
     // The integrator's view is the studio's own knowledge, for the AI answer too.
-    return { ...solution, provider: providerPlan(brief, understandJob(brief), Math.max(1, solution.stations.length)) };
+    return { ...solution, provider: providerPlan(brief, understandJob(brief), Math.max(1, solution.stations.length)), thinking: thinkSolution(solution, brief) };
   })();
   cache.set(k, p);
   p.catch(() => cache.delete(k));

@@ -14,6 +14,7 @@ import type { Choice } from "./EquipmentPicker";
 import type { CheckItem } from "./cellCheck";
 import { attachmentIssues } from "./attachmentFit";
 import type { JobKit } from "./jobKit";
+import { classOf, fmeaFor, MOTION, pickPlaceCycle, safetyFunctions } from "./engineerThinking";
 import type { Match } from "./equipmentScore";
 
 /* ------------------------------------------------------------ project stages */
@@ -284,6 +285,24 @@ export function thinkCell(r: {
     });
   } else out.push({ step: "Cycle time", thought: "Run the 3D line to measure the cycle and find the slowest step.", state: "todo" });
 
+  // Motion check: what the robot's travel alone needs, against the simulated cycle.
+  if (robot && ["handling", "transport", "machining", "palletizing", "packing", "inspection"].includes(kind)) {
+    const payload = robot.payload ?? 10;
+    const cls = classOf(payload, `${robot.type ?? ""} ${robot.name}${r.cobot ? " cobot" : ""}`);
+    const est = pickPlaceCycle({ travelM: kind === "palletizing" ? 1.8 : 1.2, partKg: (r.needKg ?? payload) * 0.6, robotPayloadKg: payload, cls, gripper: /vacuum|suction/i.test(r.choice.tool?.name ?? "") ? "vacuum" : "parallel" });
+    out.push({
+      step: "Motion check",
+      thought: `A ${MOTION[cls].label} needs about ${est.total.toFixed(1)} s for one pick and place over 1.2 m (travel ${est.travel.toFixed(1)} s, grip and settle ${(est.grip + est.settle).toFixed(1)} s).${r.cycle ? ` The 3D cycle is ${r.cycle.toFixed(1)} s, so ${r.cycle > est.total * 1.3 ? "the rest is waiting for parts or the machine" : "the robot's motion sets the pace"}.` : ""}`,
+      state: "ok",
+    });
+  }
+  // Safety level each safety function must reach (ISO 13849-1 risk graph, ISO 10218 minimum PL d).
+  const functions = safetyFunctions({ kinds: [kind], robots: 1, cobots: r.cobot ? 1 : 0, press: /press|stamp|forg/i.test(r.job), mobile: /mobile/i.test(r.job), palletizing: kind === "palletizing" });
+  if (functions.length) out.push({ step: "Safety level", thought: functions.map((x) => `${x.fn}: PL ${x.required} (S${x.s} F${x.f} P${x.p})`).join(". ") + ".", state: "todo" });
+  // The failure modes to design out first (FMEA, highest severity × occurrence × detection).
+  const risks = fmeaFor([kind], 2);
+  if (risks.length) out.push({ step: "Failure modes", thought: risks.map((x) => `${x.mode} (RPN ${x.rpn}): ${x.action}`).join(". ") + ".", state: "todo" });
+
   const fit = attachmentIssues(r.job, r.choice).filter((f) => f.title !== "Tool does not do this job");
   if (fit.length) out.push({ step: "Attachments", thought: fit.map((f) => `${f.title}: ${f.detail}`).join(" "), state: "warn" });
   const notes = JOB_NOTES[r.job];
@@ -303,6 +322,14 @@ export const KIND_JOB: Record<ProcessKind, string> = {
 
 /** Extra rules for each builder job, on top of its family playbook. */
 export const JOB_NOTES: Record<string, string[]> = {
+  "Stone Slab Handling": ["Vacuum lifter with sealed pads, a reserve tank and a non-return valve: a slab must not drop on a power or air cut", "Check slab thickness and cracks before lifting; porous or wet stone needs more cups", "Slabs of 300–1,000 kg: heavy robot or gantry; never let people stand under a lifted slab"],
+  "Stone & Granite Edge Polishing": ["Wet polishing: IP67 robot, water-fed spindle and slurry drainage", "Run the grit sequence with a pad changer; force control keeps the finish even", "Scan each piece: natural stone varies in size and edge shape"],
+  "Textile Bobbin & Cone Handling": ["Expanding grippers inside the tube; never squeeze the yarn", "Lint builds up: covered robot, regular blow-off and cleaning", "Link ring frames, winders and packing with AGVs or AMRs"],
+  "Bag Placing on Rotary Packers": ["One robot keeps pace with one rotary packer; track the spout with an encoder", "Bag magazines for 20–30 minutes of autonomy, with bag-present and double-bag checks", "Dust-tight robot and cabinet; the operator only refills the magazine"],
+  "Compression Moulding Tending": ["Weigh each rubber or SMC charge and place it in the same spot", "Heat-resistant fingers and a spray nozzle for mould release", "Interlock with press open, cure time and platen position"],
+  "Blow Moulding Trimming & Handling": ["Grip by the neck or handle while the part is still warm", "Trim flash at a fixed trimming station; collect it for regrind", "Leak-test every container before stacking or bagging"],
+  "SMT Reel & Magazine Handling": ["Scan every reel barcode against the job before loading", "ESD-safe gripper and grounding", "An AMR brings material; the robot or operator loads the feeder"],
+  "Steel Plant Sampling & Temperature Probing": ["Heat shield and cooled jacket; park the robot outside the hot zone between dips", "A magazine of probes and automatic probe change", "Interlock with furnace tilt and crane movements"],
   "Order Picking": ["Vision finds each item in the tote; vacuum picks most items, a gripper the rest", "Measure picks per hour and mis-picks per 1,000 — 500–1,000 picks/h per robot is typical", "Weigh or scan each pick to confirm the order"],
   "Sorting & Classification": ["Decide the sort key first: barcode, colour, size, weight or defect", "Feed parts singulated and spaced on a belt; sort into chutes or bins", "Track each part's position with a conveyor encoder"],
   "Glass Handling": ["Large vacuum frames with soft cups; check deflection of thin sheets", "Edge damage is the main reject: slow down near racks and stops", "Glass over 2 m² usually needs a 200–500 kg robot or a gantry"],
@@ -380,6 +407,12 @@ export const CORE_SKILLS: CoreSkill[] = [
   { name: "Reach and layout", goal: "Every station inside the robot's comfortable working zone.", steps: ["Keep stations within about 80% of rated reach", "Avoid wrist singularities and positions behind the base", "Place operator loading outside the robot's zone"], rule: "If one robot cannot reach everything, use a track, a second robot or move the stations." },
   { name: "Gripper design", goal: "Hold the part safely at full acceleration.", steps: ["Choose principle: fingers, vacuum, magnet, needles", "Calculate holding force with a safety factor", "Add part-present sensing and a plan for power loss"], rule: "Safety factor 2 for lifting; 4 when vacuum or friction carries the part sideways." },
   { name: "Safety design", goal: "People are protected in every mode: run, teach, maintenance.", steps: ["Risk assessment for every task (ISO 12100)", "Required performance level for each function (ISO 13849)", "Safety distance for guards and light curtains (ISO 13855)"], rule: "Cobots still need a risk assessment; force limits follow ISO/TS 15066." },
+  { name: "Choosing the solution", goal: "The right kind of automation, not the first robot that comes to mind.", steps: ["List the options: manual with lift assist, cobot, industrial robot, gantry, special-purpose machine", "Weight the criteria from the brief: output, variety, part weight, hazards, investment, space", "Score each option 1–5, multiply by the weights, and write down why the winner wins"], rule: "If two options are within 5 points, decide with a trial or the customer's priorities, not the score." },
+  { name: "Cycle time from motion", goal: "A cycle-time promise you can keep.", steps: ["Split the cycle: approach, grip, travel, place, release, return", "Time each move from the robot's speed and acceleration, slower with a heavy load", "Add grip, settle and process time; compare with the typical cycle and the simulation"], rule: "If motion alone takes more than 85 % of takt, shorten the travel or add a robot before quoting." },
+  { name: "Line balancing", goal: "Every robot busy, none overloaded, the line meeting its target.", steps: ["Takt = available time ÷ parts needed", "Robots per station = cycle ÷ (takt × target OEE), rounded up", "Find the bottleneck; add buffers before and after it"], rule: "Design for 85 % of takt: faults, changeovers and slow parts eat the rest." },
+  { name: "Safety performance level", goal: "Each safety function as reliable as its risk demands.", steps: ["List hazards and safety functions: door interlock, light curtain, E-stop, muting, cobot force limits", "Rate severity (S), exposure (F) and avoidance (P) and read PLr from the ISO 13849-1 graph", "Use at least PL d / Category 3 for robot safety functions (ISO 10218)"], rule: "Validate every safety function before handover (ISO 13849-2), and redo it after any change." },
+  { name: "FMEA", goal: "Find what will go wrong before it does.", steps: ["For each task list failure modes, effects and causes", "Score severity, occurrence and detection 1–10; RPN = S × O × D", "Act on the highest RPN and any severity 9–10 first; re-score after the action"], rule: "A high severity needs action even when the RPN is low." },
+  { name: "Design review", goal: "The checks an experienced engineer makes before a quote.", steps: ["Payload margin, cycle against takt, reach within 80 %", "Wrist moment, cable dress, fault recovery, changeover", "Maintenance access, utilities, safety level, spare parts"], rule: "Ask what would change the decision (double output, heavier part, more variants) and price the answer." },
   { name: "Accessories, components and software", goal: "A complete bill of materials, not just a robot and a tool.", steps: ["On the arm: tool changer, force/torque sensor, camera or seam sensor", "Beside the robot: power source, feeders, cleaners, vacuum generator, screw or rivet feeder", "Software: the robot maker's simulation and job package, vision or CAM, PLC and safety configuration"], rule: "List every component with its interface (I/O, fieldbus, air, power) before the quote, or it shows up as an extra later." },
   { name: "Controls and integration", goal: "Robot, machines and line talk reliably.", steps: ["Write the I/O list: ready, start, done, fault, part present", "Choose the fieldbus (PROFINET, EtherNet/IP)", "Define recovery after a fault or power cut"], rule: "Every handshake needs a timeout and a clear alarm text." },
   { name: "Vision", goal: "The camera finds or checks every part, every time.", steps: ["Field of view and smallest feature decide the resolution", "Pick lighting before the camera", "Test with bad parts, not only good ones"], rule: "3–4 pixels across the smallest feature or defect." },

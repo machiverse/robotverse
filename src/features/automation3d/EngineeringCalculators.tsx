@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { calc } from "./engineerPlaybook";
+import { MOTION, pickPlaceCycle, requiredPL, type RobotClass } from "./engineerThinking";
 
 /** The everyday sums of an automation engineer, as small live calculators. */
 
@@ -58,6 +59,8 @@ export default function EngineeringCalculators() {
   const [cv, setCv] = useState({ rate: 30, pitch: 300, length: 200 });
   const [pl, setPl] = useState({ L: 1200, W: 1000, l: 400, w: 300, h: 250, max: 1500 });
   const [a, setA] = useState({ bore: 32, stroke: 100, bar: 6, cycles: 10, double: 1 });
+  const [sf, setSf] = useState<{ s: 1 | 2; f: 1 | 2; p: 1 | 2 }>({ s: 2, f: 2, p: 1 });
+  const [mo, setMo] = useState<{ travel: number; part: number; payload: number; cls: RobotClass; gripper: "vacuum" | "parallel" }>({ travel: 1200, part: 6, payload: 12, cls: "small", gripper: "parallel" });
 
   const takt = calc.takt(t.hours, t.breaks, t.shifts, t.parts);
   const robots = calc.robotsFor(t.cycle, takt);
@@ -72,6 +75,9 @@ export default function EngineeringCalculators() {
   const pal = calc.pallet(pl.L, pl.W, pl.l, pl.w, pl.h, pl.max);
   const air = calc.air(a.bore, a.stroke, a.bar, a.cycles, !!a.double);
   const pct = (v: number) => `${f1(v * 100)}%`;
+  const plr = requiredPL(sf.s, sf.f, sf.p);
+  const pp = pickPlaceCycle({ travelM: mo.travel / 1000, partKg: mo.part, robotPayloadKg: mo.payload, cls: mo.cls, gripper: mo.gripper });
+  const sel = "mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm";
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -205,6 +211,71 @@ export default function EngineeringCalculators() {
         <Num label="Case width" unit="mm" value={pl.w} onChange={(x) => setPl({ ...pl, w: x })} step={5} />
         <Num label="Case height" unit="mm" value={pl.h} onChange={(x) => setPl({ ...pl, h: x })} step={5} />
         <Num label="Max stack height" unit="mm" value={pl.max} onChange={(x) => setPl({ ...pl, max: x })} step={50} />
+      </Card>
+
+      <Card
+        title="Safety performance level (PLr)"
+        why="The level a safety function must reach, from the ISO 13849-1 risk graph. Robot safety functions need at least PL d (ISO 10218)."
+        result={
+          <>
+            Required <b>PL {plr}</b>
+            {plr < "d" ? <> from the graph · use <b>PL d</b> for robot safety functions</> : null}
+          </>
+        }
+        ok={plr <= "d"}
+      >
+        <label className="text-xs">
+          <span className="text-muted-foreground">Severity</span>
+          <select value={sf.s} onChange={(e) => setSf({ ...sf, s: Number(e.target.value) as 1 | 2 })} className={sel}>
+            <option value={1}>S1 slight, reversible</option>
+            <option value={2}>S2 serious or fatal</option>
+          </select>
+        </label>
+        <label className="text-xs">
+          <span className="text-muted-foreground">Exposure</span>
+          <select value={sf.f} onChange={(e) => setSf({ ...sf, f: Number(e.target.value) as 1 | 2 })} className={sel}>
+            <option value={1}>F1 seldom or short</option>
+            <option value={2}>F2 frequent or long</option>
+          </select>
+        </label>
+        <label className="text-xs">
+          <span className="text-muted-foreground">Avoiding the hazard</span>
+          <select value={sf.p} onChange={(e) => setSf({ ...sf, p: Number(e.target.value) as 1 | 2 })} className={sel}>
+            <option value={1}>P1 possible</option>
+            <option value={2}>P2 scarcely possible</option>
+          </select>
+        </label>
+      </Card>
+
+      <Card
+        title="Pick-and-place cycle from motion"
+        why="Approach, grip, travel, place and return, from the robot's speed and acceleration — the check behind every cycle-time promise."
+        result={
+          <>
+            About <b>{f1(pp.total)} s</b> per part · <b>{f0((3600 * 0.85) / pp.total)} parts/h</b> at 85 % OEE · travel {f1(pp.travel)} s, grip and settle {f1(pp.grip + pp.settle)} s
+          </>
+        }
+      >
+        <Num label="Travel" unit="mm" value={mo.travel} onChange={(x) => setMo({ ...mo, travel: x })} step={100} />
+        <Num label="Part weight" unit="kg" value={mo.part} onChange={(x) => setMo({ ...mo, part: x })} />
+        <Num label="Robot payload" unit="kg" value={mo.payload} onChange={(x) => setMo({ ...mo, payload: x })} min={1} />
+        <label className="text-xs">
+          <span className="text-muted-foreground">Robot</span>
+          <select value={mo.cls} onChange={(e) => setMo({ ...mo, cls: e.target.value as RobotClass })} className={sel}>
+            {(Object.keys(MOTION) as RobotClass[]).map((k) => (
+              <option key={k} value={k}>
+                {MOTION[k].label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs">
+          <span className="text-muted-foreground">Gripper</span>
+          <select value={mo.gripper} onChange={(e) => setMo({ ...mo, gripper: e.target.value as "vacuum" | "parallel" })} className={sel}>
+            <option value="parallel">Fingers</option>
+            <option value="vacuum">Vacuum</option>
+          </select>
+        </label>
       </Card>
 
       <Card title="Cylinder air use" why="Free air a pneumatic cylinder uses — add 20–30% for leaks when sizing the compressor." result={<>About <b>{f1(air)} L/min</b> free air · <b>{f1((air * 60) / 1000)} m³/h</b></>}>

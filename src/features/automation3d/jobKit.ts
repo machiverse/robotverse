@@ -61,6 +61,7 @@ export function areaOf(job: string, kind: ProcessKind = processKind({ name: job 
   if (/ultrasonic/.test(j)) return "ultrasonic";
   if (kind === "welding") return "arc";
   if (/laser clean/.test(j)) return "laserclean";
+  if (/bag plac|rotary packer|packer spout/.test(j)) return "pick";
   if (/pallet|sack|bag|stack/.test(j)) return "pallet";
   if (/paint|spray/.test(j)) return "paint";
   if (/rivet/.test(j)) return "rivet";

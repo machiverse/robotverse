@@ -84,6 +84,18 @@ export default function QuickPlan({ onSignIn }: { onSignIn: () => void }) {
                 {plan.roi.payback_months ? <span className="text-muted-foreground"> · payback about {plan.roi.payback_months.replace(/\s*months?$/, "")} months</span> : null}
               </p>
             )}
+            {plan.thinking && (
+              <div className="space-y-1 text-sm">
+                <p>
+                  <b>Best approach:</b> {plan.thinking.decision.pick} <span className="text-muted-foreground">— {plan.thinking.decision.why}</span>
+                </p>
+                {plan.thinking.fmea[0] && (
+                  <p className="text-xs text-muted-foreground">
+                    <b className="text-foreground">Biggest risk:</b> {plan.thinking.fmea[0].mode.toLowerCase()} — {plan.thinking.fmea[0].action}
+                  </p>
+                )}
+              </div>
+            )}
             {plan.provider && (
               <div className="text-sm">
                 <p className={plan.provider.pocFirst ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}>{plan.provider.pocWhy}</p>

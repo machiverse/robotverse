@@ -18,9 +18,13 @@ export const BLOCKS: { name: string; label: string; group: string }[] = [
   { name: "Coil & Roll Handling", label: "Coil / roll handling", group: "Handling" },
   { name: "Food Handling & Tray Loading", label: "Food pick & place", group: "Handling" },
   { name: "Truck & Container Unloading", label: "Truck unloading", group: "Handling" },
+  { name: "Stone Slab Handling", label: "Granite / stone slabs", group: "Handling" },
+  { name: "Textile Bobbin & Cone Handling", label: "Yarn bobbins / cones", group: "Handling" },
   { name: "Injection Moulding Tending", label: "Moulding machine tending", group: "Machine tending" },
   { name: "CNC Machining", label: "CNC machine tending", group: "Machine tending" },
   { name: "CNC Turning", label: "CNC lathe tending", group: "Machine tending" },
+  { name: "Compression Moulding Tending", label: "Rubber / compression moulding", group: "Machine tending" },
+  { name: "Blow Moulding Trimming & Handling", label: "Blow moulding", group: "Machine tending" },
   { name: "Press Tending & Stamping", label: "Press tending", group: "Machine tending" },
   { name: "Die Casting Extraction", label: "Die casting extraction", group: "Machine tending" },
   { name: "Press Brake Bending", label: "Press brake bending", group: "Machine tending" },
@@ -36,6 +40,7 @@ export const BLOCKS: { name: string; label: string; group: string }[] = [
   { name: "Grinding & Surface Prep", label: "Grinding", group: "Finishing" },
   { name: "Polishing", label: "Polishing", group: "Finishing" },
   { name: "Foundry Fettling & Grinding", label: "Foundry fettling", group: "Finishing" },
+  { name: "Stone & Granite Edge Polishing", label: "Granite edge polishing", group: "Finishing" },
   { name: "Deflashing & Surface Finishing", label: "Deflashing / deburring", group: "Finishing" },
   { name: "Painting & Coating", label: "Painting / coating", group: "Finishing" },
   { name: "Powder Coating", label: "Powder coating", group: "Finishing" },
@@ -64,6 +69,7 @@ export const BLOCKS: { name: string; label: string; group: string }[] = [
   { name: "Cartoning (Product into Cartons)", label: "Cartoning", group: "Packing" },
   { name: "Bag & Sack Palletizing", label: "Bag / sack palletizing", group: "Packing" },
   { name: "Brick & Block Stacking", label: "Brick / block stacking", group: "Packing" },
+  { name: "Bag Placing on Rotary Packers", label: "Cement bag placing", group: "Packing" },
 ];
 const GROUPS = [...new Set(BLOCKS.map((b) => b.group))];
 const MAX = 8;

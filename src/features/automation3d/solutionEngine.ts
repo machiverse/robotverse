@@ -19,6 +19,7 @@ import { planLine, STRATEGIES, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, payback } from "./solutionCost";
 import type { AiSolution, AiStation } from "./aiSolution";
 import { providerPlan, understandJob } from "./jobUnderstanding";
+import { manualCrew, thinkSolution } from "./engineerThinking";
 import { GENERAL_STANDARDS, GRIPPER_RULES, INDUSTRY_RULES, matchAll, matchFirst, ROBOT_TYPE_RULES, VISION_RULES } from "./automationKnowledge";
 
 /* ---------------------------------------------------------------- facts */
@@ -68,7 +69,10 @@ export function extractFacts(brief: string): BriefFacts {
   }
   let partsPerHour: number | null = null;
   const r = t.match(/(\d[\d,]*(?:\.\d+)?)\s*(?:[a-z]+\s){0,2}?(?:\/|per|an|a|every|each)\s*(s|sec|second|min|minute|h|hr|hour|shift|day)\b/);
-  if (r) partsPerHour = Math.round(parseFloat(r[1].replace(/,/g, "")) * (PER[r[2]] ?? 1));
+  // A day is the working day: the shifts named in the brief, else two shifts (16 h), not 24 hours.
+  const shiftsNamed = t.match(/(\d|one|two|three)\s*shifts?/);
+  const dayHours = (shiftsNamed ? ({ one: 1, two: 2, three: 3 } as Record<string, number>)[shiftsNamed[1]] ?? parseInt(shiftsNamed[1], 10) : 2) * 8;
+  if (r) partsPerHour = Math.round(parseFloat(r[1].replace(/,/g, "")) * (r[2] === "day" ? 1 / dayHours : PER[r[2]] ?? 1));
   const cyc = t.match(/cycle(?: time)?(?: of| is|:)?\s*(\d+(?:\.\d+)?)\s*(s|sec|seconds|min|minutes)\b/);
   if (!partsPerHour && cyc) {
     const sec = parseFloat(cyc[1]) * (/^m/.test(cyc[2]) ? 60 : 1);
@@ -280,15 +284,21 @@ export function engineSolution(brief: string, industry: string | null = null, st
   const shifts = facts.shifts ?? 2;
   // Fully loaded operator cost (salary + PF/ESI + benefits), Indian plants.
   const LABOUR = 32000;
-  const operators = facts.operators ?? Math.max(2, Math.min(processes.length, plan.robots.length + extraRobots + 1));
+  // Pure handling jobs: count the crew the rate needs by hand, not one person per task.
+  const handOnly = processes.every((p) => ["handling", "palletizing", "packing", "transport"].includes(processKind(p)));
+  const crew = handOnly ? manualCrew(facts.partsPerHour, facts.weightKg) : 0;
+  const operators = facts.operators ?? Math.min(8, Math.max(2, Math.min(processes.length, plan.robots.length + extraRobots + 1), crew));
   const pb = payback([low, high], operators, shifts, LABOUR);
   const months = pb.months.every(Number.isFinite) ? `${Math.round(pb.months[0])}–${Math.round(pb.months[1])} months` : "";
 
   const industrial = plan.robots.length - cobots;
+  const totalRobots = plan.robots.length + extraRobots;
   const archType =
     plan.robots.length === 1
-      ? cobots ? "Single cobot station" : "Single robot cell"
-      : `${plan.robots.length}-robot line${cobots ? ` (${cobots} cobot${cobots > 1 ? "s" : ""})` : ""} with transfer conveyors`;
+      ? totalRobots > 1
+        ? `${totalRobots} parallel ${cobots ? "cobot stations" : "robot cells"}`
+        : cobots ? "Single cobot station" : "Single robot cell"
+      : `${totalRobots}-robot line${cobots ? ` (${cobots} cobot${cobots > 1 ? "s" : ""})` : ""} with transfer conveyors`;
   const heavy = (facts.weightKg ?? 0) > 25;
 
   const safety = [
@@ -426,7 +436,7 @@ export function engineSolution(brief: string, industry: string | null = null, st
   ];
   const standards = [...GENERAL_STANDARDS, ...(cobots ? ["ISO/TS 15066 (collaborative robots)"] : []), ...industries.flatMap((i) => i.standards)];
 
-  return {
+  const solution: AiSolution & { source: "engine" } = {
     source: "engine",
     reasoning,
     standards,
@@ -477,4 +487,13 @@ export function engineSolution(brief: string, industry: string | null = null, st
     questions,
     provider,
   };
+  // Then think it through like an engineer: decision matrix, motion check, balance, safety, FMEA, review.
+  const thinking = thinkSolution(solution, brief, { robots: plan.robots.length + extraRobots, cobots });
+  solution.reasoning = [
+    ...reasoning,
+    { title: "Decision matrix", detail: thinking.decision.why },
+    { title: "Safety level", detail: thinking.safety.map((x) => `${x.fn}: PL ${x.required}`).join(" · ") },
+    ...(thinking.fmea[0] ? [{ title: "Highest risk (FMEA)", detail: `${thinking.fmea[0].mode} at ${thinking.fmea[0].kind} (RPN ${thinking.fmea[0].rpn}): ${thinking.fmea[0].action}` }] : []),
+  ];
+  return { ...solution, thinking };
 }
