@@ -18,6 +18,7 @@ import { processKind, type ProcessKind } from "./processProfiles";
 import { planLine, STRATEGIES, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, payback } from "./solutionCost";
 import type { AiSolution, AiStation } from "./aiSolution";
+import { providerPlan, understandJob } from "./jobUnderstanding";
 import { GENERAL_STANDARDS, GRIPPER_RULES, INDUSTRY_RULES, matchAll, matchFirst, ROBOT_TYPE_RULES, VISION_RULES } from "./automationKnowledge";
 
 /* ---------------------------------------------------------------- facts */
@@ -86,7 +87,7 @@ export function extractFacts(brief: string): BriefFacts {
     size: size ? size[1].trim() : null,
     variants: /\b(variant|variants|models|sku|skus|mixed|different sizes|changeover|high mix|many parts|family)\b/.test(t),
     cobotWanted: /\b(cobot|collaborative|alongside (the )?(operator|worker)|no fenc|without fenc|human[- ]robot)\b/.test(t),
-    hygienic: /\b(food|meat|dairy|bakery|pharma|hygien|washdown|gmp|sterile|aseptic)\b/.test(t),
+    hygienic: /\b(food|meat|chicken|poultry|fish|seafood|dairy|milk|cheese|bakery|bread|dough|chocolate|confectionery|snacks?|fruits?|vegetables?|beverages?|pharma|hygien|washdown|gmp|sterile|aseptic)\b/.test(t),
     explosive: /\b(atex|explosive|solvent|flammable|paint booth|hazardous area)\b/.test(t),
     cleanroom: /\b(clean ?room|iso class|esd)\b/.test(t),
     outdoor: /\b(outdoor|site|construction site|field|yard)\b/.test(t),
@@ -169,10 +170,15 @@ function robotExamples(payload: number, cobot: boolean) {
 
 export function engineSolution(brief: string, industry: string | null = null, strategyHint?: Strategy): AiSolution & { source: "engine" } {
   const facts = extractFacts(brief);
-  const matched = matchTemplateIds(brief).length > 0;
+  const understood = understandJob(brief);
+  // New wording the library does not know is read from its action words (attach, join, count, sew…).
+  const fromWords = understood.source === "words";
+  const matched = matchTemplateIds(brief).length > 0 || fromWords;
   // Only what the brief names; a vague brief starts from a general handling cell, not a stock blueprint.
   const generic = () => processesFromSkills(["Loading & Unloading"]);
-  let processes: ProcessCard[] = matched ? analyzeDescription(brief, industry) : industry ? analyzeDescription("", industry) : generic();
+  let processes: ProcessCard[] = fromWords
+    ? processesFromSkills(understood.tasks.map((t) => t.name))
+    : matched ? analyzeDescription(brief, industry) : industry ? analyzeDescription("", industry) : generic();
   if (!processes.length) processes = generic();
   const concrete = processes.some((p) => /concrete printing/i.test(p.name));
   const briefCycle = (() => {
@@ -377,6 +383,8 @@ export function engineSolution(brief: string, industry: string | null = null, st
     { phase: "Training & production ramp-up", weeks: "2–4", deliverables: "Trained operators and maintenance, OEE baseline" },
   ];
 
+  // The integrator's view: feasibility checks, URS, scope, acceptance, documents, terms and support.
+  const provider = providerPlan(brief, understood, plan.robots.length + extraRobots, cobots);
   const matchedNames = processes.map((p) => p.name);
   const understanding = matched
     ? `You want to automate: ${matchedNames.join(", ")}. ${facts.weightKg != null ? `Parts weigh about ${facts.weightKg} kg. ` : ""}${facts.partsPerHour != null ? `Target ${facts.partsPerHour} parts/hour. ` : ""}The line below plans the robots, tooling, safety and controls for exactly these tasks.`
@@ -396,6 +404,9 @@ export function engineSolution(brief: string, industry: string | null = null, st
         facts.variants ? "several variants" : "",
       ].filter(Boolean).join(" · "),
     },
+    ...(fromWords
+      ? [{ title: "Understood from your words", detail: understood.tasks.map((t) => `${t.name}: ${t.why}`).join(" · ") }]
+      : []),
     {
       title: "Matched processes",
       detail: matched ? `${matchedNames.join(" → ")} (from ${processes.length} skill${processes.length > 1 ? "s" : ""} in the library)` : "No specific process named: starting from a general handling cell",
@@ -422,7 +433,7 @@ export function engineSolution(brief: string, industry: string | null = null, st
     industry_notes: industries.flatMap((i) => i.notes.map((n) => `${i.industry}: ${n}`)),
     title: `${archType} for ${matchedNames.slice(0, 3).join(", ")}${matchedNames.length > 3 ? "…" : ""}`,
     understanding,
-    feasibility: !matched ? "medium" : facts.variants || heavy ? "medium" : "high",
+    feasibility: !matched || fromWords || provider.pocFirst ? "medium" : facts.variants || heavy ? "medium" : "high",
     automation_level: processes.every((p) => p.automation === "full") ? "full" : "semi",
     workpiece: facts.weightKg != null || facts.material || facts.size
       ? { name: "Workpiece", material: facts.material ?? "", size: facts.size ?? "", weight_kg: facts.weightKg }
@@ -464,5 +475,6 @@ export function engineSolution(brief: string, industry: string | null = null, st
     kpis: ["OEE ≥ 80 %", `Cycle time ≤ ${takt} s at the bottleneck`, "First-pass yield ≥ 98 %", "MTBF / MTTR of each robot", "Zero safety incidents"],
     assumptions,
     questions,
+    provider,
   };
 }

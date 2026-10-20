@@ -27,6 +27,7 @@ import { processKind } from "./processProfiles";
 import { CELL_STATIONS, cellProgram, stationLabel, stationsFor, TOOL_NAMES, type CellProgram, type StationKey } from "./cellProgram";
 import { isComponent } from "./jobGear";
 import { jobKit, type JobKit } from "./jobKit";
+import { providerPlan, understandJob } from "./jobUnderstanding";
 
 /* ------------------------------------------------------------------ data */
 
@@ -159,6 +160,9 @@ export default function CellBuilder() {
   const [jobText, setJobText] = useState("");
   const jobInputRef = useRef<HTMLInputElement>(null);
   const jobTasks = useMemo(() => analyzeJob(jobText), [jobText]);
+  // What a solution provider would check before quoting the typed job.
+  const jobPlan = useMemo(() => (jobText.trim().length >= 3 ? providerPlan(jobText, understandJob(jobText)) : null), [jobText]);
+  const [engineerOpen, setEngineerOpen] = useState(false);
   // Warn the moment something unsuitable is attached: compare each cell's fit issues with the last state.
   const [fitAlert, setFitAlert] = useState<{ cell: number; issues: FitIssue[]; undo: Cell[] } | null>(null);
   const [fitOpen, setFitOpen] = useState(false);
@@ -1155,16 +1159,19 @@ export default function CellBuilder() {
                       </button>
                     ))}
                   </p>
-                ) : !jobTasks.length ? (
-                  <p className="mt-1.5 px-1 text-[11px] text-amber-600">
-                    We could not match this to a robot task yet. Use action words such as weld, pick, place, pack, stack, grind, polish, paint, glue, screw,
-                    inspect, test, cut or load.
-                  </p>
-                ) : (
+                ) : !jobTasks.length ? null : (
                   <div className="mt-2 space-y-2">
-                    <p className="px-1 text-[11px] text-muted-foreground">
-                      We understood {jobTasks.length === 1 ? "one robot task" : `${jobTasks.length} robot tasks`}:
-                    </p>
+                    {jobTasks[0].confidence === "low" ? (
+                      <p className="px-1 text-[11px] text-amber-600">
+                        We could not find a robot action in this yet, so it starts as a general pick-and-place cell. Add an action word such as weld, pick, pack,
+                        stack, grind, paint, glue, screw, inspect, test, cut or load.
+                      </p>
+                    ) : (
+                      <p className="px-1 text-[11px] text-muted-foreground">
+                        We understood {jobTasks.length === 1 ? "one robot task" : `${jobTasks.length} robot tasks`}
+                        {jobTasks.some((t) => t.confidence === "medium") ? " from your words — an engineer confirms it" : ""}:
+                      </p>
+                    )}
                     {jobTasks.map((t) => (
                       <div key={t.name} className="rounded-md border border-border bg-background p-2 text-[11px]">
                         <div className="flex items-start justify-between gap-2">
@@ -1179,6 +1186,7 @@ export default function CellBuilder() {
                           <li><span className="text-muted-foreground">Typical cycle:</span> {t.cycle[0]}–{t.cycle[1]} s</li>
                         </ul>
                         <p className="mt-1 italic text-muted-foreground">{t.key}</p>
+                        {t.confidence !== "high" && t.why && <p className="mt-1 text-amber-600">Why this task: {t.why}.</p>}
                         {jobTasks.length > 1 && (
                           <div className="mt-1.5 flex gap-1">
                             {cells[selected] && (
@@ -1203,6 +1211,31 @@ export default function CellBuilder() {
                         {jobTasks.length === 1 ? "+ New cell" : `Add all ${Math.min(jobTasks.length, 6 - cells.length)} as cells`}
                       </Button>
                     </div>
+                    {jobPlan && (
+                      <details className="rounded-md border border-border bg-background p-2 text-[11px]" open={jobPlan.pocFirst}>
+                        <summary className="cursor-pointer font-medium text-primary">What a solution provider checks first</summary>
+                        <ul className="mt-1.5 space-y-1">
+                          {jobPlan.feasibility.map((x) => (
+                            <li key={x.factor} className="flex gap-1.5">
+                              <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", x.status === "ok" ? "bg-emerald-500" : x.status === "check" ? "bg-amber-500" : "bg-red-500")} aria-label={x.status} />
+                              <span>
+                                <b>{x.factor}:</b> <span className="text-muted-foreground">{x.note}</span>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className={cn("mt-1.5", jobPlan.pocFirst ? "text-amber-600" : "text-muted-foreground")}>{jobPlan.pocWhy}</p>
+                        <p className="mt-1.5 font-medium">To quote it, an integrator needs:</p>
+                        <ul className="ml-4 list-disc text-muted-foreground">
+                          {jobPlan.requirements.slice(0, 6).map((r) => (
+                            <li key={r}>{r}</li>
+                          ))}
+                        </ul>
+                        <Button size="sm" variant="outline" className="mt-2 h-8 text-xs" onClick={() => setEngineerOpen(true)}>
+                          Have an engineer check this job
+                        </Button>
+                      </details>
+                    )}
                   </div>
                 )}
               </div>
@@ -1801,6 +1834,26 @@ export default function CellBuilder() {
           )}
         </DialogContent>
       </Dialog>
+      <LeadDialog
+        open={engineerOpen}
+        onOpenChange={setEngineerOpen}
+        kind="engineer"
+        source="cell-builder-own-job"
+        title="Have an engineer check this job"
+        intro="An automation engineer looks at your job, asks what is missing and tells you if a robot fits — free."
+        item={{ type: "custom_job", name: jobText.trim().slice(0, 120) }}
+        details={
+          jobPlan
+            ? {
+                job: jobText.trim(),
+                tasks: jobTasks.map((t) => `${t.name} (${t.confidence})`),
+                checks: jobPlan.feasibility.filter((x) => x.status !== "ok").map((x) => `${x.factor}: ${x.note}`),
+                proofOfConcept: jobPlan.pocFirst ? "yes" : "no",
+              }
+            : undefined
+        }
+        action="Request a call"
+      />
       <LeadDialog
         open={quoteOpen}
         onOpenChange={setQuoteOpen}

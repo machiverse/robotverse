@@ -91,7 +91,7 @@ export interface PlannedTask {
 }
 
 /** Tasks whose parts are heavy: size the robot from the analysed template, not the skill minimum. */
-const HEAVY = /forg|bag|sack|depallet|press|stamp|die cast|heavy|lift|spot weld|bend/i;
+const HEAVY = /forg|bag|sack|depallet|press|stamp|die cast|heavy|lift|spot weld|bend|glass|tyre|tire|coil|truck|container|brick|block stack|fettl/i;
 const kg = (v?: string) => {
   const n = parseFloat(String(v || "").replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) ? n : 0;

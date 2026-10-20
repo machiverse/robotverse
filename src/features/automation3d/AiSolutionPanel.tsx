@@ -1,4 +1,4 @@
-import { AlertTriangle, BookOpenCheck, Boxes, Brain, Cpu, Gauge, HelpCircle, Layers, Loader2, Play, RefreshCw, ShieldCheck, Sparkles, Wrench } from "lucide-react";
+import { AlertTriangle, BookOpenCheck, Boxes, Brain, Briefcase, Cpu, Gauge, HelpCircle, Layers, Loader2, Play, RefreshCw, ShieldCheck, Sparkles, Wrench } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -288,6 +288,33 @@ export default function AiSolutionPanel({
             </div>
           )}
           <List items={s.industry_notes ?? []} />
+        </Block>
+      )}
+
+      {s.provider && (
+        <Block icon={<Briefcase className="h-4 w-4" />} title="How a solution provider takes it forward">
+          <ul className="space-y-1 text-sm">
+            {s.provider.feasibility.map((x) => (
+              <li key={x.factor} className="flex gap-2">
+                <span
+                  className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", x.status === "ok" ? "bg-emerald-500" : x.status === "check" ? "bg-amber-500" : "bg-red-500")}
+                  aria-label={x.status === "ok" ? "fine" : x.status === "check" ? "to check" : "risk"}
+                />
+                <span>
+                  <span className="font-medium">{x.factor}:</span> <span className="text-muted-foreground">{x.note}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className={cn("mt-2 text-sm", s.provider.pocFirst ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>{s.provider.pocWhy}</p>
+          <div className="mt-1 grid gap-x-6 md:grid-cols-2">
+            <List title="To quote it, the integrator needs" items={s.provider.requirements} />
+            <List title="Scope of supply" items={s.provider.scope} />
+            <List title="Acceptance (FAT / SAT)" items={s.provider.acceptance} />
+            <List title="Documents handed over" items={s.provider.documents} />
+            <List title="Typical terms in India" items={s.provider.commercial} />
+            <List title="After-sales support" items={s.provider.support} />
+          </div>
         </Block>
       )}
 

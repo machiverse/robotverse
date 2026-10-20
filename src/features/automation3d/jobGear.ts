@@ -121,6 +121,7 @@ const PAINT_ROBOT = { prefer: (n: string) => PAINT.test(n), why: "painting robot
 const RULES: [RegExp, JobGear][] = [
   // Welding: the torch family, with the right gun for the process.
   [/spot weld/i, { tools: ["torch"], prefer: /spot/i, robot: SPOT_ROBOT }],
+  [/stud weld/i, { tools: ["torch"], prefer: /stud/i, avoid: /spot/i, special: ["stud welding gun", /stud/i], robot: {} }],
   [/laser weld/i, { tools: ["torch"], prefer: /laser weld/i, avoid: /spot/i, special: ["laser welding head", /laser weld/i], robot: ARC_ROBOT }],
   [/ultrasonic/i, { tools: ["torch"], prefer: /ultrason/i, avoid: /spot/i, special: ["ultrasonic welding horn", /ultrason/i], robot: {} }],
   [/\btig\b/i, { tools: ["torch"], prefer: /\btig\b/i, avoid: /spot/i, robot: ARC_ROBOT }],
@@ -128,10 +129,12 @@ const RULES: [RegExp, JobGear][] = [
   // Surface work: the spindle family, the head that suits the finish.
   [/polish/i, { tools: ["spindle"], prefer: /polish|sander|sanding/i, robot: {} }],
   [/laser clean/i, { tools: ["spindle"], prefer: /laser clean/i, special: ["laser cleaning head", /laser clean/i], robot: {} }],
+  [/deflash/i, { tools: ["spindle"], prefer: /deburr/i, robot: {} }],
   [/deburr/i, { tools: ["spindle"], prefer: /deburr/i, robot: {} }],
   [/grind|surface prep|finish/i, { tools: ["spindle"], prefer: /grind/i, robot: {} }],
   // Coating and dosing: the nozzle family.
   [/potting|conformal|gap filler/i, { tools: ["nozzle"], prefer: /dispens/i, avoid: /spray|paint/i, robot: {} }],
+  [/powder coat/i, { tools: ["nozzle"], prefer: /spray|paint/i, robot: {} }],
   [/paint|spray/i, { tools: ["nozzle"], prefer: /spray|paint/i, robot: PAINT_ROBOT }],
   [/adhesive|sealant|glue|dispens/i, { tools: ["nozzle"], prefer: /dispens/i, avoid: /spray|paint/i, robot: {} }],
   [/fill|dosing/i, { tools: ["nozzle"], prefer: /filling|dosing/i, avoid: /spray|paint/i, robot: {} }],
@@ -142,12 +145,18 @@ const RULES: [RegExp, JobGear][] = [
   [/harness/i, { tools: ["parallel"], prefer: /EGP|EGK|Hand-E|2F-85|RG2|PGN-plus-P (?:40|50)\b/i, robot: {} }],
   [/assembl/i, { tools: ["parallel", "driver", "dual"], robot: {} }],
   // Machines: what an integrator puts on the arm for each.
+  [/glass|panel/i, { tools: ["vacuum"], prefer: /area|FXCB|FMP/i, robot: {} }],
+  [/tyre|tire|wheel/i, { tools: ["parallel"], prefer: /PZN|centric/i, robot: {} }],
+  [/food|tray loading|bakery/i, { tools: ["vacuum", "parallel"], prefer: /soft|vacuum|piCOBOT|VG\d/i, robot: {} }],
+  [/truck|container unload/i, { tools: ["vacuum"], prefer: /area|FXCB|FMP/i, robot: {} }],
+  [/order pick|sorting|sort\b/i, { tools: ["vacuum", "parallel"], prefer: /vacuum|EPick|VG\d|piCOBOT/i, robot: {} }],
   [/mobile manipulator/i, { tools: ["parallel", "dual"], prefer: /hand-e|2F-85|RG6|2FG7|co-act/i, robot: { cobot: true } }],
   [/mould|mold/i, { tools: ["vacuum", "parallel"], prefer: /vacuum|VG\d|VGC|EPick|piCOBOT/i, robot: {} }],
   [/die ?cast|forg/i, { tools: ["parallel"], prefer: /PZN|centric|PGN-plus/i, robot: {} }],
   [/sheet|\bpress(?!ur)|stamp|bend|brake/i, { tools: ["vacuum", "magnet"], prefer: /area|FMP|FXCB/i, robot: {} }],
   [/cnc|machin|lathe|tending/i, { tools: ["dual", "parallel"], prefer: /dual/i, avoid: /preciseflex/i, robot: {} }],
   // End of line.
+  [/brick|block stack/i, { tools: ["fork", "parallel"], prefer: /clamp|fork/i, special: ["brick clamp gripper", /clamp/i], robot: { type: "Palletizing", why: "palletizing robot" } }],
   [/depallet/i, { tools: ["vacuum", "fork"], prefer: /area|FXCB|FMP/i, robot: { type: "Palletizing", why: "palletizing robot" } }],
   [/sack|bag/i, { tools: ["fork", "vacuum"], prefer: /sack|bag|fork|claw/i, avoid: /2FGP/i, special: ["sack (fork) gripper", /sack|bag|fork|claw/i], robot: { type: "Palletizing", why: "palletizing robot" } }],
   [/pallet|stack/i, { tools: ["vacuum", "fork"], prefer: /area|FXCB|FMP|palletiz/i, robot: { type: "Palletizing", why: "palletizing robot" } }],

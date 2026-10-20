@@ -7,11 +7,12 @@
  * engineer's key point, so the builder can place it on a cell.
  */
 
-import { analyzeDescription, matchTemplateIds } from "@/utils/processAnalyzer";
+import { processesFromSkills } from "@/utils/processAnalyzer";
 import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, SKILLS } from "./robotKnowledge";
 import { STATION_NAMES } from "./robotSim.js";
 import { PLAYBOOK } from "./engineerPlaybook";
+import { understandJob, type Confidence } from "./jobUnderstanding";
 
 export interface JobTask {
   /** Skills-library task name, used to plan the cell. */
@@ -26,12 +27,18 @@ export interface JobTask {
   stations: string[];
   cycle: [number, number];
   key: string;
+  /** How sure the studio is: matched in the library, read from the action words, or a general start. */
+  confidence: Confidence;
+  why: string;
 }
 
 export function analyzeJob(text: string): JobTask[] {
   const words = text.trim();
-  if (words.length < 3 || !matchTemplateIds(words).length) return [];
-  return analyzeDescription(words, null)
+  if (words.length < 3) return [];
+  // Any wording: the skills library first, then the action words, then a general handling start.
+  const understood = understandJob(words);
+  const byName = new Map(understood.tasks.map((t) => [t.name, t]));
+  return processesFromSkills(understood.tasks.map((t) => t.name))
     .slice(0, 6)
     .map((card) => {
       const kind = processKind(card);
@@ -50,6 +57,8 @@ export function analyzeJob(text: string): JobTask[] {
         stations,
         cycle: PLAYBOOK[kind].cycle,
         key: PLAYBOOK[kind].key,
+        confidence: byName.get(card.name)?.confidence ?? "medium",
+        why: byName.get(card.name)?.why ?? "",
       };
     });
 }

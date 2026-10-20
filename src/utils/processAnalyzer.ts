@@ -790,7 +790,7 @@ const PROCESS_KEYWORDS: Record<string, keyof typeof TEMPLATES> = {
   lift: "lift", lifting: "lift", hoist: "lift", crane: "lift",
   stack: "stack", stacking: "stack", stacked: "stack", rack: "stack",
   "heat treat": "load", furnace: "load", oven: "load", autoclave: "load", feed: "load", feeding: "load",
-  "bin pick": "binpick", "bin picking": "binpick", "random pick": "binpick",
+  "bin pick": "binpick", "bin picking": "binpick", "random pick": "binpick", "from a bin": "binpick", "from the bin": "binpick", "from bins": "binpick", "out of a bin": "binpick", "loose parts": "binpick",
   depalletiz: "depal", depalletis: "depal", "unload pallet": "depal",
   kitting: "kit", kit: "kit", sequencing: "kit",
   tray: "food", "pick and place": "food", "pick & place": "food", delta: "food",
@@ -846,7 +846,7 @@ const PROCESS_KEYWORDS: Record<string, keyof typeof TEMPLATES> = {
   meat: "meat", debon: "meat", carcass: "meat", poultry: "meat", "fish fillet": "meat", butcher: "meat",
   fruit: "fruit", vegetable: "fruit", harvest: "fruit", "fresh produce": "fruit",
   crate: "crate", crates: "crate", tote: "crate", totes: "crate",
-  "unload truck": "truck", "unloading truck": "truck", "truck unload": "truck", "from the truck": "truck", "from truck": "truck", trailer: "truck", "unload container": "truck", "container unload": "truck", lorry: "truck",
+  "unload truck": "truck", "unloading truck": "truck", "unload a truck": "truck", "unloading a truck": "truck", "unload the truck": "truck", "unload trucks": "truck", "unload a container": "truck", "unload the container": "truck", "unloading containers": "truck", "unload lorr": "truck", "truck unload": "truck", "from the truck": "truck", "from truck": "truck", trailer: "truck", "unload container": "truck", "container unload": "truck", lorry: "truck",
   parcel: "parcel", parcels: "parcel", singulat: "parcel", "parcel induction": "parcel",
   glass: "glass", windshield: "glass", windscreen: "glass",
   tyre: "tyre", tyres: "tyre", tire: "tyre", tires: "tyre",
@@ -929,6 +929,13 @@ export const matchTemplateIds = (description: string): string[] => {
     // Cleaning up after welding is finishing: "grind weld spatter" is not a welding station.
     .replace(/\bweld(ing)? (spatter|splatter|slag|beads?|seams?|joints?|marks?|scale)\b(?=[^.]*)/g, (m, _i, what, offset, str) =>
       /\b(grind|grinding|clean|cleaning|remove|removing|polish|polishing|dress|dressing|blend|blending|deburr|deburring|chip|chipping|brush|brushing|sand|sanding)\b[^.]{0,30}$/.test(str.slice(Math.max(0, offset - 40), offset)) ? ` ${what}` : m)
+    // Fasteners being moved are parts: "pick loose bolts", "feed screws" add no screwdriving station.
+    .replace(/\b(pick|picking|place|placing|move|moving|sort|sorting|feed|feeding|load|loading|pack|packing|count|counting|kit|kitting|transfer|transferring)\s+(the\s+|loose\s+|all\s+|some\s+)*(bolts?|screws?|nuts?|rivets?|washers?)\b/g, "$1 loose parts")
+    // Checking welds is inspection: "inspect welds", "weld inspection" add no welding station.
+    .replace(/\b(inspect|inspecting|inspection of|check|checking|verify|verifying|test|testing|measure|measuring|scan|scanning|x-?ray(?:ing)?)\s+(the\s+|all\s+|each\s+|every\s+)?(spot\s+)?welds?\b/g, "$1 $2joints")
+    .replace(/\bweld(s|ing)?\s+(inspection|quality|check|checking|testing)\b/g, "joint $2")
+    // Taking parts out of a machine is machine unloading, whatever happens to them next.
+    .replace(/\b(from|out of|into|in) (the |a )?(machine|machines|oven|furnace)\b/g, "$1 the machine unload")
     // A cleanroom is where the work happens, not a cleaning station.
     .replace(/\bclean ?rooms?\b/g, " ")
     // Raw billets going into a machine tool are machining blanks, not forging.

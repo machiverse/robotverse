@@ -81,8 +81,25 @@ export default function QuickPlan({ onSignIn }: { onSignIn: () => void }) {
             {(plan.budget_inr.low || plan.budget_inr.high) && (
               <p className="text-sm">
                 <b>Budget range:</b> {plan.budget_inr.low ? inr(plan.budget_inr.low) : "—"} – {plan.budget_inr.high ? inr(plan.budget_inr.high) : "—"}
-                {plan.roi.payback_months ? <span className="text-muted-foreground"> · payback about {plan.roi.payback_months} months</span> : null}
+                {plan.roi.payback_months ? <span className="text-muted-foreground"> · payback about {plan.roi.payback_months.replace(/\s*months?$/, "")} months</span> : null}
               </p>
+            )}
+            {plan.provider && (
+              <div className="text-sm">
+                <p className={plan.provider.pocFirst ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}>{plan.provider.pocWhy}</p>
+                {plan.provider.feasibility.filter((x) => x.status !== "ok").length > 0 && (
+                  <ul className="mt-1 list-disc pl-5 text-xs text-muted-foreground">
+                    {plan.provider.feasibility
+                      .filter((x) => x.status !== "ok")
+                      .slice(0, 4)
+                      .map((x) => (
+                        <li key={x.factor}>
+                          <b className="text-foreground">{x.factor}:</b> {x.note}
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </div>
             )}
             <p className="text-xs text-muted-foreground">A first plan from RobotVerse's built-in engine — an engineer checks it before any quote.</p>
             <div className="flex flex-wrap gap-2">

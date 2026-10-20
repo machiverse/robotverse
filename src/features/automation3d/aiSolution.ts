@@ -9,6 +9,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { processesFromSkills, SKILL_LIBRARY } from "@/utils/processAnalyzer";
+import { providerPlan, understandJob, type ProviderPlan } from "./jobUnderstanding";
 
 export interface AiStation {
   name: string;
@@ -52,6 +53,8 @@ export interface AiSolution {
   kpis: string[];
   assumptions: string[];
   questions: string[];
+  /** How a solution provider takes it forward: feasibility, URS, scope, acceptance, documents, terms, support. */
+  provider?: ProviderPlan;
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -85,7 +88,9 @@ export function requestSolution(brief: string, industry?: string | null): Promis
       throw new Error(e instanceof Error && e.message ? e.message : "the AI service is not reachable");
     }
     if (!data || data.error) throw new Error(data?.error || "No solution returned.");
-    return normalize(data);
+    const solution = normalize(data);
+    // The integrator's view is the studio's own knowledge, for the AI answer too.
+    return { ...solution, provider: providerPlan(brief, understandJob(brief), Math.max(1, solution.stations.length)) };
   })();
   cache.set(k, p);
   p.catch(() => cache.delete(k));
