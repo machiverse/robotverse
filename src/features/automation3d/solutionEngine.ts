@@ -14,12 +14,13 @@
 
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/utils/processAnalyzer";
-import { processKind, type ProcessKind } from "./processProfiles";
+import { headKg, PROCESS_HEAD, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, STRATEGIES, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, payback } from "./solutionCost";
 import type { AiSolution, AiStation } from "./aiSolution";
 import { providerPlan, understandJob } from "./jobUnderstanding";
 import { manualCrew, thinkSolution } from "./engineerThinking";
+import { GRIP_FAMILIES, gearFor } from "./jobGear";
 import { GENERAL_STANDARDS, GRIPPER_RULES, INDUSTRY_RULES, matchAll, matchFirst, ROBOT_TYPE_RULES, VISION_RULES } from "./automationKnowledge";
 
 /* ---------------------------------------------------------------- facts */
@@ -145,6 +146,9 @@ const TOOL_KG: Record<ProcessKind, number> = {
   palletizing: 15, packing: 4, assembly: 3, filling: 3, sealing: 3, labeling: 2,
 };
 
+/** Process tools far heavier than a torch or spindle (a servo spot gun is 80–150 kg; friction stir and hemming push kilonewtons): sized like the skill's own robot. */
+const HEAVY_TOOL = /spot weld|friction stir|roller hemm|fettl/i;
+
 const OUTPUT_TYPES: Partial<Record<ProcessKind, string>> = { palletizing: "pallet", packing: "carton" };
 
 const secs = (v: string) => {
@@ -237,10 +241,13 @@ export function engineSolution(brief: string, industry: string | null = null, st
     const robot = plan.robots.find((r) => r.tasks.some((t) => t.name === p.name));
     // A robot that carries the part is sized for part + tool; one that carries a process tool
     // (torch, gun, spindle, driver) against a fixtured part is sized for the tool only.
-    const carriesPart = ["handling", "transport", "machining", "palletizing", "packing", "inspection"].includes(kind);
+    const head = kind === "machining" && PROCESS_HEAD.test(p.name);
+    // Assembly or coating jobs whose tool is a gripper (solar glass, plating racks) carry the part too.
+    const carriesPart =
+      !head && (["handling", "transport", "machining", "palletizing", "packing", "inspection"].includes(kind) || (["assembly", "coating"].includes(kind) && GRIP_FAMILIES.includes(gearFor(p.name, kind).tools[0])));
     const need = carriesPart
       ? facts.weightKg != null ? Math.ceil((facts.weightKg + TOOL_KG[kind]) * 1.25) : null
-      : Math.max(4, Math.ceil(TOOL_KG[kind] * 1.25) + 1);
+      : Math.max(4, Math.ceil((head ? headKg(p.name) : TOOL_KG[kind]) * 1.25) + 1, HEAVY_TOOL.test(p.name) ? robot?.minPayload ?? 0 : 0);
     const payload = concrete ? 150 : need ?? robot?.minPayload ?? kg(p.robot.payload);
     const cobot = !!robot?.collaborative;
     return {
@@ -256,7 +263,7 @@ export function engineSolution(brief: string, industry: string | null = null, st
         : `${cobot ? "Collaborative robot" : "Industrial robot"}; fits: ${robotExamples(payload ?? 10, cobot)}`,
       payload_kg: payload,
       reach_mm: kg(p.robot.reach),
-      tooling: gripper && HANDLES.includes(kind) ? `${gripper.pick} (${p.eoat.slice(1).join(", ") || p.eoat[0]})` : p.eoat.join(", "),
+      tooling: gripper && HANDLES.includes(kind) && !head && GRIP_FAMILIES.includes(gearFor(p.name, kind).tools[0]) ? `${gripper.pick} (${p.eoat.slice(1).join(", ") || p.eoat[0]})` : p.eoat.join(", "),
       sensors: [...new Set([...SENSORS[kind], ...visions.filter(() => HANDLES.includes(kind) || kind === "inspection").map((v) => v.pick)])],
       cycle_s: briefCycle ?? Math.round(cycleOf(p.name) * 10) / 10,
       notes: p.integrationNote,

@@ -91,7 +91,9 @@ export interface PlannedTask {
 }
 
 /** Tasks whose parts are heavy: size the robot from the analysed template, not the skill minimum. */
-const HEAVY = /forg|bag|sack|depallet|press|stamp|die cast|heavy|lift|spot weld|bend|glass|tyre|tire|coil|truck|container|brick|block stack|fettl|stone slab|probing/i;
+const HEAVY = /forg|bag|sack|depallet|press|stamp|die cast|heavy|lift|spot weld|friction stir|bend|glass|tyre|tire|coil|truck|container|brick|block stack|fettl|stone slab|probing|solar module|extrusion|crate|strapping|plating|shell building|hemm|ceramic tile|windshield|bale|lamination|concrete|ladl|sand core|sheet loading/i;
+/** Light work that small robots (delta, SCARA, 3–7 kg arms) do: sized by the skill's own robot, not the kind's minimum. */
+const LIGHT = /wafer|pharmacy|blister|pouch|sachet|denest|pipet|aseptic|vial|solder|cartoning|fruit|greenhouse|seedling|screen & pad|printer farm|\btht\b|crimp|deflash|part cleaning|shot blast|\begg|gemstone|sample tube|jewell?ery/i;
 const kg = (v?: string) => {
   const n = parseFloat(String(v || "").replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) ? n : 0;
@@ -191,7 +193,8 @@ export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"
   for (const p of processes) {
     const kind = processKind(p);
     const skill = SKILLS[kind];
-    const payload = HEAVY.test(p.name) ? Math.max(skill.minPayload, kg(p.robot?.payload)) : skill.minPayload;
+    const own = kg(p.robot?.payload);
+    const payload = HEAVY.test(p.name) ? Math.max(skill.minPayload, own) : LIGHT.test(p.name) && own > 0 ? Math.min(skill.minPayload, own) : skill.minPayload;
     const task: PlannedTask = { name: p.name, kind, skill, eoat: p.eoat, payload };
     if (!cur || forced.has(p.name.toLowerCase())) {
       cur = [task];

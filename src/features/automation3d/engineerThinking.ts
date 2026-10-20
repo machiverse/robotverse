@@ -18,7 +18,7 @@
  * a starting point to confirm with simulation, trials and the robot maker's data.
  */
 
-import { processKind, type ProcessKind } from "./processProfiles";
+import { PROCESS_HEAD, processKind, type ProcessKind } from "./processProfiles";
 import { extractFacts, type BriefFacts } from "./solutionEngine";
 import type { AiSolution } from "./aiSolution";
 
@@ -296,7 +296,7 @@ export function thinkSolution(s: AiSolution, brief: string, extra: { robots?: nu
     const kind = processKind({ name: st.skill || st.name });
     const payload = st.payload_kg ?? 10;
     const cls = classOf(payload, st.equipment);
-    if (!CARRIES.includes(kind))
+    if (!CARRIES.includes(kind) || (kind === "machining" && PROCESS_HEAD.test(st.skill || st.name)))
       return { station: st.name, ruleS: st.cycle_s, motionS: st.cycle_s ?? 0, cls: MOTION[cls].label, processLed: true, note: "Process time (weld, grind, coat, assemble) sets this cycle, not robot travel — time it from the path length and process speed" };
     const est = pickPlaceCycle({
       travelM: TRAVEL[kind] ?? 1.2,

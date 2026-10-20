@@ -12,7 +12,7 @@ import { processesFromSkills } from "@/utils/processAnalyzer";
 import { createSimulation, eoatKind, STATION_NAMES, type Simulation, type SimUpdate } from "./robotSim.js";
 import { planLine, type LinePlan } from "./robotKnowledge";
 import { Thumb, type Choice } from "./EquipmentPicker";
-import { BLOCKS } from "./ProcessBuilder";
+import { BLOCKS, findJobs } from "./ProcessBuilder";
 import { slotOf } from "./RobotConfigurator";
 import { loadDirectoryRobots, loadDirectoryTools, loadMarketRobots, loadMarketTools, type DirRobot, type DirTool, type Match } from "./equipmentMatch";
 import LeadDialog from "@/components/leads/LeadDialog";
@@ -158,6 +158,8 @@ export default function CellBuilder() {
   const [copied, setCopied] = useState(false);
   // A job typed in the user's own words, analysed into robot tasks.
   const [jobText, setJobText] = useState("");
+  // Ready jobs matching the palette search: every word starts a word of the label, the job or its group.
+  const jobBlocks = useMemo(() => findJobs(q), [q]);
   const jobInputRef = useRef<HTMLInputElement>(null);
   const jobTasks = useMemo(() => analyzeJob(jobText), [jobText]);
   // What a solution provider would check before quoting the typed job.
@@ -1257,11 +1259,23 @@ export default function CellBuilder() {
                 </div>
                 <p className="mt-1 px-1 text-[10px] text-muted-foreground">Replaces the current line.</p>
               </div>
-              {[...new Set(BLOCKS.map((b) => b.group))].map((g) => (
+              <label className="relative block">
+                <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="search"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder={`Find a ready job (${BLOCKS.length})…`}
+                  className="w-full rounded-md border border-border bg-background py-2 pl-8 pr-2 text-base sm:text-sm"
+                  aria-label="Find a ready job"
+                />
+              </label>
+              {jobBlocks.length === 0 && <p className="px-1 text-[11px] text-muted-foreground">No ready job matches — describe it under “Your own job” above.</p>}
+              {[...new Set(jobBlocks.map((b) => b.group))].map((g) => (
                 <div key={g}>
                   <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{g}</p>
                   <div className="flex flex-wrap gap-1">
-                    {BLOCKS.filter((b) => b.group === g).map((b) => (
+                    {jobBlocks.filter((b) => b.group === g).map((b) => (
                       <button
                         key={b.name}
                         type="button"
@@ -1367,10 +1381,14 @@ export default function CellBuilder() {
                     </option>
                     <option value="__type">✎ Type my own job…</option>
                     {c.job && (c.custom || !BLOCKS.some((b) => b.name === c.job)) && <option value={c.job}>{cellLabel(c)}</option>}
-                    {BLOCKS.map((b) => (
-                      <option key={b.name} value={b.name}>
-                        {b.label}
-                      </option>
+                    {[...new Set(BLOCKS.map((b) => b.group))].map((g) => (
+                      <optgroup key={g} label={g}>
+                        {BLOCKS.filter((b) => b.group === g).map((b) => (
+                          <option key={b.name} value={b.name}>
+                            {b.label}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                   <button

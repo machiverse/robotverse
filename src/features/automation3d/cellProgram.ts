@@ -13,7 +13,7 @@
  *     does only what the chosen equipment allows.
  */
 
-import { processKind, type ProcessKind } from "./processProfiles";
+import { PROCESS_HEAD, processKind, type ProcessKind } from "./processProfiles";
 import { stepLabel, type SimStep } from "./robotSim.js";
 
 export type StationKey = "conveyor" | "out" | "table" | "weld" | "cnc" | "press" | "mould" | "test" | "marker" | "bin" | "pallet" | "vision" | "carton" | "rack";
@@ -53,7 +53,8 @@ type Work = ToolWork | { action: "process"; at: "cnc" } | { action: "inspect" } 
 /** What the robot does for each kind of job, and which tool families can do it. */
 const WORK: Record<ProcessKind, Work> = {
   welding: { action: "weld", at: "weld", tools: ["torch"] },
-  finishing: { action: "finish", at: "table", tools: ["spindle"] },
+  // Washing and blasting work with a nozzle.
+  finishing: { action: "finish", at: "table", tools: ["spindle", "nozzle"] },
   coating: { action: "apply", at: "table", tools: ["nozzle"] },
   assembly: { action: "assemble", at: "table", tools: ["driver", "parallel", "dual", "vacuum"] },
   filling: { action: "fill", at: "table", tools: ["nozzle"] },
@@ -66,6 +67,19 @@ const WORK: Record<ProcessKind, Work> = {
   palletizing: null,
   packing: null,
 };
+/** Machining where the robot carries the head (drill, router, cutting head, blade, hemming roller) over a fixtured part. */
+const HEAD_WORK: ToolWork = { action: "finish", at: "table", tools: ["spindle", "torch", "nozzle"] };
+/**
+ * The work a job really is for its program: masking places plugs and tape (assembly work), a plating line
+ * moves racks (handling), concrete printing lays beads from a nozzle (coating), panel cleaning brushes (finishing),
+ * nailing drives nails into a fixtured frame (assembly).
+ */
+const workKind = (job: string, kind: ProcessKind): ProcessKind =>
+  /concrete/i.test(job) ? "coating" : /panel clean|solar clean/i.test(job) ? "finishing" : /nail|stapl/i.test(job) ? "assembly"
+    : kind !== "coating" ? kind : /mask/i.test(job) ? "assembly" : /plating|dip coat|galvani|anodi/i.test(job) ? "handling" : kind;
+const isHead = (job: string, kind: ProcessKind) => kind === "machining" && PROCESS_HEAD.test(job);
+const headWord = (job: string) =>
+  /hemm/i.test(job) ? "rolls the hem" : /drill/i.test(job) ? "drills the holes" : /rout/i.test(job) ? "routs and trims the part" : /meat|debon/i.test(job) ? "cuts the meat" : "cuts the part";
 const PROCESS_KIND: Record<string, ProcessKind> = { torch: "welding", spindle: "finishing", nozzle: "coating", driver: "assembly" };
 const WORD: Record<string, string> = { weld: "welds the seam", finish: "grinds / polishes the part", apply: "applies the coating or bead", assemble: "assembles the part", fill: "fills the container", cap: "caps and seals it", label: "applies the label" };
 
@@ -78,7 +92,7 @@ const MACHINES: [RegExp, StationKey][] = [
   [/cnc|machin|mill|turning|lathe|sheet load|tending/i, "cnc"],
 ];
 export const machineFor = (job: string, kind: ProcessKind): StationKey | null =>
-  MACHINES.find(([re]) => re.test(job))?.[1] ?? (kind === "machining" ? "cnc" : null);
+  isHead(job, kind) ? null : MACHINES.find(([re]) => re.test(job))?.[1] ?? (kind === "machining" ? "cnc" : null);
 const MACHINE_DO: Partial<Record<StationKey, [string, string, string]>> = {
   // [load label, cycle label, unload label]
   cnc: ["Load the CNC machine", "Run the machining cycle", "Unload the CNC machine"],
@@ -151,7 +165,8 @@ export function cellProgram(p: ProgramInput): CellProgram {
   }
 
   // Where raw parts come from and where finished parts go, from the equipment the user placed.
-  const work = WORK[kind];
+  const head = isHead(p.job, kind);
+  const work = head ? HEAD_WORK : WORK[workKind(p.job, kind)];
   const workAt: StationKey | null = work && "at" in work ? work.at : null;
   const depal = /depallet/i.test(p.job);
   const kitting = /kit/i.test(p.job);
@@ -234,7 +249,7 @@ export function cellProgram(p: ProgramInput): CellProgram {
     // The working tool: a process tool first; a gripper only where it can do the work itself.
     const proc = find(work.tools.filter((t) => !GRIP_TOOLS.includes(t))) >= 0 ? find(work.tools.filter((t) => !GRIP_TOOLS.includes(t))) : find(work.tools);
     if (proc < 0) {
-      notes.push({ level: "stop", text: `${p.job || "This job"} needs a ${toolName(work.tools[0])} — ${usable.filter(Boolean).length ? `a ${toolName(arm)} cannot do it` : "add one"}${grip >= 0 ? ". The robot only moves the parts" : ""}` });
+      notes.push({ level: "stop", text: `${p.job || "This job"} needs a ${head ? "cutting, drilling or hemming head" : toolName(work.tools[0])} — ${usable.filter(Boolean).length ? `a ${toolName(arm)} cannot do it` : "add one"}${grip >= 0 ? ". The robot only moves the parts" : ""}` });
     } else if (!has.has(W)) {
       notes.push({ level: "stop", text: `Add a ${lower(W)} — the ${toolName(usable[proc])} works on a part held there` });
     }
@@ -257,7 +272,7 @@ export function cellProgram(p: ProgramInput): CellProgram {
       if (cur >= 0 && proc !== cur) say.push(`changes to the ${toolName(usable[proc])}`);
       holdTool(proc);
       steps.push(work.action === "weld" ? step("weld", "weld", p.job || "Weld seam") : { action: work.action, station: "table", label: p.job || stepLabel({ action: work.action, station: "table", label: "" }), text: p.job || undefined });
-      say.push(WORD[work.action]);
+      say.push(head ? headWord(p.job) : WORD[work.action]);
       if (loads && dest) {
         if (grip !== cur) say.push(`changes back to the ${toolName(usable[grip])}`);
         holdTool(grip);
@@ -314,7 +329,7 @@ export function stationsFor(job: string, tools: (string | undefined)[], changer 
   const usable = [tools[0], changer ? tools[1] : undefined].filter((k): k is string => !!k);
   const kind: ProcessKind = job ? processKind({ name: job }) : PROCESS_KIND[usable.find((k) => !!PROCESS_KIND[k]) ?? ""] ?? "handling";
   const grip = usable.some((k) => GRIP_TOOLS.includes(k));
-  const work = WORK[kind];
+  const work = isHead(job, kind) ? HEAD_WORK : WORK[workKind(job, kind)];
   const out: StationKey[] = [];
   const machine = machineFor(job, kind);
   if (machine === "mould") out.push("mould", "pallet");

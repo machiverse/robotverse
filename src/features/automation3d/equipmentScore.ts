@@ -13,7 +13,7 @@ import type { AiStation } from "./aiSolution";
 import { eoatKind } from "./robotSim.js";
 import {
   COBOT_EOAT, GRIP_FAMILIES, GRIP_PART, INDUSTRIAL_EOAT, SPECIALTY_GRIP, gearFor, gripSize, isArcRobot, isCobotName, isCurrentRobot, isEduRobot,
-  isComponent, isLabRobot, isMountVariant, isPaintRobot, lockedOut, sizeFor, type ToolFamily,
+  isComponent, isLabRobot, isMountVariant, isPaintRobot, isSpotSeries, lockedOut, sizeFor, type ToolFamily,
 } from "./jobGear";
 
 export type Source = "market" | "oem";
@@ -196,6 +196,7 @@ export function matchOemRobots(need: StationNeed, catalog: DirRobot[], limit = 6
         (family ? 25 : 0) + (typed ? 20 : 0) + (current ? 6 : 0) + (PALLET_JOB.test(need.job ?? "") ? 0 : reachBonus(r.r, need.reach)) +
         // A hollow-wrist welding arm costs more and gains nothing when the job is not welding.
         (need.kind !== "welding" && isArcRobot(r.n) ? -6 : 0) +
+        (!/spot weld/i.test(need.job ?? "") && isSpotSeries(r.n) ? -6 : 0) +
         // A fenced cell: an industrial arm is faster and costs less per kg than a cobot.
         (!need.cobot && !collab ? 3 : 0);
       out.push({
@@ -264,7 +265,9 @@ function hintScore(text: string, hints: string[], reasons: string[]) {
 
 /** The tool family of a catalogue tool, or null when it is not a working tool (camera, sensor, component, changer). */
 export function toolFamily(name: string, category = ""): ToolFamily | null {
-  if (/vision|sensing|calibration|additive|generic demo|taping/i.test(category)) return null;
+  if (/vision|sensing|calibration|generic demo|taping/i.test(category)) return null;
+  // Plastic extruders are for 3D printing only; a concrete print nozzle is the tool of concrete printing.
+  if (/additive/i.test(category) && !/concrete/i.test(name)) return null;
   if (isComponent(name, category) || /hand-eye|verification|pencil/i.test(name)) return null;
   const kind = eoatKind(`${name} ${category.replace(/tool changer|handling/gi, "")}`) as ToolFamily;
   // The catalogue's "Tool Changer" group also holds deburring tools; a changer itself is not a working tool.
@@ -302,7 +305,15 @@ function toolFit(name: string, family: ToolFamily, need: StationNeed, gear: Retu
 }
 
 /** The job's gear from its name and the station's tooling words ("spot welding gun" makes it spot welding). */
-const gearOf = (need: StationNeed, hint: string) => gearFor(`${need.job ?? ""} ${hint}`.trim(), need.kind);
+const gearOf = (need: StationNeed, hint: string) => {
+  const own = gearFor(need.job ?? "", need.kind);
+  if (!hint) return own;
+  const both = gearFor(`${need.job ?? ""} ${hint}`.trim(), need.kind);
+  // The tooling words refine the job's tool (a spot gun for a welding job) but never change its family:
+  // a release-agent spray on a die-casting gripper does not make die casting a painting job.
+  // A specific job (brick stacking, die casting) keeps its own tool whatever the tooling words say.
+  return own.generic && own.tools.includes(both.tools[0]) ? both : own;
+};
 
 export function matchOemTools(need: StationNeed, tools: DirTool[], hint = "", limit = 6): Match[] {
   const gear = gearOf(need, hint);
@@ -316,6 +327,8 @@ export function matchOemTools(need: StationNeed, tools: DirTool[], hint = "", li
     const family = toolFamily(t.n, t.c);
     if (!family || !families.includes(family)) continue;
     if (lockedOut(t.n, need.arm)) continue;
+    // A label applicator is a vacuum tool, but only a labelling job wants one.
+    if (/label/i.test(t.n) && !/label/i.test(need.job ?? "")) continue;
     const apps = TOOL_APPS[need.kind].filter((a) => t.ap?.includes(a));
     const reasons = [`${t.c}`, ...(apps.length ? [`For ${apps.join(", ")}`] : [])];
     const score = toolFit(t.n, family, need, ranked, hints, reasons) + apps.length * 5 + (MAJOR.includes(t.b) ? 5 : 0) + hintScore(`${t.n} ${t.c}`, hints, reasons);
@@ -343,6 +356,7 @@ export function matchMarketTools(need: StationNeed, list: Record<string, unknown
     if (!words.test(text)) continue;
     const family = eoatKind(text) as ToolFamily;
     if (!gear.tools.includes(family) || isComponent(str(t.name)) || lockedOut(text, need.arm)) continue;
+    if (/label/i.test(str(t.name)) && !/label/i.test(need.job ?? "")) continue;
     const cond = str(t.condition);
     const reasons = ["Listed on RobotVerse", ...(cond ? [cond] : [])];
     const score = toolFit(str(t.name), family, need, gear, hints, []) + (num(t.price) ? 5 : 0) + hintScore(text, hints, reasons);

@@ -17,6 +17,12 @@ export const PROCESS_PROFILES: Record<ProcessKind, { label: string; color: strin
   labeling: { label: "Labeling", color: "#a3e635", skills: ["Locate pack", "Apply label", "Release"] },
 };
 
+/** Machining jobs where the robot carries the process head (blade, spindle, cutting head, hemming roller) over a fixtured part. */
+export const PROCESS_HEAD = /cutting|sawing|deboning|drilling|routing|waterjet|plasma|hemming/i;
+/** Weight of such a head in kg, for sizing the robot that carries it. */
+export const headKg = (name: string) =>
+  /rout|drill/i.test(name) ? 12 : /waterjet/i.test(name) ? 8 : /hemm/i.test(name) ? 60 : /meat|debon/i.test(name) ? 8 : 6;
+
 // Classify the process itself, not incidental mentions in tooling or robot names.
 export function processKind(process: Pick<ProcessCard, "name">): ProcessKind {
   const name = process.name.toLowerCase();
@@ -30,7 +36,7 @@ export function processKind(process: Pick<ProcessCard, "name">): ProcessKind {
   if (/label|coding|serialisation/.test(name)) return "labeling";
   if (/fill|dos/.test(name)) return "filling";
   if (/cap|seal|stopper/.test(name)) return "sealing";
-  if (/cnc|mill|turning|drill|cut|bend|profil|chamfer|press|stamp|mould|mold|cast|forg/.test(name)) return "machining";
+  if (/cnc|mill|turning|drill|cut|bend|profil|chamfer|press|stamp|mould|mold|cast|forg|hemm/.test(name)) return "machining";
   if (/assembly|screw/.test(name)) return "assembly";
   if (/pack|box|carton/.test(name)) return "packing";
   return "handling";

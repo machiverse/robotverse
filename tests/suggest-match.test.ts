@@ -26,8 +26,9 @@ for (const b of BLOCKS) {
   const robot = s.robot!;
   const tool = s.tool!;
   assert.ok((robot.payload ?? 0) >= kg, `${b.name}: ${robot.name} ${robot.payload} kg ≥ ${kg} kg`);
-  assert.ok(!isLabRobot(robot.name), `${b.name}: no laboratory robot (${robot.name})`);
-  assert.equal(isPaintRobot(robot.name), /paint/i.test(b.name), `${b.name}: painting robot only for painting (${robot.name})`);
+  assert.ok(!isLabRobot(robot.name) || !!gear.robot.lab, `${b.name}: laboratory robot only for lab work (${robot.name})`);
+  // Spray-booth painting gets a painting robot; site wall painting does not.
+  assert.equal(isPaintRobot(robot.name), !!gear.robot.paint, `${b.name}: painting robot only for painting (${robot.name})`);
   const kind = family(tool.name, tool.type);
   assert.ok(kind && gear.tools.includes(kind), `${b.name}: ${tool.name} is a ${kind}, job uses ${gear.tools.join("/")}`);
   assert.ok(!lockedOut(tool.name, `${robot.brand} ${robot.name}`), `${b.name}: ${tool.name} fits ${robot.name}`);
