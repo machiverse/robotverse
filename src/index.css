@@ -257,7 +257,7 @@ All colors MUST be HSL.
 
 @layer components {
   .nav-item {
-    @apply relative px-4 py-3 text-sm font-medium text-foreground/80 transition-all duration-200 hover:text-primary;
+    @apply relative px-1.5 xl:px-4 py-3 text-xs xl:text-sm whitespace-nowrap font-medium text-foreground/80 transition-all duration-200 hover:text-primary;
   }
   
   .nav-item::after {
