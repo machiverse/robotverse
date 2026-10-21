@@ -362,33 +362,33 @@ const EnhancedHeader = () => {
               variant="ghost"
               size="sm"
               onClick={() => setShowRequestModal(true)}
-              className="hidden sm:flex items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
+              className="hidden lg:flex items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
             >
               <Search className="h-4 w-4" />
-              <span className="hidden lg:inline">Submit Request</span>
+              <span className="hidden xl:inline">Submit Request</span>
             </Button>
 
             {/* Automation Studio */}
-            <Link to="/automation-studio" className="hidden sm:flex">
+            <Link to="/automation-studio" className="hidden lg:flex">
               <Button
                 variant="ghost"
                 size="sm"
                 className="items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
               >
                 <Sparkles className="h-4 w-4" />
-                <span className="hidden lg:inline">Automation Studio</span>
+                <span className="hidden xl:inline">Automation Studio</span>
               </Button>
             </Link>
 
             {/* RobotVerse AI */}
-            <Link to="/ai-assistant" className="hidden sm:flex">
+            <Link to="/ai-assistant" className="hidden lg:flex">
               <Button
                 variant="ghost"
                 size="sm"
                 className="items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
               >
                 <Bot className="h-4 w-4" />
-                <span className="hidden lg:inline">RobotVerse</span>
+                <span className="hidden xl:inline">RobotVerse</span>
               </Button>
             </Link>
 
