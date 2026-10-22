@@ -11,6 +11,7 @@ import { CORE_SKILLS, JOB_NOTES, KIND_JOB, PLAYBOOK, PROJECT_STAGES } from "@/fe
 import { BLOCKS } from "@/features/automation3d/ProcessBuilder";
 import EngineeringCalculators from "@/features/automation3d/EngineeringCalculators";
 import { ATTACHMENT_RULES } from "@/features/automation3d/attachmentFit";
+import { kitGuide } from "@/features/automation3d/jobKit";
 import { APPLICATION_GUIDES } from "@/lib/seo/seoText";
 
 const KINDS = Object.keys(PLAYBOOK) as ProcessKind[];
@@ -144,6 +145,29 @@ export default function AutomationPlaybookPage() {
                           </li>
                         ))}
                       </ul>
+                      {(() => {
+                        // The job's equipment kit: tool, accessories, components, other equipment and software.
+                        const g = kitGuide(b.name);
+                        const rows: [string, string[]][] = [
+                          ["Tool", [g.tool]],
+                          ["Accessories", g.accessories],
+                          ["Components", g.components],
+                          ["Also needed", g.also],
+                          ["Software", g.software],
+                        ];
+                        return (
+                          <dl className="mt-3 space-y-1 border-t border-border pt-2 text-xs">
+                            {rows
+                              .filter(([, v]) => v.length)
+                              .map(([k, v]) => (
+                                <div key={k} className="grid grid-cols-[6.5rem_1fr] gap-2">
+                                  <dt className="font-medium text-foreground">{k}</dt>
+                                  <dd className="text-muted-foreground">{v.join(" · ")}</dd>
+                                </div>
+                              ))}
+                          </dl>
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>

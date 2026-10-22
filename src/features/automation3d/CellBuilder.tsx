@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
-  AlertTriangle, Bot, Brain, Link2, PanelLeft, PanelRight, Printer, Wand2, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
+  AlertTriangle, AppWindow, Bot, Boxes, Brain, PackagePlus, Link2, PanelLeft, PanelRight, Printer, Wand2, Camera, CheckCircle2, CircleDashed, ClipboardList, Download, Cog, Factory, Gauge, GripVertical, Loader2, Mail, Pause, Play, Plus, RotateCcw, Search, ShieldCheck, Store, Trash2, Workflow, Wrench, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +12,10 @@ import { processesFromSkills } from "@/utils/processAnalyzer";
 import { createSimulation, eoatKind, STATION_NAMES, type Simulation, type SimUpdate } from "./robotSim.js";
 import { planLine, type LinePlan } from "./robotKnowledge";
 import { Thumb, type Choice } from "./EquipmentPicker";
-import { BLOCKS } from "./ProcessBuilder";
+import { BLOCKS, findJobs } from "./ProcessBuilder";
 import { slotOf } from "./RobotConfigurator";
 import { loadDirectoryRobots, loadDirectoryTools, loadMarketRobots, loadMarketTools, type DirRobot, type DirTool, type Match } from "./equipmentMatch";
-import { mailto } from "@/components/directory/directoryTypes";
+import LeadDialog from "@/components/leads/LeadDialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
 import { budgetFor, CycleTracker, decodeLine, encodeLine, isCobotMatch, reportHtml, roi, STARTERS, STEP_GROUP, suggest, suggestSwap, type Raw, type StarterCell, type StepTime } from "./builderExtras";
@@ -25,6 +25,9 @@ import { attachmentIssues, type FitIssue } from "./attachmentFit";
 import { analyzeJob, JOB_EXAMPLES, type JobTask } from "./customJob";
 import { processKind } from "./processProfiles";
 import { CELL_STATIONS, cellProgram, stationLabel, stationsFor, TOOL_NAMES, type CellProgram, type StationKey } from "./cellProgram";
+import { isComponent } from "./jobGear";
+import { jobKit, type JobKit } from "./jobKit";
+import { providerPlan, understandJob } from "./jobUnderstanding";
 
 /* ------------------------------------------------------------------ data */
 
@@ -54,6 +57,8 @@ interface Cell {
   fenced?: boolean;
   /** Cell equipment the user placed: conveyors, tables, machine, pallet, camera, tool stand. */
   stations?: StationKey[];
+  /** Components the user added: power source, wire feeder, torch cleaner, vacuum generator, adapters… */
+  parts?: Match[];
 }
 type PaletteTab = "robots" | "tools" | "acc" | "layout" | "cell";
 
@@ -82,7 +87,11 @@ const marketTool = (t: Record<string, unknown>): Match => ({
 });
 
 // Cell equipment that does not go on the arm (stations, power sources, feeders).
-const NOT_ON_ARM = /cleaning|reamer|station|power source|wire feeder|feeder|proportioner|controller/i;
+/** A component: not the working tool or an arm accessory (power source, feeder, cleaner, adapter, spare cups). */
+const isPart = (m: Match) => m.kind === "tool" && isComponent(m.name, m.type);
+/** The slot a catalogue item fills; components have none (they go in the cell's component list). */
+const slotFor = (m: Match): Slot | undefined => (m.kind === "robot" ? "robot" : isPart(m) ? undefined : slotOf(m));
+const sameItem = (a: Match, b: Match) => a.source === b.source && a.id === b.id;
 const isCobot = isCobotMatch;
 const ROBOT_TYPES = ["All", "6-Axis", "Cobot", "SCARA", "Delta", "Palletizing", "7-Axis"] as const;
 const SLOTS: { key: Slot; label: string; icon: typeof Bot }[] = [
@@ -139,6 +148,7 @@ export default function CellBuilder() {
   const lastEmit = useRef(0);
   const cellCount = useRef(0);
   const [reportOpen, setReportOpen] = useState(false);
+  const [quoteOpen, setQuoteOpen] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [raw, setRaw] = useState<Raw | null>(null);
   const tracker = useRef(new CycleTracker());
@@ -148,8 +158,13 @@ export default function CellBuilder() {
   const [copied, setCopied] = useState(false);
   // A job typed in the user's own words, analysed into robot tasks.
   const [jobText, setJobText] = useState("");
+  // Ready jobs matching the palette search: every word starts a word of the label, the job or its group.
+  const jobBlocks = useMemo(() => findJobs(q), [q]);
   const jobInputRef = useRef<HTMLInputElement>(null);
   const jobTasks = useMemo(() => analyzeJob(jobText), [jobText]);
+  // What a solution provider would check before quoting the typed job.
+  const jobPlan = useMemo(() => (jobText.trim().length >= 3 ? providerPlan(jobText, understandJob(jobText)) : null), [jobText]);
+  const [engineerOpen, setEngineerOpen] = useState(false);
   // Warn the moment something unsuitable is attached: compare each cell's fit issues with the last state.
   const [fitAlert, setFitAlert] = useState<{ cell: number; issues: FitIssue[]; undo: Cell[] } | null>(null);
   const [fitOpen, setFitOpen] = useState(false);
@@ -159,6 +174,8 @@ export default function CellBuilder() {
   // Digital-twin view: floating library and line panels over the 3D stage (desktop), and the drop target under the pointer.
   const [showLib, setShowLib] = useState(true);
   const [showLine, setShowLine] = useState(true);
+  // Show only equipment and tools related to the selected cell's job, unless the user asks for everything.
+  const [showAllEq, setShowAllEq] = useState(false);
   const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
   const [hover, setHover] = useState(-1);
   const eqKeys = useRef<string[]>([]);
@@ -435,6 +452,7 @@ export default function CellBuilder() {
   };
   const update = (i: number, fn: (c: Cell) => Cell) => setCells((cs) => cs.map((c, k) => (k === i ? fn(c) : c)));
   const put = (i: number, m: Match) => {
+    if (isPart(m)) return addPart(i, m);
     let slot: Slot = m.kind === "robot" ? "robot" : slotOf(m);
     if (!cells[i]) return addCell({ choice: { [slot]: m } });
     // With a tool changer, a second tool goes on the tool stand instead of replacing the first.
@@ -448,6 +466,19 @@ export default function CellBuilder() {
     update(i, (c) => ({ ...c, stations: (c.stations ?? []).includes(k) ? c.stations : [...(c.stations ?? []), k] }));
   };
   const removeStation = (i: number, k: StationKey) => update(i, (c) => ({ ...c, stations: (c.stations ?? []).filter((x) => x !== k) }));
+  // Components: beside the robot or between flange and tool, as many as the cell needs.
+  const addPart = (i: number | "new", m: Match) => {
+    if (i === "new" || !cells[i]) return addCell({ parts: [m] });
+    update(i, (c) => ({ ...c, parts: (c.parts ?? []).some((x) => sameItem(x, m)) ? c.parts : [...(c.parts ?? []), m] }));
+  };
+  const removePart = (i: number, m: Match) => update(i, (c) => ({ ...c, parts: (c.parts ?? []).filter((x) => !sameItem(x, m)) }));
+  // Everything the job kit suggests for a cell, in one click: accessories into empty slots, components to the list.
+  const addKit = (i: number, kit: JobKit) =>
+    update(i, (c) => ({
+      ...c,
+      choice: { ...Object.fromEntries(kit.accessories.map((a) => [a.slot, a.match])), ...c.choice },
+      parts: [...(c.parts ?? []), ...kit.components.map((x) => x.match).filter((m) => !(c.parts ?? []).some((x) => sameItem(x, m)))],
+    }));
   // Tap "Add" (touch screens): a robot goes to the selected cell if it has none, else a new cell.
   const add = (m: Match) => {
     if (m.kind === "robot" && (!cells.length || cells[selected]?.choice.robot)) return addCell({ choice: { robot: m } });
@@ -503,6 +534,7 @@ export default function CellBuilder() {
           fenced: typeof c.f === "boolean" ? c.f : undefined,
           choice: Object.fromEntries(Object.entries(c.s ?? {}).map(([k, key]) => [k, byKey.get(key)]).filter(([, m]) => m)) as Choice,
           stations: Array.isArray(c.t) ? (c.t.filter((k) => STATION_KEYS.has(k)) as StationKey[]) : undefined,
+          parts: Array.isArray(c.p) ? c.p.map((k) => byKey.get(k)).filter((m): m is Match => !!m) : undefined,
         })).map(withStations),
       );
       setSelected(0);
@@ -544,6 +576,7 @@ export default function CellBuilder() {
     }
     const m = byKey.get(p);
     if (!m) return;
+    if (isPart(m)) return addPart(cellIndex, m);
     if (cellIndex === "new") return addCell({ choice: { [m.kind === "robot" ? "robot" : slotOf(m)]: m } });
     put(cellIndex, m);
   };
@@ -681,38 +714,37 @@ export default function CellBuilder() {
           matchQ(m) &&
           (rtype === "All" || (rtype === "Cobot" ? isCobot(m) : (m.type ?? "").toLowerCase().includes(rtype.toLowerCase()))),
       );
-    const tools = data.tools.filter((m) => (source === "all" || m.source === source) && matchQ(m));
-    return tab === "acc" ? tools.filter((m) => slotOf(m) !== "tool") : tools.filter((m) => slotOf(m) === "tool" && !NOT_ON_ARM.test(m.name));
+    const job = cells[selected]?.job ?? "";
+    const isWeldJob = !job || /weld|solder|braz|cut|plasma/i.test(job) || processKind({ name: job }) === "welding";
+    const WELD_GEAR = /weld|torch|wire feed|mig\b|tig\b|arc\b|spatter|reamer|fronius|tregaskiss|lincoln|esab/i;
+    const tools = data.tools.filter(
+      (m) => (source === "all" || m.source === source) && matchQ(m) && (showAllEq || isWeldJob || (toolKindOf(m) !== "torch" && !WELD_GEAR.test(`${m.name} ${m.type ?? ""}`))),
+    );
+    // Accessories on the arm and the components around it; the EOAT tab holds working tools only.
+    return tab === "acc" ? tools.filter((m) => isPart(m) || slotOf(m) !== "tool") : tools.filter((m) => slotOf(m) === "tool" && !isPart(m));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, tab, q, source, rtype]);
+  }, [data, tab, q, source, rtype, showAllEq, selected, cells[selected]?.job]);
   useEffect(() => setShown(40), [tab, q, source, rtype]);
 
   /* ------------------------------------------------------------ summary */
 
-  const chosen = cells.flatMap((c) => Object.values(c.choice).filter(Boolean) as Match[]);
+  const chosen = cells.flatMap((c) => [...(Object.values(c.choice).filter(Boolean) as Match[]), ...(c.parts ?? [])]);
+  // Accessories, components, other equipment and software each job needs with the chosen robot and tools.
+  const kits: JobKit[] = useMemo(
+    () => cells.map((c) => jobKit({ job: c.job, ...c.choice, fenced: c.fenced, stations: c.stations }, data?.tools ?? [])),
+    [cells, data],
+  );
   const priced = chosen.filter((m) => m.source === "market" && m.price);
   const total = priced.reduce((s, m) => s + (m.price ?? 0), 0);
-  const quote = mailto(
-    "Quote request: my robot cell (Automation Studio)",
+  // The line as the sales team reads it: every cell's equipment, safety, components and software.
+  const quoteLines = cells.map((c, i) =>
     [
-      "Hello RobotVerse team,",
-      "",
-      "Please quote the robot cell I built in Automation Studio:",
-      "",
-      ...cells.map((c, i) =>
-        [
-          `Cell ${i + 1} — ${cellLabel(c)}${c.fenced === undefined ? " (safety not chosen)" : c.fenced ? " (fenced)" : " (open / collaborative)"}`,
-          ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `  ${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`),
-          ...(c.stations?.length ? [`  Cell equipment: ${c.stations.map(stationLabel).join(", ")}`] : []),
-        ].join("\n"),
-      ),
-      "",
-      "Name:",
-      "Company:",
-      "Phone:",
-      "",
-      "Thank you.",
-    ].join("\n"),
+      `Cell ${i + 1} — ${cellLabel(c)}${c.fenced === undefined ? " (safety not chosen)" : c.fenced ? " (fenced)" : " (open / collaborative)"}`,
+      ...SLOTS.filter((s) => c.choice[s.key]).map((s) => `${s.label}: ${c.choice[s.key]!.name} [${c.choice[s.key]!.source === "market" ? "RobotVerse marketplace" : "Directory / OEM"}]`),
+      ...(c.stations?.length ? [`Cell equipment: ${c.stations.map(stationLabel).join(", ")}`] : []),
+      ...(c.parts?.length ? [`Components: ${c.parts.map((m) => m.name).join(", ")}`] : []),
+      ...(kits[i]?.software.length ? [`Software: ${kits[i].software.map((x) => `${x.maker} ${x.name}`).join(", ")}`] : []),
+    ].join(" | "),
   );
 
   /* ------------------------------------------------------------- analysis */
@@ -753,7 +785,7 @@ export default function CellBuilder() {
       thought: [programs[i].summary, ...programs[i].notes.map((n) => n.text)].join(" "),
       state: programs[i].idle ? "todo" : programs[i].notes.some((n) => n.level !== "info") ? "warn" : "ok",
     };
-    return [program, ...thinkCell({ job: c.job, choice: c.choice, needKg: plan?.robots[i]?.minPayload, fenced: c.fenced, cobot: isCobot(c.choice.robot), cycle: cycles[i], checks: checks[i], split })];
+    return [program, ...thinkCell({ job: c.job, choice: c.choice, needKg: plan?.robots[i]?.minPayload, fenced: c.fenced, cobot: isCobot(c.choice.robot), cycle: cycles[i], checks: checks[i], split, kit: kits[i], parts: c.parts })];
   });
   const onQuote = chosen.filter((m) => !(m.source === "market" && m.price)).length;
   const budget = useMemo(() => (plan ? budgetFor(plan, cells.map((c) => c.choice)) : null), [plan, cells]);
@@ -764,7 +796,10 @@ export default function CellBuilder() {
     if (!w) return;
     w.document.write(
       reportHtml({
-        cells: cells.map((c, i) => ({ job: cellLabel(c), choice: c.choice, fenced: c.fenced, cycle: cycles[i], checks: checks[i], thoughts: thoughts[i] })),
+        cells: cells.map((c, i) => ({
+          job: cellLabel(c), choice: c.choice, fenced: c.fenced, cycle: cycles[i], checks: checks[i], thoughts: thoughts[i],
+          parts: (c.parts ?? []).map((m) => m.name), also: kits[i].also, software: kits[i].software,
+        })),
         bottleneck, perHour, budget, roi: payback, inputs: { operators, shifts: roiIn.shifts, wage: roiIn.wage },
       }),
     );
@@ -791,17 +826,18 @@ export default function CellBuilder() {
   const reportCsv = () => {
     const q = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = [
-      ["Cell", "Job", "Robot", "Tool", "2nd tool", "Accessories", "Cell equipment", "Program", "Safety", "Cycle (s)", "Parts / hour", "Status", "Notes"],
+      ["Cell", "Job", "Robot", "Tool", "2nd tool", "Accessories", "Components", "Also needed", "Software", "Cell equipment", "Program", "Safety", "Cycle (s)", "Parts / hour", "Status", "Notes"],
       ...cells.map((c, i) => [
         i + 1, cellLabel(c), c.choice.robot?.name, c.choice.tool?.name, c.choice.tool2?.name,
         [c.choice.changer, c.choice.sensor, c.choice.camera].filter(Boolean).map((m) => m!.name).join(" + "),
+        (c.parts ?? []).map((m) => m.name).join(" + "), kits[i].also.join("; "), kits[i].software.map((x) => `${x.maker} ${x.name}`).join("; "),
         (c.stations ?? []).map(stationLabel).join(" + "), programs[i].summary,
         c.fenced === undefined ? "Not chosen" : c.fenced ? "Fenced" : "Open (cobot)", cycles[i]?.toFixed(1), cycles[i] ? Math.floor(3600 / cycles[i]!) : "",
         states[i] === "ok" ? "Ready" : states[i] === "warn" ? "Check" : "Incomplete",
         checks[i].filter((x) => x.state !== "ok").map((x) => `${x.label}: ${x.detail}`).join("; "),
       ]),
       [],
-      ["Line", "", "", "", "", "", "", "", "", bottleneck?.toFixed(1) ?? "", perHour ?? "", "", `Marketplace total ${total ? inr(total) : "-"}; ${onQuote} item(s) on quotation`],
+      ["Line", "", "", "", "", "", "", "", "", "", "", "", bottleneck?.toFixed(1) ?? "", perHour ?? "", "", `Marketplace total ${total ? inr(total) : "-"}; ${onQuote} item(s) on quotation`],
     ];
     const url = URL.createObjectURL(new Blob([rows.map((r) => r.map(q).join(",")).join("\n")], { type: "text/csv" }));
     const a = document.createElement("a");
@@ -1028,6 +1064,11 @@ export default function CellBuilder() {
                   {label}
                 </button>
               ))}
+              {cells[selected]?.job && (
+                <button onClick={() => setShowAllEq((v) => !v)} className={cn("rounded-full border px-2 py-0.5", !showAllEq ? "border-primary bg-primary/10 text-primary" : "border-border")}>
+                  {showAllEq ? "Showing all" : "Only for this job"}
+                </button>
+              )}
             </div>
             {tab === "robots" && (
               <div className="flex flex-wrap gap-1 text-[11px]">
@@ -1052,7 +1093,21 @@ export default function CellBuilder() {
                 <p className="mb-1.5 px-1 text-[11px] text-muted-foreground">
                   Only what you place is in the cell — the robot program uses it. Cell {cells[selected] ? selected + 1 : "—"} is selected.
                 </p>
-                {CELL_STATIONS.map((st) => {
+                {cells[selected]?.job && (
+                  <button type="button" onClick={() => setShowAllEq((v) => !v)} className="mb-1.5 ml-1 text-[11px] font-medium text-primary hover:underline">
+                    {showAllEq ? "Show only equipment for this job" : "Show all equipment"}
+                  </button>
+                )}
+                {CELL_STATIONS.filter((st) => {
+                  const c = cells[selected];
+                  if (showAllEq || !c?.job) return true;
+                  // Specialised machines appear only when this job uses them (no welding table for a pharma job).
+                  const SPECIAL = ["weld", "cnc", "press", "mould", "marker", "bin", "test"];
+                  if (!SPECIAL.includes(st.key)) return true;
+                  if (c.stations?.includes(st.key)) return true;
+                  const kinds = [toolKindOf(c.choice.tool), toolKindOf(c.choice.tool2)];
+                  return stationsFor(c.job, kinds, !!c.choice.changer).includes(st.key) || (st.key === "test" && /test|inspect|vial|pharma|blister|gaug|leak/i.test(c.job));
+                }).map((st) => {
                   const placed = !!cells[selected]?.stations?.includes(st.key);
                   return (
                     <div
@@ -1132,16 +1187,19 @@ export default function CellBuilder() {
                       </button>
                     ))}
                   </p>
-                ) : !jobTasks.length ? (
-                  <p className="mt-1.5 px-1 text-[11px] text-amber-600">
-                    We could not match this to a robot task yet. Use action words such as weld, pick, place, pack, stack, grind, polish, paint, glue, screw,
-                    inspect, test, cut or load.
-                  </p>
-                ) : (
+                ) : !jobTasks.length ? null : (
                   <div className="mt-2 space-y-2">
-                    <p className="px-1 text-[11px] text-muted-foreground">
-                      We understood {jobTasks.length === 1 ? "one robot task" : `${jobTasks.length} robot tasks`}:
-                    </p>
+                    {jobTasks[0].confidence === "low" ? (
+                      <p className="px-1 text-[11px] text-amber-600">
+                        We could not find a robot action in this yet, so it starts as a general pick-and-place cell. Add an action word such as weld, pick, pack,
+                        stack, grind, paint, glue, screw, inspect, test, cut or load.
+                      </p>
+                    ) : (
+                      <p className="px-1 text-[11px] text-muted-foreground">
+                        We understood {jobTasks.length === 1 ? "one robot task" : `${jobTasks.length} robot tasks`}
+                        {jobTasks.some((t) => t.confidence === "medium") ? " from your words — an engineer confirms it" : ""}:
+                      </p>
+                    )}
                     {jobTasks.map((t) => (
                       <div key={t.name} className="rounded-md border border-border bg-background p-2 text-[11px]">
                         <div className="flex items-start justify-between gap-2">
@@ -1156,6 +1214,7 @@ export default function CellBuilder() {
                           <li><span className="text-muted-foreground">Typical cycle:</span> {t.cycle[0]}–{t.cycle[1]} s</li>
                         </ul>
                         <p className="mt-1 italic text-muted-foreground">{t.key}</p>
+                        {t.confidence !== "high" && t.why && <p className="mt-1 text-amber-600">Why this task: {t.why}.</p>}
                         {jobTasks.length > 1 && (
                           <div className="mt-1.5 flex gap-1">
                             {cells[selected] && (
@@ -1180,6 +1239,31 @@ export default function CellBuilder() {
                         {jobTasks.length === 1 ? "+ New cell" : `Add all ${Math.min(jobTasks.length, 6 - cells.length)} as cells`}
                       </Button>
                     </div>
+                    {jobPlan && (
+                      <details className="rounded-md border border-border bg-background p-2 text-[11px]" open={jobPlan.pocFirst}>
+                        <summary className="cursor-pointer font-medium text-primary">What a solution provider checks first</summary>
+                        <ul className="mt-1.5 space-y-1">
+                          {jobPlan.feasibility.map((x) => (
+                            <li key={x.factor} className="flex gap-1.5">
+                              <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", x.status === "ok" ? "bg-emerald-500" : x.status === "check" ? "bg-amber-500" : "bg-red-500")} aria-label={x.status} />
+                              <span>
+                                <b>{x.factor}:</b> <span className="text-muted-foreground">{x.note}</span>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className={cn("mt-1.5", jobPlan.pocFirst ? "text-amber-600" : "text-muted-foreground")}>{jobPlan.pocWhy}</p>
+                        <p className="mt-1.5 font-medium">To quote it, an integrator needs:</p>
+                        <ul className="ml-4 list-disc text-muted-foreground">
+                          {jobPlan.requirements.slice(0, 6).map((r) => (
+                            <li key={r}>{r}</li>
+                          ))}
+                        </ul>
+                        <Button size="sm" variant="outline" className="mt-2 h-8 text-xs" onClick={() => setEngineerOpen(true)}>
+                          Have an engineer check this job
+                        </Button>
+                      </details>
+                    )}
                   </div>
                 )}
               </div>
@@ -1201,11 +1285,23 @@ export default function CellBuilder() {
                 </div>
                 <p className="mt-1 px-1 text-[10px] text-muted-foreground">Replaces the current line.</p>
               </div>
-              {[...new Set(BLOCKS.map((b) => b.group))].map((g) => (
+              <label className="relative block">
+                <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="search"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder={`Find a ready job (${BLOCKS.length})…`}
+                  className="w-full rounded-md border border-border bg-background py-2 pl-8 pr-2 text-base sm:text-sm"
+                  aria-label="Find a ready job"
+                />
+              </label>
+              {jobBlocks.length === 0 && <p className="px-1 text-[11px] text-muted-foreground">No ready job matches — describe it under “Your own job” above.</p>}
+              {[...new Set(jobBlocks.map((b) => b.group))].map((g) => (
                 <div key={g}>
                   <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{g}</p>
                   <div className="flex flex-wrap gap-1">
-                    {BLOCKS.filter((b) => b.group === g).map((b) => (
+                    {jobBlocks.filter((b) => b.group === g).map((b) => (
                       <button
                         key={b.name}
                         type="button"
@@ -1234,9 +1330,9 @@ export default function CellBuilder() {
                 <li
                   key={`${m.source}:${m.id}`}
                   draggable
-                  onDragStart={(e) => onDragStart(e, `${m.source}:${m.id}`, m.kind, m.kind === "robot" ? "robot" : slotOf(m))}
+                  onDragStart={(e) => onDragStart(e, `${m.source}:${m.id}`, m.kind, slotFor(m))}
                   onDragEnd={endDrag}
-                  {...touchDrag({ payload: `${m.source}:${m.id}`, kind: m.kind, slot: m.kind === "robot" ? "robot" : slotOf(m), label: m.name })}
+                  {...touchDrag({ payload: `${m.source}:${m.id}`, kind: m.kind, slot: slotFor(m), label: m.name })}
                   className="flex cursor-grab select-none items-center gap-2 p-2 active:cursor-grabbing [-webkit-touch-callout:none]"
                 >
                   <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -1311,10 +1407,14 @@ export default function CellBuilder() {
                     </option>
                     <option value="__type">✎ Type my own job…</option>
                     {c.job && (c.custom || !BLOCKS.some((b) => b.name === c.job)) && <option value={c.job}>{cellLabel(c)}</option>}
-                    {BLOCKS.map((b) => (
-                      <option key={b.name} value={b.name}>
-                        {b.label}
-                      </option>
+                    {[...new Set(BLOCKS.map((b) => b.group))].map((g) => (
+                      <optgroup key={g} label={g}>
+                        {BLOCKS.filter((b) => b.group === g).map((b) => (
+                          <option key={b.name} value={b.name}>
+                            {b.label}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                   <button
@@ -1411,6 +1511,79 @@ export default function CellBuilder() {
                     </div>
                   );
                 })()}
+                {(() => {
+                  // Accessories and components the user added, what this job and robot still need (one click
+                  // each, or all at once), other equipment, and the software to program and run the cell.
+                  const kit = kits[i];
+                  const parts = c.parts ?? [];
+                  const acc = kit.accessories.filter((a) => !c.choice[a.slot]);
+                  const comp = kit.components.filter((x) => !parts.some((m) => sameItem(m, x.match)));
+                  if (!parts.length && !acc.length && !comp.length && !kit.software.length) return null;
+                  return (
+                    <div className="mt-2 space-y-1 text-[11px]">
+                      {(parts.length > 0 || acc.length > 0 || comp.length > 0) && (
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Boxes className="h-3 w-3 shrink-0 text-primary" aria-hidden />
+                          {parts.map((m) => (
+                            <span key={`${m.source}:${m.id}`} title={m.type} className="inline-flex items-center gap-1 rounded-full border border-primary/50 px-2 py-0.5">
+                              {m.name}
+                              <button type="button" aria-label={`Remove ${m.name}`} onClick={(e) => (e.stopPropagation(), removePart(i, m))} className="rounded hover:text-red-600">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                          {acc.map((a) => (
+                            <button
+                              key={`a-${a.slot}`}
+                              type="button"
+                              title={`${a.why} — click to add`}
+                              onClick={(e) => (e.stopPropagation(), update(i, (x) => ({ ...x, choice: { ...x.choice, [a.slot]: a.match } })))}
+                              className="rounded-full border border-dashed border-primary/60 px-2 py-0.5 text-primary hover:bg-primary/10"
+                            >
+                              + {a.match.name}
+                            </button>
+                          ))}
+                          {comp.map((x) => (
+                            <button
+                              key={`c-${x.match.id}`}
+                              type="button"
+                              title={`${x.why} — click to add`}
+                              onClick={(e) => (e.stopPropagation(), addPart(i, x.match))}
+                              className="rounded-full border border-dashed border-primary/60 px-2 py-0.5 text-primary hover:bg-primary/10"
+                            >
+                              + {x.match.name}
+                            </button>
+                          ))}
+                          {acc.length + comp.length > 1 && (
+                            <button
+                              type="button"
+                              title="Add every suggested accessory and component for this job"
+                              onClick={(e) => (e.stopPropagation(), addKit(i, { ...kit, accessories: acc, components: comp }))}
+                              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary hover:bg-primary/20"
+                            >
+                              <PackagePlus className="h-3 w-3" /> Add all
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {selected === i && kit.also.length > 0 && (
+                        <p className="text-muted-foreground">
+                          <b className="font-medium text-foreground">Also needed:</b> {kit.also.join(" · ")}
+                        </p>
+                      )}
+                      {kit.software.length > 0 && (
+                        <p className="flex flex-wrap items-center gap-1">
+                          <AppWindow className="h-3 w-3 shrink-0 text-primary" aria-label="Software" />
+                          {kit.software.map((x) => (
+                            <span key={x.name} title={`${x.maker}: ${x.does}`} className="rounded bg-muted px-1.5 py-0.5">
+                              {x.name}
+                            </span>
+                          ))}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
                 {c.choice.robot && programs[i] && (
                   <p className="mt-1.5 flex gap-1 text-[11px]">
                     <Workflow className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
@@ -1457,10 +1630,8 @@ export default function CellBuilder() {
             )}
           </p>
           <div className="flex gap-2">
-            <Button size="sm" className="flex-1" asChild disabled={!chosen.length}>
-              <a href={chosen.length ? quote : undefined} aria-disabled={!chosen.length}>
-                <Mail className="mr-1.5 h-3.5 w-3.5" /> Request quote
-              </a>
+            <Button size="sm" className="flex-1" disabled={!chosen.length} onClick={() => setQuoteOpen(true)}>
+              <Mail className="mr-1.5 h-3.5 w-3.5" /> Request quote
             </Button>
             {cells.length > 0 && (
               <Button size="sm" variant="outline" onClick={() => setReportOpen(true)}>
@@ -1690,8 +1861,8 @@ export default function CellBuilder() {
               </div>
               <p className="text-xs text-muted-foreground">Cycle times come from the 3D simulation and are indicative; real times depend on part, tooling and programming.</p>
               <div className="flex flex-wrap gap-2">
-                <Button asChild disabled={!chosen.length}>
-                  <a href={chosen.length ? quote : undefined}><Mail className="mr-1.5 h-4 w-4" /> Request quote</a>
+                <Button disabled={!chosen.length} onClick={() => (setReportOpen(false), setQuoteOpen(true))}>
+                  <Mail className="mr-1.5 h-4 w-4" /> Request quote
                 </Button>
                 <Button variant="outline" onClick={printReport}>
                   <Printer className="mr-1.5 h-4 w-4" /> Print / save PDF
@@ -1707,6 +1878,43 @@ export default function CellBuilder() {
           )}
         </DialogContent>
       </Dialog>
+      <LeadDialog
+        open={engineerOpen}
+        onOpenChange={setEngineerOpen}
+        kind="engineer"
+        source="cell-builder-own-job"
+        title="Have an engineer check this job"
+        intro="An automation engineer looks at your job, asks what is missing and tells you if a robot fits — free."
+        item={{ type: "custom_job", name: jobText.trim().slice(0, 120) }}
+        details={
+          jobPlan
+            ? {
+                job: jobText.trim(),
+                tasks: jobTasks.map((t) => `${t.name} (${t.confidence})`),
+                checks: jobPlan.feasibility.filter((x) => x.status !== "ok").map((x) => `${x.factor}: ${x.note}`),
+                proofOfConcept: jobPlan.pocFirst ? "yes" : "no",
+              }
+            : undefined
+        }
+        action="Request a call"
+      />
+      <LeadDialog
+        open={quoteOpen}
+        onOpenChange={setQuoteOpen}
+        kind="quote"
+        source="cell-builder"
+        title="Get a quote for this line"
+        intro="Our engineers check the line and come back with robots, tooling, components and an integration price."
+        item={{ type: "robot_cell", name: `${cells.length} robot cell${cells.length === 1 ? "" : "s"}: ${cells.map((c) => cellLabel(c)).join(", ")}` }}
+        details={{
+          cells: quoteLines,
+          lineCycle: bottleneck ? `${bottleneck.toFixed(1)} s` : "not measured",
+          partsPerHour: perHour ?? "not measured",
+          marketplaceTotal: total ? inr(total) : "",
+          openLine: typeof window !== "undefined" && cells.length ? `${window.location.origin}/automation-studio/build#line=${encodeLine(cells)}` : "",
+        }}
+        action="Request quote"
+      />
     </div>
   );
 }

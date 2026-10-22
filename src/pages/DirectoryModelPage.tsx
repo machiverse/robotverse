@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
-import { Boxes, ChevronRight, Loader2, Mail, ShoppingCart, Wrench } from "lucide-react";
+import { Boxes, ChevronRight, Loader2, ShoppingCart, Wrench } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import ItemImage from "@/components/directory/ItemImage";
 import DatasheetButton from "@/components/directory/DatasheetButton";
-import { enquiryMailto, type CatalogItem, type CatalogKind } from "@/components/directory/directoryTypes";
+import { type CatalogItem, type CatalogKind } from "@/components/directory/directoryTypes";
 import { DIRECTORY_FILE, DIRECTORY_TYPES, directoryItemSeo, directorySlug, type DirectoryType } from "@/lib/seo/seoText";
 import { encodeLine } from "@/features/automation3d/builderExtras";
+import DirectoryLeadButton from "@/components/directory/DirectoryLeadButton";
 
 const cache: Partial<Record<CatalogKind, Promise<CatalogItem[]>>> = {};
 const load = (kind: CatalogKind) =>
@@ -132,11 +133,13 @@ export default function DirectoryModelPage() {
                 </Link>
               </Button>
               <DatasheetButton kind={kind} item={item} />
-              <Button variant="ghost" asChild>
-                <a href={enquiryMailto(item)}>
-                  <Mail className="mr-2 h-4 w-4" /> Enquire
-                </a>
-              </Button>
+              <DirectoryLeadButton lead="enquiry" catalog={kind} item={item} variant="ghost" />
+            </div>
+            {/* Demand and supply: each request is saved, and "notify me" becomes the sourcing list. */}
+            <div className="mt-2 flex flex-wrap gap-2">
+              <DirectoryLeadButton lead="used_price" catalog={kind} item={item} variant="outline" size="sm" />
+              <DirectoryLeadButton lead="notify" catalog={kind} item={item} variant="outline" size="sm" />
+              <DirectoryLeadButton lead="sell" catalog={kind} item={item} variant="outline" size="sm" />
             </div>
           </div>
           <div className="relative aspect-square overflow-hidden rounded-2xl border border-border bg-muted/40">

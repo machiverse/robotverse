@@ -14,10 +14,13 @@
 
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/utils/processAnalyzer";
-import { processKind, type ProcessKind } from "./processProfiles";
+import { headKg, PROCESS_HEAD, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, STRATEGIES, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, payback } from "./solutionCost";
 import type { AiSolution, AiStation } from "./aiSolution";
+import { providerPlan, understandJob } from "./jobUnderstanding";
+import { manualCrew, thinkSolution } from "./engineerThinking";
+import { GRIP_FAMILIES, gearFor } from "./jobGear";
 import { GENERAL_STANDARDS, GRIPPER_RULES, INDUSTRY_RULES, matchAll, matchFirst, ROBOT_TYPE_RULES, VISION_RULES } from "./automationKnowledge";
 
 /* ---------------------------------------------------------------- facts */
@@ -67,7 +70,10 @@ export function extractFacts(brief: string): BriefFacts {
   }
   let partsPerHour: number | null = null;
   const r = t.match(/(\d[\d,]*(?:\.\d+)?)\s*(?:[a-z]+\s){0,2}?(?:\/|per|an|a|every|each)\s*(s|sec|second|min|minute|h|hr|hour|shift|day)\b/);
-  if (r) partsPerHour = Math.round(parseFloat(r[1].replace(/,/g, "")) * (PER[r[2]] ?? 1));
+  // A day is the working day: the shifts named in the brief, else two shifts (16 h), not 24 hours.
+  const shiftsNamed = t.match(/(\d|one|two|three)\s*shifts?/);
+  const dayHours = (shiftsNamed ? ({ one: 1, two: 2, three: 3 } as Record<string, number>)[shiftsNamed[1]] ?? parseInt(shiftsNamed[1], 10) : 2) * 8;
+  if (r) partsPerHour = Math.round(parseFloat(r[1].replace(/,/g, "")) * (r[2] === "day" ? 1 / dayHours : PER[r[2]] ?? 1));
   const cyc = t.match(/cycle(?: time)?(?: of| is|:)?\s*(\d+(?:\.\d+)?)\s*(s|sec|seconds|min|minutes)\b/);
   if (!partsPerHour && cyc) {
     const sec = parseFloat(cyc[1]) * (/^m/.test(cyc[2]) ? 60 : 1);
@@ -86,7 +92,7 @@ export function extractFacts(brief: string): BriefFacts {
     size: size ? size[1].trim() : null,
     variants: /\b(variant|variants|models|sku|skus|mixed|different sizes|changeover|high mix|many parts|family)\b/.test(t),
     cobotWanted: /\b(cobot|collaborative|alongside (the )?(operator|worker)|no fenc|without fenc|human[- ]robot)\b/.test(t),
-    hygienic: /\b(food|meat|dairy|bakery|pharma|hygien|washdown|gmp|sterile|aseptic)\b/.test(t),
+    hygienic: /\b(food|meat|chicken|poultry|fish|seafood|dairy|milk|cheese|bakery|bread|dough|chocolate|confectionery|snacks?|fruits?|vegetables?|beverages?|pharma|hygien|washdown|gmp|sterile|aseptic)\b/.test(t),
     explosive: /\b(atex|explosive|solvent|flammable|paint booth|hazardous area)\b/.test(t),
     cleanroom: /\b(clean ?room|iso class|esd)\b/.test(t),
     outdoor: /\b(outdoor|site|construction site|field|yard)\b/.test(t),
@@ -140,6 +146,9 @@ const TOOL_KG: Record<ProcessKind, number> = {
   palletizing: 15, packing: 4, assembly: 3, filling: 3, sealing: 3, labeling: 2,
 };
 
+/** Process tools far heavier than a torch or spindle (a servo spot gun is 80–150 kg; friction stir and hemming push kilonewtons): sized like the skill's own robot. */
+const HEAVY_TOOL = /spot weld|friction stir|roller hemm|fettl/i;
+
 const OUTPUT_TYPES: Partial<Record<ProcessKind, string>> = { palletizing: "pallet", packing: "carton" };
 
 const secs = (v: string) => {
@@ -169,10 +178,15 @@ function robotExamples(payload: number, cobot: boolean) {
 
 export function engineSolution(brief: string, industry: string | null = null, strategyHint?: Strategy): AiSolution & { source: "engine" } {
   const facts = extractFacts(brief);
-  const matched = matchTemplateIds(brief).length > 0;
+  const understood = understandJob(brief);
+  // New wording the library does not know is read from its action words (attach, join, count, sew…).
+  const fromWords = understood.source === "words";
+  const matched = matchTemplateIds(brief).length > 0 || fromWords;
   // Only what the brief names; a vague brief starts from a general handling cell, not a stock blueprint.
   const generic = () => processesFromSkills(["Loading & Unloading"]);
-  let processes: ProcessCard[] = matched ? analyzeDescription(brief, industry) : industry ? analyzeDescription("", industry) : generic();
+  let processes: ProcessCard[] = fromWords
+    ? processesFromSkills(understood.tasks.map((t) => t.name))
+    : matched ? analyzeDescription(brief, industry) : industry ? analyzeDescription("", industry) : generic();
   if (!processes.length) processes = generic();
   const concrete = processes.some((p) => /concrete printing/i.test(p.name));
   const briefCycle = (() => {
@@ -227,10 +241,13 @@ export function engineSolution(brief: string, industry: string | null = null, st
     const robot = plan.robots.find((r) => r.tasks.some((t) => t.name === p.name));
     // A robot that carries the part is sized for part + tool; one that carries a process tool
     // (torch, gun, spindle, driver) against a fixtured part is sized for the tool only.
-    const carriesPart = ["handling", "transport", "machining", "palletizing", "packing", "inspection"].includes(kind);
+    const head = kind === "machining" && PROCESS_HEAD.test(p.name);
+    // Assembly or coating jobs whose tool is a gripper (solar glass, plating racks) carry the part too.
+    const carriesPart =
+      !head && (["handling", "transport", "machining", "palletizing", "packing", "inspection"].includes(kind) || (["assembly", "coating"].includes(kind) && GRIP_FAMILIES.includes(gearFor(p.name, kind).tools[0])));
     const need = carriesPart
       ? facts.weightKg != null ? Math.ceil((facts.weightKg + TOOL_KG[kind]) * 1.25) : null
-      : Math.max(4, Math.ceil(TOOL_KG[kind] * 1.25) + 1);
+      : Math.max(4, Math.ceil((head ? headKg(p.name) : TOOL_KG[kind]) * 1.25) + 1, HEAVY_TOOL.test(p.name) ? robot?.minPayload ?? 0 : 0);
     const payload = concrete ? 150 : need ?? robot?.minPayload ?? kg(p.robot.payload);
     const cobot = !!robot?.collaborative;
     return {
@@ -246,7 +263,7 @@ export function engineSolution(brief: string, industry: string | null = null, st
         : `${cobot ? "Collaborative robot" : "Industrial robot"}; fits: ${robotExamples(payload ?? 10, cobot)}`,
       payload_kg: payload,
       reach_mm: kg(p.robot.reach),
-      tooling: gripper && HANDLES.includes(kind) ? `${gripper.pick} (${p.eoat.slice(1).join(", ") || p.eoat[0]})` : p.eoat.join(", "),
+      tooling: gripper && HANDLES.includes(kind) && !head && GRIP_FAMILIES.includes(gearFor(p.name, kind).tools[0]) ? `${gripper.pick} (${p.eoat.slice(1).join(", ") || p.eoat[0]})` : p.eoat.join(", "),
       sensors: [...new Set([...SENSORS[kind], ...visions.filter(() => HANDLES.includes(kind) || kind === "inspection").map((v) => v.pick)])],
       cycle_s: briefCycle ?? Math.round(cycleOf(p.name) * 10) / 10,
       notes: p.integrationNote,
@@ -274,15 +291,21 @@ export function engineSolution(brief: string, industry: string | null = null, st
   const shifts = facts.shifts ?? 2;
   // Fully loaded operator cost (salary + PF/ESI + benefits), Indian plants.
   const LABOUR = 32000;
-  const operators = facts.operators ?? Math.max(2, Math.min(processes.length, plan.robots.length + extraRobots + 1));
+  // Pure handling jobs: count the crew the rate needs by hand, not one person per task.
+  const handOnly = processes.every((p) => ["handling", "palletizing", "packing", "transport"].includes(processKind(p)));
+  const crew = handOnly ? manualCrew(facts.partsPerHour, facts.weightKg) : 0;
+  const operators = facts.operators ?? Math.min(8, Math.max(2, Math.min(processes.length, plan.robots.length + extraRobots + 1), crew));
   const pb = payback([low, high], operators, shifts, LABOUR);
   const months = pb.months.every(Number.isFinite) ? `${Math.round(pb.months[0])}–${Math.round(pb.months[1])} months` : "";
 
   const industrial = plan.robots.length - cobots;
+  const totalRobots = plan.robots.length + extraRobots;
   const archType =
     plan.robots.length === 1
-      ? cobots ? "Single cobot station" : "Single robot cell"
-      : `${plan.robots.length}-robot line${cobots ? ` (${cobots} cobot${cobots > 1 ? "s" : ""})` : ""} with transfer conveyors`;
+      ? totalRobots > 1
+        ? `${totalRobots} parallel ${cobots ? "cobot stations" : "robot cells"}`
+        : cobots ? "Single cobot station" : "Single robot cell"
+      : `${totalRobots}-robot line${cobots ? ` (${cobots} cobot${cobots > 1 ? "s" : ""})` : ""} with transfer conveyors`;
   const heavy = (facts.weightKg ?? 0) > 25;
 
   const safety = [
@@ -377,6 +400,8 @@ export function engineSolution(brief: string, industry: string | null = null, st
     { phase: "Training & production ramp-up", weeks: "2–4", deliverables: "Trained operators and maintenance, OEE baseline" },
   ];
 
+  // The integrator's view: feasibility checks, URS, scope, acceptance, documents, terms and support.
+  const provider = providerPlan(brief, understood, plan.robots.length + extraRobots, cobots);
   const matchedNames = processes.map((p) => p.name);
   const understanding = matched
     ? `You want to automate: ${matchedNames.join(", ")}. ${facts.weightKg != null ? `Parts weigh about ${facts.weightKg} kg. ` : ""}${facts.partsPerHour != null ? `Target ${facts.partsPerHour} parts/hour. ` : ""}The line below plans the robots, tooling, safety and controls for exactly these tasks.`
@@ -396,6 +421,9 @@ export function engineSolution(brief: string, industry: string | null = null, st
         facts.variants ? "several variants" : "",
       ].filter(Boolean).join(" · "),
     },
+    ...(fromWords
+      ? [{ title: "Understood from your words", detail: understood.tasks.map((t) => `${t.name}: ${t.why}`).join(" · ") }]
+      : []),
     {
       title: "Matched processes",
       detail: matched ? `${matchedNames.join(" → ")} (from ${processes.length} skill${processes.length > 1 ? "s" : ""} in the library)` : "No specific process named: starting from a general handling cell",
@@ -415,14 +443,14 @@ export function engineSolution(brief: string, industry: string | null = null, st
   ];
   const standards = [...GENERAL_STANDARDS, ...(cobots ? ["ISO/TS 15066 (collaborative robots)"] : []), ...industries.flatMap((i) => i.standards)];
 
-  return {
+  const solution: AiSolution & { source: "engine" } = {
     source: "engine",
     reasoning,
     standards,
     industry_notes: industries.flatMap((i) => i.notes.map((n) => `${i.industry}: ${n}`)),
     title: `${archType} for ${matchedNames.slice(0, 3).join(", ")}${matchedNames.length > 3 ? "…" : ""}`,
     understanding,
-    feasibility: !matched ? "medium" : facts.variants || heavy ? "medium" : "high",
+    feasibility: !matched || fromWords || provider.pocFirst ? "medium" : facts.variants || heavy ? "medium" : "high",
     automation_level: processes.every((p) => p.automation === "full") ? "full" : "semi",
     workpiece: facts.weightKg != null || facts.material || facts.size
       ? { name: "Workpiece", material: facts.material ?? "", size: facts.size ?? "", weight_kg: facts.weightKg }
@@ -464,5 +492,15 @@ export function engineSolution(brief: string, industry: string | null = null, st
     kpis: ["OEE ≥ 80 %", `Cycle time ≤ ${takt} s at the bottleneck`, "First-pass yield ≥ 98 %", "MTBF / MTTR of each robot", "Zero safety incidents"],
     assumptions,
     questions,
+    provider,
   };
+  // Then think it through like an engineer: decision matrix, motion check, balance, safety, FMEA, review.
+  const thinking = thinkSolution(solution, brief, { robots: plan.robots.length + extraRobots, cobots });
+  solution.reasoning = [
+    ...reasoning,
+    { title: "Decision matrix", detail: thinking.decision.why },
+    { title: "Safety level", detail: thinking.safety.map((x) => `${x.fn}: PL ${x.required}`).join(" · ") },
+    ...(thinking.fmea[0] ? [{ title: "Highest risk (FMEA)", detail: `${thinking.fmea[0].mode} at ${thinking.fmea[0].kind} (RPN ${thinking.fmea[0].rpn}): ${thinking.fmea[0].action}` }] : []),
+  ];
+  return { ...solution, thinking };
 }

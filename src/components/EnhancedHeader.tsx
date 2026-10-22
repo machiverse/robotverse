@@ -38,6 +38,7 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { NAVIGATION_CONFIG } from "@/constants/navigationMenus";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getProfileDisplayName, getProfileInitials } from "@/lib/profileName";
 import { supabase } from "@/integrations/supabase/client";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -143,23 +144,9 @@ const EnhancedHeader = () => {
     fetchUserProfile();
   }, [user]);
 
-  const getInitials = (name?: string, email?: string) => {
-    if (name) {
-      const parts = name.trim().split(" ");
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[1][0]).toUpperCase();
-      }
-      return name.substring(0, 2).toUpperCase();
-    }
-    return email?.substring(0, 2).toUpperCase() || "U";
-  };
-
-  const getDisplayName = () => {
-    if (userProfile?.full_name) {
-      return userProfile.full_name;
-    }
-    return user?.email?.split("@")[0] || "User";
-  };
+  // One stable identity for the signed-in person: their Name only, never an email.
+  const displayName = getProfileDisplayName(userProfile, user);
+  const displayInitials = getProfileInitials(displayName);
 
   const profileMenuItems = [
     { label: "Account", icon: User, href: "/profile-settings" },
@@ -362,33 +349,33 @@ const EnhancedHeader = () => {
               variant="ghost"
               size="sm"
               onClick={() => setShowRequestModal(true)}
-              className="hidden sm:flex items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
+              className="hidden lg:flex items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
             >
               <Search className="h-4 w-4" />
-              <span className="hidden lg:inline">Submit Request</span>
+              <span className="hidden xl:inline">Submit Request</span>
             </Button>
 
             {/* Automation Studio */}
-            <Link to="/automation-studio" className="hidden sm:flex">
+            <Link to="/automation-studio" className="hidden lg:flex">
               <Button
                 variant="ghost"
                 size="sm"
                 className="items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
               >
                 <Sparkles className="h-4 w-4" />
-                <span className="hidden lg:inline">Automation Studio</span>
+                <span className="hidden xl:inline">Automation Studio</span>
               </Button>
             </Link>
 
             {/* RobotVerse AI */}
-            <Link to="/ai-assistant" className="hidden sm:flex">
+            <Link to="/ai-assistant" className="hidden lg:flex">
               <Button
                 variant="ghost"
                 size="sm"
                 className="items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
               >
                 <Bot className="h-4 w-4" />
-                <span className="hidden lg:inline">RobotVerse</span>
+                <span className="hidden xl:inline">RobotVerse</span>
               </Button>
             </Link>
 
@@ -534,11 +521,11 @@ const EnhancedHeader = () => {
                   <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                     <AvatarImage src={userProfile?.avatar_url || ""} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                      {getInitials(userProfile?.full_name, user.email)}
+                      {displayInitials}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium text-foreground hidden lg:block max-w-[120px] truncate">
-                    {getDisplayName()}
+                    {displayName}
                   </span>
                   <ChevronDown
                     className={cn(
@@ -557,12 +544,11 @@ const EnhancedHeader = () => {
                         <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                           <AvatarImage src={userProfile?.avatar_url || ""} />
                           <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                            {getInitials(userProfile?.full_name, user.email)}
+                            {displayInitials}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground truncate">{getDisplayName()}</p>
-                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                          <p className="font-semibold text-foreground truncate">{displayName}</p>
                         </div>
                       </div>
                     </div>
@@ -1336,6 +1322,14 @@ const EnhancedHeader = () => {
                   <span>Directory</span>
                 </Link>
               </div>
+
+              {/* Automation Studio: the free cell planner, in the main menu */}
+              <div className="flex-1">
+                <Link to="/automation-studio" title="Plan your robot cell — free" className="nav-item flex items-center justify-center gap-2 w-full">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Plan a Cell</span>
+                </Link>
+              </div>
             </div>
           </div>
         </nav>
@@ -1730,6 +1724,16 @@ const EnhancedHeader = () => {
                 <Library className="h-4 w-4" />
                 Directory
               </Link>
+
+              {/* Automation Studio */}
+              <Link
+                to="/automation-studio"
+                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Sparkles className="h-4 w-4" />
+                Plan your robot cell — free
+              </Link>
             </nav>
 
             {/* Mobile Auth */}
@@ -1741,12 +1745,11 @@ const EnhancedHeader = () => {
                     <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                       <AvatarImage src={userProfile?.avatar_url || ""} />
                       <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                        {getInitials(userProfile?.full_name, user.email)}
+                        {displayInitials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground truncate">{getDisplayName()}</p>
-                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      <p className="font-semibold text-foreground truncate">{displayName}</p>
                     </div>
                   </div>
 

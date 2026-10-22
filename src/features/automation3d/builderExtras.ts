@@ -174,11 +174,12 @@ export function roi(total: [number, number], operators: number, shifts: number, 
 
 /* ----------------------------------------------------------- share link */
 
-type SharedCell = { j: string; u?: string; f?: boolean; s: Record<string, string>; t?: string[] };
+type SharedCell = { j: string; u?: string; f?: boolean; s: Record<string, string>; t?: string[]; p?: string[] };
 /** Compact, URL-safe description of the line (job, safety, and source:id of each part). */
-export function encodeLine(cells: { job: string; custom?: string; fenced?: boolean; choice: Choice; stations?: string[] }[]): string {
+export function encodeLine(cells: { job: string; custom?: string; fenced?: boolean; choice: Choice; stations?: string[]; parts?: Match[] }[]): string {
   const data: SharedCell[] = cells.map((c) => ({
     j: c.job, u: c.custom, f: c.fenced, t: c.stations,
+    p: c.parts?.length ? c.parts.map((m) => `${m.source}:${m.id}`) : undefined,
     s: Object.fromEntries(Object.entries(c.choice).filter(([, m]) => m).map(([k, m]) => [k, `${(m as Match).source}:${(m as Match).id}`])),
   }));
   return btoa(unescape(encodeURIComponent(JSON.stringify(data)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -197,7 +198,10 @@ export function decodeLine(code: string): SharedCell[] | null {
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 export function reportHtml(r: {
-  cells: { job: string; choice: Choice; fenced?: boolean; cycle: number | null; checks: { state: string; label: string; detail: string }[]; thoughts?: { step: string; thought: string }[] }[];
+  cells: {
+    job: string; choice: Choice; fenced?: boolean; cycle: number | null; checks: { state: string; label: string; detail: string }[]; thoughts?: { step: string; thought: string }[];
+    parts?: string[]; also?: string[]; software?: { name: string; maker: string; does: string }[];
+  }[];
   bottleneck: number | null;
   perHour: number | null;
   budget: Budget | null;
@@ -215,6 +219,19 @@ export function reportHtml(r: {
   const reasoning = r.cells
     .map((c, i) => (c.thoughts?.length ? `<h3>Cell ${i + 1} · ${esc(c.job)}</h3><ol>${c.thoughts.map((t) => `<li><b>${esc(t.step)}.</b> ${esc(t.thought)}</li>`).join("")}</ol>` : ""))
     .join("");
+  // Accessories, components, other equipment and software of each cell: the integrator's bill of materials.
+  const kit = r.cells
+    .map((c, i) => {
+      const acc = [c.choice.changer, c.choice.sensor, c.choice.camera].filter(Boolean).map((m) => m!.name);
+      const rows = [
+        acc.length ? `<tr><th>Accessories</th><td>${acc.map(esc).join(", ")}</td></tr>` : "",
+        c.parts?.length ? `<tr><th>Components</th><td>${c.parts.map(esc).join(", ")}</td></tr>` : "",
+        c.also?.length ? `<tr><th>Also needed</th><td>${c.also.map(esc).join(", ")}</td></tr>` : "",
+        c.software?.length ? `<tr><th>Software</th><td>${c.software.map((s) => `<b>${esc(s.name)}</b> (${esc(s.maker)}) — ${esc(s.does)}`).join("<br>")}</td></tr>` : "",
+      ].join("");
+      return rows ? `<h3>Cell ${i + 1} · ${esc(c.job)}</h3><table>${rows}</table>` : "";
+    })
+    .join("");
   const bom = r.budget
     ? r.budget.bom.lines.map((l) => `<tr><td>${esc(l.item)}</td><td>${esc(l.scope)}</td><td>${l.qty}</td><td>${rng(l.total)}</td></tr>`).join("")
     : "";
@@ -227,6 +244,7 @@ h3{font-size:13px;margin:12px 0 4px}ol{margin:0;padding-left:20px}th{font-size:1
 <div class="kpis"><div class="kpi"><b>${r.cells.length}</b>robots</div><div class="kpi"><b>${r.bottleneck ? r.bottleneck.toFixed(1) + " s" : "—"}</b>line cycle</div>
 <div class="kpi"><b>${r.perHour ?? "—"}</b>parts / hour</div><div class="kpi"><b>${r.perHour ? r.perHour * 8 : "—"}</b>parts / 8-h shift</div></div>
 <h2>Cells</h2><table><tr><th>#</th><th>Job</th><th>Robot</th><th>Tool</th><th>Safety</th><th>Cycle</th><th>Checks</th></tr>${rows}</table>
+${kit ? `<h2>Accessories, components and software</h2>${kit}` : ""}
 ${reasoning ? `<h2>Engineer's reasoning</h2>${reasoning}` : ""}
 ${r.budget ? `<h2>Indicative budget</h2><table><tr><th>Item</th><th>For</th><th>Qty</th><th>Estimate</th></tr>${bom}
 <tr><th colspan="3">Total</th><th>${rng(r.budget.bom.total)}</th></tr></table>` : ""}

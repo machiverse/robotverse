@@ -134,10 +134,10 @@ const markdownClasses = `
 
 const InternalLinkRenderer = ({ href, children, ...props }: any) => {
   const navigate = useNavigate();
-  const isInternal = href && (href.startsWith('/') || href.startsWith('https://robotverse.in/'));
+  const isInternal = href && (href.startsWith('/') || /^https:\/\/(www\.)?robotverse\.in\//.test(href));
 
   if (isInternal) {
-    const path = href.startsWith('https://robotverse.in') ? href.replace('https://robotverse.in', '') : href;
+    const path = href.replace(/^https:\/\/(www\.)?robotverse\.in/, "");
     return (
       <button
         onClick={(e) => { e.preventDefault(); navigate(path); }}

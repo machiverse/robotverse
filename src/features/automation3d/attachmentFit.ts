@@ -152,7 +152,8 @@ export function attachmentIssues(job: string, c: Choice): FitIssue[] {
   if (kind) {
     if (c.camera && kind === "coating")
       out.push({ level: "warn", slot: "camera", title: "Camera inside a paint booth", detail: "Paint mist coats the lens and solvent zones need explosion-proof devices — mount the camera outside the booth or use an ATEX-rated, purged camera." });
-    if (c.camera && kind === "welding")
+    // A laser seam tracker is made for the arc; an ordinary camera is not.
+    if (c.camera && kind === "welding" && !/seam track|seam find|laser (?:line|profile)/i.test(c.camera.name))
       out.push({ level: "warn", slot: "camera", title: "Camera next to the arc", detail: "Spatter and arc glare blind a normal wrist camera — use a laser seam tracker or a shielded camera mounted away from the torch." });
     if (c.sensor && kind === "welding")
       out.push({ level: "warn", slot: "sensor", title: "Force sensor is not used for arc welding", detail: "Welding uses a torch collision sensor and seam tracking; a force/torque sensor would only take heat and spatter." });

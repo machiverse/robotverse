@@ -127,3 +127,6 @@ verify_jwt = false
 
 [functions.directory-catalog-sync]
 verify_jwt = false
+
+[functions.lead-capture]
+verify_jwt = false

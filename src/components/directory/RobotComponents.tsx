@@ -1,11 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, Download, ExternalLink, Mail, Wrench } from "lucide-react";
+import { ChevronDown, Download, ExternalLink, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { mailto, type CatalogItem } from "./directoryTypes";
+import { type CatalogItem } from "./directoryTypes";
 import { BOM_GROUPS, bomCsv, buildBom, robotKind, type BomItem } from "./robotBom";
+import DirectoryLeadButton from "./DirectoryLeadButton";
 
 interface PartRow {
   id: string;
@@ -58,12 +59,6 @@ export default function RobotComponents({ robot }: { robot: CatalogItem }) {
     a.click();
     URL.revokeObjectURL(url);
   };
-  const quote = (i: BomItem) =>
-    mailto(
-      `Spare part enquiry: ${i.name} for ${robot.n} (${robot.id})`,
-      `Hello RobotVerse team,\n\nPlease quote the following spare part:\n\nRobot: ${robot.n} (RobotVerse ID ${robot.id})\nPart: ${i.name}\nRobot serial number:\nController type:\nQuantity:\nNew / refurbished / exchange:\n\nName:\nCompany:\nPhone:\n\nThank you.`,
-    );
-
   return (
     <section aria-labelledby="bom-title" className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
@@ -123,9 +118,15 @@ export default function RobotComponents({ robot }: { robot: CatalogItem }) {
                         <a href={`/parts?search=${encodeURIComponent(i.search)}`} className="inline-flex items-center gap-1 text-primary hover:underline">
                           <ExternalLink className="h-3 w-3" /> Find in spare parts
                         </a>
-                        <a href={quote(i)} className="inline-flex items-center gap-1 text-primary hover:underline">
-                          <Mail className="h-3 w-3" /> Request a quote
-                        </a>
+                        <DirectoryLeadButton
+                          lead="parts"
+                          subject={`${i.name} for the ${robot.n}`}
+                          label="Request a quote"
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-xs"
+                          defaultMessage={`Part: ${i.name}\nRobot: ${robot.n} (${robot.id})\nRobot serial number:\nController type:\nQuantity:\nNew / refurbished / exchange:`}
+                        />
                       </div>
                     </li>
                   );

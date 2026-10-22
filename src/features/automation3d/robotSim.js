@@ -291,10 +291,12 @@ export function eoatKind(text) {
   if (/vacuum|suction|epick|\bvg[cp]?\d|cup/.test(t)) return "vacuum";
   if (/magnet/.test(t)) return "magnet";
   if (/fork|sack|bag|claw|clamp|palletiz|slip sheet/.test(t)) return "fork";
-  if (/torch|weld|mig|tig|\barc\b|spot/.test(t)) return "torch";
-  if (/grind|sand|polish|deburr|spindle|milling|router|cutter/.test(t)) return "spindle";
-  if (/screw|nutrunner|driver|fasten/.test(t)) return "driver";
-  if (/dispens|glue|paint|spray|nozzle|applicator|extru|dosing/.test(t)) return "nozzle";
+  if (/torch|weld|mig|tig|\barc\b|spot|solder|sonotrode|plasma cut|plasma torch|laser cutting head/.test(t)) return "torch";
+  // A screwdriving spindle is a screwdriver.
+  if (/screw|nutrunner/.test(t)) return "driver";
+  if (/grind|sand|polish|deburr|spindle|milling|router|cutter|laser clean|ablat|blade|knife|hemm|brush/.test(t)) return "spindle";
+  if (/driver|fasten|rivet|capping|nail gun|nailer|stapler/.test(t)) return "driver";
+  if (/dispens|glue|paint|spray|nozzle|applicator|extru|dosing|atomi[sz]er|powder gun|pipet/.test(t)) return "nozzle";
   return "parallel";
 }
 const APPROACH = 0.22;

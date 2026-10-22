@@ -423,25 +423,25 @@ export const generateSparePartBreadcrumbSchema = (part: SparePartSEOData): objec
         "@type": "ListItem",
         "position": 1,
         "name": "Spare Parts",
-        "item": "https://robotverse.in/parts"
+        "item": "https://www.robotverse.in/parts"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": brand,
-        "item": `https://robotverse.in/parts?brand=${brand.toLowerCase()}`
+        "item": `https://www.robotverse.in/parts?brand=${brand.toLowerCase()}`
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": category,
-        "item": `https://robotverse.in/parts?category=${category.toLowerCase()}`
+        "item": `https://www.robotverse.in/parts?category=${category.toLowerCase()}`
       },
       {
         "@type": "ListItem",
         "position": 4,
         "name": name,
-        "item": `https://robotverse.in/parts/${part.id}`
+        "item": `https://www.robotverse.in/parts/${part.id}`
       }
     ]
   };

@@ -37,6 +37,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { getProfileDisplayName, getProfileInitials } from "@/lib/profileName";
 
 interface DashboardSidebarProps {
   userProfile: any;
@@ -223,16 +224,13 @@ export function DashboardSidebar({ userProfile }: DashboardSidebarProps) {
             <Avatar className="h-8 w-8">
               <AvatarImage src={userProfile?.avatar_url} />
               <AvatarFallback>
-                {userProfile?.full_name?.[0] || userProfile?.email?.[0] || 'U'}
+                {getProfileInitials(getProfileDisplayName(userProfile))}
               </AvatarFallback>
             </Avatar>
             {state !== "collapsed" && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">
-                  {userProfile?.full_name || 'User'}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {userProfile?.email || 'user@example.com'}
+                  {getProfileDisplayName(userProfile)}
                 </p>
               </div>
             )}

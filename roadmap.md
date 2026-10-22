@@ -24,3 +24,10 @@
 - [x] Add shared play/pause and speed controls.
 - [x] Add robot and station detail tooltips with connected-path highlighting.
 - [x] Verify type safety, source integrity, and the public preview.
+
+# Profile identity: name only
+
+- [x] Add one shared name/initials helper that never returns an email.
+- [x] Show the Name only in header, mobile menu, dashboard sidebars, dashboard header, profile header, and admin sidebar.
+- [x] Add and run a test that the display name never comes from an email.
+- [ ] Check the signed-in profile menu in the browser — blocked because this project uses externally managed authentication and no preview session is available.

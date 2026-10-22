@@ -17,7 +17,6 @@ import {
   Eye,
   Grid,
   List,
-  Mail,
   MoveHorizontal,
   Search,
   SlidersHorizontal,
@@ -27,7 +26,8 @@ import {
 import DirectoryItemDialog from "./DirectoryItemDialog";
 import { loadDatasheetIndex } from "./datasheetClient";
 import ItemImage from "./ItemImage";
-import { enquiryMailto, mailto, type CatalogItem, type CatalogKind, type PhotoMap } from "./directoryTypes";
+import { type CatalogItem, type CatalogKind, type PhotoMap } from "./directoryTypes";
+import DirectoryLeadButton from "./DirectoryLeadButton";
 
 const PAGE_SIZE = 24;
 const ALL = "all";
@@ -125,11 +125,6 @@ const inRange = (v: number | undefined, ranges: Range[], key: string) => {
 
 const num = (v: number | undefined) => (v === undefined ? "—" : v.toLocaleString("en-IN"));
 
-const requestMailto = (noun: string) =>
-  mailto(
-    `Can't find the right ${noun} – RobotVerse Directory`,
-    `Hello RobotVerse team,\n\nI'm looking for:\n(type, payload, reach, brand, quantity)\n\nName:\nCompany:\nPhone:\n\nThank you.`,
-  );
 
 interface FilterSelectProps {
   label: string;
@@ -381,12 +376,7 @@ const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
         <Eye className="mr-1 h-3 w-3" />
         Details
       </Button>
-      <Button variant="outline" size="sm" asChild onClick={(e) => e.stopPropagation()}>
-        <a href={enquiryMailto(item)}>
-          <Mail className="mr-1 h-3 w-3" />
-          Enquire
-        </a>
-      </Button>
+      <DirectoryLeadButton lead="enquiry" catalog={kind} item={item} variant="outline" size="sm" stopPropagation />
     </div>
   );
 
@@ -425,11 +415,16 @@ const DirectoryCatalog = ({ kind }: { kind: CatalogKind }) => {
             <CardContent className="p-4 text-center">
               <p className="mb-1 text-sm font-semibold">Can't find what you need?</p>
               <p className="mb-3 text-xs text-muted-foreground">Send your requirement and we'll connect you with sellers.</p>
-              <Button size="sm" className="w-full" asChild>
-                <a href={requestMailto(cfg.noun)}>
-                  <Mail className="mr-1 h-3 w-3" /> Send Requirement
-                </a>
-              </Button>
+              <DirectoryLeadButton
+                lead="enquiry"
+                catalog={kind}
+                size="sm"
+                className="w-full"
+                label="Send Requirement"
+                title={`Find the right ${cfg.noun.replace(/s$/, "")}`}
+                intro="Tell us the type, payload, reach, brand and quantity. We find it among sellers and dealers and reply on WhatsApp."
+                defaultMessage="I'm looking for: "
+              />
             </CardContent>
           </Card>
         </div>

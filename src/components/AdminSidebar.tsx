@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { getProfileDisplayName, getProfileInitials } from "@/lib/profileName";
 
 interface AdminSidebarProps {
   userProfile: any;
@@ -49,9 +50,8 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
     onSectionChange(section);
   }, [onSectionChange]);
 
-  const getInitials = useCallback((name: string) => {
-    return name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'A';
-  }, []);
+  const adminName = getProfileDisplayName(userProfile) === "User" ? "Admin User" : getProfileDisplayName(userProfile);
+  const adminInitials = getProfileInitials(adminName);
 
   const renderedMenuItems = useMemo(() => {
     return menuItems.map((item) => {
@@ -112,17 +112,14 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
           <Avatar className="h-8 w-8">
             <AvatarImage src={userProfile?.avatar_url} />
             <AvatarFallback className="text-xs">
-              {getInitials(userProfile?.full_name || userProfile?.email || 'Admin')}
+              {adminInitials}
             </AvatarFallback>
           </Avatar>
           
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
-                {userProfile?.full_name || 'Admin User'}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {userProfile?.email}
+                {adminName}
               </p>
               <Badge variant="secondary" className="text-xs mt-1">
                 Administrator

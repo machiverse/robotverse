@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { cellProgram, stationsFor, type StationKey } from "../src/features/automation3d/cellProgram";
+import { cellProgram, GRIP_TOOLS, stationsFor, type StationKey } from "../src/features/automation3d/cellProgram";
+import { gearFor } from "../src/features/automation3d/jobGear";
 import { BLOCKS } from "../src/features/automation3d/ProcessBuilder";
 import { processKind } from "../src/features/automation3d/processProfiles";
 
@@ -63,7 +64,9 @@ assert.deepEqual(stationsFor("MIG/MAG Welding", ["parallel", "torch"], true), ["
 const TOOL: Record<string, string> = { welding: "torch", finishing: "spindle", coating: "nozzle", assembly: "driver", filling: "nozzle", sealing: "driver", labeling: "vacuum" };
 for (const b of BLOCKS) {
   const kind = processKind({ name: b.name });
-  const process = TOOL[kind];
+  // A job whose own first tool is a process tool (drill, cutting head, print nozzle, brush) works with it.
+  const first = gearFor(b.name).tools[0];
+  const process = TOOL[kind] ?? (!GRIP_TOOLS.includes(first) ? first : undefined);
   // A process tool with a gripper on the changer loads its own parts; handling jobs use a gripper.
   const tools = process ? ["parallel", process] : ["parallel"];
   const p = run(b.name, tools, [...stationsFor(b.name, tools, !!process), ...(process ? (["rack"] as StationKey[]) : [])], !!process);

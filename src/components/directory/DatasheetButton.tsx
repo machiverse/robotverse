@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FileText, Loader2, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LeadDialog from "@/components/leads/LeadDialog";
 import { callDatasheets, loadDatasheetIndex, rememberDatasheet, savedDatasheetIndex, type DatasheetIndex, type DatasheetItem, type DatasheetKind } from "./datasheetClient";
 import { isOfficialUrl, isStoredDatasheet, OEM_SITES } from "../../../supabase/functions/_shared/datasheetPolicy";
 export type { DatasheetItem, DatasheetKind } from "./datasheetClient";
@@ -53,6 +54,9 @@ export default function DatasheetButton({ kind, item, className }: { kind: Datas
     // eslint-disable-next-line react-hooks/exhaustive-deps -- item is identified by its key
   }, [key, kind]);
 
+  // No maker datasheet on file: "datasheet on request" is a lead; the web search stays as a link.
+  const [ask, setAsk] = useState(false);
+
   if (state.url) return (
     <Button asChild className={className}>
       <a href={state.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${item.b} ${item.m} official datasheet PDF`}>
@@ -62,11 +66,24 @@ export default function DatasheetButton({ kind, item, className }: { kind: Datas
   );
 
   if (state.status === "none") return (
-    <Button variant="outline" asChild className={className}>
-      <a href={searchUrl(item)} target="_blank" rel="noopener noreferrer">
-        <Search className="mr-2 h-4 w-4" /> Search manufacturer datasheet
+    <>
+      <Button variant="outline" className={className} onClick={() => setAsk(true)}>
+        <FileText className="mr-2 h-4 w-4" /> Datasheet on request
+      </Button>
+      <a href={searchUrl(item)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 self-center text-xs text-muted-foreground hover:text-primary hover:underline">
+        <Search className="h-3 w-3" /> Search the web
       </a>
-    </Button>
+      <LeadDialog
+        open={ask}
+        onOpenChange={setAsk}
+        kind="datasheet"
+        source={`directory-${kind}`}
+        title={`Datasheet for the ${item.b} ${item.m}`}
+        intro="We do not have the maker's datasheet on file yet. We will find it and send it to you on WhatsApp or email."
+        item={{ type: kind, id: item.id, name: `${item.b} ${item.m}`, brand: item.b, model: item.m }}
+        action="Request datasheet"
+      />
+    </>
   );
 
   const find = async () => {

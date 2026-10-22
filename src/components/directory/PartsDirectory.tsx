@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Cpu, LayoutGrid, Loader2, Mail, Package, Search } from "lucide-react";
+import { BookOpen, Cpu, LayoutGrid, Loader2, Package, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { mailto } from "./directoryTypes";
 import { COMPONENT_GUIDE } from "./robotBom";
 import DatasheetButton from "./DatasheetButton";
+import DirectoryLeadButton from "./DirectoryLeadButton";
 
 export interface Part {
   id: string;
@@ -55,11 +55,6 @@ const fetchParts = async (): Promise<Part[]> => {
 };
 
 const uniq = (xs: string[]) => [...new Set(xs)].sort((a, b) => a.localeCompare(b));
-const enquiry = (p: Part) =>
-  mailto(
-    `Enquiry: ${p.name}`,
-    `Hello RobotVerse team,\n\nI'm interested in the ${p.name} (${p.component_type}).\n\nQuantity:\nName:\nCompany:\nPhone:\n\nThank you.`,
-  );
 
 /**
  * OEM parts & components for robots — controllers, drives, motors, reducers, sensors, cameras,
@@ -280,11 +275,7 @@ export default function PartsDirectory() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button asChild>
-                  <a href={enquiry(open)}>
-                    <Mail className="mr-2 h-4 w-4" /> Send enquiry
-                  </a>
-                </Button>
+                <DirectoryLeadButton lead="parts" subject={open.name} label="Send enquiry" defaultMessage={`${open.name} (${open.component_type}). Quantity: `} />
                 <DatasheetButton kind="parts" item={{ id: open.id, b: open.brand, m: open.model || open.name }} />
                 <Button variant="outline" asChild>
                   <a href={`/parts?search=${encodeURIComponent(open.model)}`}>Find in RobotVerse spare parts</a>

@@ -320,7 +320,7 @@ const SparePartDetails = () => {
           title={seoElements.pageTitle}
           description={seoElements.metaDescription}
           keywords={`${sparePart.name}, ${sparePart.brand}, ${sparePart.model}, ${sparePart.part_number}, ${sparePart.main_category}, spare parts, robot parts, industrial parts, genuine parts`}
-          canonical={`https://robotverse.in/parts/${id}`}
+          canonical={`https://www.robotverse.in/parts/${id}`}
           ogImage={currentImage || "/og-image.jpg"}
           jsonLd={seoElements.structuredData}
         />
@@ -924,9 +924,9 @@ const SparePartDetails = () => {
             ].filter(Boolean) as { title: string; text: string }[]}
             faq={generateSparePartFAQs(sparePart)}
             jsonld={generateBreadcrumbSchema([
-              { name: "Home", url: "https://robotverse.in/" },
-              { name: "Robot Spare Parts", url: "https://robotverse.in/parts" },
-              { name: sparePart.name, url: `https://robotverse.in/parts/${sparePart.id}` },
+              { name: "Home", url: "https://www.robotverse.in/" },
+              { name: "Robot Spare Parts", url: "https://www.robotverse.in/parts" },
+              { name: sparePart.name, url: `https://www.robotverse.in/parts/${sparePart.id}` },
             ])}
           />
           <PublicRobotResourceLinks />

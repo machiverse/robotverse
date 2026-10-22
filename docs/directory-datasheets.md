@@ -26,7 +26,9 @@ Each catalogue (robots, tools, axes, parts) starts collecting automatically the 
 
 The migration and database test from the earlier implementation were removed before deployment. No remote database changes were made.
 
-Supabase health is reachable, but the deployed datasheet function returns HTTP 404. After network-domain additions were saved, the live catalogue and a representative manufacturer website became reachable (HTTP 200). Full manufacturer coverage is not yet validated. Required catalogue, search-provider, and reviewed manufacturer domains are saved in the environment draft. The secure SUPABASE_ACCESS_TOKEN requirement and api.supabase.com destination are also saved for deployment; no token value is injected yet. Review and save the draft in environment settings, enter the token securely, and publish the environment. Draft persistence alone does not prove publication or credential availability.
+**Status (checked 12 October 2026):** the function is deployed from `main` and collecting. 442 of 1,546 robot models had a stored, verified maker PDF; 1,094 had no public datasheet on an approved maker site; 10 were not checked yet. Some makers block automatic collection (KUKA pages need JavaScript, some maker sites have expired certificates or moved pages), so their models stay without a PDF until a person adds the link.
+
+A model without a datasheet shows **Datasheet on request** instead of a dead end: the visitor leaves a WhatsApp number or email, the request is saved in the CRM (`lead-capture` function, lead type `datasheet`) and sales finds and sends the PDF. A small "Search the web" link stays next to it.
 
 With authorized Supabase deployment access, deploy only this function and the frontend:
 

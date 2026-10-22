@@ -13,14 +13,13 @@ import {
   Mail,
   MapPin,
   MonitorPlay,
-  Plus,
   Search,
   SlidersHorizontal,
 } from "lucide-react";
 import { TRAINING_LISTINGS, type TrainingListing } from "@/data/directoryTraining";
-import { listTrainingMailto } from "./directoryTypes";
 import TrainingPosters from "./TrainingPosters";
 import TrainingEnquiryDialog, { type EnquiryListing } from "./TrainingEnquiryDialog";
+import DirectoryLeadButton from "./DirectoryLeadButton";
 
 const ALL = "all";
 const KINDS = ["OEM Academy", "Online Course", "Program", "Workshop"] as const;
@@ -125,11 +124,7 @@ const TrainingDirectory = () => {
               <p className="mb-3 text-xs text-muted-foreground">
                 Institutes, OEMs and trainers can list programs for free.
               </p>
-              <Button size="sm" className="w-full" asChild>
-                <a href={listTrainingMailto}>
-                  <Plus className="mr-1 h-3 w-3" /> List Your Training
-                </a>
-              </Button>
+              <DirectoryLeadButton lead="training" size="sm" className="w-full" label="List Your Training" />
             </CardContent>
           </Card>
         </div>
@@ -177,11 +172,7 @@ const TrainingDirectory = () => {
                 Showing <span className="font-semibold text-foreground">{filtered.length}</span> of{" "}
                 {TRAINING_LISTINGS.length} programs
               </p>
-              <Button size="sm" variant="outline" className="lg:hidden" asChild>
-                <a href={listTrainingMailto}>
-                  <Plus className="mr-1 h-3 w-3" /> List Your Training
-                </a>
-              </Button>
+              <DirectoryLeadButton lead="training" size="sm" variant="outline" className="lg:hidden" label="List Your Training" />
             </div>
           </CardContent>
         </Card>

@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
+import { getProfileDisplayName, getProfileInitials } from "@/lib/profileName";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,9 +15,8 @@ const Header = () => {
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const getInitials = (email: string) => {
-    return email?.substring(0, 2).toUpperCase() || 'U';
-  };
+  const displayName = getProfileDisplayName(null, user);
+  const displayInitials = getProfileInitials(displayName);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -99,11 +99,11 @@ const Header = () => {
                   <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                     <AvatarImage src="" />
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                      {getInitials(user.email || '')}
+                      {displayInitials}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium text-foreground hidden lg:block">
-                    {user.email?.split('@')[0]}
+                    {displayName}
                   </span>
                   <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -114,10 +114,7 @@ const Header = () => {
                     {/* User Info Header */}
                     <div className="px-4 py-3 border-b border-border bg-muted/30">
                       <p className="font-semibold text-foreground truncate">
-                        {user.email?.split('@')[0]}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {user.email}
+                        {displayName}
                       </p>
                     </div>
 
@@ -196,15 +193,12 @@ const Header = () => {
                       <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                         <AvatarImage src="" />
                         <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                          {getInitials(user.email || '')}
+                          {displayInitials}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-semibold text-foreground">
-                          {user.email?.split('@')[0]}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {user.email}
+                          {displayName}
                         </p>
                       </div>
                     </div>

@@ -1,9 +1,10 @@
-import { AlertTriangle, BookOpenCheck, Boxes, Brain, Cpu, Gauge, HelpCircle, Layers, Loader2, Play, RefreshCw, ShieldCheck, Sparkles, Wrench } from "lucide-react";
+import { AlertTriangle, BookOpenCheck, Boxes, Brain, Briefcase, Cpu, Gauge, HelpCircle, Layers, Loader2, Play, RefreshCw, ShieldCheck, Sparkles, Wrench } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { inr, type AiSolution } from "./aiSolution";
+import type { EngineerThinking } from "./engineerThinking";
 
 /**
  * The AI solution engineer's answer for any automation brief: what it
@@ -291,6 +292,35 @@ export default function AiSolutionPanel({
         </Block>
       )}
 
+      {s.thinking && <ThinkingBlock t={s.thinking} />}
+
+      {s.provider && (
+        <Block icon={<Briefcase className="h-4 w-4" />} title="How a solution provider takes it forward">
+          <ul className="space-y-1 text-sm">
+            {s.provider.feasibility.map((x) => (
+              <li key={x.factor} className="flex gap-2">
+                <span
+                  className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", x.status === "ok" ? "bg-emerald-500" : x.status === "check" ? "bg-amber-500" : "bg-red-500")}
+                  aria-label={x.status === "ok" ? "fine" : x.status === "check" ? "to check" : "risk"}
+                />
+                <span>
+                  <span className="font-medium">{x.factor}:</span> <span className="text-muted-foreground">{x.note}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className={cn("mt-2 text-sm", s.provider.pocFirst ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>{s.provider.pocWhy}</p>
+          <div className="mt-1 grid gap-x-6 md:grid-cols-2">
+            <List title="To quote it, the integrator needs" items={s.provider.requirements} />
+            <List title="Scope of supply" items={s.provider.scope} />
+            <List title="Acceptance (FAT / SAT)" items={s.provider.acceptance} />
+            <List title="Documents handed over" items={s.provider.documents} />
+            <List title="Typical terms in India" items={s.provider.commercial} />
+            <List title="After-sales support" items={s.provider.support} />
+          </div>
+        </Block>
+      )}
+
       {(s.assumptions.length > 0 || s.questions.length > 0) && (
         <Block icon={<HelpCircle className="h-4 w-4" />} title="Assumptions & questions that would sharpen the design">
           <List items={s.assumptions} />
@@ -343,6 +373,127 @@ function Block({ icon, title, children }: { icon: ReactNode; title: string; chil
       </h4>
       {children}
     </div>
+  );
+}
+
+/** The engineer's methods applied to this plan, each as a small table or checklist. */
+function ThinkingBlock({ t }: { t: EngineerThinking }) {
+  const dot = (ok: boolean) => cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", ok ? "bg-emerald-500" : "bg-amber-500");
+  const th = "px-2 py-1 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground";
+  const td = "px-2 py-1 align-top";
+  return (
+    <Block icon={<Brain className="h-4 w-4" />} title="Engineer's thinking">
+      <p className="text-xs text-muted-foreground">{t.method.map((m, i) => `${i + 1}. ${m}`).join(" · ")}</p>
+
+      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">1 · Choosing the approach (weighted decision matrix)</p>
+      <div className="mt-1 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <th className={th}>Option</th>
+              {t.decision.criteria.map((c) => (
+                <th key={c.name} className={th}>
+                  {c.name} ×{c.weight}
+                </th>
+              ))}
+              <th className={th}>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {t.decision.options.map((o) => (
+              <tr key={o.name} className={cn("border-t border-border", o.name === t.decision.pick && "bg-primary/5 font-medium")}>
+                <td className={td}>{o.name}</td>
+                {o.scores.map((x, i) => (
+                  <td key={i} className={cn(td, "tabular-nums")}>
+                    {x}
+                  </td>
+                ))}
+                <td className={cn(td, "tabular-nums")}>{o.total}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">{t.decision.why}</p>
+
+      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">2 · Cycle from motion, and line balance</p>
+      <ul className="mt-1 space-y-1 text-sm">
+        {t.motion.map((m) => (
+          <li key={m.station}>
+            <span className="font-medium">{m.station}</span> <span className="text-muted-foreground">({m.processLed ? "process-led" : m.cls}):</span> {m.note}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1 text-sm">
+        {t.balance.takt ? (
+          <>
+            Takt <b>{t.balance.takt.toFixed(1)} s</b> at {Math.round(t.balance.oee * 100)} % OEE ·{" "}
+            {t.balance.rows.map((r) => `${r.station}: ${r.robots} robot${r.robots > 1 ? "s" : ""} at ${Math.round(r.utilisation * 100)} %`).join(" · ")} · bottleneck{" "}
+            <b>{t.balance.bottleneck}</b>
+          </>
+        ) : (
+          <>
+            No output target given: about <b>{t.balance.capacityPerHour} parts/h</b> at {Math.round(t.balance.oee * 100)} % OEE, bottleneck <b>{t.balance.bottleneck}</b>.
+          </>
+        )}
+      </p>
+
+      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">3 · Safety level of each function (ISO 13849-1 risk graph)</p>
+      <div className="mt-1 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <th className={th}>Safety function</th>
+              <th className={th}>S · F · P</th>
+              <th className={th}>Graph</th>
+              <th className={th}>Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            {t.safety.map((x) => (
+              <tr key={x.fn} className="border-t border-border" title={x.why}>
+                <td className={td}>
+                  {x.fn}
+                  <span className="block text-xs text-muted-foreground">{x.why}</span>
+                </td>
+                <td className={cn(td, "whitespace-nowrap")}>
+                  S{x.s} F{x.f} P{x.p}
+                </td>
+                <td className={td}>PL {x.graph}</td>
+                <td className={cn(td, "font-medium")}>PL {x.required}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">S1/S2 slight or serious injury · F1/F2 seldom or frequent exposure · P1/P2 possible or scarcely possible to avoid. ISO 10218 asks for at least PL d for robot safety functions.</p>
+
+      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">4 · Highest risks (FMEA: severity × occurrence × detection)</p>
+      <ul className="mt-1 space-y-1.5 text-sm">
+        {t.fmea.map((m) => (
+          <li key={`${m.kind}-${m.mode}`}>
+            <span className="font-medium">{m.mode}</span> <span className="text-muted-foreground">({m.kind}, RPN {m.rpn} = {m.s}×{m.o}×{m.d})</span>
+            <span className="block text-muted-foreground">
+              {m.cause} → {m.effect}. <span className="text-foreground">Action:</span> {m.action}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">5 · Design review</p>
+      <ul className="mt-1 space-y-1 text-sm">
+        {t.review.map((r) => (
+          <li key={r.item} className="flex gap-2">
+            <span className={dot(r.status === "ok")} aria-label={r.status === "ok" ? "fine" : "to check"} />
+            <span>
+              <span className="font-medium">{r.item}:</span> <span className="text-muted-foreground">{r.note}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <List title="6 · What would change the decision" items={t.sensitivity} />
+    </Block>
   );
 }
 
