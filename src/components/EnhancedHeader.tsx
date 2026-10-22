@@ -143,23 +143,9 @@ const EnhancedHeader = () => {
     fetchUserProfile();
   }, [user]);
 
-  const getInitials = (name?: string, email?: string) => {
-    if (name) {
-      const parts = name.trim().split(" ");
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[1][0]).toUpperCase();
-      }
-      return name.substring(0, 2).toUpperCase();
-    }
-    return email?.substring(0, 2).toUpperCase() || "U";
-  };
-
-  const getDisplayName = () => {
-    if (userProfile?.full_name) {
-      return userProfile.full_name;
-    }
-    return user?.email?.split("@")[0] || "User";
-  };
+  // One stable identity for the signed-in person: their Name only, never an email.
+  const displayName = getProfileDisplayName(userProfile, user);
+  const displayInitials = getProfileInitials(displayName);
 
   const profileMenuItems = [
     { label: "Account", icon: User, href: "/profile-settings" },
@@ -534,11 +520,11 @@ const EnhancedHeader = () => {
                   <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                     <AvatarImage src={userProfile?.avatar_url || ""} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                      {getInitials(userProfile?.full_name, user.email)}
+                      {displayInitials}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium text-foreground hidden lg:block max-w-[120px] truncate">
-                    {getDisplayName()}
+                    {displayName}
                   </span>
                   <ChevronDown
                     className={cn(
@@ -557,12 +543,11 @@ const EnhancedHeader = () => {
                         <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                           <AvatarImage src={userProfile?.avatar_url || ""} />
                           <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                            {getInitials(userProfile?.full_name, user.email)}
+                            {displayInitials}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground truncate">{getDisplayName()}</p>
-                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                          <p className="font-semibold text-foreground truncate">{displayName}</p>
                         </div>
                       </div>
                     </div>
@@ -1759,12 +1744,11 @@ const EnhancedHeader = () => {
                     <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                       <AvatarImage src={userProfile?.avatar_url || ""} />
                       <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                        {getInitials(userProfile?.full_name, user.email)}
+                        {displayInitials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground truncate">{getDisplayName()}</p>
-                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      <p className="font-semibold text-foreground truncate">{displayName}</p>
                     </div>
                   </div>
 
