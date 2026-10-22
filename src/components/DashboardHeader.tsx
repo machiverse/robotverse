@@ -32,6 +32,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { DashboardProfile } from './DashboardProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { getProfileDisplayName } from '@/lib/profileName';
 
 interface DashboardHeaderProps {
   userProfile: any;
@@ -233,10 +234,7 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
                     </div>
                     <div>
                       <p className="font-medium text-sm">
-                        {userProfile?.full_name || 'User'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {userProfile?.email || 'user@example.com'}
+                        {getProfileDisplayName(userProfile)}
                       </p>
                     </div>
                   </div>

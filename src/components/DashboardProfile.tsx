@@ -424,7 +424,6 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
             </div>
             <div>
               <h3 className="text-lg font-semibold">{userProfile?.full_name || 'Complete your profile'}</h3>
-              <p className="text-muted-foreground">{userProfile?.email}</p>
               <Badge variant="secondary" className="mt-1">
                 {userType || 'Account type not set'}
               </Badge>

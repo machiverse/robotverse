@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { getProfileDisplayName, getProfileInitials } from '@/lib/profileName';
 
 const menuItems = [
   {
@@ -44,9 +45,8 @@ export const DashboardSettingsSidebar = () => {
   const { user, signOut } = useAuth();
   const currentTab = searchParams.get('tab');
 
-  const getInitials = (email: string) => {
-    return email?.substring(0, 2).toUpperCase() || 'U';
-  };
+  const displayName = getProfileDisplayName(null, user);
+  const displayInitials = getProfileInitials(displayName);
 
   const isItemActive = (item: typeof menuItems[0]) => {
     if (item.tab === null) {
@@ -63,15 +63,12 @@ export const DashboardSettingsSidebar = () => {
           <Avatar className="h-14 w-14 ring-2 ring-primary/30 shadow-lg">
             <AvatarImage src="" />
             <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
-              {getInitials(user?.email || '')}
+              {displayInitials}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-foreground truncate text-lg">
-              {user?.email?.split('@')[0] || 'User'}
-            </p>
-            <p className="text-sm text-muted-foreground truncate">
-              {user?.email || 'user@example.com'}
+              {displayName}
             </p>
             <Badge variant="secondary" className="mt-1 text-xs bg-primary/10 text-primary border-primary/20">
               Free Plan
