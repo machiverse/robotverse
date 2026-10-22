@@ -38,6 +38,7 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { NAVIGATION_CONFIG } from "@/constants/navigationMenus";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getProfileDisplayName, getProfileInitials } from "@/lib/profileName";
 import { supabase } from "@/integrations/supabase/client";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 import ThemeToggle from "@/components/ThemeToggle";
