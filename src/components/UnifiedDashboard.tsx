@@ -33,6 +33,7 @@ import {
   Activity,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { getProfileDisplayName, getProfileInitials } from "@/lib/profileName";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -170,17 +171,8 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
     navigate('/profile-settings');
   };
 
-  // Get user initials for avatar
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const userName = userProfile?.full_name || userProfile?.display_name || user?.email || 'User';
+  const userName = getProfileDisplayName(userProfile, user);
+  const userInitials = getProfileInitials(userName);
   const companyName = userProfile?.company_name || 'RobotVerse';
 
   const workspaceItems: DashboardNavItem[] = finalRoles.flatMap((role: string) => {
@@ -283,7 +275,7 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
               <Button variant="ghost" className="flex h-9 items-center gap-2 rounded-md p-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={userProfile?.avatar_url} />
-                  <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                  <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
                 <ChevronDown className="h-4 w-4" strokeWidth={1.5} />
               </Button>
@@ -293,11 +285,10 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={userProfile?.avatar_url} />
-                    <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                    <AvatarFallback>{userInitials}</AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-medium">{userName}</p>
-                    <p className="text-sm text-muted-foreground">{user?.email}</p>
                   </div>
                 </div>
               </DropdownMenuLabel>
