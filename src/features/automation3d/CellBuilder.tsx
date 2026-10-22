@@ -174,6 +174,8 @@ export default function CellBuilder() {
   // Digital-twin view: floating library and line panels over the 3D stage (desktop), and the drop target under the pointer.
   const [showLib, setShowLib] = useState(true);
   const [showLine, setShowLine] = useState(true);
+  // Show only equipment and tools related to the selected cell's job, unless the user asks for everything.
+  const [showAllEq, setShowAllEq] = useState(false);
   const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
   const [hover, setHover] = useState(-1);
   const eqKeys = useRef<string[]>([]);
@@ -712,11 +714,16 @@ export default function CellBuilder() {
           matchQ(m) &&
           (rtype === "All" || (rtype === "Cobot" ? isCobot(m) : (m.type ?? "").toLowerCase().includes(rtype.toLowerCase()))),
       );
-    const tools = data.tools.filter((m) => (source === "all" || m.source === source) && matchQ(m));
+    const job = cells[selected]?.job ?? "";
+    const isWeldJob = !job || /weld|solder|braz|cut|plasma/i.test(job) || processKind({ name: job }) === "welding";
+    const WELD_GEAR = /weld|torch|wire feed|mig\b|tig\b|arc\b|spatter|reamer|fronius|tregaskiss|lincoln|esab/i;
+    const tools = data.tools.filter(
+      (m) => (source === "all" || m.source === source) && matchQ(m) && (showAllEq || isWeldJob || (toolKindOf(m) !== "torch" && !WELD_GEAR.test(`${m.name} ${m.type ?? ""}`))),
+    );
     // Accessories on the arm and the components around it; the EOAT tab holds working tools only.
     return tab === "acc" ? tools.filter((m) => isPart(m) || slotOf(m) !== "tool") : tools.filter((m) => slotOf(m) === "tool" && !isPart(m));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, tab, q, source, rtype]);
+  }, [data, tab, q, source, rtype, showAllEq, selected, cells[selected]?.job]);
   useEffect(() => setShown(40), [tab, q, source, rtype]);
 
   /* ------------------------------------------------------------ summary */
@@ -1057,6 +1064,11 @@ export default function CellBuilder() {
                   {label}
                 </button>
               ))}
+              {cells[selected]?.job && (
+                <button onClick={() => setShowAllEq((v) => !v)} className={cn("rounded-full border px-2 py-0.5", !showAllEq ? "border-primary bg-primary/10 text-primary" : "border-border")}>
+                  {showAllEq ? "Showing all" : "Only for this job"}
+                </button>
+              )}
             </div>
             {tab === "robots" && (
               <div className="flex flex-wrap gap-1 text-[11px]">
@@ -1081,7 +1093,21 @@ export default function CellBuilder() {
                 <p className="mb-1.5 px-1 text-[11px] text-muted-foreground">
                   Only what you place is in the cell — the robot program uses it. Cell {cells[selected] ? selected + 1 : "—"} is selected.
                 </p>
-                {CELL_STATIONS.map((st) => {
+                {cells[selected]?.job && (
+                  <button type="button" onClick={() => setShowAllEq((v) => !v)} className="mb-1.5 ml-1 text-[11px] font-medium text-primary hover:underline">
+                    {showAllEq ? "Show only equipment for this job" : "Show all equipment"}
+                  </button>
+                )}
+                {CELL_STATIONS.filter((st) => {
+                  const c = cells[selected];
+                  if (showAllEq || !c?.job) return true;
+                  // Specialised machines appear only when this job uses them (no welding table for a pharma job).
+                  const SPECIAL = ["weld", "cnc", "press", "mould", "marker", "bin", "test"];
+                  if (!SPECIAL.includes(st.key)) return true;
+                  if (c.stations?.includes(st.key)) return true;
+                  const kinds = [toolKindOf(c.choice.tool), toolKindOf(c.choice.tool2)];
+                  return stationsFor(c.job, kinds, !!c.choice.changer).includes(st.key) || (st.key === "test" && /test|inspect|vial|pharma|blister|gaug|leak/i.test(c.job));
+                }).map((st) => {
                   const placed = !!cells[selected]?.stations?.includes(st.key);
                   return (
                     <div
