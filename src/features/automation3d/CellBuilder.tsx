@@ -174,6 +174,8 @@ export default function CellBuilder() {
   // Digital-twin view: floating library and line panels over the 3D stage (desktop), and the drop target under the pointer.
   const [showLib, setShowLib] = useState(true);
   const [showLine, setShowLine] = useState(true);
+  // Show only equipment and tools related to the selected cell's job, unless the user asks for everything.
+  const [showAllEq, setShowAllEq] = useState(false);
   const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
   const [hover, setHover] = useState(-1);
   const eqKeys = useRef<string[]>([]);
@@ -712,11 +714,16 @@ export default function CellBuilder() {
           matchQ(m) &&
           (rtype === "All" || (rtype === "Cobot" ? isCobot(m) : (m.type ?? "").toLowerCase().includes(rtype.toLowerCase()))),
       );
-    const tools = data.tools.filter((m) => (source === "all" || m.source === source) && matchQ(m));
+    const job = cells[selected]?.job ?? "";
+    const isWeldJob = !job || /weld|solder|braz|cut|plasma/i.test(job) || processKind({ name: job }) === "welding";
+    const WELD_GEAR = /weld|torch|wire feed|mig\b|tig\b|arc\b|spatter|reamer|fronius|tregaskiss|lincoln|esab/i;
+    const tools = data.tools.filter(
+      (m) => (source === "all" || m.source === source) && matchQ(m) && (showAllEq || isWeldJob || (toolKindOf(m) !== "torch" && !WELD_GEAR.test(`${m.name} ${m.type ?? ""}`))),
+    );
     // Accessories on the arm and the components around it; the EOAT tab holds working tools only.
     return tab === "acc" ? tools.filter((m) => isPart(m) || slotOf(m) !== "tool") : tools.filter((m) => slotOf(m) === "tool" && !isPart(m));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, tab, q, source, rtype]);
+  }, [data, tab, q, source, rtype, showAllEq, selected, cells[selected]?.job]);
   useEffect(() => setShown(40), [tab, q, source, rtype]);
 
   /* ------------------------------------------------------------ summary */
