@@ -52,13 +52,17 @@ function find(catalog: Match[], re: RegExp, extra?: (m: Match) => boolean): Matc
 
 /* ---------------------------------------------------------------- job areas */
 
-type Area = "arc" | "spot" | "laserweld" | "ultrasonic" | "laserclean" | "pallet" | "paint" | "dispense" | "pick" | "bin" | "force" | "vision" | "screw" | "rivet" | "tend" | "head" | "mark" | "label" | "mobile";
+type Area = "arc" | "spot" | "laserweld" | "ultrasonic" | "solder" | "fsw" | "stud" | "laserclean" | "pallet" | "paint" | "dispense" | "pick" | "bin" | "force" | "vision" | "screw" | "rivet" | "tend" | "head" | "mark" | "label" | "mobile";
 /** What kind of work a job is, for its equipment and software. */
 export function areaOf(job: string, kind: ProcessKind = processKind({ name: job || "Loading & Unloading" })): Area {
   const j = job.toLowerCase();
   if (/spot weld/.test(j)) return "spot";
   if (/laser weld/.test(j)) return "laserweld";
   if (/ultrasonic/.test(j)) return "ultrasonic";
+  // Joining without an arc torch and wire: no MIG power source, wire feeder or torch cleaner.
+  if (/solder/.test(j)) return "solder";
+  if (/friction stir/.test(j)) return "fsw";
+  if (/stud weld/.test(j)) return "stud";
   if (kind === "welding") return "arc";
   if (/laser clean/.test(j)) return "laserclean";
   if (/bag plac|rotary packer|packer spout/.test(j)) return "pick";
@@ -224,6 +228,15 @@ function componentsFor(k: KitInput, area: Area, catalog: Match[]): { components:
       break;
     case "ultrasonic":
       also.push("Ultrasonic generator matched to the horn", "Anvil / nest fixture for the parts");
+      break;
+    case "solder":
+      also.push("Solder wire feeder and tip cleaner", "Fume extraction at the soldering tip");
+      break;
+    case "fsw":
+      also.push("Spindle drive with axial force control");
+      break;
+    case "stud":
+      also.push("Welding screens or arc-flash curtains");
       break;
     case "laserclean":
       also.push("Laser source with fume extraction", "Class 1 laser enclosure");
