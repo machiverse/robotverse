@@ -17,11 +17,19 @@ export interface SimUpdate {
   /** Index of the robot whose joints/step are reported (multi-robot lines). */
   focus?: number;
   cells?: { title: string; stepIndex: number; step: SimStep | null; cycles: number; lastCycle?: number | null }[];
+  /** The real product the line handles, and the gripper it needs. */
+  product?: { key: string; label: string; kg: number; size: [number, number, number]; gripper: string } | null;
+  /** Every tool the line uses: the gripper and the process tools its steps need. */
+  tools?: string[];
 }
 
 export interface SimPlan {
   /** stations: equipment to show even when no step uses it (cell builder); startTool: tool in use when a cycle starts. */
   cells: { title?: string; steps: SimStep[]; stations?: string[]; startTool?: number }[];
+  /** The user's own words: a product they name (mangoes, cement bags) is the one the robots handle. */
+  brief?: string;
+  /** The product, when already known (see workpieces.js productFor). */
+  product?: { key: string; variant?: string; coat?: string };
 }
 
 export interface Simulation {

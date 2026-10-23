@@ -6,6 +6,9 @@
  * Coordinates: metres, Y up, robot base at world origin.
  */
 
+import { createWorkpieces, productFor } from "./workpieces.js";
+import { createToolKit, eoatLook, headFor, HEAD_FX, TOOL_LOOK_NAMES } from "./toolHeads.js";
+
 export const ROBOT_SIZES = {
   compact: { key: "compact", label: "Compact", reach: 0.95, payload: 7, scale: 0.66 },
   medium: { key: "medium", label: "Medium", reach: 1.45, payload: 20, scale: 1 },
@@ -258,7 +261,8 @@ export function processToText(kind, name) {
 
 /* Simulation */
 
-const PART = { w: 0.1, h: 0.09, d: 0.1 };
+/** Size of a generic part; each line resizes it to its real product (see workpieces.js). */
+const PART0 = { w: 0.1, h: 0.09, d: 0.1 };
 const TOOL_LEN = 0.16;
 
 /** Factory paint of each robot brand: [body, trim]. */
@@ -330,6 +334,8 @@ const BELT_TOP = 0.78;
  */
 export function createSimulation({ THREE, OrbitControls, RoomEnvironment, container, onUpdate }) {
   const LIGHT_K = Number(THREE.REVISION) >= 155 ? Math.PI : 1;
+  // The product this line handles: its size drives grips, slots and stations.
+  const PART = { ...PART0 };
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -343,7 +349,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
   // Physically based look: sRGB output, filmic tone mapping, soft image-based lighting.
   if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.1;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1b2430);
@@ -353,7 +359,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const pmrem = new THREE.PMREMGenerator(renderer);
     envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = envTexture;
-    if ("environmentIntensity" in scene) scene.environmentIntensity = 0.45;
+    if ("environmentIntensity" in scene) scene.environmentIntensity = 0.55;
     pmrem.dispose();
   }
 
@@ -376,14 +382,56 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
   rim.position.set(-4, 3, -3);
   scene.add(rim);
 
+  /** A small tiled canvas texture: brushed steel, wood grain, painted sheet metal. */
+  const sceneTextures = [];
+  function canvasTex(w, h, draw, repeat = [1, 1]) {
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    draw(c.getContext("2d"), w, h);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(repeat[0], repeat[1]);
+    t.anisotropy = 4;
+    if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    sceneTextures.push(t);
+    return t;
+  }
+  const streaks = (base, light, dark, n, vertical) => (g, w, h) => {
+    g.fillStyle = base;
+    g.fillRect(0, 0, w, h);
+    for (let i = 0; i < n; i++) {
+      g.fillStyle = i % 2 ? light : dark;
+      const p = Math.random() * (vertical ? w : h);
+      if (vertical) g.fillRect(p, 0, 1, h);
+      else g.fillRect(0, p, w, 1);
+    }
+  };
   const M = {
     body: new THREE.MeshStandardMaterial({ color: 0xe9edf2, metalness: 0.25, roughness: 0.38 }),
     dark: new THREE.MeshStandardMaterial({ color: 0x2b3442, metalness: 0.5, roughness: 0.45 }),
     accent: new THREE.MeshStandardMaterial({ color: 0x4a90e2, metalness: 0.3, roughness: 0.35 }),
-    steel: new THREE.MeshStandardMaterial({ color: 0x8e99a6, metalness: 0.7, roughness: 0.35 }),
+    // Brushed stainless: fine streaks catch the light like a real table top.
+    steel: new THREE.MeshStandardMaterial({ map: canvasTex(128, 128, streaks("#9aa4ae", "rgba(255,255,255,0.18)", "rgba(40,48,60,0.16)", 220)), metalness: 0.72, roughness: 0.32 }),
     frame: new THREE.MeshStandardMaterial({ color: 0x3a4555, metalness: 0.4, roughness: 0.55 }),
-    machine: new THREE.MeshStandardMaterial({ color: 0xd4d9e0, metalness: 0.2, roughness: 0.5 }),
-    wood: new THREE.MeshStandardMaterial({ color: 0xb9905e, metalness: 0, roughness: 0.85 }),
+    machine: new THREE.MeshStandardMaterial({ map: canvasTex(64, 64, streaks("#d4d9e0", "rgba(255,255,255,0.06)", "rgba(0,0,0,0.025)", 36, true)), metalness: 0.2, roughness: 0.48 }),
+    wood: new THREE.MeshStandardMaterial({
+      map: canvasTex(128, 128, (g, w, h) => {
+        g.fillStyle = "#c19563";
+        g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 46; i++) {
+          g.strokeStyle = `rgba(110,70,35,${0.06 + Math.random() * 0.14})`;
+          g.lineWidth = 1 + Math.random() * 2;
+          g.beginPath();
+          const x = Math.random() * w;
+          g.moveTo(x, 0);
+          g.bezierCurveTo(x + Math.random() * 8 - 4, h * 0.3, x + Math.random() * 8 - 4, h * 0.7, x + Math.random() * 6 - 3, h);
+          g.stroke();
+        }
+      }),
+      metalness: 0,
+      roughness: 0.82,
+    }),
     glass: new THREE.MeshStandardMaterial({ color: 0x9fc4ea, metalness: 0.1, roughness: 0.1, transparent: true, opacity: 0.35 }),
     amber: new THREE.MeshStandardMaterial({ color: 0xf2b705, metalness: 0.2, roughness: 0.5 }),
     card: new THREE.MeshStandardMaterial({ color: 0xc49a6c, metalness: 0, roughness: 0.9 }),
@@ -428,7 +476,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
   })();
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(60, 30),
-    new THREE.MeshStandardMaterial({ map: floorTex, color: 0x747c86, metalness: 0.05, roughness: 0.6 })
+    new THREE.MeshStandardMaterial({ map: floorTex, color: 0x747c86, metalness: 0.05, roughness: 0.5 })
   );
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
@@ -578,7 +626,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const bounds = new THREE.Box3();
     const tmp = new THREE.Box3();
     for (const o of scene.children) {
-      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o.isLight || o === sun.target || !o.visible) continue;
+      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o === propsGroup || o.isLight || o === sun.target || !o.visible) continue;
       if (o.isSprite) continue;
       tmp.setFromObject(o);
       if (!tmp.isEmpty()) bounds.union(tmp);
@@ -625,38 +673,42 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     fenceGroup = g;
   }
 
-  /* Parts */
-  const partGeo = new THREE.BoxGeometry(PART.w, PART.h, PART.d);
-  const partMats = {
-    raw: new THREE.MeshStandardMaterial({ color: 0x9aa7b5, metalness: 0.6, roughness: 0.4 }),
-    machined: new THREE.MeshStandardMaterial({ color: 0xcfe0f2, metalness: 0.8, roughness: 0.22 }),
-    coated: new THREE.MeshStandardMaterial({ color: 0x2f80ed, metalness: 0.3, roughness: 0.35 }),
-    polished: new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.08 }),
-  };
+  /* Parts: the line's real product (fruit, bottles, sacks, castings…), built by workpieces.js */
+  let kit = null;
+  /** The job's surroundings behind the line (plant rows, a container, a car at the charger…). */
+  let propsGroup = null;
+  /** End-of-arm tools as they really look (soft fingers, vacuum frame, spray gun, blade…). */
+  const toolKit = createToolKit(THREE, TOOL_LEN);
+  /** Every tool the line uses, by name, for the plan. */
+  let lineTools = [];
   const parts = new Set();
   function spawnPart(pos) {
-    const m = new THREE.Mesh(partGeo, partMats.raw);
-    m.castShadow = true;
-    m.receiveShadow = true;
-    m.userData = { state: "raw" };
+    const m = kit.spawn();
     m.position.copy(pos);
     scene.add(m);
     parts.add(m);
     return m;
   }
+  /** Half the width a gripper closes to on this product. */
+  const gripHalf = () => (kit && kit.info.half) || PART.d / 2;
   function removePart(m) {
     if (!m) return;
     m.parent && m.parent.remove(m);
     parts.delete(m);
   }
+  // What a step adds to a product that has no look of its own for it (a bead, a screw, a label).
+  const addOnMats = new Map();
   const addOn = (part, geo, color, pos, extra = {}) => {
-    const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, metalness: 0.3, roughness: 0.5, ...extra }));
+    const key = `${color}:${JSON.stringify(extra)}`;
+    if (!addOnMats.has(key)) addOnMats.set(key, new THREE.MeshStandardMaterial({ color, metalness: 0.3, roughness: 0.5, ...extra }));
+    const m = new THREE.Mesh(geo, addOnMats.get(key));
     m.position.copy(pos);
     m.castShadow = true;
     part.add(m);
     return m;
   };
   function addWeldMark(m) {
+    if (kit.reveal(m, "weld")) return;
     addOn(m, new THREE.BoxGeometry(PART.w * 0.9, 0.006, 0.012), 0x3a2a1a, new THREE.Vector3(0, PART.h / 2 + 0.003, 0), {
       metalness: 0.4,
       roughness: 0.6,
@@ -669,7 +721,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const dir = Math.sign(toX - fromX) || -1;
     const x0 = Math.min(fromX, toX) - 0.13;
     const x1 = Math.max(fromX, toX) + 0.13;
-    const len = x1 - x0, wid = 0.4, cx = (x0 + x1) / 2, cz = BELT_Z, topY = BELT_TOP;
+    const len = x1 - x0, wid = Math.max(0.4, PART.d + 0.08), cx = (x0 + x1) / 2, cz = BELT_Z, topY = BELT_TOP;
     const bed = box(len, 0.08, wid + 0.06, M.frame);
     bed.position.set(cx, topY - 0.05, cz);
     g.add(bed);
@@ -706,6 +758,17 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const stop = box(0.03, 0.08, wid, M.dark);
     stop.position.set(toX + dir * 0.13, topY + 0.03, cz);
     g.add(stop);
+    // End rollers and the drive motor.
+    for (const ex of [x0, x1]) {
+      const roller = cyl(0.03, wid, M.steel, 16);
+      roller.rotation.x = Math.PI / 2;
+      roller.position.set(ex, topY - 0.02, cz);
+      g.add(roller);
+    }
+    const motor = cyl(0.045, 0.14, M.dark, 16);
+    motor.rotation.x = Math.PI / 2;
+    motor.position.set(x0 + 0.05, topY - 0.1, cz + wid / 2 + 0.09);
+    g.add(motor);
     const lbl = makeLabel(label);
     lbl.position.set(cx, topY + 0.45, cz);
     g.add(lbl);
@@ -781,93 +844,42 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     if (events.length > 6) events.length = 6;
   };
 
-  /** One end-of-arm tool, built in the robot's flange frame (x along the tool axis). */
-  function makeEoat(kind) {
-    const group = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ color: 0x3a4250, metalness: 0.5, roughness: 0.4 });
-    const fingerTool = kind === "parallel" || kind === "dual";
-    const addTool = (mesh, x, y = 0, z = 0) => {
-      mesh.position.set(x, y, z);
-      group.add(mesh);
-      return mesh;
-    };
-    const gBody = box(0.07, 0.09, kind === "dual" ? 0.3 : 0.16, M.dark);
-    gBody.position.x = 0.045;
-    gBody.visible = fingerTool;
-    group.add(gBody);
-    const fingers = [];
-    for (const sgn of [-1, 1]) {
-      const f = box(0.09, 0.035, 0.018, M.steel);
-      f.position.set(0.12, 0, sgn * 0.075);
-      f.visible = fingerTool;
-      group.add(f);
-      fingers.push(f);
-    }
-    if (kind === "dual") {
-      // Second gripper on the other side of the wrist for raw / finished parts.
-      for (const sgn of [-1, 1]) {
-        const f = box(0.09, 0.035, 0.018, M.steel);
-        f.position.set(0.12, 0.1, sgn * 0.075);
-        group.add(f);
-      }
-    } else if (kind === "vacuum") {
-      addTool(box(0.03, 0.2, 0.2, mat), 0.05);
-      for (const [y, z] of [[-0.06, -0.06], [-0.06, 0.06], [0.06, -0.06], [0.06, 0.06]]) {
-        const stem = cyl(0.008, 0.07, M.steel, 10);
-        stem.rotation.z = Math.PI / 2;
-        addTool(stem, 0.1, y, z);
-        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.016, 0.025, 16), new THREE.MeshStandardMaterial({ color: 0x1a1d22, roughness: 0.9 }));
-        cup.rotation.z = -Math.PI / 2;
-        addTool(cup, 0.145, y, z);
-      }
-    } else if (kind === "magnet") {
-      addTool(box(0.04, 0.16, 0.16, mat), 0.05);
-      addTool(cyl(0.07, 0.05, new THREE.MeshStandardMaterial({ color: 0xb91c1c, metalness: 0.3, roughness: 0.5 })), 0.12).rotation.z = Math.PI / 2;
-    } else if (kind === "fork") {
-      addTool(box(0.04, 0.26, 0.28, mat), 0.05);
-      for (const z of [-0.09, 0, 0.09]) addTool(box(0.2, 0.02, 0.03, M.steel), 0.16, -0.12, z);
-      addTool(box(0.03, 0.12, 0.26, M.amber), 0.1, 0.08);
-    } else if (kind === "torch") {
-      const neck = cyl(0.022, 0.16, new THREE.MeshStandardMaterial({ color: 0x111418, roughness: 0.6 }), 12);
-      neck.rotation.z = Math.PI / 2;
-      addTool(neck, 0.09);
-      const bend = cyl(0.018, 0.08, new THREE.MeshStandardMaterial({ color: 0x111418, roughness: 0.6 }), 12);
-      bend.rotation.z = Math.PI / 2 + 0.6;
-      addTool(bend, 0.18, -0.02);
-      const tipC = cyl(0.014, 0.04, new THREE.MeshStandardMaterial({ color: 0xc27a3a, metalness: 0.8, roughness: 0.3 }), 12);
-      tipC.rotation.z = Math.PI / 2 + 0.6;
-      addTool(tipC, 0.215, -0.045);
-    } else if (kind === "spindle") {
-      const motor = cyl(0.045, 0.14, mat, 16);
-      motor.rotation.z = Math.PI / 2;
-      addTool(motor, 0.08);
-      const disc = cyl(0.07, 0.012, new THREE.MeshStandardMaterial({ color: 0x8b5e34, roughness: 0.95 }), 24);
-      disc.rotation.z = Math.PI / 2;
-      addTool(disc, 0.16);
-    } else if (kind === "driver") {
-      const body = cyl(0.03, 0.14, new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.3, roughness: 0.4 }), 14);
-      body.rotation.z = Math.PI / 2;
-      addTool(body, 0.08);
-      const bit = cyl(0.006, 0.06, M.steel, 8);
-      bit.rotation.z = Math.PI / 2;
-      addTool(bit, 0.18);
-    } else if (kind === "nozzle") {
-      const gun = cyl(0.028, 0.12, new THREE.MeshStandardMaterial({ color: 0x0e7490, metalness: 0.3, roughness: 0.4 }), 14);
-      gun.rotation.z = Math.PI / 2;
-      addTool(gun, 0.075);
-      const nz = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.014, 0.05, 10), M.steel);
-      nz.rotation.z = Math.PI / 2;
-      addTool(nz, 0.16);
-    }
-    return { kind, group, fingers, fingerTool, mat };
+  /**
+   * One end-of-arm tool in the robot's flange frame (x along the tool axis). The family (kind) drives the robot
+   * program; the look is what the tool really is: soft fingers for food, a vacuum frame for glass, a spray gun…
+   */
+  function makeEoat(kind, look) {
+    const t = toolKit.build(look || kind, { half: gripHalf(), span: [PART.w, PART.d], height: PART.h });
+    return { kind, look: t.look, group: t.group, fingers: t.fingers, fingerTool: t.fingerTool, open: t.open, beam: t.beam, spin: t.spin };
   }
   const PROCESS_TOOLS = ["torch", "spindle", "driver", "nozzle"];
+  /** Tools that hold the product from its top face. */
+  const TOP_GRIP = new Set(["vacuum", "magnet", "fork"]);
 
   /* One robot with the stations its steps use, at world x = X.
      extra.stations: equipment the user placed (shown even if unused); extra.startTool: tool at cycle start. */
   function createCell(index, X, steps, title, links, extra = {}) {
     const layout = LAYOUT[mode];
     const V = (x, y, z) => new THREE.Vector3(X + x, y, z);
+    /** A standard (medium) robot can reach a part centred at p, including the approach above it. */
+    const reachOK = (p) => {
+      const r = Math.hypot(p.x - X, p.z) - 0.15;
+      const y = p.y + PART.h / 2 + APPROACH + 0.25 - 0.45;
+      return Math.hypot(r, y) <= 1.45 * 0.985;
+    };
+    /** Slots for the product in rows and layers over an area w × d centred at (cx, cz), floor at y0: only reachable ones. */
+    const gridSlots = (cx, cz, y0, w, d, layers, max = 24) => {
+      const gx = PART.w + 0.012, gz = PART.d + 0.012;
+      const cols = clamp(Math.floor((w + 0.012) / gx), 1, 6), rows = clamp(Math.floor((d + 0.012) / gz), 1, 5);
+      const out = [];
+      for (let l = 0; l < layers; l++)
+        for (let i = 0; i < cols; i++)
+          for (let j = 0; j < rows; j++) {
+            const p = new THREE.Vector3(cx + (i - (cols - 1) / 2) * gx, y0 + PART.h / 2 + l * PART.h, cz + (j - (rows - 1) / 2) * gz);
+            if (reachOK(p)) out.push(p);
+          }
+      return out.length ? out.slice(0, max) : [new THREE.Vector3(cx, y0 + PART.h / 2, cz)];
+    };
     const groups = [];
     const add = (g) => {
       scene.add(g);
@@ -935,6 +947,16 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       const panel = box(0.04, 0.3, 0.22, M.dark);
       panel.position.set(cx + 0.5, 1.25, cz + 0.42);
       g.add(panel);
+      // Control screen, brand stripe and chip tray, like a real vertical machining centre.
+      const screen = box(0.006, 0.12, 0.16, new THREE.MeshStandardMaterial({ color: 0x0b2540, emissive: 0x1e6fd9, emissiveIntensity: 0.6, roughness: 0.2 }));
+      screen.position.set(cx + 0.523, 1.29, cz + 0.42);
+      g.add(screen);
+      const stripe = box(0.96, 0.05, 1.01, M.accent);
+      stripe.position.set(cx, 1.48, cz);
+      g.add(stripe);
+      const tray = box(0.3, 0.06, 0.8, M.dark);
+      tray.position.set(cx + 0.62, 0.03, cz);
+      g.add(tray);
       const lbl = makeLabel(STATION_NAMES.cnc);
       lbl.position.set(cx, 1.85, cz);
       g.add(lbl);
@@ -982,14 +1004,22 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         b.position.set(cx, 0.05, cz + dz);
         g.add(b);
       }
-      const lbl = makeLabel(STATION_NAMES.pallet);
-      lbl.position.set(cx, 0.75, cz + 0.2);
+      // Produce goes into crates, eggs and vials into trays, the rest straight onto the pallet.
+      let floorY = topY, area = [0.96, 0.76], layers = clamp(Math.floor(0.42 / PART.h), 1, 3);
+      const holder = kit.info.output;
+      if (holder === "crate" || holder === "tray") {
+        const c = kit.container(holder, false);
+        c.group.position.set(cx, topY, cz);
+        g.add(c.group);
+        floorY = topY + 0.008;
+        area = [c.size[0] - 0.02, c.size[2] - 0.02];
+        layers = 1;
+      }
+      const lbl = makeLabel(holder === "crate" ? "Crate on pallet" : holder === "tray" ? "Tray on pallet" : STATION_NAMES.pallet);
+      lbl.position.set(cx, Math.max(0.75, floorY + layers * PART.h + 0.3), cz + 0.2);
       g.add(lbl);
       add(g);
-      const slots = [];
-      for (let layer = 0; layer < 2; layer++)
-        for (const dx of [-0.2, 0, 0.2]) for (const dz of [-0.14, 0.14])
-          slots.push(new THREE.Vector3(cx + dx, topY + PART.h / 2 + layer * PART.h, cz + dz));
+      const slots = gridSlots(cx, cz, floorY, area[0], area[1], layers);
       stations.pallet = { slots, parts: [], point: slots[0] };
     }
 
@@ -1027,7 +1057,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       const stand = box(0.5, standY, 0.4, M.frame);
       stand.position.set(cx, standY / 2, cz);
       g.add(stand);
-      const W = 0.4, D = 0.3, H = 0.18, t = 0.012;
+      const gx = PART.w + 0.012, gz = PART.d + 0.012;
+      const cols = clamp(Math.floor(0.4 / gx), 1, 3), rows = clamp(Math.floor(0.3 / gz), 1, 3);
+      const W = Math.max(0.16, cols * gx + 0.02), D = Math.max(0.12, rows * gz + 0.02), H = clamp(PART.h + 0.03, 0.08, 0.3), t = 0.012;
       const bottom = box(W, t, D, M.card);
       bottom.position.set(cx, standY + t / 2, cz);
       g.add(bottom);
@@ -1053,9 +1085,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       lbl.position.set(cx - 0.3, standY + H + 0.12, cz + 0.2);
       g.add(lbl);
       add(g);
-      const slots = [];
-      for (const dx of [-0.09, 0.09]) for (const dz of [-0.065, 0.065])
-        slots.push(new THREE.Vector3(cx + dx, standY + t + PART.h / 2, cz + dz));
+      const slots = gridSlots(cx, cz, standY + t, W - 0.02, D - 0.02, 1, 9);
       stations.carton = { slots, parts: [], point: slots[0], lid, tape, closeT: 0 };
     }
 
@@ -1116,8 +1146,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
               ram.position.y = ramY;
               flash(beacon, 0x000000);
               if (st.part) {
-                st.part.material = partMats.machined;
-                st.part.scale.set(1.15, 0.7, 1.15);
+                if (!kit.reveal(st.part, "process")) st.part.scale.set(1.15, 0.7, 1.15);
+                kit.setState(st.part, "machined");
               }
             },
             // Down onto the part and back up.
@@ -1175,10 +1205,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
               moving.position.z = 0.25;
               flash(beacon, 0x000000);
               // A new moulded part is ready between the open platens.
-              if (!st.part) {
-                st.part = spawnPart(st.point);
-                st.part.material = partMats.coated;
-              }
+              if (!st.part) st.part = spawnPart(st.point);
+              else kit.reveal(st.part, "process");
             },
             // Close, hold (inject and cool), open.
             (k) => (moving.position.z = 0.25 - 0.13 * (k < 0.25 ? k / 0.25 : k > 0.75 ? (1 - k) / 0.25 : 1))
@@ -1247,7 +1275,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
             },
             () => {
               beam.visible = false;
-              if (st.part) addOn(st.part, new THREE.BoxGeometry(0.05, 0.002, 0.03), 0x111827, new THREE.Vector3(0, PART.h / 2 + 0.001, 0));
+              if (st.part && !kit.reveal(st.part, "mark")) addOn(st.part, new THREE.BoxGeometry(Math.min(0.05, PART.w * 0.6), 0.002, Math.min(0.03, PART.d * 0.5)), 0x111827, new THREE.Vector3(0, PART.h / 2 + 0.001, 0));
             },
             (k) => (beam.position.x = X + t.sp.x + Math.sin(k * Math.PI * 6) * 0.02)
           ),
@@ -1269,10 +1297,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         g.add(wall);
       }
       for (let i = 0; i < 7; i++) {
-        const loose = new THREE.Mesh(partGeo, partMats.raw);
+        const loose = kit.spawn();
         loose.position.set(bx + (Math.random() - 0.5) * 0.3, 0.27 + Math.random() * 0.06, bz + (Math.random() - 0.5) * 0.22);
         loose.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
-        loose.scale.setScalar(0.85);
+        loose.scale.setScalar(Math.min(0.85, 0.28 / Math.max(PART.w, PART.d)));
         g.add(loose);
       }
       const post = box(0.05, 1.5, 0.05, M.frame);
@@ -1318,15 +1346,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       stations.rack = {
         group: g,
         point: V(-0.5, 1.2, rz),
-        show(kind) {
+        show(tool) {
           if (parked) {
             g.remove(parked.group);
             parked.group.traverse((o) => o.geometry && o.geometry.dispose());
-            parked.mat.dispose();
             parked = null;
           }
-          if (!kind || kind === "none") return;
-          parked = makeEoat(kind);
+          if (!tool || tool.kind === "none") return;
+          parked = makeEoat(tool.kind, tool.look);
           // Hangs tool-down in the cradle.
           parked.group.rotation.z = -Math.PI / 2;
           parked.group.position.set(rx, 1.13, rz);
@@ -1370,6 +1397,15 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       const base = cyl(0.22 * s, 0.12 * s, M.dark);
       base.position.y = 0.06 * s;
       root.add(base);
+      // Grouted base plate with anchor bolts.
+      const plate = box(0.62 * s, 0.02, 0.62 * s, M.frame);
+      plate.position.y = 0.01;
+      root.add(plate);
+      for (const bx of [-0.25, 0.25]) for (const bz of [-0.25, 0.25]) {
+        const bolt = cyl(0.018 * s, 0.03, M.steel, 6);
+        bolt.position.set(bx * s, 0.03, bz * s);
+        root.add(bolt);
+      }
 
       const j1 = new THREE.Group();
       j1.position.y = 0.12 * s;
@@ -1444,14 +1480,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       const flange = cyl(0.05, 0.02, trim);
       flange.rotation.z = Math.PI / 2;
       j6.add(flange);
-      // End-of-arm tools: the chosen products' families (arm tool first, then the tool-stand tool), else a parallel gripper.
-      const kinds = model && model.tools && model.tools.length ? model.tools : [(model && model.eoat) || (buildMode ? "none" : "parallel")];
-      const toolSets = kinds.map((k) => {
-        const t = makeEoat(k);
+      // End-of-arm tools: the chosen products (arm tool first, then the tool-stand tool), else the gripper the
+      // product needs (soft fingers for fruit, a vacuum frame for glass, a claw for sacks).
+      const chosen = model && model.tools && model.tools.length;
+      const kinds = chosen ? model.tools : [(model && model.eoat) || (buildMode ? "none" : kit.info.grip)];
+      const looks = chosen ? model.looks || [] : [model && model.eoat ? model.look : buildMode ? null : kit.info.look];
+      const toolSets = kinds.map((k, i) => {
+        const t = makeEoat(k, looks[i]);
         t.group.visible = false;
         j6.add(t.group);
         return t;
       });
+      // Process tools the cycle puts on for a step (spray gun, laser head, blade…), built when first needed.
+      const heads = new Map();
       // Accessories the user attached in the configurator: tool changer / force-torque sensor at the
       // flange, a vision camera on the side of the wrist.
       const acc = (model && model.accessories) || [];
@@ -1492,19 +1533,6 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       tip.position.x = TOOL_LEN;
       j6.add(tip);
 
-      // Process tool (nozzle / spindle / driver) shown only during tool operations.
-      const toolMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.4, roughness: 0.35 });
-      const toolHead = new THREE.Group();
-      const toolBody = cyl(0.028, 0.1, toolMat);
-      toolBody.rotation.z = Math.PI / 2;
-      toolBody.position.x = 0.09;
-      const toolTip = cyl(0.012, 0.06, M.steel);
-      toolTip.rotation.z = Math.PI / 2;
-      toolTip.position.x = 0.15;
-      toolHead.add(toolBody, toolTip);
-      toolHead.visible = false;
-      j6.add(toolHead);
-
       // Model label under the robot's title, e.g. "FANUC M-20iD/25 · 25 kg · 1811 mm".
       let modelLabel = null;
       if (model && model.label) {
@@ -1515,21 +1543,45 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
 
       root.visible = !(buildMode && !(model && model.hasRobot));
       scene.add(root);
-      const r = { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers: [], fingerTool: false, dims, q: [0, 0, 0, 0, 0, 0], toolHead, toolMat, paint, trim, toolSets, modelLabel, activeTool: 0, eoat: kinds[0] };
+      const r = { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers: [], fingerTool: false, fingerOpen: 0.075, dims, q: [0, 0, 0, 0, 0, 0], paint, trim, toolSets, heads, activeHead: null, modelLabel, activeTool: 0, eoat: kinds[0] };
       /** Put tool i on the flange (tool changer); the gripper animation follows the active tool. */
       r.setTool = (i) => {
         const k = clamp(Math.round(Number(i) || 0), 0, toolSets.length - 1);
+        heads.forEach((h) => (h.group.visible = false));
+        r.activeHead = null;
         toolSets.forEach((t, n) => (t.group.visible = n === k));
         const t = toolSets[k];
         r.fingers = t.fingers;
         r.fingerTool = t.fingerTool;
+        r.fingerOpen = t.open || 0.075;
         r.activeTool = k;
         r.eoat = t.kind;
-        // A real process tool on the arm replaces the generic tool head.
-        toolHead.scale.setScalar(PROCESS_TOOLS.includes(t.kind) ? 0.001 : 1);
+      };
+      /** Put a process tool on for a step (the tool on the arm goes to the stand); null look keeps the gripper. */
+      r.showHead = (look) => {
+        if (!look) return null;
+        if (!heads.has(look)) {
+          const h = makeEoat("head", look);
+          j6.add(h.group);
+          heads.set(look, h);
+        }
+        const h = heads.get(look);
+        toolSets.forEach((t) => (t.group.visible = false));
+        heads.forEach((x) => (x.group.visible = x === h));
+        r.activeHead = h;
+        return h;
+      };
+      r.hideHead = () => {
+        heads.forEach((h) => {
+          h.group.visible = false;
+          if (h.beam) h.beam.visible = false;
+          if (h.spin) h.spin.rotation.x = 0;
+        });
+        r.activeHead = null;
+        toolSets.forEach((t, n) => (t.group.visible = n === r.activeTool));
       };
       /** The tool that waits on the tool stand. */
-      r.parkedKind = () => (toolSets.length > 1 ? toolSets[r.activeTool === 0 ? 1 : 0].kind : null);
+      r.parked = () => (toolSets.length > 1 ? toolSets[r.activeTool === 0 ? 1 : 0] : null);
       r.setTool(startTool);
       return r;
     }
@@ -1540,7 +1592,6 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       robot.root.traverse((o) => o.geometry && o.geometry.dispose());
       robot.paint.dispose();
       robot.trim.dispose();
-      robot.toolSets.forEach((t) => t.mat.dispose());
       if (robot.modelLabel) {
         robot.modelLabel.material.map.dispose();
         robot.modelLabel.material.dispose();
@@ -1589,13 +1640,16 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       const q2 = alpha - Math.PI / 2;
       const q3 = beta - q2;
       const q5 = -Math.PI / 2 - beta;
-      return { q: [q1, q2, q3, 0, q5, 0], reachable };
+      // J6 turns with J1 so the tool stays square to the line (fingers close across the product's depth).
+      return { q: [q1, q2, q3, 0, q5, q1], reachable };
     }
 
     const tipWorld = () => robot.tip.getWorldPosition(new THREE.Vector3());
 
+    const fingerZ = (open) => (open ? robot.fingerOpen : gripHalf() + 0.009);
     function setFingers(open) {
-      const z = open ? 0.075 : PART.d / 2 + 0.009;
+      if (!robot.fingers.length) return;
+      const z = fingerZ(open);
       robot.fingers[0].position.z = -z;
       robot.fingers[1].position.z = z;
     }
@@ -1621,6 +1675,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           q0 = robot.q.slice();
           q1 = sol.q;
           q1[0] = q0[0] + wrapPi(q1[0] - q0[0]);
+          q1[5] = q0[5] + wrapPi(q1[0] - q0[5]);
           const maxDelta = Math.max(...q1.map((v, i) => Math.abs(v - q0[i])));
           dur = Math.max(0.55, maxDelta / 1.5);
         },
@@ -1660,14 +1715,16 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       let from;
       return {
         init() {
-          from = robot.fingers[1].position.z;
+          from = robot.fingers.length ? robot.fingers[1].position.z : 0;
         },
         update(dt) {
           t += dt;
-          const to = open ? 0.075 : PART.d / 2 + 0.009;
-          const z = from + (to - from) * smooth(clamp(t / dur, 0, 1));
-          robot.fingers[0].position.z = -z;
-          robot.fingers[1].position.z = z;
+          if (robot.fingers.length) {
+            const to = fingerZ(open);
+            const z = from + (to - from) * smooth(clamp(t / dur, 0, 1));
+            robot.fingers[0].position.z = -z;
+            robot.fingers[1].position.z = z;
+          }
           if (t >= dur) {
             onDone && onDone();
             return true;
@@ -1716,6 +1773,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     }
 
     const above = (p) => p.clone().add(new THREE.Vector3(0, APPROACH, 0));
+    /** Where the tool centre point goes to hold a part centred at p: its top face for vacuum, magnet and claw tools. */
+    const grab = (p) => (TOP_GRIP.has(robot.eoat) ? p.clone().add(new THREE.Vector3(0, PART.h / 2, 0)) : p);
 
     function attach(part) {
       if (!part) return;
@@ -1756,22 +1815,22 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           }
           if (isBelt(s)) {
             const belt = stations[s];
-            out.push(jointMove(() => above(belt.point), s));
+            out.push(jointMove(() => above(grab(belt.point)), s));
             out.push(waitUntil(() => belt.ready()));
-            out.push(linearMove(() => belt.point, s, 0.3));
+            out.push(linearMove(() => grab(belt.point), s, 0.3));
             out.push(
               gripper(false, () => {
                 const it = belt.take();
                 if (it) attach(it.mesh);
               })
             );
-            out.push(linearMove(() => above(belt.point), s, 0.35));
+            out.push(linearMove(() => above(grab(belt.point)), s, 0.35));
           } else {
             const P = stationPoint(s);
             const isCnc = s === "cnc";
             if (isCnc) out.push(doorMove(true));
-            out.push(jointMove(() => above(P), s));
-            out.push(linearMove(() => P, s, 0.3));
+            out.push(jointMove(() => above(grab(P)), s));
+            out.push(linearMove(() => grab(P), s, 0.3));
             out.push(
               gripper(false, () => {
                 const st = stations[s];
@@ -1782,7 +1841,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
                 attach(part);
               })
             );
-            out.push(linearMove(() => above(P), s, 0.35));
+            out.push(linearMove(() => above(grab(P)), s, 0.35));
             if (isCnc) out.push(doorMove(false));
           }
           break;
@@ -1790,24 +1849,24 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         case "place": {
           if (s === "out") {
             const belt = stations.out;
-            out.push(jointMove(() => above(belt.startPoint), s));
+            out.push(jointMove(() => above(grab(belt.startPoint)), s));
             out.push(waitUntil(() => belt.canAccept()));
-            out.push(linearMove(() => belt.startPoint, s, 0.3));
+            out.push(linearMove(() => grab(belt.startPoint), s, 0.3));
             out.push(
               gripper(true, () => {
                 const part = release(belt.startPoint);
                 if (part) belt.push(part);
               })
             );
-            out.push(linearMove(() => above(belt.startPoint), s, 0.35));
+            out.push(linearMove(() => above(grab(belt.startPoint)), s, 0.35));
             break;
           }
           let P;
           const getP = () => (P = P || stationPoint(s === "vision" ? "table" : s).clone());
           const isCnc = s === "cnc";
           if (isCnc) out.push(doorMove(true));
-          out.push(jointMove(() => above(getP()), s));
-          out.push(linearMove(() => getP(), s, 0.3));
+          out.push(jointMove(() => above(grab(getP())), s));
+          out.push(linearMove(() => grab(getP()), s, 0.3));
           out.push(
             gripper(true, () => {
               const part = release(getP());
@@ -1840,7 +1899,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
               }
             })
           );
-          out.push(linearMove(() => above(getP()), s, 0.35));
+          out.push(linearMove(() => above(grab(getP())), s, 0.35));
           if (isCnc) out.push(doorMove(false));
           break;
         }
@@ -1858,8 +1917,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
               () => {
                 c.beacon.material.emissive.setHex(0x000000);
                 if (c.part) {
-                  c.part.material = partMats.machined;
-                  c.part.userData.state = "machined";
+                  kit.reveal(c.part, "process");
+                  kit.setState(c.part, "machined");
                 }
               },
               (k) => c.beacon.material.emissive.setHex(Math.floor(k * 10) % 2 ? 0x2a8a3a : 0x0a3014)
@@ -1886,29 +1945,42 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         case "weld": {
           const w = stations.weld;
           const seamY = w.topY + PART.h + 0.005;
-          const A = w.point.clone().setY(seamY).add(new THREE.Vector3(-0.05, 0, 0));
-          const B = w.point.clone().setY(seamY).add(new THREE.Vector3(0.05, 0, 0));
+          const half = clamp(PART.w * 0.35, 0.04, 0.18);
+          const A = w.point.clone().setY(seamY).add(new THREE.Vector3(-half, 0, 0));
+          const B = w.point.clone().setY(seamY).add(new THREE.Vector3(half, 0, 0));
+          const look = processLook(step, "weld");
+          const fx = HEAD_FX[look];
+          let head = null;
           out.push(
             dwell(0.01, () => {
               if (!w.part) w.part = spawnPart(w.point);
+              head = putOnTool(look);
             })
           );
           out.push(jointMove(() => above(A), "weld"));
-          out.push(linearMove(() => A, "weld", 0.3));
+          if (look === "spotgun" || look === "studgun" || look === "iron" || look === "sonotrode") {
+            // Spot welds, studs, solder joints and ultrasonic welds: one point at a time.
+            const lift = new THREE.Vector3(0, 0.03, 0);
+            for (let i = 0; i < 4; i++) {
+              const P = A.clone().lerp(B, i / 3);
+              out.push(linearMove(() => P.clone().add(lift), "weld", 0.3));
+              out.push(linearMove(() => P, "weld", 0.15));
+              out.push(dwell(0.35, () => fxOn(fx, head), () => fxOff(head), (k) => fx && k < 0.6 && emitSparks(P, fx.spread)));
+              out.push(linearMove(() => P.clone().add(lift), "weld", 0.2));
+            }
+          } else {
+            out.push(linearMove(() => A, "weld", 0.3));
+            out.push(dwell(0.01, () => fxOn(fx, head)));
+            out.push(linearMove(() => B, "weld", look === "fsw" ? 0.03 : 0.05, (P) => fx && emitSparks(P, fx.spread)));
+          }
           out.push(
             dwell(0.01, () => {
-              sparks.material.color.setHex(0xffd27a);
-              sparks.visible = true;
-            })
-          );
-          out.push(linearMove(() => B, "weld", 0.05, (P) => emitSparks(P)));
-          out.push(
-            dwell(0.01, () => {
-              sparks.visible = false;
+              fxOff(head);
               if (w.part) addWeldMark(w.part);
             })
           );
           out.push(linearMove(() => above(B), "weld", 0.35));
+          out.push(dwell(0.01, takeOffTool));
           break;
         }
         case "scan": {
@@ -1931,7 +2003,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           const swap = () => {
             robot.setTool(tgt);
             setFingers(true);
-            if (rk) rk.show(robot.parkedKind());
+            if (rk) rk.show(robot.parked());
             log(`Tool change: ${robot.eoat}`);
           };
           if (rk) {
@@ -1971,96 +2043,113 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       return out;
     }
 
-    /* Tool operations on the part resting on the work table. */
+    /** The process tool a step uses: the tool on the arm when it is one, else the head the job really uses. */
+    const processLook = (step, action) => (PROCESS_TOOLS.includes(robot.eoat) ? robot.toolSets[robot.activeTool].look : headFor(step.text || step.label, action));
+    /** Put the step's tool on (the gripper goes to the stand) unless the arm already carries it. */
+    const putOnTool = (look) => (PROCESS_TOOLS.includes(robot.eoat) ? robot.toolSets[robot.activeTool] : robot.showHead(look));
+    const takeOffTool = () => robot.activeHead && robot.hideHead();
+    function fxOn(fx, head) {
+      if (!fx) return;
+      sparks.material.color.setHex(fx.color != null ? fx.color : kit.coatColor.getHex());
+      sparks.material.size = fx.mist ? 0.018 : 0.025;
+      sparks.visible = true;
+      if (fx.beam && head && head.beam) head.beam.visible = true;
+    }
+    function fxOff(head) {
+      sparks.visible = false;
+      if (head && head.beam) head.beam.visible = false;
+    }
+
+    /* Tool operations on the part resting on the work table, with the tool the job really uses. */
     function toolSegments(step) {
       const w = stations.table;
       const a = step.action;
       const top = () => new THREE.Vector3(w.point.x, w.topY + PART.h + 0.006, w.point.z);
-      const at = (dx, dz, dy = 0) => () => top().add(new THREE.Vector3(dx, dy, dz));
+      // Passes cover the product's own top face.
+      const sx = clamp(PART.w * 0.4, 0.025, 0.24), sz = clamp(PART.d * 0.35, 0.015, 0.15);
+      const at = (fx, fz, dy = 0) => () => top().add(new THREE.Vector3(fx * sx, dy, fz * sz));
       const out = [];
-      const spin = (k, turns) => (robot.joints[5].rotation.x = k * Math.PI * 2 * turns);
+      const look = processLook(step, a);
+      const fx = HEAD_FX[look] || null;
+      let head = null;
+      const spin = (k, turns) => head && head.spin && (head.spin.rotation.x = k * Math.PI * 2 * turns);
+      const pass = (z, vel, onFrame) => {
+        out.push(linearMove(at(-1, z, 0.004), "table", 0.3));
+        out.push(dwell(0.01, () => fxOn(fx, head)));
+        out.push(linearMove(at(1, z, 0.004), "table", vel, onFrame));
+        out.push(dwell(0.01, () => fxOff(head)));
+      };
+      const finishWith = (fn) => out.push(dwell(0.05, null, () => w.part && fn(w.part)));
 
       out.push(
         dwell(0.25, () => {
           if (!w.part) w.part = spawnPart(w.point);
-          robot.toolHead.visible = true;
-          robot.toolMat.color.setHex(TOOL_ACTIONS[a].color);
-          robot.fingers.forEach((f) => (f.visible = false));
+          head = putOnTool(look);
         })
       );
       out.push(jointMove(() => above(top()), "table"));
 
       if (a === "apply") {
+        // A dispensing valve lays a bead; a spray gun coats the whole face.
+        const bead = look === "nozzle" && !kit.hasStage("apply");
         let n = 0;
         const beadGeo = new THREE.BoxGeometry(0.012, 0.004, 0.012);
-        for (const dz of [-0.03, 0, 0.03]) {
-          out.push(linearMove(at(-0.045, dz, 0.02), "table", 0.3));
-          out.push(dwell(0.01, () => sparks.material.color.setHex(0x9be7ff)));
-          out.push(
-            linearMove(at(0.045, dz, 0.02), "table", 0.06, (P) => {
-              sparks.visible = true;
-              emitSparks(P, 0.35);
-              if (n++ % 3 === 0 && w.part) {
-                const local = w.part.worldToLocal(new THREE.Vector3(P.x, top().y - 0.004, P.z));
-                addOn(w.part, beadGeo, 0x1f6fd1, local);
-              }
-            })
-          );
+        for (const dz of [-1, 0, 1]) {
+          pass(dz, look === "nozzle" ? 0.06 : 0.12, (P) => {
+            if (fx) emitSparks(P, fx.spread);
+            if (bead && n++ % 3 === 0 && w.part) addOn(w.part, beadGeo, 0x1f6fd1, w.part.worldToLocal(new THREE.Vector3(P.x, top().y - 0.004, P.z)));
+          });
         }
-        out.push(
-          dwell(0.01, () => {
-            sparks.visible = false;
-            if (w.part) w.part.material = partMats.coated;
-          })
-        );
+        finishWith((p) => kit.reveal(p, "apply") || bead || kit.setState(p, "coated"));
       } else if (a === "finish") {
-        for (const dz of [-0.03, 0.01, 0.03, -0.01]) {
-          out.push(linearMove(at(-0.045, dz), "table", 0.3));
-          out.push(dwell(0.01, () => sparks.material.color.setHex(0xffc56b)));
-          out.push(
-            linearMove(at(0.045, dz), "table", 0.09, (P, k) => {
-              sparks.visible = true;
-              emitSparks(P, 0.6);
-              spin(k, 6);
-            })
-          );
+        if (look === "drill") {
+          for (const [fx0, fz0] of [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]]) {
+            out.push(linearMove(at(fx0, fz0, 0.03), "table", 0.3));
+            out.push(dwell(0.01, () => fxOn(fx, head)));
+            out.push(linearMove(at(fx0, fz0, -0.004), "table", 0.05, (P, k) => (spin(k, 6), emitSparks(P, fx.spread))));
+            out.push(dwell(0.01, () => fxOff(head)));
+            out.push(linearMove(at(fx0, fz0, 0.03), "table", 0.2));
+          }
+        } else if (look === "blade") {
+          for (const dz of [-0.2, 0.2]) pass(dz, 0.07);
+        } else {
+          for (const dz of [-0.8, 0.25, 0.8, -0.25]) pass(dz, look === "polisher" || look === "brush" ? 0.12 : 0.09, (P, k) => (spin(k, 6), fx && emitSparks(P, fx.spread)));
         }
-        out.push(
-          dwell(0.01, () => {
-            sparks.visible = false;
-            if (w.part) w.part.material = partMats.polished;
-          })
-        );
+        finishWith((p) => kit.reveal(p, "finish") || kit.reveal(p, "process") || kit.setState(p, look === "polisher" ? "polished" : "machined"));
       } else if (a === "assemble") {
+        const pts = [[-0.7, -0.7], [0.7, -0.7], [0, 0.7], [0.7, 0.7]];
         const screwGeo = new THREE.CylinderGeometry(0.009, 0.009, 0.012, 12);
-        for (const [dx, dz] of [
-          [-0.03, -0.03],
-          [0.03, -0.03],
-          [0, 0.03],
-        ]) {
-          out.push(linearMove(at(dx, dz, 0.05), "table", 0.3));
-          out.push(linearMove(at(dx, dz), "table", 0.15));
-          out.push(
-            dwell(
-              0.55,
-              null,
-              () => {
-                if (w.part) addOn(w.part, screwGeo, 0x475569, new THREE.Vector3(dx, PART.h / 2 + 0.006, dz), { metalness: 0.8 });
-              },
-              (k) => spin(k, 4)
-            )
-          );
-          out.push(linearMove(at(dx, dz, 0.05), "table", 0.2));
+        if (look) {
+          // Screws, rivets, nails or ties, one at a time.
+          for (const [dx, dz] of pts) {
+            out.push(linearMove(at(dx, dz, 0.05), "table", 0.3));
+            out.push(linearMove(at(dx, dz), "table", 0.15));
+            out.push(dwell(look === "driver" ? 0.55 : 0.3, null, null, (k) => spin(k, 4)));
+            out.push(linearMove(at(dx, dz, 0.05), "table", 0.2));
+          }
+          finishWith((p) => kit.reveal(p, "assemble") || pts.forEach(([dx, dz]) => addOn(p, screwGeo, 0x475569, new THREE.Vector3(dx * sx, PART.h / 2 + 0.006, dz * sz), { metalness: 0.8 })));
+        } else {
+          // The gripper places the components.
+          for (const [dx, dz] of pts.slice(0, 2)) {
+            out.push(linearMove(at(dx, dz, 0.06), "table", 0.3));
+            out.push(linearMove(at(dx, dz, 0.012), "table", 0.12));
+            out.push(gripper(true));
+            out.push(gripper(false));
+            out.push(linearMove(at(dx, dz, 0.06), "table", 0.2));
+          }
+          out.push(gripper(true));
+          finishWith((p) => kit.reveal(p, "assemble") || addOn(p, new THREE.BoxGeometry(PART.w * 0.5, 0.012, PART.d * 0.4), 0x334155, new THREE.Vector3(0, PART.h / 2 + 0.006, 0)));
         }
       } else if (a === "fill") {
-        out.push(linearMove(at(0, 0, 0.1), "table", 0.2));
+        out.push(linearMove(at(0, 0, 0.06), "table", 0.2));
+        stream.material.color.set(kit.liquid);
         out.push(
           dwell(
             1.6,
             () => (stream.visible = true),
             () => {
               stream.visible = false;
-              if (w.part)
+              if (w.part && !kit.reveal(w.part, "fill"))
                 addOn(w.part, new THREE.BoxGeometry(PART.w * 0.8, 0.006, PART.d * 0.8), 0x38bdf8, new THREE.Vector3(0, PART.h / 2 + 0.003, 0), {
                   transparent: true,
                   opacity: 0.85,
@@ -2070,9 +2159,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
             () => {
               const from = tipWorld();
               const to = top();
-              const len = Math.max(0.01, from.y - to.y);
+              const len = Math.max(0.01, from.y - to.y + 0.04);
               stream.scale.set(1, len, 1);
-              stream.position.set(to.x, to.y + len / 2, to.z);
+              stream.position.set(to.x, to.y - 0.04 + len / 2, to.z);
             }
           )
         );
@@ -2083,44 +2172,41 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
             0.7,
             null,
             () => {
-              if (w.part) addOn(w.part, new THREE.CylinderGeometry(0.032, 0.032, 0.02, 24), 0xc026d3, new THREE.Vector3(0, PART.h / 2 + 0.01, 0));
+              if (w.part && !kit.reveal(w.part, "cap")) addOn(w.part, new THREE.CylinderGeometry(Math.min(0.032, PART.w * 0.3), Math.min(0.032, PART.w * 0.3), 0.02, 24), 0xc026d3, new THREE.Vector3(0, PART.h / 2 + 0.01, 0));
             },
             (k) => spin(k, 3)
           )
         );
       } else if (a === "label") {
-        out.push(linearMove(at(-0.035, 0), "table", 0.2));
-        out.push(linearMove(at(0.035, 0), "table", 0.08));
+        if (look === "laser") out.push(dwell(0.01, () => fxOn(fx, head)));
+        out.push(linearMove(at(-0.8, 0), "table", 0.2));
+        out.push(linearMove(at(0.8, 0), "table", 0.08, (P) => look === "laser" && emitSparks(P, fx.spread)));
         out.push(
           dwell(0.2, null, () => {
-            if (w.part) {
-              addOn(w.part, new THREE.BoxGeometry(0.075, 0.003, 0.055), 0xffffff, new THREE.Vector3(0, PART.h / 2 + 0.002, 0));
-              addOn(w.part, new THREE.BoxGeometry(0.075, 0.0035, 0.012), 0x84cc16, new THREE.Vector3(0, PART.h / 2 + 0.0025, -0.018));
-            }
+            fxOff(head);
+            if (!w.part || kit.reveal(w.part, look === "laser" ? "mark" : "label") || kit.reveal(w.part, "label")) return;
+            addOn(w.part, new THREE.BoxGeometry(Math.min(0.075, PART.w * 0.75), 0.003, Math.min(0.055, PART.d * 0.6)), 0xffffff, new THREE.Vector3(0, PART.h / 2 + 0.002, 0));
+            addOn(w.part, new THREE.BoxGeometry(Math.min(0.075, PART.w * 0.75), 0.0035, 0.012), 0x84cc16, new THREE.Vector3(0, PART.h / 2 + 0.0025, -Math.min(0.018, PART.d * 0.2)));
           })
         );
       } else {
         for (const [dx, dz] of [
-          [-0.03, 0],
-          [0, 0.03],
-          [0.03, 0],
-          [0, -0.03],
+          [-0.7, 0],
+          [0, 0.7],
+          [0.7, 0],
+          [0, -0.7],
         ]) {
           out.push(linearMove(at(dx, dz, 0.01), "table", 0.12, (P, k) => spin(k, 2)));
         }
-        out.push(
-          dwell(0.6, null, () => {
-            if (w.part) w.part.material = partMats.machined;
-          })
-        );
+        finishWith((p) => kit.reveal(p, "process") || kit.setState(p, "machined"));
       }
 
       out.push(linearMove(() => above(top()), "table", 0.35));
       out.push(
         dwell(0.2, null, () => {
-          robot.toolHead.visible = false;
-          robot.fingers.forEach((f) => (f.visible = robot.fingerTool));
-          robot.joints[5].rotation.x = 0;
+          fxOff(head);
+          takeOffTool();
+          if (!look) setFingers(true);
         })
       );
       return out;
@@ -2185,9 +2271,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       sparks.visible = false;
       if (robot) {
         robot.setTool(startTool);
-        robot.toolHead.visible = false;
-        robot.fingers.forEach((f) => (f.visible = robot.fingerTool));
-        if (stations.rack) stations.rack.show(robot.parkedKind());
+        robot.hideHead();
+        if (stations.rack) stations.rack.show(robot.parked());
       }
     }
 
@@ -2231,7 +2316,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         disposeRobot();
         robot = buildRobot(scale);
         cell.setPaint(paintIndustrial);
-        if (stations.rack) stations.rack.show(robot.parkedKind());
+        if (stations.rack) stations.rack.show(robot.parked());
       },
       setModel(m) {
         model = m;
@@ -2329,8 +2414,24 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       c.dispose();
     });
     [...parts].forEach(removePart);
+    if (propsGroup) scene.remove(propsGroup);
+    propsGroup = null;
     cells = [];
     conveyors = [];
+  }
+
+  /** What each step leaves on the product, so a new piece starts without it (a bottle is filled, then capped). */
+  function lineStages(list) {
+    const out = new Set();
+    for (const c of list)
+      for (const s of c.steps) {
+        if (s.action === "process") out.add(s.station === "marker" ? "mark" : s.station === "test" ? "test" : "process");
+        else if (s.action === "weld") out.add("weld");
+        else if (s.action === "finish") out.add("finish").add("process");
+        else if (s.action === "operate") out.add("process");
+        else if (TOOL_ACTIONS[s.action]) out.add(s.action);
+      }
+    return out;
   }
 
   function buildLine(plan) {
@@ -2341,11 +2442,39 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       stations: c.stations || [],
       startTool: c.startTool || 0,
     }));
+    // The real product: named in the brief, else by the line's jobs ("Robot 1: Fruit & Vegetable Picking + Palletizing").
+    const jobs = list.flatMap((c) => String(c.title || "").replace(/^Robot \d+:?\s*/, "").split(" + ")).filter(Boolean);
+    const words = list.flatMap((c) => c.steps.map((s) => s.text || s.label));
+    const pick = plan && plan.product && plan.product.key ? plan.product : productFor((plan && plan.brief) || (jobs.length ? "" : words.join(". ")), jobs.length ? jobs : words);
+    const stages = lineStages(list);
+    const old = kit;
+    kit = createWorkpieces(THREE, pick, { stages: [...stages] });
+    if (old) old.dispose();
+    [PART.w, PART.h, PART.d] = kit.info.size;
+    // Every tool the line uses: the gripper for the product, and the process tools its steps need.
+    const tools = new Set([TOOL_LOOK_NAMES[kit.info.look] || kit.info.look]);
+    for (const c of list)
+      for (const s of c.steps) {
+        const look = s.action === "weld" || TOOL_ACTIONS[s.action] ? headFor(s.text || s.label, s.action) : null;
+        if (look) tools.add(TOOL_LOOK_NAMES[look] || look);
+      }
+    lineTools = [...tools];
     // The cell builder always uses the line layout, so one cell looks the same as the first of several.
     mode = buildMode || list.length > 1 ? "line" : "single";
     const layout = LAYOUT[mode];
     const infeed = makeConveyor(layout.infeed[0], layout.infeed[1], STATION_NAMES.conveyor, true);
     conveyors.push(infeed);
+    {
+      // Where the raw product comes from, with its name and weight on a sign.
+      const sup = kit.container(kit.info.supply, true);
+      const z = BELT_Z - (Math.max(0.4, PART.d + 0.08) / 2 + 0.14 + sup.size[2] / 2);
+      sup.group.position.set(infeed.fromX, 0, z);
+      infeed.group.add(sup.group);
+      const kg = kit.info.kg >= 1 ? `${+kit.info.kg.toFixed(1)} kg` : `${Math.round(kit.info.kg * 1000)} g`;
+      const tag = makeLabel(`${kit.info.label} · ${kg}`, "#a7f3d0");
+      tag.position.set(infeed.fromX, sup.size[1] + 0.3, z);
+      infeed.group.add(tag);
+    }
     const picks = (c, k) => c.steps.some((s) => s.station === k);
     const has = (c, k) => picks(c, k) || c.stations.includes(k);
     const transfers = [];
@@ -2405,6 +2534,13 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     focus = Math.min(focus, cells.length - 1);
 
     const span = (cells.length - 1) * CELL_SPACING;
+    // Where the job happens, behind the line and outside the fence.
+    const sc = kit.scenery(jobs.length ? jobs : words);
+    if (sc) {
+      propsGroup = sc.group;
+      propsGroup.position.set(span / 2, 0, -3.15);
+      scene.add(propsGroup);
+    }
     sun.position.set(span / 2 + 3.5, 6 + span * 0.3, 2.5);
     sun.target.position.set(span / 2, 0, 0);
     const ext = 4 + span / 2;
@@ -2453,7 +2589,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const bounds = new THREE.Box3();
     const tmp = new THREE.Box3();
     for (const o of scene.children) {
-      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o.isLight || o === sun.target || !o.visible || o.isSprite) continue;
+      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o === propsGroup || o.isLight || o === sun.target || !o.visible || o.isSprite) continue;
       tmp.setFromObject(o);
       if (!tmp.isEmpty()) bounds.union(tmp);
     }
@@ -2686,8 +2822,31 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     hoverRing.position.x = i * CELL_SPACING;
     hoverMat.color.setHex(i >= cells.length ? 0x34d399 : 0x38bdf8);
   }
+  /** Close-up of the product where the focused robot works on it: the work table, fixture or machine, else the pick. */
+  function productView() {
+    const st = (cells[focus] || cells[0]).stations;
+    const s = st.table || st.weld || st.cnc || st.press || st.mould || st.test || st.marker || st.conveyor || st.in || st.bin || st.pallet || st.carton;
+    const p = s ? (s.point || s.slots[0]).clone() : new THREE.Vector3(focus * CELL_SPACING, 0.8, 0);
+    const d = 0.5 + Math.max(PART.w, PART.d, PART.h * 1.5, 0.1) * 2.4;
+    // Look from the side away from the robot, so the arm works towards the camera instead of blocking it.
+    const away = new THREE.Vector3(p.x - focus * CELL_SPACING, 0, p.z);
+    if (away.lengthSq() < 1e-4) away.set(0, 0, 1);
+    away.normalize();
+    const side = new THREE.Vector3(-away.z, 0, away.x);
+    return [p.clone().addScaledVector(away, d * 0.82).addScaledVector(side, d * 0.38).add(new THREE.Vector3(0, d * 0.62, 0)), p];
+  }
+
   function setView(name) {
     currentView = name;
+    // Signs would cover the product in a close-up.
+    scene.traverse((o) => o.isSprite && o !== hoverRing && (o.visible = name !== "product"));
+    if (name === "product" && cells.length) {
+      const [pos, at] = productView();
+      camera.position.copy(pos);
+      controls.target.copy(at);
+      controls.update();
+      return;
+    }
     const span = (cells.length - 1) * CELL_SPACING;
     const cx = span / 2;
     const k = 1 + span / 5;
@@ -2776,6 +2935,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       holding: f.holding,
       unreachable: [...unreachable],
       events: events.slice(),
+      product: kit ? { key: kit.info.key, label: kit.info.label, kg: kit.info.kg, size: kit.info.size, gripper: TOOL_LOOK_NAMES[kit.info.look] || kit.info.look } : null,
+      tools: lineTools,
       cells: cells.map((c) => ({
         title: c.title,
         stepIndex: c.stepIdx,
@@ -2873,7 +3034,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           paint: r ? brandPaint(r.brand || r.name, r.collaborative) : null,
           label: r ? [r.name, r.payloadKg ? `${r.payloadKg} kg` : "", reachM ? `${Math.round(reachM * 1000)} mm` : ""].filter(Boolean).join(" · ") : eq.eoat ? eq.eoat.name : "",
           eoat: eq.eoat ? eq.eoat.kind || eoatKind(eq.eoat.name) : null,
+          look: eq.eoat ? eoatLook(eq.eoat.name) : null,
           tools: (eq.tools || []).map((t) => t.kind || eoatKind(t.name)),
+          looks: (eq.tools || []).map((t) => eoatLook(t.name)),
           hasRobot: !!r,
           reachM: reachM,
           accessories: eq.accessories || [],
@@ -2939,11 +3102,15 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       clearReference();
       clearFence();
       disposeLine();
+      if (kit) kit.dispose();
+      toolKit.dispose();
+      addOnMats.forEach((m) => m.dispose());
       hoverRing.geometry.dispose();
       hoverMat.dispose();
       controls.dispose();
       if (envTexture) envTexture.dispose();
       floorTex.dispose();
+      sceneTextures.forEach((t) => t.dispose());
       building.traverse((o) => {
         if (o.geometry) o.geometry.dispose();
         if (o.material) o.material.dispose();

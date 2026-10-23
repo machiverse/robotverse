@@ -144,7 +144,7 @@ export default function CellBuilder() {
   const stageBoxRef = useRef<HTMLElement>(null);
   const [overStage, setOverStage] = useState(false);
   const [playing, setPlaying] = useState(true);
-  const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle"> | null>(null);
+  const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle" | "product"> | null>(null);
   const lastEmit = useRef(0);
   const cellCount = useRef(0);
   const [reportOpen, setReportOpen] = useState(false);
@@ -211,7 +211,7 @@ export default function CellBuilder() {
         const now = performance.now();
         if (now - lastEmit.current < 250) return;
         lastEmit.current = now;
-        setSim({ cells: u.cells, currentCycle: u.currentCycle });
+        setSim({ cells: u.cells, currentCycle: u.currentCycle, product: u.product });
       },
     });
     simRef.current = s;
@@ -990,11 +990,16 @@ export default function CellBuilder() {
               </option>
             ))}
           </select>
-          {(["iso", "front", "top"] as const).map((v) => (
+          {(["iso", "front", "top", "product"] as const).map((v) => (
             <Button key={v} size="sm" variant="secondary" onClick={() => simRef.current?.setView(v)}>
-              {v === "iso" ? "3D" : v[0].toUpperCase() + v.slice(1)}
+              {v === "iso" ? "3D" : v === "product" ? "Close-up" : v[0].toUpperCase() + v.slice(1)}
             </Button>
           ))}
+          {sim?.product && cells.some((c) => c.job) && (
+            <span className="hidden truncate rounded-md border border-border bg-background/90 px-2 py-1 text-xs md:inline" title={`Workpiece: ${sim.product.label}`}>
+              Workpiece: <b className="font-medium">{sim.product.label}</b>
+            </span>
+          )}
           <Button size="sm" variant={showLine ? "default" : "secondary"} className="ml-auto hidden lg:inline-flex" onClick={() => setShowLine((v) => !v)} aria-pressed={showLine}>
             Your line ({cells.length}) <PanelRight className="ml-1 h-3.5 w-3.5" />
           </Button>

@@ -10,7 +10,8 @@
  */
 
 import type { ProcessCard } from "@/data/automationStudioIndustries";
-import { processKind, type ProcessKind } from "./processProfiles";
+import { machineFor } from "./cellProgram";
+import { PROCESS_HEAD, processKind, type ProcessKind } from "./processProfiles";
 import { stepLabel, type SimPlan, type SimStep } from "./robotSim";
 
 export interface RobotSkill {
@@ -143,10 +144,20 @@ function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean): SimSte
         offTable();
         steps.push(step("place", "weld", "Load welding fixture"), step("weld", "weld", t.name), step("pick", "weld", "Unload welding fixture"));
         break;
-      case "cnc":
+      case "cnc": {
+        // A head the robot carries (drill, blade, router, hemming roller) works on a fixtured part;
+        // a CNC machine, press or moulding machine is loaded and unloaded.
+        if (PROCESS_HEAD.test(t.name)) {
+          if (!onTable) steps.push(step("place", "table"));
+          onTable = true;
+          steps.push({ action: "finish", station: "table", label: t.name, text: t.name });
+          break;
+        }
         offTable();
-        steps.push(step("place", "cnc"), step("process", "cnc", t.name), step("pick", "cnc"));
+        const m = machineFor(t.name, t.kind) ?? "cnc";
+        steps.push(step("place", m), step("process", m, t.name), step("pick", m));
         break;
+      }
       case "inspect":
         offTable();
         steps.push(step("inspect", "vision", t.name));

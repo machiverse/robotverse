@@ -46,7 +46,13 @@ type SimState = {
   events: { t: number; msg: string }[];
   focus?: number;
   cells?: { title: string; stepIndex: number; step: Step | null; cycles: number }[];
+  product?: { label: string; kg: number; size: [number, number, number]; gripper: string } | null;
+  tools?: string[];
 };
+
+/** "300 × 240 × 220 mm" (length × width × height). */
+const mmSize = ([w, h, d]: [number, number, number]) => `${Math.round(w * 1000)} × ${Math.round(d * 1000)} × ${Math.round(h * 1000)} mm`;
+const weight = (kg: number) => (kg >= 1 ? `${+kg.toFixed(1)} kg` : `${Math.round(kg * 1000)} g`);
 
 /** Whole-factory descriptions: the planner splits them into several robots. */
 const LINE_EXAMPLES: Record<string, string> = {
@@ -81,6 +87,7 @@ const loadCatalog = () =>
 
 const VIEWS: [string, string][] = [
   ["iso", "3D"],
+  ["product", "Close-up"],
   ["front", "Front"],
   ["side", "Side"],
   ["top", "Top"],
@@ -146,6 +153,13 @@ export default function AutomationStudio3D({
   const [focus, setFocus] = useState(0);
   const [catalog, setCatalog] = useState<DirectoryRobot[]>([]);
   const [description, setDescription] = useState<string | undefined>(initialDescription);
+  // The user's own words, for the 3D line's real product (mangoes, cement bags…). A ref as well, because a line is
+  // planned in the same handler that sets the brief.
+  const briefRef = useRef<string | undefined>(initialDescription);
+  const setBrief = (d: string | undefined) => {
+    briefRef.current = d;
+    setDescription(d);
+  };
   const [reportOpen, setReportOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [allTemplates, setAllTemplates] = useState(false);
@@ -290,7 +304,7 @@ export default function AutomationStudio3D({
 
   function openSpecial(desc?: string) {
     simRef.current?.pause();
-    if (desc) setDescription(desc);
+    if (desc) setBrief(desc);
     setSpecial(true);
   }
 
@@ -365,7 +379,7 @@ export default function AutomationStudio3D({
     setAllTemplates(false);
     setSteps(p.robots[f]?.steps || []);
     setNotes(planNotes);
-    simRef.current?.setPlan(p.sim);
+    simRef.current?.setPlan({ ...p.sim, brief: briefRef.current });
     // Industrial robots work behind a fence; a cobot-only line does not need one.
     simRef.current?.setFencing(p.robots.map((r) => !r.collaborative));
     simRef.current?.setFocus(f);
@@ -375,7 +389,7 @@ export default function AutomationStudio3D({
 
   function restart() {
     if (plan) {
-      simRef.current?.setPlan(plan.sim);
+      simRef.current?.setPlan({ ...plan.sim, brief: briefRef.current });
       simRef.current?.setFocus(focus);
     } else simRef.current?.setSteps(steps);
     simRef.current?.play();
@@ -393,7 +407,7 @@ export default function AutomationStudio3D({
     // only the tasks it names are extracted and a robot line is planned for them.
     const isStepList = /\n|->|→/.test(src.trim());
     if (!isStepList && src.trim()) {
-      setDescription(src.trim());
+      setBrief(src.trim());
       if (matchTemplateIds(src).includes("concrete3dp")) openSpecial(src.trim());
       else if (matchTemplateIds(src).length > 0) runLine(analyzeDescription(src, null));
       else {
@@ -405,7 +419,7 @@ export default function AutomationStudio3D({
       }
       return;
     }
-    setDescription(undefined);
+    setBrief(undefined);
     setPlan(null);
     setLineInput(null);
     simRef.current?.setFencing(false);
@@ -424,7 +438,7 @@ export default function AutomationStudio3D({
     setReference(frames[0]);
     const words = r.description || r.summary;
     if (words) setText(words);
-    setDescription(words || undefined);
+    setBrief(words || undefined);
     const procs = processesFromSkills(r.tasks);
     if (procs.length) runLine(procs);
     else build(words || "pick and place");
@@ -435,6 +449,8 @@ export default function AutomationStudio3D({
     const sentence = `Robot line: ${names.join(", then ")}.`;
     setText(sentence);
     setDescription(sentence);
+    // Built from job blocks, not the user's words: the jobs name the product.
+    briefRef.current = undefined;
     const procs = processesFromSkills(names);
     if (procs.length) runLine(procs);
   }
@@ -985,6 +1001,45 @@ export default function AutomationStudio3D({
               ))}
             </div>
           </Panel>
+          {state?.product && (
+            <Panel title="Workpiece & tools">
+              <dl className="divide-y divide-border text-[13px]">
+                {[
+                  ["Product", state.product.label],
+                  ["Size", mmSize(state.product.size)],
+                  ["Weight", weight(state.product.kg)],
+                  ["Gripper", state.product.gripper],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-baseline justify-between gap-3 py-1.5">
+                    <dt className="text-muted-foreground">{k}</dt>
+                    <dd className="text-right font-medium">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              {(state.tools?.length ?? 0) > 1 && (
+                <>
+                  <p className="mt-2 text-[11px] text-muted-foreground">Process tools in this line</p>
+                  <ul className="mt-1 flex flex-wrap gap-1">
+                    {state.tools!.slice(1).map((t) => (
+                      <li key={t} className="rounded border border-border bg-background px-1.5 py-0.5 text-[11px]">
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setView("product");
+                  simRef.current?.setView("product");
+                }}
+                className="mt-2 text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                See it close up
+              </button>
+            </Panel>
+          )}
           <Panel title="Reach check">
             <div
               className={cn(
