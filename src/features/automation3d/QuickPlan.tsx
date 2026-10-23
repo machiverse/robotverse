@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Bot, MessageSquare, Sparkles, Wrench } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { BevelBox } from "@/components/console/ConsoleUI";
 import LeadDialog from "@/components/leads/LeadDialog";
 import { pushEvent } from "@/lib/analytics";
 import { inr, type AiSolution } from "./aiSolution";
 import { engineSolution } from "./solutionEngine";
+import { Eyebrow, KitButton, Readouts } from "./StudioKit";
 
 const EXAMPLES = [
   "Weld 12 kg steel brackets with MIG, 2 shifts, 400 parts a day",
@@ -34,99 +32,120 @@ export default function QuickPlan({ onSignIn }: { onSignIn: () => void }) {
     pushEvent("studio_quick_plan", { stations: solution.stations.length });
   };
 
+  const out = plan?.provider?.feasibility.filter((x) => x.status !== "ok").slice(0, 3) ?? [];
+
   return (
-    <Card>
-      <CardContent className="space-y-4 p-5">
-        <div>
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <Sparkles className="h-5 w-5 text-primary" /> Free quick plan — no sign-in
-          </h2>
-          <p className="text-sm text-muted-foreground">Describe the job: the part, its weight, how many a day. You get the stations, robot types and a budget range at once.</p>
-        </div>
-        <Textarea rows={3} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder={EXAMPLES[0]} aria-label="Describe the job to automate" />
-        <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => run()} disabled={brief.trim().length < 8}>
-            Show my free plan <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-          {EXAMPLES.map((x) => (
-            <button key={x} type="button" onClick={() => run(x)} className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-primary hover:text-primary">
-              {x.split(",")[0]}
-            </button>
+    <BevelBox cut={14} innerClassName="p-5 sm:p-6">
+      <Eyebrow label="Free quick plan · no sign-in" />
+      <label htmlFor="quick-plan-brief" className="mt-4 block text-lg font-semibold leading-snug">
+        What does the job look like today?
+      </label>
+      <p className="mt-1 text-sm text-muted-foreground">The part, its weight, the steps and how many a day.</p>
+      <Textarea
+        id="quick-plan-brief"
+        rows={3}
+        value={brief}
+        onChange={(e) => setBrief(e.target.value)}
+        placeholder={EXAMPLES[0]}
+        aria-label="Describe the job to automate"
+        className="mt-3 resize-none rounded-none text-base sm:text-sm"
+      />
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3">
+        <KitButton onClick={() => run()} disabled={brief.trim().length < 8}>
+          Show my free plan
+        </KitButton>
+        <p className="text-xs text-muted-foreground">
+          Or try:{" "}
+          {EXAMPLES.map((x, i) => (
+            <span key={x}>
+              {i > 0 && " · "}
+              <button type="button" onClick={() => run(x)} className="text-foreground underline decoration-border underline-offset-4 transition-colors duration-150 hover:text-primary hover:decoration-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                {x.split(",")[0]}
+              </button>
+            </span>
           ))}
-        </div>
-        {plan && (
-          <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4" aria-live="polite">
-            <div className="flex flex-wrap items-center gap-2">
-              <b>{plan.title}</b>
-              <Badge variant="secondary">Feasibility: {plan.feasibility}</Badge>
-              <Badge variant="outline">{plan.stations.length} station{plan.stations.length === 1 ? "" : "s"}</Badge>
-            </div>
-            <ol className="space-y-2 text-sm">
-              {plan.stations.map((s, i) => (
-                <li key={`${s.name}-${i}`} className="flex gap-2">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">{i + 1}</span>
-                  <span>
-                    <b>{s.name}</b> — <span className="text-muted-foreground">{s.equipment}</span>
-                    <span className="block text-xs text-muted-foreground">
-                      <Bot className="mr-1 inline h-3 w-3" />
-                      {s.payload_kg ? `${s.payload_kg} kg payload` : "payload to confirm"}
-                      {s.reach_mm ? ` · ${s.reach_mm} mm reach` : ""} · <Wrench className="mx-1 inline h-3 w-3" />
-                      {s.tooling}
-                      {s.cycle_s ? ` · about ${s.cycle_s} s a cycle` : ""}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-            {(plan.budget_inr.low || plan.budget_inr.high) && (
-              <p className="text-sm">
-                <b>Budget range:</b> {plan.budget_inr.low ? inr(plan.budget_inr.low) : "—"} – {plan.budget_inr.high ? inr(plan.budget_inr.high) : "—"}
-                {plan.roi.payback_months ? <span className="text-muted-foreground"> · payback about {plan.roi.payback_months.replace(/\s*months?$/, "")} months</span> : null}
-              </p>
-            )}
-            {plan.thinking && (
-              <div className="space-y-1 text-sm">
-                <p>
-                  <b>Best approach:</b> {plan.thinking.decision.pick} <span className="text-muted-foreground">— {plan.thinking.decision.why}</span>
-                </p>
-                {plan.thinking.fmea[0] && (
-                  <p className="text-xs text-muted-foreground">
-                    <b className="text-foreground">Biggest risk:</b> {plan.thinking.fmea[0].mode.toLowerCase()} — {plan.thinking.fmea[0].action}
-                  </p>
-                )}
-              </div>
-            )}
-            {plan.provider && (
-              <div className="text-sm">
-                <p className={plan.provider.pocFirst ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}>{plan.provider.pocWhy}</p>
-                {plan.provider.feasibility.filter((x) => x.status !== "ok").length > 0 && (
-                  <ul className="mt-1 list-disc pl-5 text-xs text-muted-foreground">
-                    {plan.provider.feasibility
-                      .filter((x) => x.status !== "ok")
-                      .slice(0, 4)
-                      .map((x) => (
-                        <li key={x.factor}>
-                          <b className="text-foreground">{x.factor}:</b> {x.note}
-                        </li>
-                      ))}
-                  </ul>
-                )}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">A first plan from RobotVerse's built-in engine — an engineer checks it before any quote.</p>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={onSignIn}>
-                Sign in for the full plan, layout and 3D cell <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button variant="outline" onClick={() => setTalk(true)}>
-                <MessageSquare className="mr-2 h-4 w-4" /> Talk to an engineer
-              </Button>
-              <Button variant="ghost" asChild>
-                <Link to="/automation-studio/build">Build the cell yourself</Link>
-              </Button>
-            </div>
+        </p>
+      </div>
+
+      {plan && (
+        <div className="mt-6 border-t border-border pt-5" aria-live="polite">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="font-semibold leading-snug">{plan.title}</p>
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Feasibility {plan.feasibility}</span>
           </div>
-        )}
+          <Readouts
+            className="mt-3"
+            cols={3}
+            text
+            items={[
+              { label: "Stations", value: `${plan.stations.length}` },
+              { label: "Budget", value: plan.budget_inr.low || plan.budget_inr.high ? `${plan.budget_inr.low ? inr(plan.budget_inr.low) : "—"} – ${plan.budget_inr.high ? inr(plan.budget_inr.high) : "—"}` : "On quotation" },
+              { label: "Payback", value: plan.roi.payback_months ? `${plan.roi.payback_months.replace(/\s*months?$/, "")} months` : "—" },
+            ]}
+          />
+          <ol className="mt-4 border-t border-border">
+            {plan.stations.map((s, i) => (
+              <li key={`${s.name}-${i}`} className="grid grid-cols-[2rem_1fr] gap-x-2 border-b border-border py-2.5 text-sm">
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                <span className="min-w-0">
+                  <span className="font-medium">{s.name}</span>
+                  <span className="text-muted-foreground"> — {s.equipment}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {s.payload_kg ? `${s.payload_kg} kg payload` : "payload to confirm"}
+                    {s.reach_mm ? ` · ${s.reach_mm} mm reach` : ""} · {s.tooling}
+                    {s.cycle_s ? ` · about ${s.cycle_s} s a cycle` : ""}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          {plan.thinking && (
+            <dl className="mt-4 space-y-2 text-sm">
+              <div className="grid gap-1 sm:grid-cols-[7.5rem_1fr]">
+                <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Best approach</dt>
+                <dd>
+                  <span className="font-medium">{plan.thinking.decision.pick}</span> <span className="text-muted-foreground">— {plan.thinking.decision.why}</span>
+                </dd>
+              </div>
+              {plan.thinking.fmea[0] && (
+                <div className="grid gap-1 sm:grid-cols-[7.5rem_1fr]">
+                  <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Biggest risk</dt>
+                  <dd>
+                    <span className="font-medium">{plan.thinking.fmea[0].mode}</span> <span className="text-muted-foreground">— {plan.thinking.fmea[0].action}</span>
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
+          {plan.provider && (
+            <div className="mt-4 text-sm">
+              <p className={plan.provider.pocFirst ? "text-warning" : "text-muted-foreground"}>{plan.provider.pocWhy}</p>
+              {out.length > 0 && (
+                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  {out.map((x) => (
+                    <li key={x.factor} className="flex gap-2">
+                      <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 bg-warning" />
+                      <span>
+                        <span className="text-foreground">{x.factor}:</span> {x.note}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          <p className="mt-4 text-xs text-muted-foreground">A first plan from RobotVerse's built-in engine — an engineer checks it before any quote.</p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <KitButton onClick={onSignIn}>Sign in for the full plan and 3D line</KitButton>
+            <KitButton variant="outline" onClick={() => setTalk(true)}>
+              Talk to an engineer
+            </KitButton>
+            <Link to="/automation-studio/build" className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 transition-colors duration-150 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              Build it yourself
+            </Link>
+          </div>
+        </div>
+      )}
         <LeadDialog
           open={talk}
           onOpenChange={setTalk}
@@ -146,7 +165,6 @@ export default function QuickPlan({ onSignIn }: { onSignIn: () => void }) {
           }
           action="Request a call"
         />
-      </CardContent>
-    </Card>
+    </BevelBox>
   );
 }

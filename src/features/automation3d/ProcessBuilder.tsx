@@ -206,7 +206,8 @@ export default function ProcessBuilder({ onBuild }: { onBuild: (names: string[])
           />
         </label>
         {shown.length === 0 && <p className="text-[11px] text-muted-foreground">No job matches “{find}”.</p>}
-        <div className="space-y-1.5">
+        {/* 151 jobs: a scrolling list, so the line below stays in view (search narrows it). */}
+        <div className="max-h-72 space-y-1.5 overflow-y-auto overscroll-contain pr-1">
           {GROUPS.filter((g) => shown.some((b) => b.group === g)).map((g) => (
             <div key={g}>
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{g}</p>

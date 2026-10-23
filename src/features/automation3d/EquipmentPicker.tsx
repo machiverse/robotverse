@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AiStation } from "./aiSolution";
 import { inr } from "./aiSolution";
+import { Eyebrow } from "./StudioKit";
 import { imageCandidates } from "@/components/directory/directoryTypes";
 import {
   loadDirectoryRobots, loadDirectoryTools, loadMarketRobots, loadMarketTools,
@@ -103,19 +104,15 @@ export default function EquipmentPicker({
   };
 
   return (
-    <section aria-label="Choose robots and tooling" className="rounded-lg border border-border">
-      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-border p-4">
-        <div>
-          <h3 className="flex items-center gap-2 text-base font-semibold">
-            <Bot className="h-4 w-4 text-primary" aria-hidden /> Choose your robots & tooling
-          </h3>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Every option is matched to the station: payload with margin, reach, application and robot type. Buy from a RobotVerse seller, or direct from the OEM.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1"><Store className="h-3.5 w-3.5 text-emerald-500" aria-hidden /> RobotVerse marketplace</span>
-          <span className="inline-flex items-center gap-1"><Factory className="h-3.5 w-3.5 text-sky-500" aria-hidden /> Direct from OEM</span>
+    <section aria-label="Choose robots and tooling">
+      <Eyebrow index={String(stations.length).padStart(2, "0")} label="Choose your robots & tooling" />
+      <header className="mt-3 flex flex-wrap items-end justify-between gap-3">
+        <p className="max-w-[65ch] text-sm text-muted-foreground">
+          Every option is matched to the station: payload with margin, reach, application and robot type. Buy from a RobotVerse seller, or direct from the OEM.
+        </p>
+        <div className="flex flex-wrap items-center gap-4 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5"><Store className="h-3.5 w-3.5" aria-hidden /> RobotVerse marketplace</span>
+          <span className="inline-flex items-center gap-1.5"><Factory className="h-3.5 w-3.5" aria-hidden /> Direct from OEM</span>
         </div>
       </header>
 
@@ -124,17 +121,17 @@ export default function EquipmentPicker({
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Matching robots and tooling from the marketplace and the OEM directory…
         </p>
       ) : (
-        <ol className="divide-y divide-border">
+        <ol className="mt-4 divide-y divide-border border-y border-border">
           {stations.map((st, i) => {
             const m = matches[i];
             return (
-              <li key={i} className="p-4">
+              <li key={i} className="py-5">
                 <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-medium">
-                    <span className="mr-1.5 font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                  <p className="font-semibold">
+                    <span className="mr-2 font-mono text-[11px] font-normal tabular-nums text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
                     {st.name}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
                     Needs ≥ {m.need.payload} kg{m.need.reach ? ` · ~${m.need.reach} mm reach` : ""}
                     {m.need.cobot ? " · cobot" : ""}
                     {m.need.robotType ? ` · ${m.need.robotType}` : ""}
@@ -151,7 +148,7 @@ export default function EquipmentPicker({
                   />
                   <div className="min-w-0 space-y-2">
                   {m.need.payload > 30 && ["handling", "palletizing", "machining", "transport", "packing"].includes(m.need.kind) && (
-                    <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-muted-foreground">
+                    <p className="border-l-2 border-warning bg-warning/5 p-2 text-xs text-muted-foreground">
                       Heavy load: most catalogue grippers are rated below 20–25 kg. A heavy-duty
                       {st.tooling ? ` ${st.tooling.split(/[,(]/)[0].trim().toLowerCase()}` : " gripper"} is usually built to order by the integrator — the options below suit lighter parts.
                     </p>
@@ -215,20 +212,23 @@ function Column({
   const [tab, setTab] = useState<Source>(options.market.length ? "market" : "oem");
   const list = options[tab];
   return (
-    <div className="min-w-0 rounded-md border border-border">
+    <div className="min-w-0 border border-border">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
         <p className="flex min-w-0 items-center gap-1.5 text-xs font-medium">
           {icon}
           <span className="truncate">{title}</span>
         </p>
-        <div className="flex overflow-hidden rounded border border-border text-[11px]" role="tablist">
+        <div className="flex border border-border font-mono text-[10px] uppercase tracking-[0.1em]" role="tablist">
           {(["market", "oem"] as Source[]).map((s) => (
             <button
               key={s}
               role="tab"
               aria-selected={tab === s}
               onClick={() => setTab(s)}
-              className={cn("px-2 py-1", tab === s ? "bg-primary text-primary-foreground" : "hover:bg-muted")}
+              className={cn(
+                "px-2 py-1 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+                tab === s ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
             >
               {s === "market" ? `Marketplace (${options.market.length})` : `OEM (${options.oem.length})`}
             </button>

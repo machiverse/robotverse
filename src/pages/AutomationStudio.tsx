@@ -7,8 +7,6 @@ import StudioChooser from "@/components/automation/StudioChooser";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -20,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Sparkles,
   Upload,
   X,
   FileText,
@@ -29,25 +26,8 @@ import {
   File as FileIcon,
   Loader2,
   Check,
-  Bot,
-  Layers,
-  LayoutGrid,
-  ArrowRight,
   ArrowLeft,
-  ShoppingCart,
-  Download,
-  MessageSquare,
-  TrendingUp,
-  Wallet,
-  Clock,
-  ShieldCheck,
-  Gauge,
-  HardHat,
-  Cable,
-  Play,
-  Pause,
   Box,
-  Maximize2,
   RotateCcw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -57,11 +37,8 @@ import { pushEvent } from "@/lib/analytics";
 import {
   INDUSTRIES,
   buildInventory,
-  buildStats,
   getBlueprint,
 } from "@/data/automationStudioIndustries";
-import { FactoryLayoutSvg } from "@/components/automation-studio/StudioVisualizations";
-import type { VisualStation } from "@/components/automation-studio/visualTypes";
 
 const RobotCell3D = lazy(() => import("@/features/automation3d/AutomationStudio3D"));
 import { processKind, PROCESS_PROFILES } from "@/features/automation3d/processProfiles";
@@ -76,6 +53,8 @@ import EquipmentPicker from "@/features/automation3d/EquipmentPicker";
 import { proposalHtml, proposalSummary } from "@/features/automation3d/studioProposal";
 import LeadDialog from "@/components/leads/LeadDialog";
 import QuickPlan from "@/features/automation3d/QuickPlan";
+import { BevelBox, ConsoleButton, ConsoleLink } from "@/components/console/ConsoleUI";
+import { Eyebrow, KitButton, Readouts } from "@/features/automation3d/StudioKit";
 
 const simLink = (text: string, title?: string) =>
   `/automation-studio/3d?process=${encodeURIComponent(text)}${title ? `&title=${encodeURIComponent(title)}` : ""}`;
@@ -100,10 +79,10 @@ const ANALYSIS_MESSAGES = [
 ];
 
 const ROI_CARDS = [
-  { icon: TrendingUp, field: "throughput" as const, label: "Throughput Increase" },
-  { icon: Wallet, field: "labor" as const, label: "Labor Cost Reduction" },
-  { icon: Clock, field: "payback" as const, label: "Estimated Payback" },
-  { icon: ShieldCheck, field: "defect" as const, label: "Target Defect Rate" },
+  { field: "throughput" as const, label: "Throughput increase" },
+  { field: "labor" as const, label: "Labour cost reduction" },
+  { field: "payback" as const, label: "Estimated payback" },
+  { field: "defect" as const, label: "Target defect rate" },
 ];
 
 /* --------------------------------- helpers -------------------------------- */
@@ -132,63 +111,53 @@ const ACCEPT = ".jpg,.jpeg,.png,.webp,.mp4,.mov,.webm,.pdf,.doc,.docx";
 
 /* ------------------------------ step indicator ---------------------------- */
 
-const StepIndicator = ({ step }: { step: number }) => (
-  <div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
+/** One rail of four numbered steps; finished steps can be opened again. */
+const StepIndicator = ({ step, onStep }: { step: number; onStep: (n: number) => void }) => (
+  <ol className="flex border-b border-border" aria-label="Progress">
     {STEPS.map((label, i) => {
       const n = i + 1;
       const done = step > n;
       const active = step === n;
-      return (
-        <div key={label} className="flex items-center gap-2">
-          <div
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold",
-              done && "border-emerald-500 bg-emerald-500 text-white",
-              active && "border-primary bg-primary text-primary-foreground",
-              !done && !active && "border-border bg-muted text-muted-foreground",
-            )}
-          >
-            {done ? <Check className="h-4 w-4" /> : n}
-          </div>
+      // The analysis step (2) runs on its own; the others can be revisited once reached.
+      const reachable = done && n !== 2;
+      const body = (
+        <>
           <span
-            className={cn(
-              "hidden text-xs font-medium sm:inline",
-              active ? "text-foreground" : "text-muted-foreground",
-            )}
-          >
+            aria-hidden
+            className={cn("absolute inset-x-0 -bottom-px h-0.5 transition-colors duration-150", active ? "bg-primary" : done ? "bg-foreground/40" : "bg-transparent")}
+          />
+          <span className={cn("font-mono text-[11px] tabular-nums", active ? "text-primary" : "text-muted-foreground")}>
+            {done ? <Check className="inline h-3.5 w-3.5 align-[-2px]" aria-label="done" /> : String(n).padStart(2, "0")}
+          </span>
+          <span className={cn("truncate font-mono text-[11px] uppercase tracking-[0.14em]", active ? "text-foreground" : "text-muted-foreground", !active && "hidden sm:inline")}>
             {label}
           </span>
-          {n < STEPS.length && <span className={cn("h-px w-4 sm:w-10 lg:w-20", done ? "bg-emerald-500" : "bg-border")} />}
-        </div>
+        </>
+      );
+      return (
+        <li key={label} className={cn("min-w-0", active ? "flex-1" : "shrink-0 sm:flex-1")}>
+          {reachable ? (
+            <button
+              type="button"
+              onClick={() => onStep(n)}
+              className="relative flex w-full min-w-0 items-center gap-2.5 py-3 pl-1 pr-3 text-left transition-colors duration-150 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            >
+              {body}
+            </button>
+          ) : (
+            <div className="relative flex min-w-0 items-center gap-2.5 py-3 pl-1 pr-3" aria-current={active ? "step" : undefined}>
+              {body}
+            </div>
+          )}
+        </li>
       );
     })}
-  </div>
+  </ol>
 );
 
 const StepShell = ({ children }: { children: React.ReactNode }) => (
   <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">{children}</div>
 );
-
-/* ------------------------------ visual preview ---------------------------- */
-
-const PREVIEW_STATIONS = [
-  "S1 Loading",
-  "S2 Welding",
-  "S3 Finishing",
-  "S4 Inspection",
-  "S5 Palletizing",
-  "S6 Transport",
-];
-
-const previewVisualStations: VisualStation[] = PREVIEW_STATIONS.map((label, index) => ({
-  label,
-  eoat: ["Vacuum Gripper", "Welding Torch", "Grinding Head", "Vision Camera", "Pallet Fork", "AMR Deck"][index],
-  cycle: index === 1 ? "2.5 min" : `${3 + index} min`,
-  automation: index === 2 || index === 5 ? "semi" : "full",
-  model: ["KUKA KR 120", "ABB IRB 2600", "Kawasaki RS020N", "Yaskawa GP12", "FANUC M-410iC", "AMR 1500"][index],
-  payload: ["120 kg", "15 kg", "20 kg", "12 kg", "315 kg", "1500 kg"][index],
-  reach: ["2700 mm", "1850 mm", "1725 mm", "1440 mm", "3143 mm", "Loop route"][index],
-}));
 
 /* ---------------------------------- page ---------------------------------- */
 
@@ -245,16 +214,6 @@ function AutomationStudioAI() {
     return analyzeDescription(description, industry);
   }, [description, industry, media, aiCurrent?.solution]);
   const inventory = buildInventory({ ...blueprint, processes });
-  const stats = buildStats({ ...blueprint, processes });
-  const stations: VisualStation[] = processes.map((process, index) => ({
-    label: inventory[index]?.station ?? process.short,
-    eoat: process.eoat[0],
-    cycle: process.cycleTimeAutomated,
-    automation: process.automation,
-    model: process.robot.model,
-    payload: process.robot.payload,
-    reach: process.robot.reach,
-  }));
   const roiCards = ROI_CARDS.map((c) => ({ ...c, value: blueprint.roi[c.field] }));
   // The end of the study: talk to an engineer, ask for a quote, or print the proposal.
   const [lead, setLead] = useState<"engineer" | "quote" | null>(null);
@@ -321,105 +280,78 @@ function AutomationStudioAI() {
   /* ---------------------------- unauthenticated ---------------------------- */
 
   if (!user) {
+    const signIn = "/auth?redirect=" + encodeURIComponent("/automation-studio?mode=ai");
     return (
       <div className="min-h-screen bg-background">
         <EnhancedHeader />
         <main>
-          <section className="border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
-            <div className="container mx-auto grid gap-8 px-4 py-12 lg:grid-cols-[1fr_auto] lg:items-center">
-              <div>
-                <Badge variant="secondary" className="mb-4 gap-1">
-                  <Sparkles className="h-3 w-3" /> AI + 3D simulation
-                </Badge>
-                <h1 className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">Automation Studio</h1>
-                <p className="mt-3 max-w-[60ch] text-base text-muted-foreground sm:text-lg">
-                  Upload or describe your factory process. Get every station matched to a robot and tooling, a factory
-                  layout, ROI, and a live 3D robot cell that runs your process before you buy anything.
+          {/* Value first: the free plan is the hero; sign-in comes after the visitor has seen it work. */}
+          <section className="border-b border-border">
+            {/* Phones: headline, then the free plan, then the details. Wide screens: plan on the right. */}
+            <div className="container mx-auto grid gap-8 px-4 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10 lg:gap-y-0 lg:py-16">
+              <div className="lg:col-start-1 lg:row-start-1">
+                <Eyebrow index="002" label="Describe your job" />
+                <h1 className="mt-6 max-w-[16ch] text-balance text-4xl font-semibold uppercase leading-[1.02] tracking-[-0.02em] md:text-[52px]">
+                  A robot cell plan for your job
+                </h1>
+                <p className="mt-4 max-w-[52ch] text-base leading-relaxed text-muted-foreground md:text-lg">
+                  Describe the work in plain words. The studio sizes every robot and tool, checks safety and payback, and builds the line in 3D.
                 </p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Button size="lg" onClick={() => navigate("/auth?redirect=" + encodeURIComponent("/automation-studio?mode=ai"))}>
-                    Sign In to Analyze My Process <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                  <Button size="lg" variant="outline" asChild>
-                    <Link to="/automation-studio/3d">
-                      <Box className="mr-2 h-4 w-4" /> Try the 3D Simulator
-                    </Link>
-                  </Button>
-                </div>
               </div>
-              <div className="grid grid-cols-3 gap-3 text-center lg:w-[360px]">
-                {[
-                  ["13", "process types simulated"],
-                  ["6-axis", "robot with live IK"],
-                  ["Free", "no install needed"],
-                ].map(([v, l]) => (
-                  <div key={l} className="rounded-lg border border-border bg-card p-3">
-                    <p className="text-xl font-bold text-foreground">{v}</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{l}</p>
-                  </div>
-                ))}
+              <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
+                <QuickPlan onSignIn={() => navigate(signIn)} />
+              </div>
+              <div className="lg:col-start-1 lg:row-start-2">
+                <ol className="max-w-md border-t border-border lg:mt-8">
+                  {["Stations, robot sizes and tools", "Safety level, layout and risks", "Budget, payback and a live 3D line"].map((x, i) => (
+                    <li key={x} className="flex items-baseline gap-4 border-b border-border py-3 text-sm">
+                      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                      {x}
+                    </li>
+                  ))}
+                </ol>
+                <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+                  <ConsoleLink to={signIn}>Sign in for the full plan</ConsoleLink>
+                  <ConsoleLink to="/automation-studio/build">Build a cell yourself</ConsoleLink>
+                </div>
               </div>
             </div>
           </section>
 
-          {/* Value before sign-in: a free plan for the visitor's own job. */}
-          <section className="container mx-auto px-4 pt-10">
-            <QuickPlan onSignIn={() => navigate("/auth?redirect=" + encodeURIComponent("/automation-studio?mode=ai"))} />
-          </section>
-
-          <section className="container mx-auto px-4 py-10">
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <section className="container mx-auto px-4 py-14">
+            <Eyebrow index="003" label="Live demo" />
+            <div className="mt-6 mb-5 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold">Live robot cell demo</h2>
-                <p className="text-sm text-muted-foreground">
-                  Pick a template or type your own steps. The robot runs it in real time.
-                </p>
+                <h2 className="text-2xl font-semibold uppercase tracking-[-0.01em] md:text-3xl">Watch a robot cell run</h2>
+                <p className="mt-2 max-w-[60ch] text-sm text-muted-foreground">Pick a job or type your own steps. The robot plans and runs it in real time.</p>
               </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/automation-studio/3d">
-                  <Maximize2 className="mr-2 h-4 w-4" /> Full screen
-                </Link>
-              </Button>
+              <ConsoleLink to="/automation-studio/3d">Full screen</ConsoleLink>
             </div>
             <Suspense fallback={<SimFallback />}>
               <RobotCell3D variant="embedded" initialProcess={PRESETS["Painting"]} />
             </Suspense>
           </section>
 
-          <section className="container mx-auto px-4 pb-12">
-            <div className="grid gap-6 md:grid-cols-3">
-              {[
-                { icon: Sparkles, title: "AI Process Analysis", body: "Share photos, videos or drawings of your line and get each station broken down into automatable steps." },
-                { icon: Bot, title: "Robot & EOAT Matching", body: "Every station is matched to real robot models with payload, reach, controller and the end-of-arm tooling required." },
-                { icon: Box, title: "3D Robot Cell Simulation", body: "Watch welding, painting, polishing, assembly, filling, labeling, packing and palletizing run in a live 3D cell." },
-              ].map((f) => (
-                <Card key={f.title}>
-                  <CardHeader>
-                    <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <f.icon className="h-5 w-5" />
-                    </div>
-                    <CardTitle className="text-lg">{f.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">{f.body}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <Card className="mt-10 overflow-hidden">
-              <CardHeader>
-                <CardTitle className="text-base">Preview: generated factory layout</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FactoryLayoutSvg stations={previewVisualStations} playing speed="1" />
-              </CardContent>
-            </Card>
-
-            <div className="mt-10 text-center">
-              <Button size="lg" onClick={() => navigate("/auth?redirect=" + encodeURIComponent("/automation-studio?mode=ai"))}>
-                Sign In to Use Automation Studio
-              </Button>
+          <section className="border-t border-border">
+            <div className="container mx-auto px-4 py-14">
+              <Eyebrow index="004" label="Signed in, you also get" />
+              <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ["Photos and video", "Upload pictures of the manual work; the studio reads the steps from them."],
+                  ["The engineer's plan", "Decision matrix, motion check, line balance, ISO 13849 safety level and FMEA."],
+                  ["Real robots and tools", "Each station matched to robots and tools from the marketplace and Directory."],
+                  ["Quote and proposal", "A printable proposal, and a quote from engineers and matched sellers."],
+                ].map(([title, body], i) => (
+                  <BevelBox key={title} cut={12} innerClassName="p-5">
+                    <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                    <h3 className="mt-6 text-base font-semibold uppercase tracking-[-0.005em]">{title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
+                  </BevelBox>
+                ))}
+              </div>
+              <div className="mt-10">
+                <ConsoleButton to={signIn}>Sign in to plan your cell</ConsoleButton>
+              </div>
             </div>
           </section>
         </main>
@@ -434,51 +366,59 @@ function AutomationStudioAI() {
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
       <main className="container mx-auto max-w-[1400px] px-4 py-8">
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="flex items-center gap-2 text-3xl font-bold text-primary">
-              <Sparkles className="h-6 w-6" /> Automation Studio
+        <header className="mb-6 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div className="min-w-0">
+            <Eyebrow index="002" label="Automation Studio · plan a cell" rule={false} />
+            <h1 className="mt-4 text-3xl font-semibold uppercase leading-[1.05] tracking-[-0.02em] md:text-4xl">
+              {step === 1 ? "Describe the work" : step === 2 ? "Planning your cell" : step === 3 ? "Your automation plan" : "Your cell in 3D"}
             </h1>
-            <p className="mt-2 text-muted-foreground">
-              Upload your factory process. See the automation, robots, ROI and a live 3D robot cell before you build it.
-            </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             {step > 1 && (
-              <Button variant="outline" onClick={reset}>
-                <RotateCcw className="mr-2 h-4 w-4" /> New analysis
-              </Button>
+              <button
+                type="button"
+                onClick={reset}
+                className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden /> New analysis
+              </button>
             )}
-            <Button asChild variant={step === 1 ? "default" : "outline"}>
-              <Link to="/automation-studio/3d">
-                <Box className="mr-2 h-4 w-4" /> 3D Robot Cell Simulator
-              </Link>
-            </Button>
+            <ConsoleLink to="/automation-studio/3d">3D simulator</ConsoleLink>
           </div>
-        </div>
+        </header>
 
-        <Card className="mb-8">
-          <CardContent className="space-y-3 p-4">
-            <StepIndicator step={step} />
-            <div className="h-1 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-8">
+          <StepIndicator step={step} onStep={setStep} />
+        </div>
 
         {/* Step 1 */}
         {step === 1 && (
           <StepShell>
-            <div className="grid gap-6 lg:grid-cols-3">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-base">Upload process media</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+              <BevelBox cut={14} innerClassName="p-5 sm:p-6">
+                <Eyebrow index="01" label="The job" />
+                <label htmlFor="as-description" className="mt-5 block text-lg font-semibold leading-snug">
+                  What does the operator do today?
+                </label>
+                <p className="mt-1 max-w-[65ch] text-sm text-muted-foreground">
+                  The part and its weight, each step, and how many a day or an hour. Plain words are fine.
+                </p>
+                <Textarea
+                  id="as-description"
+                  rows={7}
+                  placeholder={blueprint.placeholder}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="mt-3 resize-y rounded-none text-base sm:text-sm"
+                />
+                <BriefAssistant value={description} onChange={setDescription} />
+
+                <div className="mt-6 border-t border-border pt-5">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Photos, video or drawings · optional</p>
                   <div
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Add photos, a video or drawings of the work"
                     onDragOver={(e) => {
                       e.preventDefault();
                       setDragging(true);
@@ -490,16 +430,19 @@ function AutomationStudioAI() {
                       addFiles(e.dataTransfer.files);
                     }}
                     onClick={() => inputRef.current?.click()}
+                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), inputRef.current?.click())}
                     className={cn(
-                      "cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors",
-                      dragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+                      "mt-3 flex cursor-pointer items-center gap-4 border border-dashed p-4 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                      dragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/60 hover:bg-muted/30",
                     )}
                   >
-                    <Upload className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-                    <p className="text-sm font-medium">Drag and drop files here, or click to browse</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Images (JPG, PNG), video (MP4) and documents (PDF, DOCX)
-                    </p>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-border text-muted-foreground">
+                      <Upload className="h-4 w-4" aria-hidden />
+                    </span>
+                    <span className="min-w-0 text-sm">
+                      <span className="font-medium">Drop files here, or click to choose</span>
+                      <span className="block text-xs text-muted-foreground">The studio reads the manual steps from photos and video · JPG, PNG, MP4, PDF, DOCX</span>
+                    </span>
                     <input
                       ref={inputRef}
                       type="file"
@@ -514,26 +457,26 @@ function AutomationStudioAI() {
                   </div>
 
                   {files.length > 0 && (
-                    <ul className="space-y-2">
+                    <ul className="mt-3 border-t border-border">
                       {files.map((f) => {
                         const Icon = fileIcon(f.file.type);
                         return (
-                          <li key={f.id} className="flex items-center gap-3 rounded-md border border-border p-2">
+                          <li key={f.id} className="flex items-center gap-3 border-b border-border py-2">
                             {f.preview ? (
-                              <img src={f.preview} alt="" className="h-10 w-10 rounded object-cover" />
+                              <img src={f.preview} alt="" className="h-10 w-10 object-cover" />
                             ) : (
-                              <div className="flex h-10 w-10 items-center justify-center rounded bg-muted text-muted-foreground">
-                                <Icon className="h-5 w-5" />
-                              </div>
+                              <span className="flex h-10 w-10 items-center justify-center bg-muted text-muted-foreground">
+                                <Icon className="h-4 w-4" />
+                              </span>
                             )}
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium">{f.file.name}</p>
-                              <p className="text-xs text-muted-foreground">{formatSize(f.file.size)}</p>
-                            </div>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-medium">{f.file.name}</span>
+                              <span className="font-mono text-[11px] text-muted-foreground">{formatSize(f.file.size)}</span>
+                            </span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0"
+                              className="h-8 w-8 p-0"
                               aria-label={`Remove ${f.file.name}`}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -549,8 +492,8 @@ function AutomationStudioAI() {
                   )}
 
                   {files.some((f) => f.file.type.startsWith("image/") || f.file.type.startsWith("video/")) && (
-                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-                      <p className="mb-2 text-sm font-medium">Let AI study your photos / video of the manual work</p>
+                    <div className="mt-4 border-l-2 border-primary bg-primary/5 p-3">
+                      <p className="mb-2 text-sm font-medium">Let the studio read the steps from your photos or video</p>
                       <MediaAnalyzer
                         files={files.map((f) => f.file)}
                         onResult={(result, frames) => {
@@ -559,61 +502,55 @@ function AutomationStudioAI() {
                           setMedia({ result, frame: frames[0], text });
                           toast({
                             title: "Photo / video analysed",
-                            description: `${result.tasks.length} robot task${result.tasks.length === 1 ? "" : "s"} found. Click "Analyze My Process" to continue.`,
+                            description: `${result.tasks.length} robot task${result.tasks.length === 1 ? "" : "s"} found. Click "Analyze my process" to continue.`,
                           });
                         }}
                       />
                     </div>
                   )}
-                  <div>
-                    <label htmlFor="as-description" className="mb-2 block text-sm font-medium">
-                      Describe your process
-                    </label>
-                    <Textarea
-                      id="as-description"
-                      rows={5}
-                      placeholder={blueprint.placeholder}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                    />
-                    <BriefAssistant value={description} onChange={setDescription} />
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </BevelBox>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Select your industry</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    {INDUSTRIES.map((ind) => (
-                      <button
-                        key={ind.key}
-                        type="button"
-                        onClick={() => setIndustry(ind.key)}
-                        aria-pressed={industry === ind.key}
-                        className={cn(
-                          "rounded-lg border p-3 text-left text-xs font-medium transition-colors",
-                          industry === ind.key
-                            ? "border-primary bg-primary/10 text-foreground"
-                            : "border-border hover:border-primary/50",
-                        )}
-                      >
-                        <span className="mb-1 block text-lg" aria-hidden="true">{ind.emoji}</span>
-                        {ind.label}
-                      </button>
-                    ))}
-                  </div>
-                  <Button
-                    className="w-full whitespace-normal min-w-fit"
+              <div className="lg:sticky lg:top-28">
+                <BevelBox cut={14} innerClassName="p-5">
+                  <Eyebrow index="02" label="Industry · optional" />
+                  <ul className="mt-4 border-t border-border" role="list">
+                    {INDUSTRIES.map((ind, i) => {
+                      const on = industry === ind.key;
+                      return (
+                        <li key={ind.key}>
+                          <button
+                            type="button"
+                            onClick={() => setIndustry(on ? null : ind.key)}
+                            aria-pressed={on}
+                            className={cn(
+                              "relative flex w-full items-center gap-3 border-b border-border py-2.5 pl-3 pr-2 text-left text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+                              on ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                            )}
+                          >
+                            <span aria-hidden className={cn("absolute inset-y-0 left-0 w-0.5", on ? "bg-primary" : "bg-transparent")} />
+                            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                            <span className="flex-1">{ind.label}</span>
+                            {on && <Check className="h-4 w-4 text-primary" aria-hidden />}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="mt-3 text-xs text-muted-foreground">Adds that industry's rules: hygiene, cleanroom, dust, heat, standards.</p>
+                  <KitButton
+                    className="mt-5 w-full [&>span]:w-full"
                     onClick={() => setStep(2)}
+                    disabled={description.trim().length < 8 && !industry}
+                    aria-describedby="analyze-hint"
                   >
-                    Analyze My Process
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
+                    Analyze my process
+                  </KitButton>
+                  <p id="analyze-hint" className="mt-2 text-xs text-muted-foreground">
+                    {description.trim().length < 8 && !industry ? "Describe the work (a sentence is enough) or choose an industry." : "Takes about ten seconds."}
+                  </p>
+                </BevelBox>
+              </div>
             </div>
           </StepShell>
         )}
@@ -621,272 +558,244 @@ function AutomationStudioAI() {
         {/* Step 2 */}
         {step === 2 && (
           <StepShell>
-            <div className="flex min-h-[340px] flex-col items-center justify-center text-center">
-              <Loader2 className="mb-6 h-10 w-10 animate-spin text-primary" />
-              <p className="text-lg font-semibold" aria-live="polite">
+            <BevelBox cut={14} className="mx-auto max-w-3xl" innerClassName="p-6 sm:p-8">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-4 w-4 animate-spin text-primary motion-reduce:animate-none" aria-hidden />
+                <Eyebrow label="Analysis log · RobotVerse solution engine + AI" />
+              </div>
+              <p className="mt-5 text-xl font-semibold leading-snug" aria-live="polite">
                 {engine?.reasoning?.length ? "Designing your automation solution…" : ANALYSIS_MESSAGES[msgIndex]}
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                This usually takes a few seconds. Please keep this page open.
-              </p>
-              <Badge variant="secondary" className="mt-4 gap-1.5">
-                <Bot className="h-3.5 w-3.5" /> RobotVerse solution engine + AI
-              </Badge>
+              <p className="mt-1 text-sm text-muted-foreground">Usually a few seconds. Keep this page open.</p>
               {engine?.reasoning?.length ? (
-                <ol className="mt-8 w-full max-w-2xl space-y-2 text-left">
+                <ol className="mt-6 border-t border-border">
                   {engine.reasoning.slice(0, Math.min(engine.reasoning.length, msgIndex * 2 + 2)).map((r, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                      <span>
+                    <li key={i} className="grid grid-cols-[2rem_1fr] gap-x-2 border-b border-border py-2.5 text-sm animate-in fade-in duration-200 motion-reduce:animate-none">
+                      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="min-w-0">
                         <span className="font-medium">{r.title}</span>
                         <span className="block text-muted-foreground">{r.detail}</span>
                       </span>
                     </li>
                   ))}
-                  <li className="flex items-center gap-2 text-sm text-primary">
-                    <Loader2 className="h-4 w-4 animate-spin" /> AI engineer refining the design for your brief…
+                  <li className="flex items-center gap-2 py-3 font-mono text-[11px] uppercase tracking-[0.14em] text-primary">
+                    <span aria-hidden className="h-1.5 w-1.5 animate-pulse bg-primary motion-reduce:animate-none" /> AI engineer refining the design for your brief
                   </li>
                 </ol>
               ) : (
-                <ul className="mt-8 space-y-2 text-left">
+                <ol className="mt-6 border-t border-border">
                   {ANALYSIS_MESSAGES.map((m, i) => (
-                    <li key={m} className="flex items-center gap-2 text-sm">
-                      {i < msgIndex ? (
-                        <Check className="h-4 w-4 text-emerald-600" />
-                      ) : (
-                        <span className="h-4 w-4 rounded-full border border-border" />
-                      )}
+                    <li key={m} className="flex items-center gap-3 border-b border-border py-2.5 text-sm">
+                      <span className="w-5 font-mono text-[11px] tabular-nums text-muted-foreground">
+                        {i < msgIndex ? <Check className="h-3.5 w-3.5 text-success" aria-label="done" /> : String(i + 1).padStart(2, "0")}
+                      </span>
                       <span className={i <= msgIndex ? "text-foreground" : "text-muted-foreground"}>{m}</span>
                     </li>
                   ))}
-                </ul>
+                </ol>
               )}
-            </div>
+            </BevelBox>
           </StepShell>
         )}
 
         {/* Step 3 */}
-        {step === 3 && (
-          <StepShell>
-            {description.trim().length >= 8 && (
-              <div className="mb-6">
-                <AiSolutionPanel
-                  solution={aiCurrent?.solution ?? null}
-                  fallback={engine}
-                  loading={aiCurrent?.loading}
-                  error={aiCurrent?.error ?? (!aiCurrent ? "The brief changed since the last analysis." : null)}
-                  onRetry={() => runAi(description, industry)}
-                  onBuild={() => {
-                    setSimIndex(-1);
-                    setVisualTab("robot");
-                    setStep(4);
-                  }}
-                  onAsk={(q) => {
-                    setDescription((d) => `${d.trim()} ${q} Answer: `);
-                    setStep(1);
-                    window.setTimeout(() => {
-                      const el = document.getElementById("as-description") as HTMLTextAreaElement | null;
-                      el?.focus();
-                      el?.setSelectionRange(el.value.length, el.value.length);
-                    }, 50);
-                  }}
-                />
-                {((aiCurrent?.solution ?? engine)?.stations.length ?? 0) > 0 && (
-                  <div className="mt-6">
-                    <EquipmentPicker key={description.trim()} stations={(aiCurrent?.solution ?? engine)!.stations} briefKey={description.trim()} />
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {stats.map((s) => (
-                <Card key={s.label}>
-                  <CardContent className="p-5">
-                    <p className="text-2xl font-bold text-primary tabular-nums">{s.value}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="mt-6 grid gap-6 lg:grid-cols-2">
-              {processes.map((p) => (
-                <Card key={p.index} className="overflow-hidden">
-                  <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
-                    <CardTitle className="text-base">
-                      <span className="mr-2 text-muted-foreground">{p.index} —</span>
-                      {p.name}
-                    </CardTitle>
-                    <Badge
-                      className={cn(
-                        "shrink-0 border-transparent",
-                        p.automation === "full"
-                          ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                          : "bg-amber-500 text-white hover:bg-amber-500",
-                      )}
-                    >
-                      {p.automation === "full" ? "Fully Automatable" : "Semi-Automatable"}
-                    </Badge>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Current Process
-                        </p>
-                        <ul className="space-y-1.5">
-                          {p.current.map((c) => (
-                            <li key={c} className="flex gap-2 rounded bg-destructive/10 p-2 text-xs text-foreground">
-                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-destructive" />
-                              {c}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Automated Solution
-                        </p>
-                        <ul className="space-y-1.5">
-                          {p.automated.map((a) => (
-                            <li key={a} className="flex gap-2 rounded bg-emerald-500/10 p-2 text-xs text-foreground">
-                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" />
-                              {a}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div className="divide-y divide-border rounded-lg border border-border bg-muted/20 text-xs">
-                      <div className="grid gap-2 p-3 sm:grid-cols-[110px_1fr] sm:items-center">
-                        <span className="flex items-center gap-1.5 font-semibold"><Gauge className="h-3.5 w-3.5 text-primary" /> Cycle Time</span>
-                        <div className="flex flex-wrap items-center gap-2"><span>{p.cycleTimeCurrent}</span><ArrowRight className="h-3.5 w-3.5 text-muted-foreground" /><span className="font-semibold">{p.cycleTimeAutomated}</span><Badge className="border-transparent bg-success text-primary-foreground hover:bg-success">{p.cycleImprovement}</Badge></div>
-                      </div>
-                      <div className="grid gap-2 p-3 sm:grid-cols-[110px_1fr] sm:items-center">
-                        <span className="flex items-center gap-1.5 font-semibold"><HardHat className="h-3.5 w-3.5 text-primary" /> Safety</span>
-                        <div className="flex items-center gap-2"><Badge className={cn("border-transparent text-primary-foreground", p.safetyRiskCurrent === "High" ? "bg-destructive hover:bg-destructive" : p.safetyRiskCurrent === "Medium" ? "bg-warning hover:bg-warning" : "bg-success hover:bg-success")}>{p.safetyRiskCurrent}</Badge><ArrowRight className="h-3.5 w-3.5 text-muted-foreground" /><Badge className="border-transparent bg-success text-primary-foreground hover:bg-success">{p.safetyRiskAutomated}</Badge></div>
-                      </div>
-                      <div className="grid gap-2 p-3 sm:grid-cols-[110px_1fr]">
-                        <span className="flex items-center gap-1.5 font-semibold"><Cable className="h-3.5 w-3.5 text-primary" /> Integration</span>
-                        <span className="leading-relaxed text-muted-foreground">{p.integrationNote}</span>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border border-border bg-muted/40 p-3">
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                        <span className="flex items-center gap-1.5 text-sm font-semibold text-amber-600 dark:text-amber-400">
-                          <Bot className="h-4 w-4" />
-                          {p.robot.model}
-                        </span>
-                        <span className="text-xs text-muted-foreground">Payload {p.robot.payload}</span>
-                        <span className="text-xs text-muted-foreground">Reach {p.robot.reach}</span>
-                        <span className="text-xs text-muted-foreground">{p.robot.controller}</span>
-                        {/* The model is a typical example for this station, not stock on hand: link to live listings. */}
-                        <Badge variant="secondary" className="text-[10px]" title="Example model for this station — not a live listing">
-                          Typical model
-                        </Badge>
-                        <Link to={`/robots?search=${encodeURIComponent(p.robot.model.replace(/^(FANUC|ABB|KUKA|Yaskawa|Kawasaki)\s+/i, ""))}`} className="text-[11px] font-medium text-primary hover:underline">
-                          Find used / new →
-                        </Link>
-                      </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Layers className="h-3.5 w-3.5" /> EOAT
-                        </span>
-                        {p.eoat.map((e) => (
-                          <Badge key={e} variant="outline" className="text-[10px]">
-                            {e}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm" className="w-full" asChild>
-                      <Link to={simLink(processToText(processKind(p), p.name), p.name)}>
-                        <Box className="mr-2 h-4 w-4" /> Simulate this station in 3D
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {(() => {
-              // Figures from this brief's own plan (AI engineer, else the built-in engine) — never fixed numbers.
-              const sol = aiCurrent?.solution ?? engine;
-              if (!sol) return null;
-              const cr = (v: number) => (v >= 1e7 ? `₹${(v / 1e7).toFixed(2)} Cr` : `₹${Math.round(v / 1e5)} L`);
-              const b = sol.budget_inr;
-              const weeks = sol.implementation
+        {step === 3 && (() => {
+          // Figures from this brief's own plan (AI engineer, else the built-in engine) — never fixed numbers.
+          const sol = aiCurrent?.solution ?? engine;
+          const cr = (v: number) => (v >= 1e7 ? `₹${(v / 1e7).toFixed(2)} Cr` : `₹${Math.round(v / 1e5)} L`);
+          const weeks = sol
+            ? sol.implementation
                 .map((ph) => (ph.weeks.match(/\d+/g) ?? []).map(Number))
-                .reduce(([lo, hi], w) => [lo + (w[0] ?? 0), hi + (w[w.length - 1] ?? 0)], [0, 0]);
-              const rows: [string, string][] = [
-                ["Estimated investment", b.low && b.high ? `${cr(b.low)} – ${cr(b.high)}` : "On quotation"],
+                .reduce(([lo, hi], w) => [lo + (w[0] ?? 0), hi + (w[w.length - 1] ?? 0)], [0, 0])
+            : [0, 0];
+          const numbers: [string, string][] = sol
+            ? [
+                ["Investment", sol.budget_inr.low && sol.budget_inr.high ? `${cr(sol.budget_inr.low)} – ${cr(sol.budget_inr.high)}` : "On quotation"],
                 ["Payback", sol.roi.payback_months ? (/month/i.test(sol.roi.payback_months) ? sol.roi.payback_months : `${sol.roi.payback_months} months`) : "—"],
+                ["Throughput", [sol.throughput.target, sol.throughput.takt_s ? `takt ${sol.throughput.takt_s} s` : ""].filter(Boolean).join(" · ") || "—"],
                 ["Labour", sol.roi.labour_saved || "—"],
                 ["Quality", sol.roi.quality_gain || "—"],
-                ["Throughput", [sol.throughput.target, sol.throughput.takt_s ? `takt ${sol.throughput.takt_s} s` : ""].filter(Boolean).join(" · ") || "—"],
                 ["Timeline", weeks[1] ? `${weeks[0]}–${weeks[1]} weeks to production` : "—"],
-              ];
-              return (
-                <Card className="mt-6">
-                  <CardHeader>
-                    <CardTitle className="text-base">Your plan in numbers</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      Worked out for this brief from {sol.stations.length} station{sol.stations.length === 1 ? "" : "s"}. Indicative — confirm with a site visit and supplier quotes.
+              ]
+            : [];
+          const full = processes.filter((x) => x.automation === "full").length;
+          const robots = new Set(processes.map((x) => x.robot.model)).size;
+          return (
+            <StepShell>
+              <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+                {/* The plan at a glance and the next step: first on phones, beside the plan on wide screens. */}
+                <aside className="lg:sticky lg:top-28 lg:order-last" aria-label="Plan summary">
+                  <BevelBox cut={14} innerClassName="p-5">
+                    <Eyebrow label="Plan summary" />
+                    {numbers.length > 0 && (
+                      <dl className="mt-4 border-t border-border">
+                        {numbers.map(([label, value]) => (
+                          <div key={label} className="border-b border-border py-2.5">
+                            <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</dt>
+                            <dd className="mt-0.5 text-sm font-medium leading-snug">{value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                    <KitButton className="mt-5 w-full [&>span]:w-full" onClick={() => setStep(4)}>
+                      See your cell in 3D
+                    </KitButton>
+                    <KitButton variant="outline" className="mt-2 w-full [&>span]:w-full" onClick={() => setLead("quote")}>
+                      Get a quote
+                    </KitButton>
+                    <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-[0.14em]">
+                      <button type="button" onClick={() => setStep(1)} className="text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                        Edit the brief
+                      </button>
+                      <Link to="/ai-assistant" className="text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                        Ask RobotVerse AI
+                      </Link>
+                    </div>
+                    <p className="mt-4 text-xs leading-relaxed text-muted-foreground">Indicative figures for this brief. An engineer confirms them with a site visit and supplier quotes.</p>
+                  </BevelBox>
+                </aside>
+
+                <div className="min-w-0 space-y-10">
+                  {description.trim().length >= 8 && (
+                    <AiSolutionPanel
+                      solution={aiCurrent?.solution ?? null}
+                      fallback={engine}
+                      loading={aiCurrent?.loading}
+                      error={aiCurrent?.error ?? (!aiCurrent ? "The brief changed since the last analysis." : null)}
+                      onRetry={() => runAi(description, industry)}
+                      onBuild={() => {
+                        setSimIndex(-1);
+                        setVisualTab("robot");
+                        setStep(4);
+                      }}
+                      onAsk={(q) => {
+                        setDescription((d) => `${d.trim()} ${q} Answer: `);
+                        setStep(1);
+                        window.setTimeout(() => {
+                          const el = document.getElementById("as-description") as HTMLTextAreaElement | null;
+                          el?.focus();
+                          el?.setSelectionRange(el.value.length, el.value.length);
+                        }, 50);
+                      }}
+                    />
+                  )}
+                  {(sol?.stations.length ?? 0) > 0 && <EquipmentPicker key={description.trim()} stations={sol!.stations} briefKey={description.trim()} />}
+
+                  {/* Each station today and with a robot. */}
+                  <section aria-label="Today and with robots">
+                    <Eyebrow index={String(processes.length).padStart(2, "0")} label="Today and with robots" />
+                    <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      {full} fully automatable · {processes.length - full} semi · {robots} robot model{robots === 1 ? "" : "s"} matched
                     </p>
-                  </CardHeader>
-                  <CardContent className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-                    {rows.map(([label, value]) => (
-                      <div key={label} className="bg-card p-4">
-                        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-                        <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              );
-            })()}
-
-            <div className="mt-6 flex justify-center">
-              <Button asChild variant="ghost" className="whitespace-normal min-w-fit w-auto">
-                <Link to="/ai-assistant">
-                  <Bot className="mr-2 h-4 w-4" /> Refine with RobotVerse AI
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-
-            <div className="mt-6 flex flex-wrap justify-between gap-3">
-              <Button variant="outline" className="whitespace-normal min-w-fit w-auto" onClick={() => setStep(1)}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Edit inputs
-              </Button>
-              <Button className="whitespace-normal min-w-fit w-auto" onClick={() => setStep(4)}>
-                View Automation Preview <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </StepShell>
-        )}
+                    <ol className="mt-4 border-t border-border">
+                      {processes.map((p) => (
+                        <li key={p.index} className="border-b border-border py-5">
+                          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+                            <p className="font-semibold">
+                              <span className="mr-2 font-mono text-[11px] font-normal tabular-nums text-muted-foreground">{p.index}</span>
+                              {p.name}
+                            </p>
+                            <div className="flex items-center gap-4">
+                              <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                                <span aria-hidden className={cn("h-1.5 w-1.5", p.automation === "full" ? "bg-success" : "bg-warning")} />
+                                {p.automation === "full" ? "Fully automatable" : "Semi-automatable"}
+                              </span>
+                              <Link
+                                to={simLink(processToText(processKind(p), p.name), p.name)}
+                                className="font-mono text-[11px] uppercase tracking-[0.14em] text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              >
+                                Simulate in 3D
+                              </Link>
+                            </div>
+                          </div>
+                          <div className="mt-3 grid gap-x-8 gap-y-3 md:grid-cols-2">
+                            {(
+                              [
+                                ["Today", p.current, "bg-muted-foreground/50"],
+                                ["With a robot", p.automated, "bg-primary"],
+                              ] as const
+                            ).map(([label, items, bullet]) => (
+                              <div key={label}>
+                                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+                                <ul className="mt-1.5 space-y-1 text-sm">
+                                  {items.map((x) => (
+                                    <li key={x} className="flex gap-2.5">
+                                      <span aria-hidden className={cn("mt-2 h-1 w-1 shrink-0", bullet)} />
+                                      <span className={label === "Today" ? "text-muted-foreground" : ""}>{x}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                          <dl className="mt-4 grid gap-x-8 gap-y-2 text-xs sm:grid-cols-3">
+                            <div>
+                              <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Cycle</dt>
+                              <dd className="mt-0.5 tabular-nums">
+                                {p.cycleTimeCurrent} → <span className="font-medium">{p.cycleTimeAutomated}</span> <span className="text-success">{p.cycleImprovement}</span>
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Safety risk</dt>
+                              <dd className="mt-0.5">
+                                <span className={p.safetyRiskCurrent === "High" ? "text-destructive" : p.safetyRiskCurrent === "Medium" ? "text-warning" : ""}>{p.safetyRiskCurrent}</span> →{" "}
+                                <span className="font-medium text-success">{p.safetyRiskAutomated}</span>
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Typical robot</dt>
+                              <dd className="mt-0.5">
+                                <span className="font-medium">{p.robot.model}</span> <span className="text-muted-foreground">· {p.robot.payload} · {p.robot.reach}</span>{" "}
+                                {/* An example model for this station, not stock on hand: link to live listings. */}
+                                <Link
+                                  to={`/robots?search=${encodeURIComponent(p.robot.model.replace(/^(FANUC|ABB|KUKA|Yaskawa|Kawasaki)\s+/i, ""))}`}
+                                  className="whitespace-nowrap text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                >
+                                  Find used / new
+                                </Link>
+                              </dd>
+                            </div>
+                          </dl>
+                          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.16em]">Tooling</span> {p.eoat.join(" · ")} ·{" "}
+                            <span className="font-mono text-[10px] uppercase tracking-[0.16em]">Integration</span> {p.integrationNote}
+                          </p>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                </div>
+              </div>
+            </StepShell>
+          );
+        })()}
 
         {/* Step 4 */}
         {step === 4 && (
           <StepShell>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Automation preview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  All four views show the same robot line: the same robots, stations and conveyors, seen as the working cells, as a factory floor plan, with the material path, and as the full production line.
+            <section aria-label="Automation preview">
+                <Eyebrow index="01" label="Four views of the same line" />
+                <p className="mt-3 max-w-[75ch] text-sm text-muted-foreground">
+                  The same robots, stations and conveyors seen as working cells, as a floor plan, as the material path and as the full production line.
                 </p>
-                <Tabs value={visualTab} onValueChange={setVisualTab}>
-                  <TabsList className="h-auto flex-wrap">
-                    <TabsTrigger value="robot" className="gap-1.5">
-                      <Box className="h-3.5 w-3.5" /> Robot Cell 3D
-                    </TabsTrigger>
-                    <TabsTrigger value="layout">Factory Layout</TabsTrigger>
-                    <TabsTrigger value="flow">Material Flow</TabsTrigger>
-                    <TabsTrigger value="cell">3D Production Line ({processes.length})</TabsTrigger>
+                <Tabs value={visualTab} onValueChange={setVisualTab} className="mt-4">
+                  <TabsList className="h-auto w-full justify-start gap-0 overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
+                    {(
+                      [
+                        ["robot", "Robot cell 3D"],
+                        ["layout", "Factory layout"],
+                        ["flow", "Material flow"],
+                        ["cell", `Production line (${processes.length})`],
+                      ] as const
+                    ).map(([v, label]) => (
+                      <TabsTrigger
+                        key={v}
+                        value={v}
+                        className="relative shrink-0 rounded-none px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground transition-colors duration-150 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-transparent hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:after:bg-primary"
+                      >
+                        {label}
+                      </TabsTrigger>
+                    ))}
                   </TabsList>
                   <TabsContent value="robot" className="mt-4 space-y-3">
                     {processes.length > 0 && (() => {
@@ -897,21 +806,13 @@ function AutomationStudioAI() {
                       const lineHref = `/automation-studio/3d?line=${encodeURIComponent(processes.map((p) => p.name).join("|"))}`;
                       return (
                         <>
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-sm text-muted-foreground">
-                              Watch your whole line with every robot, or choose one station to see it on its own.
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              <Button size="sm" asChild>
-                                <Link to={`/automation-studio/build#job=${encodeURIComponent(processes.slice(0, 6).map((p) => p.name).join("|"))}`}>
-                                  Build this line with real robots
-                                </Link>
-                              </Button>
-                              <Button variant="outline" size="sm" asChild>
-                                <Link to={full ? lineHref : simLink(text, current.name)}>
-                                  <Maximize2 className="mr-2 h-4 w-4" /> Open full screen
-                                </Link>
-                              </Button>
+                          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+                            <p className="text-sm text-muted-foreground">Watch the whole line, or choose one station to see it on its own.</p>
+                            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                              <ConsoleLink to={full ? lineHref : simLink(text, current.name)}>Full screen</ConsoleLink>
+                              <ConsoleButton to={`/automation-studio/build#job=${encodeURIComponent(processes.slice(0, 6).map((p) => p.name).join("|"))}`}>
+                                Build it with real robots
+                              </ConsoleButton>
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Station to simulate">
@@ -920,11 +821,11 @@ function AutomationStudioAI() {
                               aria-selected={full}
                               onClick={() => setSimIndex(-1)}
                               className={cn(
-                                "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-left text-xs font-semibold transition-colors",
-                                full ? "border-amber-500 bg-amber-500/10 text-foreground" : "border-border hover:border-amber-500/60",
+                                "flex items-center gap-2 border px-3 py-2 text-left text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                                full ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/60 hover:text-foreground",
                               )}
                             >
-                              <Box className="h-3.5 w-3.5 text-amber-500" /> Full line (all robots)
+                              <Box className="h-3.5 w-3.5" aria-hidden /> Full line · all robots
                             </button>
                             {processes.map((p, i) => {
                               const k = processKind(p);
@@ -936,12 +837,12 @@ function AutomationStudioAI() {
                                   aria-selected={active}
                                   onClick={() => setSimIndex(i)}
                                   className={cn(
-                                    "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-left text-xs transition-colors",
-                                    active ? "border-primary bg-primary/10 text-foreground" : "border-border hover:border-primary/50",
+                                    "flex items-center gap-2 border px-3 py-2 text-left text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                                    active ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/60 hover:text-foreground",
                                   )}
                                 >
-                                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: PROCESS_PROFILES[k].color }} />
-                                  <span className="font-semibold">{String(i + 1).padStart(2, "0")}</span>
+                                  <span aria-hidden className="h-1.5 w-1.5" style={{ backgroundColor: PROCESS_PROFILES[k].color }} />
+                                  <span className="font-mono tabular-nums">{String(i + 1).padStart(2, "0")}</span>
                                   <span className="max-w-[180px] truncate">{p.name}</span>
                                 </button>
                               );
@@ -972,9 +873,9 @@ function AutomationStudioAI() {
                             )}
                           </Suspense>
                           {!full && (
-                            <div className="rounded-xl border border-border p-4">
+                            <div className="border border-border p-5">
                               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                <p className="text-sm font-semibold">How an engineer thinks about this station</p>
+                                <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">How an engineer thinks about this station</p>
                                 <span className="text-xs tabular-nums text-muted-foreground">
                                   typical cycle {PLAYBOOK[kind].cycle[0]}–{PLAYBOOK[kind].cycle[1]} s
                                 </span>
@@ -988,7 +889,7 @@ function AutomationStudioAI() {
                                     ["Around the robot", PLAYBOOK[kind].around],
                                   ] as const
                                 ).map(([t, items]) => (
-                                  <div key={t} className="rounded-lg bg-muted/40 p-3">
+                                  <div key={t} className="border-t border-border pt-3">
                                     <p className="font-semibold">{t}</p>
                                     <ul className="mt-1.5 list-disc space-y-1 pl-4 text-muted-foreground">
                                       {items.map((x) => (
@@ -1062,14 +963,11 @@ function AutomationStudioAI() {
                     </TabsContent>
                   ))}
                 </Tabs>
-              </CardContent>
-            </Card>
+            </section>
 
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-base">Robots needed (typical models)</CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-x-auto">
+            <section aria-label="Robots needed" className="mt-12">
+              <Eyebrow index="02" label="Robots needed · typical models" />
+              <div className="mt-4 overflow-x-auto border border-border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1096,69 +994,68 @@ function AutomationStudioAI() {
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
-            <p className="mt-6 text-xs font-medium uppercase tracking-wide text-muted-foreground">Typical results in this industry</p>
-            <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {roiCards.map((r) => (
-                <Card key={r.label}>
-                  <CardContent className="p-5">
-                    <r.icon className="mb-2 h-5 w-5 text-primary" />
-                    <p className="text-xl font-bold">{r.value}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{r.label}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <section aria-label="Typical results" className="mt-12">
+              <Eyebrow index="03" label={`Typical results in ${blueprint.label.toLowerCase()}`} />
+              <Readouts className="mt-4" items={roiCards.map((r) => ({ label: r.label, value: r.value }))} />
+            </section>
 
-            <Card className="mt-6">
-              <CardContent className="flex flex-wrap items-center justify-center gap-3 p-6">
-                <Button className="whitespace-normal min-w-fit w-auto" onClick={() => setLead("quote")}>
-                  <ShoppingCart className="mr-2 h-4 w-4" /> Get a quote for this cell
-                </Button>
-                <Button variant="outline" className="whitespace-normal min-w-fit w-auto" onClick={printProposal}>
-                  <Download className="mr-2 h-4 w-4" /> Download Proposal PDF
-                </Button>
-                <Button variant="outline" className="whitespace-normal min-w-fit w-auto" onClick={() => setLead("engineer")}>
-                  <MessageSquare className="mr-2 h-4 w-4" /> Talk to an Engineer
-                </Button>
-                <Button asChild variant="outline" className="whitespace-normal min-w-fit w-auto">
-                  <Link to="/ai-assistant">
-                    <Bot className="mr-2 h-4 w-4" /> Discuss with RobotVerse AI
-                  </Link>
-                </Button>
-                <p className="w-full text-center text-xs text-muted-foreground">
-                  A conceptual plan, not an engineering design: an engineer checks every plan against your parts, site and ISO 10218 safety before a quote.
-                </p>
-              </CardContent>
-            </Card>
-            <LeadDialog
-              open={lead !== null}
-              onOpenChange={(o) => !o && setLead(null)}
-              kind={lead ?? "engineer"}
-              source="automation-studio"
-              title={lead === "quote" ? "Get a quote for this cell" : "Talk to an automation engineer"}
-              intro={
-                lead === "quote"
-                  ? "We send the plan to our engineers and matched sellers, and come back with robots, tooling and an integration price."
-                  : "An automation engineer reviews this plan with you on WhatsApp or a call — free."
-              }
-              item={{ type: "automation_plan", name: `${blueprint.label} automation plan · ${processes.length} station${processes.length === 1 ? "" : "s"}` }}
-              details={proposalSummary(proposal)}
-              action={lead === "quote" ? "Request quote" : "Request a call"}
-            />
+            {/* Next steps: one primary action, the rest quieter. */}
+            <section aria-label="Next steps" className="mt-12">
+              <BevelBox cut={14} innerClassName="flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
+                <div className="max-w-[60ch]">
+                  <Eyebrow index="04" label="Next step" rule={false} />
+                  <p className="mt-3 text-lg font-semibold leading-snug">Get robots, tooling and an integration price for this line</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    A conceptual plan, not an engineering design: an engineer checks it against your parts, site and ISO 10218 safety before any quote.
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col gap-3">
+                  <KitButton onClick={() => setLead("quote")}>Get a quote for this cell</KitButton>
+                  <div className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-[0.14em]">
+                    <button type="button" onClick={printProposal} className="text-foreground underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                      Download proposal
+                    </button>
+                    <button type="button" onClick={() => setLead("engineer")} className="text-foreground underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                      Talk to an engineer
+                    </button>
+                    <Link to="/ai-assistant" className="text-muted-foreground underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                      Ask RobotVerse AI
+                    </Link>
+                  </div>
+                </div>
+              </BevelBox>
+            </section>
 
-            <div className="mt-8 flex flex-wrap justify-between gap-3">
-              <Button variant="outline" className="whitespace-normal min-w-fit w-auto" onClick={() => setStep(3)}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to analysis
-              </Button>
-              <Button variant="ghost" className="whitespace-normal min-w-fit w-auto" onClick={reset}>
-                Start new analysis
-              </Button>
+            <div className="mt-8 flex flex-wrap justify-between gap-x-6 gap-y-3 font-mono text-[11px] uppercase tracking-[0.14em]">
+              <button type="button" onClick={() => setStep(3)} className="inline-flex items-center gap-2 text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Back to the plan
+              </button>
+              <button type="button" onClick={reset} className="text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                Start a new analysis
+              </button>
             </div>
           </StepShell>
         )}
+
+        {/* Quote and engineer requests, from the plan or the 3D step. */}
+        <LeadDialog
+          open={lead !== null}
+          onOpenChange={(o) => !o && setLead(null)}
+          kind={lead ?? "engineer"}
+          source="automation-studio"
+          title={lead === "quote" ? "Get a quote for this cell" : "Talk to an automation engineer"}
+          intro={
+            lead === "quote"
+              ? "We send the plan to our engineers and matched sellers, and come back with robots, tooling and an integration price."
+              : "An automation engineer reviews this plan with you on WhatsApp or a call — free."
+          }
+          item={{ type: "automation_plan", name: `${blueprint.label} automation plan · ${processes.length} station${processes.length === 1 ? "" : "s"}` }}
+          details={proposalSummary(proposal)}
+          action={lead === "quote" ? "Request quote" : "Request a call"}
+        />
       </main>
       <Footer />
     </div>

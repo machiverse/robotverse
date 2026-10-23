@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Box, Brain, GripVertical, MessageSquareText, MousePointerClick, Play, Wrench } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
+import { BevelBox, ConsoleLink } from "@/components/console/ConsoleUI";
+import { PixelArrow } from "@/components/hero/HeroConsole";
+import { BLOCKS } from "@/features/automation3d/ProcessBuilder";
+import { Eyebrow, Readouts } from "@/features/automation3d/StudioKit";
 
 /* ---------------------------------------------------------------- pictures */
 
@@ -69,37 +72,31 @@ function AiPicture() {
 const PATHS = [
   {
     to: "/automation-studio/build",
+    tag: "Build",
     eyebrow: "You know the robot",
     title: "Build it yourself",
-    line: "Pick a robot, add its tool, watch it work.",
+    line: "Pick real robots and tools from the marketplace and Directory, place the cell equipment, and watch the program run.",
     Picture: BuildPicture,
-    steps: [
-      { icon: GripVertical, label: "Drag a robot" },
-      { icon: Wrench, label: "Add the tool" },
-      { icon: Play, label: "Run in 3D" },
-    ],
+    steps: ["Drag a robot onto the floor", "Add its gripper, torch or tool", "Choose the job and run it in 3D"],
     cta: "Start building",
   },
   {
     to: "/automation-studio?mode=ai",
+    tag: "Plan",
     eyebrow: "Not sure where to start",
     title: "Describe your job",
-    line: "Tell us how the work is done. We design the cell.",
+    line: "Tell us how the work is done today. We size the robots, tools, safety and budget, then build the cell.",
     Picture: AiPicture,
-    steps: [
-      { icon: MessageSquareText, label: "Describe the work" },
-      { icon: Brain, label: "We plan it" },
-      { icon: Box, label: "See your cell" },
-    ],
+    steps: ["Describe the work in plain words", "Get the engineering plan", "See your line in 3D"],
     cta: "Describe my job",
   },
 ] as const;
 
 const FACTS = [
-  { value: "1,500+", label: "robot models" },
-  { value: "200+", label: "end-of-arm tools" },
-  { value: "22", label: "jobs to simulate" },
-  { value: "Live", label: "3D, free to use" },
+  { label: "Robot models", value: "1,500+" },
+  { label: "End-of-arm tools", value: "250" },
+  { label: "Ready jobs", value: String(BLOCKS.length) },
+  { label: "3D cell", value: "Live · free" },
 ];
 
 /** Automation Studio entry: build a cell yourself, or describe the job and let us design it. */
@@ -107,76 +104,58 @@ export default function StudioChooser() {
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
-      <main className="container mx-auto max-w-6xl px-4 pb-16">
-        <header className="pb-8 pt-12 text-center sm:pt-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Automation Studio</p>
-          <h1 className="mx-auto mt-3 max-w-[20ch] text-3xl font-bold leading-[1.15] tracking-tight text-foreground sm:text-[2.6rem]">
+      <main className="container mx-auto max-w-6xl px-4 pb-20">
+        <header className="pb-10 pt-12 sm:pt-16">
+          <Eyebrow index="001" label="Automation Studio" />
+          <h1 className="mt-6 max-w-[18ch] text-balance text-4xl font-semibold uppercase leading-[1.02] tracking-[-0.02em] text-foreground md:text-[52px]">
             See your robot cell before you buy it
           </h1>
-          <p className="mt-3 text-base text-muted-foreground">Two ways to begin. Both end in a live 3D cell.</p>
+          <p className="mt-4 max-w-[60ch] text-base leading-relaxed text-muted-foreground md:text-lg">
+            Two ways in, one result: a robot cell you can watch run, with the robots, tools and budget behind it.
+          </p>
         </header>
 
         <section className="grid gap-5 md:grid-cols-2" aria-label="Choose how to start">
-          {PATHS.map((p) => (
+          {PATHS.map((p, i) => (
             <Link
               key={p.to}
               to={p.to}
-              className="group flex flex-col rounded-2xl border border-border bg-card p-3 shadow-[0_1px_2px_rgb(0_0_0/0.06),0_4px_12px_-6px_rgb(0_0_0/0.12)] transition-[transform,border-color,box-shadow] duration-150 ease-out hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[0_1px_2px_rgb(0_0_0/0.06),0_10px_24px_-10px_rgb(0_0_0/0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-0 motion-reduce:transform-none"
+              className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
             >
-              <div className="aspect-[16/7] overflow-hidden rounded-xl bg-muted/50 p-2">
-                <p.Picture />
-              </div>
-              <div className="flex flex-1 flex-col px-3 pb-3 pt-5">
-                <p className="text-xs font-medium text-muted-foreground">{p.eyebrow}</p>
-                <h2 className="mt-1 text-2xl font-semibold tracking-tight">{p.title}</h2>
-                <p className="mt-1.5 text-[15px] text-muted-foreground">{p.line}</p>
-
-                <ol className="mt-5 grid grid-cols-3 gap-2">
-                  {p.steps.map((s, i) => (
-                    <li key={s.label} className="flex flex-col items-center gap-1.5 rounded-lg bg-muted/50 px-2 py-3 text-center">
-                      <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-background text-primary ring-1 ring-border">
-                        <s.icon className="h-4 w-4" aria-hidden />
-                        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                          {i + 1}
-                        </span>
-                      </span>
-                      <span className="text-xs font-medium leading-tight">{s.label}</span>
-                    </li>
-                  ))}
-                </ol>
-
-                <span className="mt-6 inline-flex items-center gap-1.5 self-start rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
-                  {p.cta}
-                  <ArrowRight className="h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-0.5 motion-reduce:transform-none" aria-hidden />
-                </span>
-              </div>
+              <BevelBox cut={14} innerClassName="flex flex-col">
+                <div className="relative aspect-[16/7] border-b border-border bg-muted/40 p-3 [background-image:linear-gradient(hsl(var(--border)/0.6)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/0.6)_1px,transparent_1px)] [background-size:24px_24px]">
+                  <span className="absolute left-4 top-3 font-mono text-[11px] tabular-nums text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="absolute right-4 top-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{p.tag}</span>
+                  <p.Picture />
+                </div>
+                <div className="flex flex-1 flex-col p-6">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{p.eyebrow}</p>
+                  <h2 className="mt-2 text-2xl font-semibold uppercase leading-tight tracking-[-0.01em]">{p.title}</h2>
+                  <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-muted-foreground">{p.line}</p>
+                  <ol className="mt-5 border-t border-border">
+                    {p.steps.map((step, n) => (
+                      <li key={step} className="flex items-baseline gap-4 border-b border-border py-2.5 text-sm">
+                        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{String(n + 1).padStart(2, "0")}</span>
+                        {step}
+                      </li>
+                    ))}
+                  </ol>
+                  <span className="mt-6 inline-flex items-center gap-2.5 self-start font-mono text-xs uppercase tracking-[0.16em] text-primary">
+                    <PixelArrow />
+                    {p.cta}
+                  </span>
+                </div>
+              </BevelBox>
             </Link>
           ))}
         </section>
 
-        <section aria-label="What is inside" className="mt-10 grid grid-cols-2 divide-border overflow-hidden rounded-2xl border border-border sm:grid-cols-4 sm:divide-x">
-          {FACTS.map((f) => (
-            <div key={f.label} className="px-4 py-5 text-center">
-              <p className="text-3xl font-bold tabular-nums tracking-tight text-foreground">{f.value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{f.label}</p>
-            </div>
-          ))}
-        </section>
+        <Readouts items={FACTS} className="mt-8" />
 
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          <MousePointerClick className="mr-1.5 inline h-4 w-4 align-[-3px] text-primary" aria-hidden />
-          Already have your steps?{" "}
-          <Link to="/automation-studio/3d" className="font-medium text-primary underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none">
-            Type them into the 3D simulator
-          </Link>
-        </p>
-        <p className="mt-2 text-center text-sm text-muted-foreground">
-          <Brain className="mr-1.5 inline h-4 w-4 align-[-3px] text-primary" aria-hidden />
-          New to robot automation?{" "}
-          <Link to="/automation-studio/playbook" className="font-medium text-primary underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none">
-            See how an automation engineer thinks
-          </Link>
-        </p>
+        <nav aria-label="More in the studio" className="mt-10 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:gap-10">
+          <ConsoleLink to="/automation-studio/3d">Type your steps into the 3D simulator</ConsoleLink>
+          <ConsoleLink to="/automation-studio/playbook">How an automation engineer thinks</ConsoleLink>
+        </nav>
       </main>
       <Footer />
     </div>
