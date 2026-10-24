@@ -168,13 +168,13 @@ const RobotTalent = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         {/* Tabs + Context Actions */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-1 bg-card border border-border p-1 rounded-xl w-fit max-w-full overflow-x-auto">
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-6">
+          <div className="flex flex-wrap items-center gap-1 bg-card border border-border p-1 rounded-xl w-fit max-w-full">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveSection(tab.key)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-3 sm:px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   activeSection === tab.key
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
