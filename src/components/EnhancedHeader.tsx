@@ -326,8 +326,8 @@ const EnhancedHeader = () => {
           </div>
 
           {/* Centered Search Bar */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl mx-8">
-            <div className="relative w-full group">
+          <form onSubmit={handleSearch} className="hidden md:flex min-w-0 flex-1 max-w-2xl mx-3 xl:mx-8">
+            <div className="relative min-w-0 w-full group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5 transition-colors group-focus-within:text-primary" />
               <input
                 type="text"
@@ -1329,7 +1329,7 @@ const EnhancedHeader = () => {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="lg:hidden border-t border-border bg-background px-4 pb-4 max-h-[80vh] overflow-y-auto">
+          <div className="lg:hidden border-t border-border bg-background px-4 pb-4 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
             {/* Mobile Search */}
             <form onSubmit={handleSearch} className="pt-4 mb-4">
               <div className="relative">
@@ -1345,7 +1345,7 @@ const EnhancedHeader = () => {
             </form>
 
             {/* Mobile Quick Actions */}
-            <div className="flex items-center justify-around py-3 mb-4 border-b border-border">
+            <div className="grid grid-cols-3 sm:grid-cols-5 items-center gap-x-2 gap-y-4 py-3 mb-4 border-b border-border">
               <Link to="/automation-studio" onClick={() => setMenuOpen(false)} className="flex flex-col items-center gap-1">
                 <Sparkles className="h-5 w-5 text-primary" />
                 <span className="text-xs text-primary font-medium">Studio</span>

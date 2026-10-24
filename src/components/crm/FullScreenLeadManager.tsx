@@ -463,17 +463,17 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <Card className="flex h-full flex-col border-muted/70 bg-background">
+      <div className="min-w-0 flex-1 overflow-auto p-3 sm:p-6">
+        <Card className="flex h-full min-w-0 flex-col border-muted/70 bg-background">
           <Tabs
             value={activeTab}
             onValueChange={(val) => setActiveTab(val as LeadTab)}
-            className="flex flex-1 flex-col"
+            className="flex min-w-0 flex-1 flex-col"
           >
             {/* Tabs Header */}
             <div className="border-b p-4 pb-0">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <TabsList className="h-10">
+              <div className="mb-4 flex flex-col items-start justify-between gap-3 xl:flex-row xl:items-center">
+                <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 xl:w-auto">
                   <TabsTrigger value={TAB_VIEWS} className="flex items-center gap-2 px-4">
                     <ShoppingCart className="h-4 w-4" />
                     <span>Product Views</span>

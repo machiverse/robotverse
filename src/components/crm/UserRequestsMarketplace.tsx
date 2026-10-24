@@ -343,7 +343,7 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 sm:w-fit">
           <TabsTrigger value="available" className="flex items-center gap-2">
             <Inbox className="h-4 w-4" />
             Available
