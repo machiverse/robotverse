@@ -212,9 +212,9 @@ const LeadsToolbar = ({
   setViewMode: (v: "list" | "pipeline") => void;
 }) => (
   <div className="mb-4 space-y-3">
-    <div className="flex items-center justify-between">
-      <Tabs value={viewTab} onValueChange={setViewTab} className="flex-1">
-        <TabsList className="mb-2">
+    <div className="flex flex-col items-start justify-between gap-2 xl:flex-row xl:items-center">
+      <Tabs value={viewTab} onValueChange={setViewTab} className="min-w-0 w-full flex-1">
+        <TabsList className="mb-2 flex h-auto w-full flex-wrap justify-start gap-1">
           <TabsTrigger value="all" className="flex items-center gap-2">
             <Eye className="h-4 w-4" />
             Product views ({viewsCount})

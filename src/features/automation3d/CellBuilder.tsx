@@ -881,7 +881,7 @@ export default function CellBuilder() {
           {ghost.label}
         </div>
       )}
-    <ol aria-label="Steps" className="grid grid-cols-6 gap-1 sm:gap-2">
+    <ol aria-label="Steps" className="grid grid-cols-3 gap-1 sm:gap-2 lg:grid-cols-6">
       {STEPS.map((st) => {
         const active = st.n === current;
         return (
@@ -899,8 +899,8 @@ export default function CellBuilder() {
                 {st.done ? <CheckCircle2 className="h-4 w-4" /> : st.n}
               </span>
               <span className="min-w-0">
-                <b className="block text-xs sm:text-sm">{st.label}</b>
-                <span className="hidden text-xs text-muted-foreground sm:block">
+                <b className="block break-words text-xs sm:text-sm">{st.label}</b>
+                <span className="hidden text-xs text-muted-foreground lg:block">
                   {st.done ? (st.n === 6 ? `Line runs · ${perHour} parts/hour — open the report` : "Done") : st.n === 6 && safetyDone ? (stalled.some(Boolean) ? "A cell is not completing its cycle — open the report to see why" : "Measuring cycle time… the first full cycle takes a moment") : st.hint}
                 </span>
               </span>

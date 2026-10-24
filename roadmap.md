@@ -1,3 +1,11 @@
+# Phone and tablet fit
+
+- [x] Audit 35 public page-family URLs at phone and tablet widths; open real robot and service details.
+- [x] Fix directory/talent tabs, cell-builder steps, service titles, header sizing, CRM controls, and dialog/drawer bounds without changing functionality.
+- [x] Verify corrected views and mobile navigation visually at 375, 768, 932, and 1024 pixels; preview build passes.
+- [ ] Verify signed-in dashboard layouts — blocked by externally managed authentication without a preview session.
+- [ ] Exhaustive checks of every individual listing, post, and private page — blocked by unavailable signed-in access; representative public details checked.
+
 # Dashboard layout refactor
 
 - [x] Replace horizontal role tabs with responsive left navigation.
