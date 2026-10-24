@@ -1,5 +1,13 @@
 # Dashboard layout refactor
 
+# Phone and tablet fit
+
+- [ ] Audit public page families and representative detail pages at phone and tablet widths.
+- [ ] Fix confirmed layout issues without changing content or functionality.
+- [ ] Verify corrected views and mobile navigation visually.
+- [ ] Verify signed-in dashboard layouts — blocked by externally managed authentication without a preview session.
+
+
 - [x] Replace horizontal role tabs with responsive left navigation.
 - [x] Render all configured roles and preserve the existing dashboard prop contract.
 - [x] Promote seller/admin CRM views into the Pipeline navigation group.
