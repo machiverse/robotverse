@@ -12,6 +12,7 @@
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { machineFor } from "./cellProgram";
 import { PROCESS_HEAD, processKind, type ProcessKind } from "./processProfiles";
+import { MOTION_SYSTEMS, motionForJob, type MotionType } from "./robotMotion";
 import { stepLabel, type SimPlan, type SimStep } from "./robotSim";
 
 export interface RobotSkill {
@@ -111,6 +112,8 @@ export interface PlannedRobot {
   steps: SimStep[];
   /** A collaborative robot (cobot): no fencing, works next to people. */
   collaborative: boolean;
+  /** How the robot gets from one place to another: fixed, on a track, a gantry, an AMR… and how far (m). */
+  motion: { type: MotionType; length: number };
 }
 
 export interface LinePlan {
@@ -125,7 +128,23 @@ const step = (action: string, station: string, label?: string): SimStep => {
   return s;
 };
 
-function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean): SimStep[] {
+/**
+ * Where a travelling robot works at the far end of its travel ("_2" stations in the 3D cell):
+ *   track, overhead, RGV: a second machine (OP20) and the output at the far end;
+ *   gantry: the output at the far end; AMR: it drives to the machine and back.
+ */
+const FAR: Record<MotionType, { machine: "twin" | "far" | null; output: boolean }> = {
+  fixed: { machine: null, output: false },
+  lift: { machine: null, output: false },
+  track: { machine: "twin", output: true },
+  overhead: { machine: "twin", output: true },
+  rgv: { machine: "twin", output: true },
+  gantry: { machine: null, output: true },
+  amr: { machine: "far", output: false },
+};
+
+function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean, motion: MotionType = "fixed"): SimStep[] {
+  const far = FAR[motion];
   const steps: SimStep[] = [];
   const handling = tasks.find((t) => t.skill.sim === "handling");
   steps.push(first ? step("pick", "conveyor", handling ? "Load part from conveyor" : undefined) : step("pick", "in", "Pick from transfer conveyor"));
@@ -155,7 +174,14 @@ function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean): SimSte
         }
         offTable();
         const m = machineFor(t.name, t.kind) ?? "cnc";
+        if (far.machine === "far") {
+          // The mobile robot drives to the machine at the far end, tends it, and drives back.
+          steps.push(step("place", `${m}_2`), step("process", `${m}_2`, t.name), step("pick", `${m}_2`));
+          break;
+        }
         steps.push(step("place", m), step("process", m, t.name), step("pick", m));
+        // One robot on a track tends a second machine along it: operation 20.
+        if (far.machine === "twin") steps.push(step("place", `${m}_2`), step("process", `${m}_2`, `${t.name} (OP20)`), step("pick", `${m}_2`));
         break;
       }
       case "inspect":
@@ -172,9 +198,10 @@ function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean): SimSte
     }
   }
   offTable();
+  const end = far.output ? "_2" : "";
   if (!last) steps.push(step("place", "out", "Pass to next robot"));
-  else if (output?.kind === "packing") steps.push(step("place", "carton", "Pack into carton"));
-  else steps.push(step("place", "pallet", undefined));
+  else if (output?.kind === "packing") steps.push(step("place", `carton${end}`, end ? "Pack into carton at the far end" : "Pack into carton"));
+  else steps.push(step("place", `pallet${end}`, end ? "Stack on pallet at the far end" : undefined));
   return steps;
 }
 
@@ -192,6 +219,10 @@ export interface PlanOptions {
   splitBefore?: string[];
   /** Exact number of robots the user wants in the line (1 … number of tasks). */
   robots?: number;
+  /** A motion system the brief asks for ("a robot on a 7th axis track"): used where no task sets its own. */
+  motion?: MotionType | null;
+  /** The user's choice per robot, keyed by the robot's first task: how it moves, and how far (m). */
+  motions?: Record<string, { type: MotionType; length?: number }>;
 }
 
 export function planLine(processes: TaskInput[], strategy: Strategy = "balanced", opts: PlanOptions = {}): LinePlan {
@@ -273,6 +304,12 @@ export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"
   }
 
   const robots: PlannedRobot[] = groups.map((tasks, i) => {
+    // How this robot moves between places: the user's choice, else what its jobs need, else what the brief asks.
+    const chosen = opts.motions?.[tasks[0]?.name ?? ""];
+    const fromJob = tasks.map((t) => motionForJob(t.name)).find((m) => m !== "fixed");
+    const mType: MotionType = chosen?.type ?? fromJob ?? opts.motion ?? "fixed";
+    const sys = MOTION_SYSTEMS[mType];
+    const motion = { type: mType, length: Math.min(sys.length.max, Math.max(sys.length.min, chosen?.length ?? sys.length.def)) };
     // One end-of-arm tool per family; handling-type tasks share the gripper.
     const byFamily = new Map<string, string>();
     for (const t of tasks) if (!byFamily.has(t.skill.tool ?? "gripper")) byFamily.set(t.skill.tool ?? "gripper", t.skill.toolName);
@@ -288,7 +325,8 @@ export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"
       multitask: tasks.length > 1,
       apps,
       minPayload,
-      steps: buildSteps(tasks, i === 0, i === groups.length - 1),
+      steps: buildSteps(tasks, i === 0, i === groups.length - 1, mType),
+      motion,
       collaborative: cobot && minPayload <= 25 && !tasks.some((t) => NOT_FOR_COBOTS.test(t.name)),
     };
   });
@@ -296,7 +334,7 @@ export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"
   return {
     robots,
     strategy,
-    sim: { cells: robots.map((r) => ({ title: `${r.title}: ${r.tasks.map((t) => t.name).join(" + ")}`, steps: r.steps })) },
+    sim: { cells: robots.map((r) => ({ title: `${r.title}: ${r.tasks.map((t) => t.name).join(" + ")}`, steps: r.steps, motion: r.motion })) },
   };
 }
 

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { processesFromSkills } from "@/utils/processAnalyzer";
 import { createSimulation, eoatKind, STATION_NAMES, type Simulation, type SimUpdate } from "./robotSim.js";
+import { CINEMATIC_POST } from "./cinematicPost";
 import { planLine, type LinePlan } from "./robotKnowledge";
 import { Thumb, type Choice } from "./EquipmentPicker";
 import { BLOCKS, findJobs } from "./ProcessBuilder";
@@ -144,7 +145,7 @@ export default function CellBuilder() {
   const stageBoxRef = useRef<HTMLElement>(null);
   const [overStage, setOverStage] = useState(false);
   const [playing, setPlaying] = useState(true);
-  const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle" | "product"> | null>(null);
+  const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle" | "product" | "quality"> | null>(null);
   const lastEmit = useRef(0);
   const cellCount = useRef(0);
   const [reportOpen, setReportOpen] = useState(false);
@@ -205,13 +206,13 @@ export default function CellBuilder() {
   useEffect(() => {
     if (!stageRef.current) return;
     const s = createSimulation({
-      THREE, OrbitControls, RoomEnvironment, container: stageRef.current,
+      THREE, OrbitControls, RoomEnvironment, post: CINEMATIC_POST, container: stageRef.current,
       onUpdate: (u: SimUpdate) => {
         if (tracker.current.update(u.simTime, u.cells, stepsRef.current)) setBreakdown([...tracker.current.last]);
         const now = performance.now();
         if (now - lastEmit.current < 250) return;
         lastEmit.current = now;
-        setSim({ cells: u.cells, currentCycle: u.currentCycle, product: u.product });
+        setSim({ cells: u.cells, currentCycle: u.currentCycle, product: u.product, quality: u.quality });
       },
     });
     simRef.current = s;
@@ -990,11 +991,20 @@ export default function CellBuilder() {
               </option>
             ))}
           </select>
-          {(["iso", "front", "top", "product"] as const).map((v) => (
+          {(["iso", "cinematic", "front", "top", "product"] as const).map((v) => (
             <Button key={v} size="sm" variant="secondary" onClick={() => simRef.current?.setView(v)}>
               {v === "iso" ? "3D" : v === "product" ? "Close-up" : v[0].toUpperCase() + v.slice(1)}
             </Button>
           ))}
+          <Button
+            size="sm"
+            variant={sim?.quality === "high" ? "default" : "secondary"}
+            aria-pressed={sim?.quality === "high"}
+            title="Realistic picture: soft contact shadows, glowing lamps and arcs. Turn it off for a faster picture on slow devices."
+            onClick={() => simRef.current?.setQuality(sim?.quality === "high" ? "standard" : "high")}
+          >
+            Realistic
+          </Button>
           {sim?.product && cells.some((c) => c.job) && (
             <span className="hidden truncate rounded-md border border-border bg-background/90 px-2 py-1 text-xs md:inline" title={`Workpiece: ${sim.product.label}`}>
               Workpiece: <b className="font-medium">{sim.product.label}</b>

@@ -21,11 +21,31 @@ export interface SimUpdate {
   product?: { key: string; label: string; kg: number; size: [number, number, number]; gripper: string } | null;
   /** Every tool the line uses: the gripper and the process tools its steps need. */
   tools?: string[];
+  /** How the focused robot travels (track, overhead, gantry, AMR, lift, RGV), its travel and where it is now (m). */
+  motion?: SimMotionState;
+  /** Picture quality in use (it drops to "standard" by itself when the frame rate cannot keep up). */
+  quality?: SimQuality;
+}
+
+export type SimQuality = "high" | "standard";
+export type SimMotionType = "fixed" | "track" | "overhead" | "gantry" | "amr" | "lift" | "rgv";
+export interface SimMotion {
+  type: SimMotionType;
+  /** Travel in metres (a lift column's is vertical). */
+  length?: number;
+}
+export interface SimMotionState {
+  type: SimMotionType;
+  length: number;
+  travel: number;
+  min: number;
+  max: number;
 }
 
 export interface SimPlan {
   /** stations: equipment to show even when no step uses it (cell builder); startTool: tool in use when a cycle starts. */
-  cells: { title?: string; steps: SimStep[]; stations?: string[]; startTool?: number }[];
+  /** motion: how the robot moves between places; stations at the far end of its travel have keys ending in "_2". */
+  cells: { title?: string; steps: SimStep[]; stations?: string[]; startTool?: number; motion?: SimMotion | null }[];
   /** The user's own words: a product they name (mangoes, cement bags) is the one the robots handle. */
   brief?: string;
   /** The product, when already known (see workpieces.js productFor). */
@@ -64,6 +84,11 @@ export interface Simulation {
     } | null,
   ): void;
   setJoint(i: number, deg: number | string): void;
+  /** Move the focused robot along its track, lift or gantry by hand (m); only while paused. */
+  setTravel(m: number): void;
+  /** "high": cinematic (ambient occlusion, glow on lamps and hot metal, smooth edges); "standard": fast, for phones. */
+  setQuality(q: SimQuality): void;
+  readonly quality: SimQuality;
   checkReach(steps?: SimStep[]): string[];
   dispose(): void;
 }
@@ -81,6 +106,18 @@ export function createSimulation(opts: {
   THREE: typeof import("three");
   OrbitControls: unknown;
   RoomEnvironment?: unknown;
+  /** three/examples post-processing classes for the cinematic look; without them the picture is "standard". */
+  post?: {
+    EffectComposer: unknown;
+    RenderPass: unknown;
+    OutputPass: unknown;
+    GTAOPass?: unknown;
+    UnrealBloomPass?: unknown;
+    ShaderPass?: unknown;
+    VignetteShader?: unknown;
+  };
+  /** Start in this quality; by default high on desktops, standard on phones. */
+  quality?: SimQuality;
   container: HTMLElement;
   onUpdate?: (s: SimUpdate) => void;
 }): Simulation;

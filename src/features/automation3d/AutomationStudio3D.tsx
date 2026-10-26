@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import { AlertTriangle, BookOpen, Bot, CheckCircle2, FileText, Info, Minus, Pause, Play, Plus, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/utils/processAnalyzer";
-import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation } from "./robotSim.js";
+import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation, type SimQuality } from "./robotSim.js";
+import { CINEMATIC_POST } from "./cinematicPost";
 import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, recommendRobots, STRATEGIES, type DirectoryRobot, type LinePlan, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, inrRange } from "./solutionCost";
@@ -48,6 +49,7 @@ type SimState = {
   cells?: { title: string; stepIndex: number; step: Step | null; cycles: number }[];
   product?: { label: string; kg: number; size: [number, number, number]; gripper: string } | null;
   tools?: string[];
+  quality?: SimQuality;
 };
 
 /** "300 × 240 × 220 mm" (length × width × height). */
@@ -87,6 +89,7 @@ const loadCatalog = () =>
 
 const VIEWS: [string, string][] = [
   ["iso", "3D"],
+  ["cinematic", "Cinematic"],
   ["product", "Close-up"],
   ["front", "Front"],
   ["side", "Side"],
@@ -326,6 +329,7 @@ export default function AutomationStudio3D({
       THREE,
       OrbitControls,
       RoomEnvironment,
+      post: CINEMATIC_POST,
       container: stageRef.current,
       onUpdate: (s: SimState) => setState(s),
     });
@@ -949,11 +953,26 @@ export default function AutomationStudio3D({
               </>
             )}
           </div>
-          <div className="absolute right-3 top-3 hidden rounded-lg border border-white/10 bg-[#0e1621]/85 px-3 py-2 text-right text-[#e6ecf3] backdrop-blur sm:block">
-            <span className="text-[11px] uppercase tracking-wide opacity-70">{plan ? "Line cycle" : "Cycle"}</span>
-            <b className="block text-[15px] tabular-nums">
-              {state?.lastCycle ? `${state.lastCycle.toFixed(1)} s` : `${(state?.currentCycle ?? 0).toFixed(1)} s`}
-            </b>
+          <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
+            <div className="hidden rounded-lg border border-white/10 bg-[#0e1621]/85 px-3 py-2 text-right text-[#e6ecf3] backdrop-blur sm:block">
+              <span className="text-[11px] uppercase tracking-wide opacity-70">{plan ? "Line cycle" : "Cycle"}</span>
+              <b className="block text-[15px] tabular-nums">
+                {state?.lastCycle ? `${state.lastCycle.toFixed(1)} s` : `${(state?.currentCycle ?? 0).toFixed(1)} s`}
+              </b>
+            </div>
+            <button
+              type="button"
+              aria-pressed={state?.quality === "high"}
+              title="Realistic picture: soft contact shadows, glowing lamps and arcs. Turn it off for a faster picture on slow devices."
+              onClick={() => simRef.current?.setQuality(state?.quality === "high" ? "standard" : "high")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md border bg-[#0e1621]/70 px-2.5 py-1 text-xs text-[#e6ecf3] backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]",
+                state?.quality === "high" ? "border-[#4a90e2]" : "border-white/15",
+              )}
+            >
+              <span className={cn("h-1.5 w-1.5 rounded-full", state?.quality === "high" ? "bg-[#4a90e2]" : "bg-white/30")} />
+              Realistic
+            </button>
           </div>
           <div className="absolute bottom-3 left-3 flex gap-1.5">
             {VIEWS.map(([k, l]) => (

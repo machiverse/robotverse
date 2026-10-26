@@ -89,16 +89,19 @@ const TOOL_PATTERNS = [
 const capitalise = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 export function stepLabel(step) {
-  const n = STATION_NAMES[step.station] || "";
+  // "cnc_2" is the CNC machine at the far end of the robot's track.
+  const key = String(step.station || "").replace(/_\d+$/, "");
+  const two = key !== step.station ? " 2" : "";
+  const n = (STATION_NAMES[key] || "") + two;
   switch (step.action) {
     case "pick":
-      return step.station === "cnc" ? "Unload from CNC" : `Pick from ${n.toLowerCase()}`;
+      return key === "cnc" ? `Unload from CNC${two}` : `Pick from ${n.toLowerCase()}`;
     case "place":
-      if (step.station === "cnc") return "Load into CNC";
-      if (step.station === "pallet") return "Stack on pallet";
+      if (key === "cnc") return `Load into CNC${two}`;
+      if (key === "pallet") return `Stack on pallet${two}`;
       return `Place on ${n.toLowerCase()}`;
     case "process":
-      return { press: "Press stroke", mould: "Moulding cycle", test: "Run the test", marker: "Laser mark the part" }[step.station] || "Run CNC cycle";
+      return ({ press: "Press stroke", mould: "Moulding cycle", test: "Run the test", marker: "Laser mark the part" }[key] || "Run CNC cycle") + two;
     case "scan":
       return "Find a part with the 3D camera";
     case "inspect":
@@ -305,6 +308,17 @@ export function eoatKind(text) {
 }
 const APPROACH = 0.22;
 const CELL_SPACING = 3.6;
+/** Default travel per motion system in the 3D cell (m; a lift column's is vertical). See robotMotion.ts. */
+const MOTION_LEN = { fixed: 0, track: 4, overhead: 4, gantry: 3.5, amr: 4, lift: 1.2, rgv: 5 };
+/** An inverted robot hangs this high from the overhead track, and is at least this big to reach the floor stations. */
+const OVERHEAD_SCALE = 1.3;
+const OVERHEAD_Y = 0.65 + 1.45 * OVERHEAD_SCALE;
+/** Gantry frame: rail height, and how far its legs stand beyond the end stations. */
+const GANTRY_H = 2.75;
+const GANTRY_X = 1.95;
+/** How far a robot's motion system carries it along the line (m): 0 for a fixed robot or a lift column. */
+const travelOf = (motion) =>
+  motion && MOTION_LEN[motion.type] && motion.type !== "lift" ? clamp(Number(motion.length) || MOTION_LEN[motion.type], 1.5, 8) : 0;
 const BELT_SPEED = 0.45;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 /** Typical reach for a payload class when a listing gives none. */
@@ -332,13 +346,24 @@ const BELT_TOP = 0.78;
  * Only the stations a cell's steps use are built, so the scene shows just
  * the machines the process needs.
  */
-export function createSimulation({ THREE, OrbitControls, RoomEnvironment, container, onUpdate }) {
+export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, quality: wantQuality, container, onUpdate }) {
   const LIGHT_K = Number(THREE.REVISION) >= 155 ? Math.PI : 1;
   // The product this line handles: its size drives grips, slots and stations.
   const PART = { ...PART0 };
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+  /*
+   * Picture quality. "high": a cinematic pipeline — ambient occlusion where parts meet, a soft glow on lamps,
+   * beacons, lasers and hot metal, multisampled edges and sharper shadows. "standard": the direct render, for
+   * phones and slow graphics. High is the default on desktops when the post-processing modules are passed in,
+   * and drops to standard by itself if the frame rate cannot keep up.
+   */
+  const canPost = !!(post && post.EffectComposer && post.RenderPass && post.OutputPass);
+  const coarse = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+  let quality = canPost && wantQuality !== "standard" && (wantQuality === "high" || (!coarse && (navigator.hardwareConcurrency || 4) >= 4)) ? "high" : "standard";
+  let qualityAuto = wantQuality !== "high" && wantQuality !== "standard";
+  const pixelRatio = () => Math.min(window.devicePixelRatio || 1, quality === "high" ? 1.5 : 1.75);
+  renderer.setPixelRatio(pixelRatio());
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
@@ -349,17 +374,18 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
   // Physically based look: sRGB output, filmic tone mapping, soft image-based lighting.
   if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+  renderer.toneMappingExposure = 1.0;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1b2430);
-  scene.fog = new THREE.Fog(0x1b2430, 12, 36);
+  scene.background = new THREE.Color(0x1c2128);
+  // A little haze in the hall air, so distant racks and walls fall back.
+  scene.fog = new THREE.Fog(0x1c2128, 16, 46);
   let envTexture = null;
   if (RoomEnvironment) {
     const pmrem = new THREE.PMREMGenerator(renderer);
     envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = envTexture;
-    if ("environmentIntensity" in scene) scene.environmentIntensity = 0.55;
+    if ("environmentIntensity" in scene) scene.environmentIntensity = 0.62;
     pmrem.dispose();
   }
 
@@ -369,11 +395,80 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
   controls.maxPolarAngle = Math.PI * 0.495;
   controls.minDistance = 1.2;
   controls.maxDistance = 45;
+  // Cinematic view: a slow orbit round the line, until the user takes the camera.
+  controls.autoRotateSpeed = 0.55;
+  controls.addEventListener("start", () => (controls.autoRotate = false));
 
-  scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x2a3240, (RoomEnvironment ? 0.45 : 0.75) * LIGHT_K));
-  const sun = new THREE.DirectionalLight(0xffffff, 0.95 * LIGHT_K);
+  let composer = null;
+  let gtao = null;
+  function disposeComposer() {
+    if (!composer) return;
+    composer.passes.forEach((p) => p.dispose && p.dispose());
+    composer.renderTarget1.dispose();
+    composer.renderTarget2.dispose();
+    composer = null;
+    gtao = null;
+  }
+  function buildComposer() {
+    disposeComposer();
+    if (quality !== "high") return;
+    const w = container.clientWidth || 800;
+    const h = container.clientHeight || 500;
+    // Multisampled HDR target: smooth edges, and highlights above 1.0 for the glow.
+    const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples: 4 });
+    composer = new post.EffectComposer(renderer, rt);
+    composer.addPass(new post.RenderPass(scene, camera));
+    if (post.GTAOPass) {
+      gtao = new post.GTAOPass(scene, camera, w, h);
+      gtao.updateGtaoMaterial({ radius: 0.32, distanceExponent: 1.5, thickness: 1.4, scale: 1.15, samples: 12, distanceFallOff: 1 });
+      gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+      gtao.blendIntensity = 0.9;
+      // Signs, glass, mist and fence mesh cast no contact shadow.
+      const hide = gtao.overrideVisibility.bind(gtao);
+      gtao.overrideVisibility = function () {
+        hide();
+        scene.traverse((o) => {
+          const m = o.material;
+          if (o.isSprite || (m && !Array.isArray(m) && m.transparent && (m.opacity < 0.9 || !m.depthWrite))) o.visible = false;
+        });
+      };
+      composer.addPass(gtao);
+    }
+    if (post.UnrealBloomPass) composer.addPass(new post.UnrealBloomPass(new THREE.Vector2(w, h), 0.3, 0.5, 1.7));
+    composer.addPass(new post.OutputPass());
+    // A lens's soft fall-off at the corners draws the eye to the robot.
+    if (post.ShaderPass && post.VignetteShader) {
+      const lens = new post.ShaderPass(post.VignetteShader);
+      lens.uniforms.offset.value = 0.85;
+      lens.uniforms.darkness.value = 1;
+      composer.addPass(lens);
+    }
+    composer.setPixelRatio(renderer.getPixelRatio());
+    composer.setSize(w, h);
+  }
+  function setQuality(q, auto = false) {
+    const next = q === "high" && canPost ? "high" : "standard";
+    if (!auto) qualityAuto = false;
+    if (next === quality && (composer || next === "standard")) return;
+    quality = next;
+    renderer.setPixelRatio(pixelRatio());
+    const size = quality === "high" ? 4096 : 2048;
+    sun.shadow.mapSize.set(size, size);
+    if (sun.shadow.map) {
+      sun.shadow.map.dispose();
+      sun.shadow.map = null;
+    }
+    buildComposer();
+    resize();
+    emit(true);
+  }
+
+  // Sky light from the roof lights above, bounce from the concrete below.
+  scene.add(new THREE.HemisphereLight(0xe6eef8, 0x4a4640, (RoomEnvironment ? 0.42 : 0.75) * LIGHT_K));
+  // Key light: warm daylight through the skylights, casting the shadows.
+  const sun = new THREE.DirectionalLight(0xfff1e0, 1.05 * LIGHT_K);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(quality === "high" ? 4096 : 2048, quality === "high" ? 4096 : 2048);
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.02;
   sun.shadow.radius = 3;
@@ -414,7 +509,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     // Brushed stainless: fine streaks catch the light like a real table top.
     steel: new THREE.MeshStandardMaterial({ map: canvasTex(128, 128, streaks("#9aa4ae", "rgba(255,255,255,0.18)", "rgba(40,48,60,0.16)", 220)), metalness: 0.72, roughness: 0.32 }),
     frame: new THREE.MeshStandardMaterial({ color: 0x3a4555, metalness: 0.4, roughness: 0.55 }),
-    machine: new THREE.MeshStandardMaterial({ map: canvasTex(64, 64, streaks("#d4d9e0", "rgba(255,255,255,0.06)", "rgba(0,0,0,0.025)", 36, true)), metalness: 0.2, roughness: 0.48 }),
+    machine: new THREE.MeshStandardMaterial({ map: canvasTex(64, 64, streaks("#c4cad1", "rgba(255,255,255,0.06)", "rgba(0,0,0,0.025)", 36, true)), metalness: 0.25, roughness: 0.42 }),
     wood: new THREE.MeshStandardMaterial({
       map: canvasTex(128, 128, (g, w, h) => {
         g.fillStyle = "#c19563";
@@ -433,12 +528,74 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       roughness: 0.82,
     }),
     glass: new THREE.MeshStandardMaterial({ color: 0x9fc4ea, metalness: 0.1, roughness: 0.1, transparent: true, opacity: 0.35 }),
+    // Tinted polycarbonate in a machine guard: dark, with the hall reflected in it.
+    smoked: new THREE.MeshStandardMaterial({ color: 0x18222d, metalness: 0.55, roughness: 0.06 }),
+    // Welding table: thick steel plate drilled on a 100 mm grid for clamps and stops.
+    weldTop: new THREE.MeshStandardMaterial({
+      map: canvasTex(
+        256,
+        256,
+        (g, w, h) => {
+          g.fillStyle = "#4b525a";
+          g.fillRect(0, 0, w, h);
+          for (let i = 0; i < 900; i++) {
+            g.fillStyle = `rgba(${Math.random() < 0.5 ? "20,24,28" : "150,156,162"},${0.05 + Math.random() * 0.08})`;
+            g.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 3, 1 + Math.random() * 3);
+          }
+          g.strokeStyle = "rgba(200,206,212,0.18)";
+          g.lineWidth = 1;
+          for (let i = 0; i <= 4; i++) {
+            g.beginPath();
+            g.moveTo((i * w) / 4, 0);
+            g.lineTo((i * w) / 4, h);
+            g.moveTo(0, (i * h) / 4);
+            g.lineTo(w, (i * h) / 4);
+            g.stroke();
+          }
+          for (let i = 0; i < 4; i++)
+            for (let j = 0; j < 4; j++) {
+              const cx = ((i + 0.5) * w) / 4, cy = ((j + 0.5) * h) / 4;
+              g.fillStyle = "#0e1114";
+              g.beginPath();
+              g.arc(cx, cy, w / 22, 0, Math.PI * 2);
+              g.fill();
+              g.strokeStyle = "rgba(210,216,222,0.45)";
+              g.lineWidth = 1.5;
+              g.stroke();
+            }
+        },
+        [1.75, 1.4],
+      ),
+      metalness: 0.55,
+      roughness: 0.5,
+    }),
     amber: new THREE.MeshStandardMaterial({ color: 0xf2b705, metalness: 0.2, roughness: 0.5 }),
     card: new THREE.MeshStandardMaterial({ color: 0xc49a6c, metalness: 0, roughness: 0.9 }),
   };
 
   const box = (w, h, d, mat) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    return m;
+  };
+  /** A box with softened edges: real sheet metal and castings catch the light along their edges. */
+  const rbox = (w, h, d, mat, r = 0.02) => {
+    const b = Math.min(r, w / 4, h / 4, d / 4);
+    const x = w / 2 - b, y = h / 2 - b, c = b * 0.6;
+    const s = new THREE.Shape();
+    s.moveTo(-x + c, -y);
+    s.lineTo(x - c, -y);
+    s.quadraticCurveTo(x, -y, x, -y + c);
+    s.lineTo(x, y - c);
+    s.quadraticCurveTo(x, y, x - c, y);
+    s.lineTo(-x + c, y);
+    s.quadraticCurveTo(-x, y, -x, y - c);
+    s.lineTo(-x, -y + c);
+    s.quadraticCurveTo(-x, -y, -x + c, -y);
+    const geo = new THREE.ExtrudeGeometry(s, { depth: d - 2 * b, bevelEnabled: true, bevelThickness: b, bevelSize: b * 0.4, bevelSegments: 2, curveSegments: 3 });
+    geo.translate(0, 0, -(d - 2 * b) / 2);
+    const m = new THREE.Mesh(geo, mat);
     m.castShadow = true;
     m.receiveShadow = true;
     return m;
@@ -450,77 +607,331 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     return m;
   };
 
-  const floorTex = (() => {
-    const c = document.createElement("canvas");
-    c.width = c.height = 256;
-    const g = c.getContext("2d");
-    g.fillStyle = "#6b7280";
-    g.fillRect(0, 0, 256, 256);
-    // Mottled concrete.
-    for (let i = 0; i < 2600; i++) {
-      const v = 95 + Math.floor(Math.random() * 30);
-      g.fillStyle = `rgba(${v},${v + 4},${v + 10},0.22)`;
-      const r = 1 + Math.random() * 3;
-      g.fillRect(Math.random() * 256, Math.random() * 256, r, r);
+  /** Many boxes or cylinders of one material as a single mesh. parts: [geometry, [x, y, z], [rx, ry, rz]?] */
+  function mergeParts(parts) {
+    const pos = [], nor = [], uv = [];
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1);
+    for (const [geo, p, r] of parts) {
+      const g = geo.index ? geo.toNonIndexed() : geo.clone();
+      m4.compose(new THREE.Vector3(...p), q.setFromEuler(e.set(...(r || [0, 0, 0]))), one);
+      g.applyMatrix4(m4);
+      pos.push(g.attributes.position.array);
+      nor.push(g.attributes.normal.array);
+      uv.push(g.attributes.uv ? g.attributes.uv.array : new Float32Array(g.attributes.position.count * 2));
+      g.dispose();
+      geo.dispose();
     }
-    // 1 m tile joints.
-    g.strokeStyle = "rgba(40,46,56,0.55)";
-    g.lineWidth = 2;
-    g.strokeRect(0, 0, 256, 256);
+    const cat = (arrs) => {
+      const out = new Float32Array(arrs.reduce((n, a) => n + a.length, 0));
+      let o = 0;
+      for (const a of arrs) {
+        out.set(a, o);
+        o += a.length;
+      }
+      return out;
+    };
+    const out = new THREE.BufferGeometry();
+    out.setAttribute("position", new THREE.BufferAttribute(cat(pos), 3));
+    out.setAttribute("normal", new THREE.BufferAttribute(cat(nor), 3));
+    out.setAttribute("uv", new THREE.BufferAttribute(cat(uv), 2));
+    return out;
+  }
+  const hallTextures = [];
+  function hallTex(w, h, draw, repeat, srgb = true) {
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    draw(c.getContext("2d"), w, h);
     const t = new THREE.CanvasTexture(c);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(60, 30);
+    if (repeat) t.repeat.set(repeat[0], repeat[1]);
     t.anisotropy = 8;
-    if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    if (srgb && THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    hallTextures.push(t);
     return t;
+  }
+
+  /* Floor: polished concrete in 6 m slabs with saw-cut joints, trowel marks and patchy sheen. */
+  const SLAB = 512;
+  const slabHeight = (() => {
+    // Height field shared by the colour, sheen and relief maps: joints are grooves, aggregate is grain.
+    const c = document.createElement("canvas");
+    c.width = c.height = SLAB;
+    const g = c.getContext("2d");
+    g.fillStyle = "#808080";
+    g.fillRect(0, 0, SLAB, SLAB);
+    for (let i = 0; i < 9000; i++) {
+      const v = 110 + Math.floor(Math.random() * 40);
+      g.fillStyle = `rgba(${v},${v},${v},0.35)`;
+      g.fillRect(Math.random() * SLAB, Math.random() * SLAB, 1.5, 1.5);
+    }
+    g.fillStyle = "#3a3a3a";
+    g.fillRect(0, 0, SLAB, 3);
+    g.fillRect(0, 0, 3, SLAB);
+    return c;
   })();
+  const floorTex = hallTex(SLAB, SLAB, (g, w, h) => {
+    g.fillStyle = "#8d9297";
+    g.fillRect(0, 0, w, h);
+    // Large soft clouds of lighter and darker cement.
+    for (let i = 0; i < 70; i++) {
+      const x = Math.random() * w, y = Math.random() * h, r = 30 + Math.random() * 110;
+      const grd = g.createRadialGradient(x, y, 0, x, y, r);
+      const v = Math.random() < 0.5 ? "255,255,255" : "40,44,50";
+      grd.addColorStop(0, `rgba(${v},0.07)`);
+      grd.addColorStop(1, `rgba(${v},0)`);
+      g.fillStyle = grd;
+      g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    // Power-trowel swirls.
+    g.strokeStyle = "rgba(255,255,255,0.035)";
+    for (let i = 0; i < 40; i++) {
+      g.lineWidth = 6 + Math.random() * 10;
+      g.beginPath();
+      g.arc(Math.random() * w, Math.random() * h, 40 + Math.random() * 80, Math.random() * 6, Math.random() * 6 + 2);
+      g.stroke();
+    }
+    // Aggregate.
+    for (let i = 0; i < 5000; i++) {
+      const v = 70 + Math.floor(Math.random() * 90);
+      g.fillStyle = `rgba(${v},${v + 2},${v + 4},0.35)`;
+      g.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 1.5, 1 + Math.random() * 1.5);
+    }
+    // A few stains and tyre marks.
+    g.strokeStyle = "rgba(30,32,36,0.06)";
+    g.lineWidth = 18;
+    g.beginPath();
+    g.moveTo(0, h * 0.62);
+    g.bezierCurveTo(w * 0.3, h * 0.55, w * 0.7, h * 0.7, w, h * 0.64);
+    g.stroke();
+    // Joints and grain from the shared height field, blended over the colour.
+    g.globalCompositeOperation = "overlay";
+    g.drawImage(slabHeight, 0, 0);
+    g.globalCompositeOperation = "source-over";
+  }, [10, 5]);
+  // The joints and grain catch the light.
+  const floorRelief = hallTex(SLAB, SLAB, (g, w, h) => {
+    const src = slabHeight.getContext("2d").getImageData(0, 0, w, h).data;
+    const img = g.createImageData(w, h);
+    const at = (x, y) => src[(((y + h) % h) * w + ((x + w) % w)) * 4] / 255;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const dx = (at(x - 1, y) - at(x + 1, y)) * 2.2, dy = (at(x, y - 1) - at(x, y + 1)) * 2.2;
+        const l = Math.hypot(dx, dy, 1);
+        const i = (y * w + x) * 4;
+        img.data[i] = ((dx / l) * 0.5 + 0.5) * 255;
+        img.data[i + 1] = ((dy / l) * 0.5 + 0.5) * 255;
+        img.data[i + 2] = ((1 / l) * 0.5 + 0.5) * 255;
+        img.data[i + 3] = 255;
+      }
+    g.putImageData(img, 0, 0);
+  }, [10, 5], false);
+  // Polished patches shine, worn paths are matt.
+  const floorSheen = hallTex(256, 256, (g, w, h) => {
+    g.fillStyle = "#8a8a8a";
+    g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 60; i++) {
+      const x = Math.random() * w, y = Math.random() * h, r = 20 + Math.random() * 60;
+      const grd = g.createRadialGradient(x, y, 0, x, y, r);
+      const v = Math.random() < 0.6 ? 70 : 175;
+      grd.addColorStop(0, `rgba(${v},${v},${v},0.5)`);
+      grd.addColorStop(1, `rgba(${v},${v},${v},0)`);
+      g.fillStyle = grd;
+      g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+  }, [10, 5], false);
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(60, 30),
-    new THREE.MeshStandardMaterial({ map: floorTex, color: 0x747c86, metalness: 0.05, roughness: 0.5 })
+    new THREE.MeshStandardMaterial({ map: floorTex, color: 0x9da2a8, normalMap: floorRelief, normalScale: new THREE.Vector2(0.55, 0.55), roughnessMap: floorSheen, roughness: 0.7, metalness: 0.02, envMapIntensity: 0.5 })
   );
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
   const grid = new THREE.GridHelper(60, 120, 0x33445a, 0x2a384a);
   grid.position.y = 0.001;
-  grid.visible = false; // tile joints are in the floor texture
+  grid.visible = false; // slab joints are in the floor texture
   scene.add(grid);
 
+  /* The hall: sandwich-panel wall with a clerestory window band, steel columns with hazard sleeves, roof trusses
+     and skylights, high-bay LED lamps, a cable tray, pallet racking along the back wall, a green walkway. */
   const building = new THREE.Group();
   {
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x3b4655, metalness: 0.35, roughness: 0.55 });
-    const ribMat = new THREE.MeshStandardMaterial({ color: 0x2f3946, metalness: 0.4, roughness: 0.5 });
-    const colMat = new THREE.MeshStandardMaterial({ color: 0x1f6fb2, metalness: 0.45, roughness: 0.45 });
-    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4dc, emissiveIntensity: 1.6 });
-    const wall = new THREE.Mesh(new THREE.PlaneGeometry(60, 7), wallMat);
-    wall.position.set(0, 3.5, -7.2);
-    wall.receiveShadow = true;
-    building.add(wall);
-    for (let x = -29; x <= 29; x += 1.2) {
-      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.06, 7, 0.06), ribMat);
-      rib.position.set(x, 3.5, -7.15);
-      building.add(rib);
+    const add = (geo, mat, { shadow = false } = {}) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.receiveShadow = true;
+      m.castShadow = shadow;
+      building.add(m);
+      return m;
+    };
+    const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+    const panelMat = new THREE.MeshStandardMaterial({
+      map: hallTex(256, 64, (g, w, h) => {
+        g.fillStyle = "#b9c1c9";
+        g.fillRect(0, 0, w, h);
+        for (let x = 0; x < w; x += 32) {
+          g.fillStyle = "rgba(255,255,255,0.35)";
+          g.fillRect(x + 2, 0, 3, h);
+          g.fillStyle = "rgba(40,50,60,0.25)";
+          g.fillRect(x + 5, 0, 2, h);
+          g.fillRect(x + 18, 0, 1, h);
+        }
+      }, [15, 1]),
+      metalness: 0.35,
+      roughness: 0.5,
+    });
+    add(B(60, 8.6, 0.12), panelMat).position.set(0, 4.3, -7.45);
+    add(B(60, 1.2, 0.22), new THREE.MeshStandardMaterial({ color: 0x8b9096, roughness: 0.85 })).position.set(0, 0.6, -7.38);
+    // Daylight through the clerestory glazing: bright enough to glow.
+    add(B(60, 1.15, 0.05), new THREE.MeshStandardMaterial({ color: 0xdfeaf4, emissive: 0xdfeaf4, emissiveIntensity: 2.2, roughness: 0.2 })).position.set(0, 5.35, -7.36);
+    const mullions = [];
+    for (let x = -29; x <= 29; x += 2) mullions.push([B(0.07, 1.25, 0.08), [x, 5.35, -7.32]]);
+    mullions.push([B(60, 0.07, 0.08), [0, 4.75, -7.32]], [B(60, 0.07, 0.08), [0, 5.95, -7.32]]);
+    const steelDark = new THREE.MeshStandardMaterial({ color: 0x39424e, metalness: 0.6, roughness: 0.45 });
+    add(mergeParts(mullions), steelDark);
+
+    // Steel I-section columns, painted blue, with yellow-black sleeves where forklifts pass.
+    const ish = new THREE.Shape();
+    ish.moveTo(-0.17, -0.2); ish.lineTo(0.17, -0.2); ish.lineTo(0.17, -0.17); ish.lineTo(0.02, -0.17); ish.lineTo(0.02, 0.17); ish.lineTo(0.17, 0.17);
+    ish.lineTo(0.17, 0.2); ish.lineTo(-0.17, 0.2); ish.lineTo(-0.17, 0.17); ish.lineTo(-0.02, 0.17); ish.lineTo(-0.02, -0.17); ish.lineTo(-0.17, -0.17); ish.lineTo(-0.17, -0.2);
+    const colGeo = () => {
+      const g = new THREE.ExtrudeGeometry(ish, { depth: 8.6, bevelEnabled: false });
+      g.rotateX(-Math.PI / 2);
+      return g;
+    };
+    const cols = [], sleeves = [], extinguishers = [];
+    for (let x = -27; x <= 27; x += 6) {
+      cols.push([colGeo(), [x, 0, -7.05]]);
+      sleeves.push([B(0.46, 1.1, 0.5), [x, 0.55, -7.05]]);
+      extinguishers.push([new THREE.CylinderGeometry(0.075, 0.075, 0.5, 12), [x + 0.32, 1.05, -6.95]]);
     }
-    const dado = new THREE.Mesh(new THREE.BoxGeometry(60, 1.1, 0.08), new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.8 }));
-    dado.position.set(0, 0.55, -7.1);
-    building.add(dado);
-    for (let x = -24; x <= 24; x += 6) {
-      const col = new THREE.Mesh(new THREE.BoxGeometry(0.35, 7, 0.35), colMat);
-      col.position.set(x, 3.5, -6.8);
-      col.castShadow = true;
-      building.add(col);
-      const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.35, 0.12, 20), lampMat);
-      lamp.position.set(x + 3, 5.6, -1.5);
-      building.add(lamp);
-      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.4, 6), ribMat);
-      rod.position.set(x + 3, 6.3, -1.5);
-      building.add(rod);
+    add(mergeParts(cols), new THREE.MeshStandardMaterial({ color: 0x235d9f, metalness: 0.45, roughness: 0.42 }), { shadow: true });
+    add(
+      mergeParts(sleeves),
+      new THREE.MeshStandardMaterial({
+        map: hallTex(64, 64, (g, w, h) => {
+          g.fillStyle = "#f2b705";
+          g.fillRect(0, 0, w, h);
+          g.fillStyle = "#15171a";
+          for (let i = -h; i < w; i += 16) {
+            g.beginPath();
+            g.moveTo(i, h);
+            g.lineTo(i + 8, h);
+            g.lineTo(i + 8 + h, 0);
+            g.lineTo(i + h, 0);
+            g.fill();
+          }
+        }, [2, 2]),
+        roughness: 0.55,
+      })
+    );
+    add(mergeParts(extinguishers), new THREE.MeshStandardMaterial({ color: 0xc81e1e, roughness: 0.35, metalness: 0.2 }));
+
+    // Roof: trusses every 6 m, purlins, a dark deck and skylight strips.
+    const truss = [];
+    const z0 = -7.4, z1 = 9, yb = 7.4, yt = 8.5;
+    for (let x = -27; x <= 27; x += 6) {
+      truss.push([B(0.12, 0.12, z1 - z0), [x, yb, (z0 + z1) / 2]], [B(0.12, 0.12, z1 - z0), [x, yt, (z0 + z1) / 2]]);
+      const n = 10, seg = (z1 - z0) / n;
+      for (let i = 0; i < n; i++) {
+        const za = z0 + i * seg;
+        const len = Math.hypot(seg, yt - yb);
+        truss.push([B(0.06, len, 0.06), [x, (yb + yt) / 2, za + seg / 2], [(i % 2 ? 1 : -1) * Math.atan2(seg, yt - yb), 0, 0]]);
+        truss.push([B(0.06, yt - yb, 0.06), [x, (yb + yt) / 2, za]]);
+      }
     }
-    // Yellow walkway line along the front of the line.
-    const walk = new THREE.Mesh(new THREE.PlaneGeometry(60, 0.1), new THREE.MeshStandardMaterial({ color: 0xf2b705, roughness: 0.6 }));
-    walk.rotation.x = -Math.PI / 2;
-    walk.position.set(0, 0.003, 3.4);
-    building.add(walk);
+    for (let z = -7; z <= 9; z += 2) truss.push([B(60, 0.1, 0.08), [0, yt + 0.11, z]]);
+    add(mergeParts(truss), steelDark);
+    const deck = add(new THREE.PlaneGeometry(60, 17), new THREE.MeshStandardMaterial({ color: 0x2b323b, roughness: 0.8, side: THREE.DoubleSide }));
+    deck.rotation.x = Math.PI / 2;
+    deck.position.set(0, yt + 0.2, 0.8);
+    const lights = [];
+    for (let z = -5; z <= 7; z += 4) lights.push([B(60, 0.03, 0.9), [0, yt + 0.17, z]]);
+    add(mergeParts(lights), new THREE.MeshStandardMaterial({ color: 0xeaf2fb, emissive: 0xeaf2fb, emissiveIntensity: 1.6 }));
+
+    // High-bay LED lamps on drop rods.
+    const housings = [], lenses = [], rods = [];
+    for (let x = -24; x <= 24; x += 6)
+      for (const z of [-3.4, 2.6]) {
+        housings.push([new THREE.CylinderGeometry(0.22, 0.34, 0.24, 24), [x + 3, 6.25, z]]);
+        lenses.push([new THREE.CylinderGeometry(0.31, 0.31, 0.02, 24), [x + 3, 6.12, z]]);
+        rods.push([new THREE.CylinderGeometry(0.012, 0.012, yb - 6.37, 6), [x + 3, (yb + 6.37) / 2, z]]);
+      }
+    add(mergeParts(housings), new THREE.MeshStandardMaterial({ color: 0x4a5462, metalness: 0.7, roughness: 0.35 }));
+    add(mergeParts(lenses), new THREE.MeshStandardMaterial({ color: 0xfff6e6, emissive: 0xfff2dc, emissiveIntensity: 5 }));
+    add(mergeParts(rods), steelDark);
+
+    // Galvanised cable tray along the hall.
+    const galv = new THREE.MeshStandardMaterial({ color: 0xaab2bb, metalness: 0.8, roughness: 0.35 });
+    add(mergeParts([[B(58, 0.02, 0.45), [0, 5.6, -5.6]], [B(58, 0.1, 0.02), [0, 5.65, -5.38]], [B(58, 0.1, 0.02), [0, 5.65, -5.82]]]), galv);
+
+    // Pallet racking with cartons along the back wall.
+    const uprights = [], beams = [], loads = [], decks = [];
+    const bay = 2.7, rz0 = -6.85, rz1 = -5.85;
+    for (let x = -27; x <= 27; x += bay) {
+      for (const z of [rz0, rz1]) uprights.push([B(0.09, 4.6, 0.09), [x, 2.3, z]]);
+      if (x + bay > 27.01) continue;
+      for (const y of [0.18, 1.7, 3.2]) {
+        for (const z of [rz0, rz1]) beams.push([B(bay - 0.09, 0.12, 0.05), [x + bay / 2, y, z]]);
+        for (const dx of [0.68, 2.02]) {
+          decks.push([B(1.1, 0.12, 0.95), [x + dx, y + 0.12, (rz0 + rz1) / 2]]);
+          const hgt = 0.6 + ((x * 7 + y * 13 + dx * 5) % 0.5);
+          loads.push([B(1.0, hgt, 0.85), [x + dx, y + 0.18 + hgt / 2, (rz0 + rz1) / 2]]);
+        }
+      }
+    }
+    add(mergeParts(uprights), new THREE.MeshStandardMaterial({ color: 0x1f5fb8, metalness: 0.4, roughness: 0.45 }));
+    add(mergeParts(beams), new THREE.MeshStandardMaterial({ color: 0xea6a12, metalness: 0.3, roughness: 0.45 }));
+    add(mergeParts(decks), new THREE.MeshStandardMaterial({ color: 0xb08a5a, roughness: 0.85 }));
+    add(
+      mergeParts(loads),
+      new THREE.MeshStandardMaterial({
+        map: hallTex(128, 128, (g, w, h) => {
+          g.fillStyle = "#c49a63";
+          g.fillRect(0, 0, w, h);
+          g.fillStyle = "rgba(255,255,255,0.18)";
+          g.fillRect(0, h * 0.46, w, h * 0.08);
+          g.fillStyle = "rgba(255,255,255,0.75)";
+          g.fillRect(w * 0.12, h * 0.15, w * 0.3, h * 0.2);
+          g.strokeStyle = "rgba(90,60,30,0.35)";
+          g.strokeRect(1, 1, w / 2 - 2, h - 2);
+          g.strokeRect(w / 2 + 1, 1, w / 2 - 2, h - 2);
+        }),
+        roughness: 0.9,
+      })
+    );
+
+    // Safety signs on the wall.
+    const sign = (text, sub, color, x) => {
+      const t = hallTex(256, 128, (g, w, h) => {
+        g.fillStyle = "#f8fafc";
+        g.fillRect(0, 0, w, h);
+        g.fillStyle = color;
+        g.fillRect(0, 0, w, h * 0.38);
+        g.fillStyle = "#ffffff";
+        g.font = "800 30px Inter, Arial, sans-serif";
+        g.textAlign = "center";
+        g.fillText(text, w / 2, h * 0.27);
+        g.fillStyle = "#111827";
+        g.font = "600 20px Inter, Arial, sans-serif";
+        g.fillText(sub, w / 2, h * 0.7);
+      });
+      const m = add(new THREE.PlaneGeometry(1.4, 0.7), new THREE.MeshStandardMaterial({ map: t, roughness: 0.6 }));
+      m.position.set(x, 3.6, -7.38);
+    };
+    sign("SAFETY FIRST", "Robots in operation", "#15803d", -9);
+    sign("DANGER", "Keep out of the robot zone", "#b91c1c", 9);
+    sign("PPE REQUIRED", "Shoes · glasses · ear defenders", "#1d4ed8", 21);
+
+    // Green epoxy walkway with yellow edge lines along the front of the line.
+    const paint = (w, d, color, x, z, rough = 0.35) => {
+      const m = add(new THREE.PlaneGeometry(w, d), new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0 }));
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(x, 0.002, z);
+      return m;
+    };
+    paint(60, 1.2, 0x2f6b52, 0, 3.8);
+    paint(60, 0.08, 0xf2b705, 0, 3.16, 0.5);
+    paint(60, 0.08, 0xf2b705, 0, 4.44, 0.5);
   }
   scene.add(building);
 
@@ -595,7 +1006,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       const lbl = makeLabel(refLabel, "#fbbf24");
       lbl.position.set(0, bottom + h + 0.2, 0);
       g.add(lbl);
-      const span = (cells.length - 1) * CELL_SPACING;
+      const span = cellEnd[cells.length - 1] || 0;
       g.position.set(span / 2, 0, -2.75);
       scene.add(g);
       refGroup = g;
@@ -659,8 +1070,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       if (!fenceCells[i] || (i > 0 && fenceCells[i - 1])) continue;
       let j = i;
       while (j + 1 < n && fenceCells[j + 1]) j++;
-      const x0 = i === 0 ? bounds.min.x - 0.35 : i * CELL_SPACING - CELL_SPACING / 2 + 0.05;
-      const x1 = j === n - 1 ? bounds.max.x + 0.35 : j * CELL_SPACING + CELL_SPACING / 2 - 0.05;
+      const x0 = i === 0 ? bounds.min.x - 0.35 : cellStart[i] - CELL_SPACING / 2 + 0.05;
+      const x1 = j === n - 1 ? bounds.max.x + 0.35 : cellEnd[j] + CELL_SPACING / 2 - 0.05;
       side(x0, z0, x1, z0);
       side(x1, z0, x1, z1);
       side(x1, z1, x0, z1);
@@ -831,6 +1242,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
 
   let cells = [];
   let conveyors = [];
+  /** Where each robot cell starts and ends along the line (a robot on a track spans its travel). */
+  let cellStart = [0];
+  let cellEnd = [0];
+  /** The middle of cell i; i = number of cells is the free place after the line. */
+  const cellMid = (i) => (i < cells.length ? (cellStart[i] + cellEnd[i]) / 2 : (cellEnd[cells.length - 1] || 0) + CELL_SPACING);
   let mode = "single";
   let sizeKey = "medium";
   let playing = true;
@@ -861,44 +1277,63 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
   function createCell(index, X, steps, title, links, extra = {}) {
     const layout = LAYOUT[mode];
     const V = (x, y, z) => new THREE.Vector3(X + x, y, z);
-    /** A standard (medium) robot can reach a part centred at p, including the approach above it. */
-    const reachOK = (p) => {
-      const r = Math.hypot(p.x - X, p.z) - 0.15;
-      const y = p.y + PART.h / 2 + APPROACH + 0.25 - 0.45;
-      return Math.hypot(r, y) <= 1.45 * 0.985;
-    };
-    /** Slots for the product in rows and layers over an area w × d centred at (cx, cz), floor at y0: only reachable ones. */
-    const gridSlots = (cx, cz, y0, w, d, layers, max = 24) => {
-      const gx = PART.w + 0.012, gz = PART.d + 0.012;
-      const cols = clamp(Math.floor((w + 0.012) / gx), 1, 6), rows = clamp(Math.floor((d + 0.012) / gz), 1, 5);
-      const out = [];
-      for (let l = 0; l < layers; l++)
-        for (let i = 0; i < cols; i++)
-          for (let j = 0; j < rows; j++) {
-            const p = new THREE.Vector3(cx + (i - (cols - 1) / 2) * gx, y0 + PART.h / 2 + l * PART.h, cz + (j - (rows - 1) / 2) * gz);
-            if (reachOK(p)) out.push(p);
-          }
-      return out.length ? out.slice(0, max) : [new THREE.Vector3(cx, y0 + PART.h / 2, cz)];
-    };
     const groups = [];
     const add = (g) => {
       scene.add(g);
       groups.push(g);
       return g;
     };
-    const needed = new Set([...steps.map((s) => s.station), ...(extra.stations || [])]);
-    if (steps.some((s) => TOOL_ACTIONS[s.action])) needed.add("table");
+    const needed = new Set([...steps.map((s) => s.station).filter(Boolean), ...(extra.stations || [])]);
+    // Tool work happens on a part resting on a work table (at either end of a track).
+    for (const s of steps) if (TOOL_ACTIONS[s.action]) needed.add(s.station && /^table/.test(s.station) ? s.station : "table");
     const startTool = extra.startTool || 0;
     const stations = {};
     let zoneGroup = null;
     let zoneLine = null;
 
-    // Safety zone ring
+    /* How the robot moves between places (see robotMotion.ts): a floor track, an overhead track, a gantry,
+       an arm on an AMR, a lift column or a rail-guided cart. Stations at the far end have keys ending in "_2". */
+    const motionType = MOTION_LEN[extra.motion && extra.motion.type] != null ? extra.motion.type : "fixed";
+    const lifts = motionType === "lift";
+    const L = motionType === "fixed" || lifts ? 0 : clamp(Number(extra.motion.length) || MOTION_LEN[motionType], 1.5, 8);
+    const liftMax = lifts ? clamp(Number(extra.motion.length) || MOTION_LEN.lift, 0.4, 2) : 0;
+    const moving = L > 0;
+    const cartesian = motionType === "gantry";
+    const inverted = motionType === "overhead";
+    /** Height of the robot's base: on a carriage, an AMR, a cart, or hanging from the overhead track. */
+    const BASE_Y = { fixed: 0, track: 0.2, rgv: 0.3, amr: 0.42, lift: 0.3, overhead: OVERHEAD_Y, gantry: 0 }[motionType];
+    /** Where along the track a station is worked from: its zone's stop. */
+    const stopOf = (key) => (moving && key && (/_2$/.test(key) || (key === "out" && links.out && links.out.fromX > X + L / 2)) ? L : 0);
+    /** The lift a target needs: the robot rises with the work. */
+    const liftFor = (y) => (lifts ? clamp(y - 0.62, 0, liftMax) : 0);
+    /** A robot of the standard size can reach a part centred at p from a stop at x = bx, approach included. */
+    const reachFrom = (p, bx) => {
+      if (cartesian) return true;
+      const s0 = inverted ? OVERHEAD_SCALE : 1;
+      const h1 = 0.45 * s0, a1 = 0.15 * s0, reach = 1.45 * s0 * 0.985, dT = 0.09 * s0 + TOOL_LEN;
+      const r = Math.hypot(p.x - bx, p.z) - a1;
+      const ok = (py) => {
+        const y = inverted ? OVERHEAD_Y - py - dT - h1 : py + dT - h1 - BASE_Y - liftFor(py);
+        return Math.hypot(r, y) <= reach;
+      };
+      return ok(p.y) && ok(p.y + PART.h / 2 + APPROACH);
+    };
+
+    // Safety zone: a ring round a fixed robot, a stadium round a travelling one, a rectangle under a gantry.
     {
       const pts = [];
-      for (let i = 0; i <= 96; i++) {
-        const a = (i / 96) * Math.PI * 2;
-        pts.push(V(Math.cos(a) * 2.05, 0.004, Math.sin(a) * 2.05));
+      if (cartesian) {
+        for (const [x, z] of [[-GANTRY_X, -1.75], [L + GANTRY_X, -1.75], [L + GANTRY_X, 1.75], [-GANTRY_X, 1.75], [-GANTRY_X, -1.75]]) pts.push(V(x, 0.004, z));
+      } else {
+        for (let i = 0; i <= 48; i++) {
+          const a = Math.PI / 2 + (i / 48) * Math.PI;
+          pts.push(V(Math.cos(a) * 2.05, 0.004, Math.sin(a) * 2.05));
+        }
+        for (let i = 0; i <= 48; i++) {
+          const a = -Math.PI / 2 + (i / 48) * Math.PI;
+          pts.push(V(L + Math.cos(a) * 2.05, 0.004, Math.sin(a) * 2.05));
+        }
+        pts.push(pts[0].clone());
       }
       const zone = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(pts),
@@ -911,456 +1346,582 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       zoneLine = zone;
       if (title) {
         const lbl = makeLabel(title, "#fbbf24");
-        lbl.position.set(X, 2.45, 0.2);
+        lbl.position.set(X + L / 2, cartesian ? GANTRY_H + 0.55 : 2.45 + (inverted ? 0.6 : 0), 0.2);
         lbl.scale.multiplyScalar(1.15);
         g.add(lbl);
       }
       add(g);
     }
 
+    /* The track, rail, gantry frame, route or column, and the part of it that moves with the robot. */
+    let mover = null;
+    if (motionType !== "fixed") {
+      const g = new THREE.Group();
+      const x0 = X - 0.55, x1 = X + L + 0.55, len = x1 - x0, mx = (x0 + x1) / 2;
+      const put = (mesh, x, y, z, parent = g) => {
+        mesh.position.set(x, y, z);
+        parent.add(mesh);
+        return mesh;
+      };
+      mover = new THREE.Group();
+      if (motionType === "track") {
+        put(box(len, 0.06, 0.66, M.frame), mx, 0.03, 0);
+        for (const z of [-0.22, 0.22]) put(box(len, 0.045, 0.05, M.steel), mx, 0.083, z);
+        put(box(len, 0.03, 0.035, M.dark), mx, 0.075, 0.3);
+        // Energy chain carrying power, signals and air to the carriage.
+        put(box(len * 0.55, 0.11, 0.13, M.dark), x0 + len * 0.275, 0.115, -0.48);
+        put(box(len * 0.55, 0.012, 0.15, M.amber), x0 + len * 0.275, 0.175, -0.48);
+        for (const x of [x0, x1]) put(box(0.08, 0.2, 0.6, M.amber), x, 0.1, 0);
+        put(box(0.78, 0.1, 0.62, M.dark), X, 0.15, 0, mover);
+        put(box(0.5, 0.04, 0.5, M.steel), X, 0.2, 0, mover);
+      } else if (motionType === "rgv") {
+        for (const z of [-0.36, 0.36]) put(box(len + 0.4, 0.025, 0.07, M.steel), mx, 0.0125, z);
+        for (const x of [x0 - 0.2, x1 + 0.2]) put(box(0.1, 0.18, 0.9, M.amber), x, 0.09, 0);
+        put(box(1.05, 0.22, 0.86, M.amber), X, 0.15, 0, mover);
+        put(box(1.07, 0.03, 0.88, M.dark), X, 0.27, 0, mover);
+        for (const dx of [-0.38, 0.38]) for (const z of [-0.36, 0.36]) {
+          const w = cyl(0.07, 0.06, M.dark, 16);
+          w.rotation.x = Math.PI / 2;
+          put(w, X + dx, 0.07, z, mover);
+        }
+      } else if (motionType === "amr") {
+        // The route the mobile robot drives, with a docking pad at each stop.
+        const route = new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(X, 0.006, 0), new THREE.Vector3(X + L, 0.006, 0)]),
+          new THREE.LineDashedMaterial({ color: 0x2dd4bf, dashSize: 0.25, gapSize: 0.12 })
+        );
+        route.computeLineDistances();
+        g.add(route);
+        const pad = new THREE.MeshStandardMaterial({ color: 0x2dd4bf, transparent: true, opacity: 0.25, depthWrite: false });
+        for (const x of [X, X + L]) put(new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.004, 0.85), pad), x, 0.004, 0);
+        const shell = new THREE.MeshStandardMaterial({ color: 0xeef1f5, metalness: 0.2, roughness: 0.4 });
+        put(box(0.98, 0.34, 0.72, shell), X, 0.22, 0, mover);
+        put(box(1.0, 0.06, 0.74, M.dark), X, 0.08, 0, mover);
+        put(box(1.0, 0.025, 0.745, new THREE.MeshStandardMaterial({ color: 0x0f766e, emissive: 0x2dd4bf, emissiveIntensity: 0.9 })), X, 0.3, 0, mover);
+        for (const [dx, dz] of [[0.47, 0.34], [-0.47, -0.34]]) put(cyl(0.04, 0.05, M.dark, 14), X + dx, 0.415, dz, mover);
+      } else if (motionType === "overhead") {
+        const top = OVERHEAD_Y + 0.2;
+        for (const x of [x0 - 0.1, x1 + 0.1]) {
+          for (const z of [-0.95, 0.95]) put(box(0.18, top + 0.1, 0.18, M.frame), x, (top + 0.1) / 2, z);
+          put(box(0.2, 0.2, 2.1, M.frame), x, top + 0.1, 0);
+        }
+        put(box(len + 0.3, 0.26, 0.24, M.amber), mx, top + 0.05, 0);
+        put(box(len * 0.55, 0.1, 0.12, M.dark), x0 + len * 0.275, top + 0.24, -0.2);
+        put(box(0.7, 0.16, 0.5, M.dark), X, OVERHEAD_Y + 0.06, 0, mover);
+      } else if (motionType === "gantry") {
+        const H = GANTRY_H;
+        const gx0 = X - GANTRY_X, gx1 = X + L + GANTRY_X;
+        for (const x of [gx0, gx1]) for (const z of [-1.62, 1.62]) put(box(0.16, H, 0.16, M.frame), x, H / 2, z);
+        for (const z of [-1.62, 1.62]) put(box(gx1 - gx0 + 0.16, 0.2, 0.2, M.amber), (gx0 + gx1) / 2, H + 0.1, z);
+        for (const x of [gx0, gx1]) put(box(0.16, 0.16, 3.4, M.frame), x, H + 0.1, 0);
+      } else if (motionType === "lift") {
+        put(box(0.62, 0.24, 0.62, M.dark), X, 0.12, 0);
+        put(box(0.24, 0.6 + liftMax + 0.9, 0.2, M.frame), X, (0.6 + liftMax + 0.9) / 2, -0.42);
+        put(box(0.06, 0.6 + liftMax + 0.8, 0.04, M.amber), X, (0.6 + liftMax + 0.8) / 2, -0.31);
+        put(box(0.56, 0.06, 0.56, M.steel), X, BASE_Y - 0.03, 0, mover);
+        put(box(0.3, 0.2, 0.12, M.dark), X, BASE_Y + 0.05, -0.3, mover);
+      }
+      add(g);
+      add(mover);
+      const sys = { track: "Floor track (7th axis)", overhead: "Overhead track", gantry: "Gantry robot", amr: "Mobile robot (AMR)", lift: "Lift column", rgv: "Rail-guided cart (RGV)" }[motionType];
+      const lbl = makeLabel(`${sys}${moving ? ` · ${L.toFixed(1)} m` : ` · ${liftMax.toFixed(1)} m lift`}`, "#5eead4");
+      lbl.position.set(X + L / 2, cartesian ? GANTRY_H + 0.3 : inverted ? OVERHEAD_Y + 0.75 : 0.55, cartesian || inverted ? 0 : 0.75);
+      g.add(lbl);
+    }
+
     if (needed.has("conveyor")) stations.conveyor = links.infeed;
     if (needed.has("in")) stations.in = links.in;
     if (needed.has("out")) stations.out = links.out;
 
-    if (needed.has("cnc")) {
-      const g = new THREE.Group();
-      const cx = X - 1.45, cz = 0.1;
-      const shell = box(0.95, 1.6, 1.0, M.machine);
-      shell.position.set(cx, 0.8, cz);
-      g.add(shell);
-      const cavity = box(0.5, 0.55, 0.62, M.dark);
-      cavity.position.set(cx + 0.24, 0.98, cz);
-      g.add(cavity);
-      const chuck = cyl(0.08, 0.06, M.steel);
-      chuck.position.set(X - 1.0, 0.95 - PART.h / 2 - 0.03, cz);
-      g.add(chuck);
-      const door = new THREE.Group();
-      const doorPanel = box(0.02, 0.62, 0.68, M.machine);
-      const win = box(0.022, 0.4, 0.46, M.glass);
-      win.castShadow = false;
-      door.add(doorPanel, win);
-      door.position.set(cx + 0.49, 0.98, cz);
-      g.add(door);
-      const beacon = cyl(0.04, 0.12, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000 }));
-      beacon.position.set(cx + 0.3, 1.66, cz - 0.38);
-      g.add(beacon);
-      const panel = box(0.04, 0.3, 0.22, M.dark);
-      panel.position.set(cx + 0.5, 1.25, cz + 0.42);
-      g.add(panel);
-      // Control screen, brand stripe and chip tray, like a real vertical machining centre.
-      const screen = box(0.006, 0.12, 0.16, new THREE.MeshStandardMaterial({ color: 0x0b2540, emissive: 0x1e6fd9, emissiveIntensity: 0.6, roughness: 0.2 }));
-      screen.position.set(cx + 0.523, 1.29, cz + 0.42);
-      g.add(screen);
-      const stripe = box(0.96, 0.05, 1.01, M.accent);
-      stripe.position.set(cx, 1.48, cz);
-      g.add(stripe);
-      const tray = box(0.3, 0.06, 0.8, M.dark);
-      tray.position.set(cx + 0.62, 0.03, cz);
-      g.add(tray);
-      const lbl = makeLabel(STATION_NAMES.cnc);
-      lbl.position.set(cx, 1.85, cz);
-      g.add(lbl);
-      add(g);
-      stations.cnc = { point: V(-1.0, 0.95, cz), door, doorY: 0.98, beacon, part: null };
-    }
-
-    const makeTable = (x, z, label, top = M.steel) => {
-      const g = new THREE.Group();
-      const topY = 0.72;
-      const t = box(0.7, 0.05, 0.55, top);
-      t.position.set(X + x, topY - 0.025, z);
-      g.add(t);
-      for (const dx of [-0.3, 0.3]) for (const dz of [-0.22, 0.22]) {
-        const leg = box(0.05, topY - 0.05, 0.05, M.frame);
-        leg.position.set(X + x + dx, (topY - 0.05) / 2, z + dz);
-        g.add(leg);
-      }
-      const lbl = makeLabel(label);
-      lbl.position.set(X + x, topY + 0.5, z);
-      g.add(lbl);
-      add(g);
-      return { group: g, point: V(x, topY + PART.h / 2, z), part: null, topY };
-    };
-
-    if (needed.has("table")) stations.table = makeTable(0.1, 1.08, STATION_NAMES.table);
-    if (needed.has("weld")) {
-      const [wx, wz] = layout.weld;
-      stations.weld = makeTable(wx, wz, STATION_NAMES.weld, M.dark);
-      const clampBar = box(0.5, 0.03, 0.03, M.amber);
-      clampBar.position.set(X + wx, 0.735, wz - 0.18);
-      stations.weld.group.add(clampBar);
-    }
-
-    if (needed.has("pallet")) {
-      const g = new THREE.Group();
-      const cx = X + 1.0, cz = 0.85, topY = 0.14;
-      for (let i = -2; i <= 2; i++) {
-        const s = box(0.12, 0.025, 0.8, M.wood);
-        s.position.set(cx + i * 0.2, topY - 0.0125, cz);
-        g.add(s);
-      }
-      for (const dz of [-0.35, 0, 0.35]) {
-        const b = box(1.0, 0.1, 0.1, M.wood);
-        b.position.set(cx, 0.05, cz + dz);
-        g.add(b);
-      }
-      // Produce goes into crates, eggs and vials into trays, the rest straight onto the pallet.
-      let floorY = topY, area = [0.96, 0.76], layers = clamp(Math.floor(0.42 / PART.h), 1, 3);
-      const holder = kit.info.output;
-      if (holder === "crate" || holder === "tray") {
-        const c = kit.container(holder, false);
-        c.group.position.set(cx, topY, cz);
-        g.add(c.group);
-        floorY = topY + 0.008;
-        area = [c.size[0] - 0.02, c.size[2] - 0.02];
-        layers = 1;
-      }
-      const lbl = makeLabel(holder === "crate" ? "Crate on pallet" : holder === "tray" ? "Tray on pallet" : STATION_NAMES.pallet);
-      lbl.position.set(cx, Math.max(0.75, floorY + layers * PART.h + 0.3), cz + 0.2);
-      g.add(lbl);
-      add(g);
-      const slots = gridSlots(cx, cz, floorY, area[0], area[1], layers);
-      stations.pallet = { slots, parts: [], point: slots[0] };
-    }
-
-    if (needed.has("vision")) {
-      const g = new THREE.Group();
-      const px = X + 1.45, pz = 0.12;
-      const post = box(0.06, 1.95, 0.06, M.frame);
-      post.position.set(px, 0.975, pz);
-      g.add(post);
-      const arm = box(0.55, 0.05, 0.05, M.frame);
-      arm.position.set(px - 0.27, 1.92, pz);
-      g.add(arm);
-      const cam = box(0.12, 0.1, 0.1, M.dark);
-      cam.position.set(X + 0.95, 1.86, pz);
-      g.add(cam);
-      const lens = cyl(0.03, 0.04, M.accent);
-      lens.position.set(X + 0.95, 1.79, pz);
-      g.add(lens);
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(0.28, 0.7, 32, 1, true),
-        new THREE.MeshBasicMaterial({ color: 0x4a90e2, transparent: true, opacity: 0.0, depthWrite: false, side: THREE.DoubleSide })
-      );
-      cone.position.set(X + 0.95, 1.43, pz);
-      g.add(cone);
-      const lbl = makeLabel(STATION_NAMES.vision);
-      lbl.position.set(px, 2.15, pz);
-      g.add(lbl);
-      add(g);
-      stations.vision = { point: V(0.95, 1.08, pz), cone };
-    }
-
-    if (needed.has("carton")) {
-      const g = new THREE.Group();
-      const cx = X - 1.05, cz = 0.95, standY = 0.3;
-      const stand = box(0.5, standY, 0.4, M.frame);
-      stand.position.set(cx, standY / 2, cz);
-      g.add(stand);
-      const gx = PART.w + 0.012, gz = PART.d + 0.012;
-      const cols = clamp(Math.floor(0.4 / gx), 1, 3), rows = clamp(Math.floor(0.3 / gz), 1, 3);
-      const W = Math.max(0.16, cols * gx + 0.02), D = Math.max(0.12, rows * gz + 0.02), H = clamp(PART.h + 0.03, 0.08, 0.3), t = 0.012;
-      const bottom = box(W, t, D, M.card);
-      bottom.position.set(cx, standY + t / 2, cz);
-      g.add(bottom);
-      for (const [dx, dz, w, d] of [
-        [0, -D / 2, W, t],
-        [0, D / 2, W, t],
-        [-W / 2, 0, t, D],
-        [W / 2, 0, t, D],
-      ]) {
-        const wall = box(w, H, d, M.card);
-        wall.position.set(cx + dx, standY + H / 2, cz + dz);
-        g.add(wall);
-      }
-      const lid = box(W + 0.01, t, D + 0.01, M.card);
-      lid.position.set(cx, standY + H + t / 2, cz);
-      lid.visible = false;
-      g.add(lid);
-      const tape = box(W + 0.012, t * 1.2, 0.05, M.amber);
-      tape.position.set(cx, standY + H + t, cz);
-      tape.visible = false;
-      g.add(tape);
-      const lbl = makeLabel(STATION_NAMES.carton);
-      lbl.position.set(cx - 0.3, standY + H + 0.12, cz + 0.2);
-      g.add(lbl);
-      add(g);
-      const slots = gridSlots(cx, cz, standY + t, W - 0.02, D - 0.02, 1, 9);
-      stations.carton = { slots, parts: [], point: slots[0], lid, tape, closeT: 0 };
-    }
-
-    /* Machines and small stations placed in the cell builder, each in a free place around the robot
-       (the fixed stations above keep theirs). Big machines stand to the side, small ones in front. */
-    const SPOTS = { left: [-1.38, 0.1], right: [1.38, 0.05], frontLeft: [-1.0, 0.98], front: [0.1, 1.08], frontRight: [1.0, 0.88] };
-    const taken = new Set(
-      [needed.has("cnc") && "left", needed.has("vision") && "right", needed.has("carton") && "frontLeft", needed.has("table") && "front", needed.has("pallet") && "frontRight"].filter(Boolean)
-    );
-    const spotFor = (prefs) => {
-      const k = prefs.find((x) => !taken.has(x)) || prefs[0];
-      taken.add(k);
-      return { x: SPOTS[k][0], z: SPOTS[k][1] };
-    };
-    const flash = (light, on) => light.material.emissive.setHex(on);
-
-    if (needed.has("press")) {
-      // Stamping press / press brake: the robot loads the die, the ram strokes, the robot unloads.
-      const sp = spotFor(["left", "right"]);
-      const side = Math.sign(sp.x) || -1;
-      const g = new THREE.Group();
-      g.position.set(X + sp.x, 0, sp.z);
-      g.rotation.y = side > 0 ? Math.PI : 0;
-      const base = box(0.8, 0.82, 0.85, M.machine);
-      base.position.set(-0.05, 0.41, 0);
-      g.add(base);
-      const bolster = box(0.6, 0.05, 0.6, M.steel);
-      bolster.position.set(0.05, 0.845, 0);
-      g.add(bolster);
-      for (const dz of [-0.36, 0.36]) {
-        const col = box(0.14, 1.45, 0.12, M.machine);
-        col.position.set(-0.28, 1.55, dz);
-        g.add(col);
-      }
-      const crown = box(0.82, 0.32, 0.9, M.machine);
-      crown.position.set(-0.05, 2.35, 0);
-      g.add(crown);
-      const ram = box(0.5, 0.3, 0.55, M.dark);
-      const ramY = 1.75;
-      ram.position.set(0.05, ramY, 0);
-      g.add(ram);
-      const beacon = cyl(0.04, 0.12, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000 }));
-      beacon.position.set(-0.3, 2.58, 0.36);
-      g.add(beacon);
-      const lbl = makeLabel(STATION_NAMES.press);
-      lbl.position.set(0, 2.8, 0);
-      g.add(lbl);
-      add(g);
-      const topY = 0.87;
-      const st = {
-        point: V(sp.x - side * 0.25, topY + PART.h / 2, sp.z),
-        part: null,
-        process: () =>
-          dwell(
-            1.5,
-            () => flash(beacon, 0x2a8a3a),
-            () => {
-              ram.position.y = ramY;
-              flash(beacon, 0x000000);
-              if (st.part) {
-                if (!kit.reveal(st.part, "process")) st.part.scale.set(1.15, 0.7, 1.15);
-                kit.setState(st.part, "machined");
-              }
-            },
-            // Down onto the part and back up.
-            (k) => (ram.position.y = ramY - (ramY - (topY + PART.h + 0.15)) * Math.sin(Math.PI * k))
-          ),
-      };
-      stations.press = st;
-    }
-
-    if (needed.has("mould")) {
-      // Injection-moulding / die-casting machine: the mould closes, opens, and the robot takes the part out.
-      const sp = spotFor(["left", "right"]);
-      const side = Math.sign(sp.x) || -1;
-      const g = new THREE.Group();
-      g.position.set(X + sp.x, 0, sp.z + 0.12);
-      g.rotation.y = side > 0 ? Math.PI : 0;
-      const base = box(0.75, 0.75, 1.15, M.machine);
-      base.position.set(-0.05, 0.375, 0);
-      g.add(base);
-      const fixed = box(0.62, 0.8, 0.1, M.steel);
-      fixed.position.set(0, 1.15, -0.25);
-      g.add(fixed);
-      const moving = box(0.62, 0.8, 0.1, M.steel);
-      moving.position.set(0, 1.15, 0.25);
-      g.add(moving);
-      for (const dy of [-0.3, 0.3]) for (const dx of [-0.25, 0.25]) {
-        const bar = cyl(0.025, 0.95, M.steel, 12);
-        bar.rotation.x = Math.PI / 2;
-        bar.position.set(dx, 1.15 + dy, 0.12);
-        g.add(bar);
-      }
-      const barrel = cyl(0.09, 0.55, M.dark, 16);
-      barrel.rotation.x = Math.PI / 2;
-      barrel.position.set(-0.05, 1.15, -0.55);
-      g.add(barrel);
-      const hopper = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.25, 16), M.amber);
-      hopper.rotation.x = Math.PI;
-      hopper.position.set(-0.05, 1.42, -0.62);
-      g.add(hopper);
-      const beacon = cyl(0.04, 0.12, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000 }));
-      beacon.position.set(-0.3, 1.62, -0.25);
-      g.add(beacon);
-      const lbl = makeLabel(STATION_NAMES.mould);
-      lbl.position.set(0, 1.95, 0);
-      g.add(lbl);
-      add(g);
-      const st = {
-        point: V(sp.x - side * 0.22, 1.1, sp.z + 0.12),
-        part: null,
-        process: () =>
-          dwell(
-            2.0,
-            () => flash(beacon, 0x2a8a3a),
-            () => {
-              moving.position.z = 0.25;
-              flash(beacon, 0x000000);
-              // A new moulded part is ready between the open platens.
-              if (!st.part) st.part = spawnPart(st.point);
-              else kit.reveal(st.part, "process");
-            },
-            // Close, hold (inject and cool), open.
-            (k) => (moving.position.z = 0.25 - 0.13 * (k < 0.25 ? k / 0.25 : k > 0.75 ? (1 - k) / 0.25 : 1))
-          ),
-      };
-      stations.mould = st;
-    }
-
-    const smallStation = (key, prefs, top) => {
-      const sp = spotFor(prefs);
-      return { ...makeTable(sp.x, sp.z, STATION_NAMES[key], top), sp };
-    };
-
-    if (needed.has("test")) {
-      // Leak / function / gauging station: a hood closes over the part, the lamp shows the result.
-      const t = smallStation("test", ["frontLeft", "right", "front", "left"]);
-      const hood = box(0.32, 0.22, 0.32, M.glass);
-      hood.position.set(X + t.sp.x, 1.15, t.sp.z);
-      t.group.add(hood);
-      const lamp = cyl(0.035, 0.1, new THREE.MeshStandardMaterial({ color: 0x64748b, emissive: 0x000000 }));
-      lamp.position.set(X + t.sp.x + 0.18, 1.18, t.sp.z - 0.12);
-      t.group.add(lamp);
-      const st = {
-        ...t,
-        process: () =>
-          dwell(
-            1.6,
-            () => (hood.position.y = 0.86),
-            () => {
-              hood.position.y = 1.15;
-              lamp.material.color.setHex(0x22c55e);
-              flash(lamp, 0x15803d);
-              if (st.part) st.part.userData.tested = true;
-            },
-            (k) => {
-              lamp.material.color.setHex(0xf59e0b);
-              flash(lamp, Math.floor(k * 8) % 2 ? 0x92400e : 0x000000);
+    /**
+     * The stations of one zone. A robot that travels (track, overhead rail, gantry, AMR) has two: the usual one
+     * around its home stop, and a mirrored one around the far stop whose keys end in "_2" (cnc_2, pallet_2).
+     *   X: the zone's stop, sgn: 1 home / -1 mirrored, needed: station types in this zone.
+     */
+    function buildStations(X, sgn, needed, zone) {
+      const stations = {};
+      const V = (x, y, z) => new THREE.Vector3(X + x, y, z);
+      const NAMES = zone ? Object.fromEntries(Object.entries(STATION_NAMES).map(([k, v]) => [k, `${v} 2`])) : STATION_NAMES;
+      /** The robot reaches a part centred at p from this stop, including the approach above it. */
+      const reachOK = (p) => reachFrom(p, X);
+      /** Slots for the product in rows and layers over an area w × d centred at (cx, cz), floor at y0: only reachable ones. */
+      const gridSlots = (cx, cz, y0, w, d, layers, max = 24) => {
+        const gx = PART.w + 0.012, gz = PART.d + 0.012;
+        const cols = clamp(Math.floor((w + 0.012) / gx), 1, 6), rows = clamp(Math.floor((d + 0.012) / gz), 1, 5);
+        const out = [];
+        for (let l = 0; l < layers; l++)
+          for (let i = 0; i < cols; i++)
+            for (let j = 0; j < rows; j++) {
+              const p = new THREE.Vector3(cx + (i - (cols - 1) / 2) * gx, y0 + PART.h / 2 + l * PART.h, cz + (j - (rows - 1) / 2) * gz);
+              if (reachOK(p)) out.push(p);
             }
-          ),
+        return out.length ? out.slice(0, lifts ? 36 : max) : [new THREE.Vector3(cx, y0 + PART.h / 2, cz)];
       };
-      stations.test = st;
-    }
+      if (needed.has("cnc")) {
+        // Vertical machining centre: a guarded enclosure on a dark base, the spindle column standing
+        // proud at the back, a sliding door with a window facing the robot, a pendant and a stack light.
+        const g = new THREE.Group();
+        const cx = X - sgn * 1.45, cz = 0.1;
+        const put = (m, x, y, z) => (m.position.set(x, y, z), g.add(m), m);
+        put(rbox(0.98, 0.22, 1.03, M.dark, 0.025), cx, 0.11, cz);
+        put(rbox(0.95, 1.38, 1.0, M.machine, 0.035), cx, 0.91, cz);
+        put(rbox(0.5, 0.3, 0.66, M.machine, 0.04), cx - sgn * 0.2, 1.74, cz);
+        put(box(0.962, 0.05, 1.012, M.accent), cx, 1.48, cz);
+        // Side windows into the work zone, framed, on both sides.
+        for (const side of [-1, 1]) {
+          put(box(0.46, 0.38, 0.01, M.dark), cx + sgn * 0.08, 1.0, cz + side * 0.501);
+          const pane = put(box(0.42, 0.34, 0.012, M.smoked), cx + sgn * 0.08, 1.0, cz + side * 0.503);
+          pane.castShadow = false;
+        }
+        const cavity = box(0.5, 0.55, 0.62, M.dark);
+        cavity.position.set(cx + sgn * 0.24, 0.98, cz);
+        g.add(cavity);
+        const chuck = cyl(0.08, 0.06, M.steel);
+        chuck.position.set(X - sgn * 1.0, 0.95 - PART.h / 2 - 0.03, cz);
+        g.add(chuck);
+        const door = new THREE.Group();
+        const doorPanel = rbox(0.025, 0.62, 0.68, M.machine, 0.008);
+        const win = box(0.027, 0.4, 0.46, M.glass);
+        win.castShadow = false;
+        const handle = cyl(0.012, 0.3, M.steel, 12);
+        handle.position.set(sgn * 0.03, 0, 0.27);
+        door.add(doorPanel, win, handle);
+        door.position.set(cx + sgn * 0.49, 0.98, cz);
+        g.add(door);
+        // Stack light: green (running), amber, red, on a short mast.
+        put(cyl(0.012, 0.06, M.steel, 12), cx + sgn * 0.3, 1.63, cz - 0.38);
+        const beacon = put(cyl(0.035, 0.07, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000, roughness: 0.3 }), 20), cx + sgn * 0.3, 1.695, cz - 0.38);
+        put(cyl(0.035, 0.07, new THREE.MeshStandardMaterial({ color: 0x9a6a08, roughness: 0.3 }), 20), cx + sgn * 0.3, 1.767, cz - 0.38);
+        put(cyl(0.035, 0.07, new THREE.MeshStandardMaterial({ color: 0x8c2222, roughness: 0.3 }), 20), cx + sgn * 0.3, 1.839, cz - 0.38);
+        put(cyl(0.037, 0.015, M.dark, 20), cx + sgn * 0.3, 1.882, cz - 0.38);
+        // Operator pendant on its arm: screen, keys and the red stop button.
+        put(box(0.03, 0.03, 0.1, M.dark), cx + sgn * 0.49, 1.25, cz + 0.37);
+        put(rbox(0.06, 0.38, 0.27, M.dark, 0.012), cx + sgn * 0.53, 1.22, cz + 0.44);
+        const screen = box(0.006, 0.15, 0.2, new THREE.MeshStandardMaterial({ color: 0x0b2540, emissive: 0x1e6fd9, emissiveIntensity: 0.6, roughness: 0.2 }));
+        put(screen, cx + sgn * 0.562, 1.31, cz + 0.44);
+        const keys = [];
+        for (let i = 0; i < 3; i++) for (let j = 0; j < 5; j++) keys.push([new THREE.BoxGeometry(0.008, 0.018, 0.028), [sgn * 0.562, 1.19 - i * 0.03, 0.37 + j * 0.035]]);
+        put(new THREE.Mesh(mergeParts(keys), M.steel), cx, 0, cz);
+        const stop = cyl(0.018, 0.012, new THREE.MeshStandardMaterial({ color: 0xc62828, roughness: 0.35 }), 16);
+        stop.rotation.z = Math.PI / 2;
+        put(stop, cx + sgn * 0.566, 1.1, cz + 0.52);
+        // Chip tray under the door.
+        put(rbox(0.3, 0.06, 0.8, M.dark, 0.012), cx + sgn * 0.62, 0.03, cz);
+        const lbl = makeLabel(NAMES.cnc);
+        lbl.position.set(cx, 2.08, cz);
+        g.add(lbl);
+        add(g);
+        stations.cnc = { point: V(-sgn * 1.0, 0.95, cz), door, doorY: 0.98, beacon, part: null };
+      }
 
-    if (needed.has("marker")) {
-      // Laser marker: a head above the part burns a code onto it.
-      const t = smallStation("marker", ["front", "frontLeft", "right", "left"], M.dark);
-      const post = box(0.05, 0.6, 0.05, M.frame);
-      post.position.set(X + t.sp.x - 0.18, 1.02, t.sp.z);
-      t.group.add(post);
-      const head = box(0.2, 0.08, 0.1, M.dark);
-      head.position.set(X + t.sp.x - 0.08, 1.28, t.sp.z);
-      t.group.add(head);
-      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 1, 6), new THREE.MeshBasicMaterial({ color: 0xff3b30 }));
-      beam.visible = false;
-      t.group.add(beam);
-      const st = {
-        ...t,
-        process: () =>
-          dwell(
-            1.1,
-            () => {
-              const len = 1.24 - (t.topY + PART.h);
-              beam.scale.set(1, len, 1);
-              beam.position.set(X + t.sp.x, t.topY + PART.h + len / 2, t.sp.z);
-              beam.visible = true;
-            },
-            () => {
-              beam.visible = false;
-              if (st.part && !kit.reveal(st.part, "mark")) addOn(st.part, new THREE.BoxGeometry(Math.min(0.05, PART.w * 0.6), 0.002, Math.min(0.03, PART.d * 0.5)), 0x111827, new THREE.Vector3(0, PART.h / 2 + 0.001, 0));
-            },
-            (k) => (beam.position.x = X + t.sp.x + Math.sin(k * Math.PI * 6) * 0.02)
-          ),
+      const makeTable = (x, z, label, top = M.steel) => {
+        const g = new THREE.Group();
+        const topY = 0.72;
+        // A drilled weld plate shows its holes on top only; its edges are plain steel.
+        const t = box(0.7, 0.05, 0.55, top === M.weldTop ? [M.dark, M.dark, top, M.dark, M.dark, M.dark] : top);
+        t.position.set(X + x, topY - 0.025, z);
+        g.add(t);
+        for (const dx of [-0.3, 0.3]) for (const dz of [-0.22, 0.22]) {
+          const leg = box(0.05, topY - 0.05, 0.05, M.frame);
+          leg.position.set(X + x + dx, (topY - 0.05) / 2, z + dz);
+          g.add(leg);
+        }
+        const lbl = makeLabel(label);
+        lbl.position.set(X + x, topY + 0.5, z);
+        g.add(lbl);
+        add(g);
+        return { group: g, point: V(x, topY + PART.h / 2, z), part: null, topY };
       };
-      stations.marker = st;
-    }
 
-    if (needed.has("bin")) {
-      // Bin of loose, jumbled parts under a 3D camera (bin picking).
-      const sp = spotFor(["frontLeft", "frontRight", "front", "right"]);
-      const g = new THREE.Group();
-      const bx = X + sp.x, bz = sp.z, h = 0.45, w = 0.5, d = 0.4, t = 0.02;
-      const floorB = box(w, t, d, M.frame);
-      floorB.position.set(bx, 0.2, bz);
-      g.add(floorB);
-      for (const [dx, dz, ww, dd] of [[0, -d / 2, w, t], [0, d / 2, w, t], [-w / 2, 0, t, d], [w / 2, 0, t, d]]) {
-        const wall = box(ww, h - 0.2, dd, M.accent);
-        wall.position.set(bx + dx, 0.2 + (h - 0.2) / 2, bz + dz);
-        g.add(wall);
+      if (needed.has("table")) stations.table = makeTable(sgn * 0.1, 1.08, NAMES.table);
+      if (needed.has("weld")) {
+        const [wx, wz] = layout.weld;
+        stations.weld = makeTable(sgn * wx, wz, NAMES.weld, M.weldTop);
+        const clampBar = box(0.5, 0.03, 0.03, M.amber);
+        clampBar.position.set(X + sgn * wx, 0.735, wz - 0.18);
+        stations.weld.group.add(clampBar);
       }
-      for (let i = 0; i < 7; i++) {
-        const loose = kit.spawn();
-        loose.position.set(bx + (Math.random() - 0.5) * 0.3, 0.27 + Math.random() * 0.06, bz + (Math.random() - 0.5) * 0.22);
-        loose.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
-        loose.scale.setScalar(Math.min(0.85, 0.28 / Math.max(PART.w, PART.d)));
-        g.add(loose);
+
+      if (needed.has("pallet")) {
+        const g = new THREE.Group();
+        const cx = X + sgn * 1.0, cz = 0.85, topY = 0.14;
+        for (let i = -2; i <= 2; i++) {
+          const s = box(0.12, 0.025, 0.8, M.wood);
+          s.position.set(cx + i * 0.2, topY - 0.0125, cz);
+          g.add(s);
+        }
+        for (const dz of [-0.35, 0, 0.35]) {
+          const b = box(1.0, 0.1, 0.1, M.wood);
+          b.position.set(cx, 0.05, cz + dz);
+          g.add(b);
+        }
+        // Produce goes into crates, eggs and vials into trays, the rest straight onto the pallet.
+        let floorY = topY, area = [0.96, 0.76], layers = clamp(Math.floor((lifts ? 0.42 + liftMax : 0.42) / PART.h), 1, lifts ? 6 : 3);
+        const holder = kit.info.output;
+        if (holder === "crate" || holder === "tray") {
+          const c = kit.container(holder, false);
+          c.group.position.set(cx, topY, cz);
+          g.add(c.group);
+          floorY = topY + 0.008;
+          area = [c.size[0] - 0.02, c.size[2] - 0.02];
+          layers = 1;
+        }
+        const lbl = makeLabel(holder === "crate" ? "Crate on pallet" : holder === "tray" ? "Tray on pallet" : NAMES.pallet);
+        lbl.position.set(cx, Math.max(0.75, floorY + layers * PART.h + 0.3), cz + 0.2);
+        g.add(lbl);
+        add(g);
+        const slots = gridSlots(cx, cz, floorY, area[0], area[1], layers);
+        stations.pallet = { slots, parts: [], point: slots[0] };
       }
-      const post = box(0.05, 1.5, 0.05, M.frame);
-      post.position.set(bx - w / 2 - 0.05, 0.75, bz);
-      g.add(post);
-      const cam = box(0.14, 0.07, 0.1, M.dark);
-      cam.position.set(bx, 1.45, bz);
-      g.add(cam);
-      const arm = box(w / 2 + 0.05, 0.04, 0.04, M.frame);
-      arm.position.set(bx - w / 4 - 0.02, 1.48, bz);
-      g.add(arm);
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(0.3, 1.05, 32, 1, true),
-        new THREE.MeshBasicMaterial({ color: 0x4a90e2, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide })
+
+      if (needed.has("vision")) {
+        const g = new THREE.Group();
+        // A travelling robot runs along z = 0, so its camera stands behind the track.
+        const vx = moving ? 0.6 : 0.95, pz = moving ? -0.95 : 0.12;
+        const px = X + sgn * (vx + 0.5);
+        const post = box(0.06, 1.95, 0.06, M.frame);
+        post.position.set(px, 0.975, pz);
+        g.add(post);
+        const arm = box(0.55, 0.05, 0.05, M.frame);
+        arm.position.set(px - sgn * 0.27, 1.92, pz);
+        g.add(arm);
+        const cam = box(0.12, 0.1, 0.1, M.dark);
+        cam.position.set(X + sgn * vx, 1.86, pz);
+        g.add(cam);
+        const lens = cyl(0.03, 0.04, M.accent);
+        lens.position.set(X + sgn * vx, 1.79, pz);
+        g.add(lens);
+        const cone = new THREE.Mesh(
+          new THREE.ConeGeometry(0.28, 0.7, 32, 1, true),
+          new THREE.MeshBasicMaterial({ color: 0x4a90e2, transparent: true, opacity: 0.0, depthWrite: false, side: THREE.DoubleSide })
+        );
+        cone.position.set(X + sgn * vx, 1.43, pz);
+        g.add(cone);
+        const lbl = makeLabel(NAMES.vision);
+        lbl.position.set(px, 2.15, pz);
+        g.add(lbl);
+        add(g);
+        stations.vision = { point: V(sgn * vx, 1.08, pz), cone };
+      }
+
+      if (needed.has("carton")) {
+        const g = new THREE.Group();
+        const cx = X - sgn * 1.05, cz = 0.95, standY = 0.3;
+        const stand = box(0.5, standY, 0.4, M.frame);
+        stand.position.set(cx, standY / 2, cz);
+        g.add(stand);
+        const gx = PART.w + 0.012, gz = PART.d + 0.012;
+        const cols = clamp(Math.floor(0.4 / gx), 1, 3), rows = clamp(Math.floor(0.3 / gz), 1, 3);
+        const W = Math.max(0.16, cols * gx + 0.02), D = Math.max(0.12, rows * gz + 0.02), H = clamp(PART.h + 0.03, 0.08, 0.3), t = 0.012;
+        const bottom = box(W, t, D, M.card);
+        bottom.position.set(cx, standY + t / 2, cz);
+        g.add(bottom);
+        for (const [dx, dz, w, d] of [
+          [0, -D / 2, W, t],
+          [0, D / 2, W, t],
+          [-W / 2, 0, t, D],
+          [W / 2, 0, t, D],
+        ]) {
+          const wall = box(w, H, d, M.card);
+          wall.position.set(cx + dx, standY + H / 2, cz + dz);
+          g.add(wall);
+        }
+        const lid = box(W + 0.01, t, D + 0.01, M.card);
+        lid.position.set(cx, standY + H + t / 2, cz);
+        lid.visible = false;
+        g.add(lid);
+        const tape = box(W + 0.012, t * 1.2, 0.05, M.amber);
+        tape.position.set(cx, standY + H + t, cz);
+        tape.visible = false;
+        g.add(tape);
+        const lbl = makeLabel(NAMES.carton);
+        lbl.position.set(cx - 0.3, standY + H + 0.12, cz + 0.2);
+        g.add(lbl);
+        add(g);
+        const slots = gridSlots(cx, cz, standY + t, W - 0.02, D - 0.02, 1, 9);
+        stations.carton = { slots, parts: [], point: slots[0], lid, tape, closeT: 0 };
+      }
+
+      /* Machines and small stations placed in the cell builder, each in a free place around the robot
+         (the fixed stations above keep theirs). Big machines stand to the side, small ones in front. */
+      const SPOTS = { left: [-1.38, 0.1], right: [1.38, 0.05], frontLeft: [-1.0, 0.98], front: [0.1, 1.08], frontRight: [1.0, 0.88] };
+      // A travelling robot runs along the line through the "right" spot: nothing stands there.
+      const taken = new Set(
+        [needed.has("cnc") && "left", (needed.has("vision") || moving) && "right", needed.has("carton") && "frontLeft", needed.has("table") && "front", needed.has("pallet") && "frontRight"].filter(Boolean)
       );
-      cone.position.set(bx, 0.92, bz);
-      g.add(cone);
-      const lbl = makeLabel(STATION_NAMES.bin);
-      lbl.position.set(bx, 1.7, bz);
-      g.add(lbl);
-      add(g);
-      stations.bin = { point: V(sp.x, 0.3 + PART.h / 2, sp.z), part: null, cone };
+      const spotFor = (prefs) => {
+        const k = prefs.find((x) => !taken.has(x)) || Object.keys(SPOTS).find((x) => !taken.has(x)) || prefs[0];
+        taken.add(k);
+        return { x: sgn * SPOTS[k][0], z: SPOTS[k][1] };
+      };
+      const flash = (light, on) => light.material.emissive.setHex(on);
+
+      if (needed.has("press")) {
+        // Stamping press / press brake: the robot loads the die, the ram strokes, the robot unloads.
+        const sp = spotFor(["left", "right"]);
+        const side = Math.sign(sp.x) || -1;
+        const g = new THREE.Group();
+        g.position.set(X + sp.x, 0, sp.z);
+        g.rotation.y = side > 0 ? Math.PI : 0;
+        const base = box(0.8, 0.82, 0.85, M.machine);
+        base.position.set(-0.05, 0.41, 0);
+        g.add(base);
+        const bolster = box(0.6, 0.05, 0.6, M.steel);
+        bolster.position.set(0.05, 0.845, 0);
+        g.add(bolster);
+        for (const dz of [-0.36, 0.36]) {
+          const col = box(0.14, 1.45, 0.12, M.machine);
+          col.position.set(-0.28, 1.55, dz);
+          g.add(col);
+        }
+        const crown = box(0.82, 0.32, 0.9, M.machine);
+        crown.position.set(-0.05, 2.35, 0);
+        g.add(crown);
+        const ram = box(0.5, 0.3, 0.55, M.dark);
+        const ramY = 1.75;
+        ram.position.set(0.05, ramY, 0);
+        g.add(ram);
+        const beacon = cyl(0.04, 0.12, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000 }));
+        beacon.position.set(-0.3, 2.58, 0.36);
+        g.add(beacon);
+        const lbl = makeLabel(NAMES.press);
+        lbl.position.set(0, 2.8, 0);
+        g.add(lbl);
+        add(g);
+        const topY = 0.87;
+        const st = {
+          point: V(sp.x - side * 0.25, topY + PART.h / 2, sp.z),
+          part: null,
+          process: () =>
+            dwell(
+              1.5,
+              () => flash(beacon, 0x2a8a3a),
+              () => {
+                ram.position.y = ramY;
+                flash(beacon, 0x000000);
+                if (st.part) {
+                  if (!kit.reveal(st.part, "process")) st.part.scale.set(1.15, 0.7, 1.15);
+                  kit.setState(st.part, "machined");
+                }
+              },
+              // Down onto the part and back up.
+              (k) => (ram.position.y = ramY - (ramY - (topY + PART.h + 0.15)) * Math.sin(Math.PI * k))
+            ),
+        };
+        stations.press = st;
+      }
+
+      if (needed.has("mould")) {
+        // Injection-moulding / die-casting machine: the mould closes, opens, and the robot takes the part out.
+        const sp = spotFor(["left", "right"]);
+        const side = Math.sign(sp.x) || -1;
+        const g = new THREE.Group();
+        g.position.set(X + sp.x, 0, sp.z + 0.12);
+        g.rotation.y = side > 0 ? Math.PI : 0;
+        const base = box(0.75, 0.75, 1.15, M.machine);
+        base.position.set(-0.05, 0.375, 0);
+        g.add(base);
+        const fixed = box(0.62, 0.8, 0.1, M.steel);
+        fixed.position.set(0, 1.15, -0.25);
+        g.add(fixed);
+        const moving = box(0.62, 0.8, 0.1, M.steel);
+        moving.position.set(0, 1.15, 0.25);
+        g.add(moving);
+        for (const dy of [-0.3, 0.3]) for (const dx of [-0.25, 0.25]) {
+          const bar = cyl(0.025, 0.95, M.steel, 12);
+          bar.rotation.x = Math.PI / 2;
+          bar.position.set(dx, 1.15 + dy, 0.12);
+          g.add(bar);
+        }
+        const barrel = cyl(0.09, 0.55, M.dark, 16);
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(-0.05, 1.15, -0.55);
+        g.add(barrel);
+        const hopper = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.25, 16), M.amber);
+        hopper.rotation.x = Math.PI;
+        hopper.position.set(-0.05, 1.42, -0.62);
+        g.add(hopper);
+        const beacon = cyl(0.04, 0.12, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000 }));
+        beacon.position.set(-0.3, 1.62, -0.25);
+        g.add(beacon);
+        const lbl = makeLabel(NAMES.mould);
+        lbl.position.set(0, 1.95, 0);
+        g.add(lbl);
+        add(g);
+        const st = {
+          point: V(sp.x - side * 0.22, 1.1, sp.z + 0.12),
+          part: null,
+          process: () =>
+            dwell(
+              2.0,
+              () => flash(beacon, 0x2a8a3a),
+              () => {
+                moving.position.z = 0.25;
+                flash(beacon, 0x000000);
+                // A new moulded part is ready between the open platens.
+                if (!st.part) st.part = spawnPart(st.point);
+                else kit.reveal(st.part, "process");
+              },
+              // Close, hold (inject and cool), open.
+              (k) => (moving.position.z = 0.25 - 0.13 * (k < 0.25 ? k / 0.25 : k > 0.75 ? (1 - k) / 0.25 : 1))
+            ),
+        };
+        stations.mould = st;
+      }
+
+      const smallStation = (key, prefs, top) => {
+        const sp = spotFor(prefs);
+        return { ...makeTable(sp.x, sp.z, STATION_NAMES[key], top), sp };
+      };
+
+      if (needed.has("test")) {
+        // Leak / function / gauging station: a hood closes over the part, the lamp shows the result.
+        const t = smallStation("test", ["frontLeft", "right", "front", "left"]);
+        const hood = box(0.32, 0.22, 0.32, M.glass);
+        hood.position.set(X + t.sp.x, 1.15, t.sp.z);
+        t.group.add(hood);
+        const lamp = cyl(0.035, 0.1, new THREE.MeshStandardMaterial({ color: 0x64748b, emissive: 0x000000 }));
+        lamp.position.set(X + t.sp.x + 0.18, 1.18, t.sp.z - 0.12);
+        t.group.add(lamp);
+        const st = {
+          ...t,
+          process: () =>
+            dwell(
+              1.6,
+              () => (hood.position.y = 0.86),
+              () => {
+                hood.position.y = 1.15;
+                lamp.material.color.setHex(0x22c55e);
+                flash(lamp, 0x15803d);
+                if (st.part) st.part.userData.tested = true;
+              },
+              (k) => {
+                lamp.material.color.setHex(0xf59e0b);
+                flash(lamp, Math.floor(k * 8) % 2 ? 0x92400e : 0x000000);
+              }
+            ),
+        };
+        stations.test = st;
+      }
+
+      if (needed.has("marker")) {
+        // Laser marker: a head above the part burns a code onto it.
+        const t = smallStation("marker", ["front", "frontLeft", "right", "left"], M.dark);
+        const post = box(0.05, 0.6, 0.05, M.frame);
+        post.position.set(X + t.sp.x - 0.18, 1.02, t.sp.z);
+        t.group.add(post);
+        const head = box(0.2, 0.08, 0.1, M.dark);
+        head.position.set(X + t.sp.x - 0.08, 1.28, t.sp.z);
+        t.group.add(head);
+        const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 1, 6), new THREE.MeshBasicMaterial({ color: 0xff3b30 }));
+        beam.visible = false;
+        t.group.add(beam);
+        const st = {
+          ...t,
+          process: () =>
+            dwell(
+              1.1,
+              () => {
+                const len = 1.24 - (t.topY + PART.h);
+                beam.scale.set(1, len, 1);
+                beam.position.set(X + t.sp.x, t.topY + PART.h + len / 2, t.sp.z);
+                beam.visible = true;
+              },
+              () => {
+                beam.visible = false;
+                if (st.part && !kit.reveal(st.part, "mark")) addOn(st.part, new THREE.BoxGeometry(Math.min(0.05, PART.w * 0.6), 0.002, Math.min(0.03, PART.d * 0.5)), 0x111827, new THREE.Vector3(0, PART.h / 2 + 0.001, 0));
+              },
+              (k) => (beam.position.x = X + t.sp.x + Math.sin(k * Math.PI * 6) * 0.02)
+            ),
+        };
+        stations.marker = st;
+      }
+
+      if (needed.has("bin")) {
+        // Bin of loose, jumbled parts under a 3D camera (bin picking).
+        const sp = spotFor(["frontLeft", "frontRight", "front", "right"]);
+        const g = new THREE.Group();
+        const bx = X + sp.x, bz = sp.z, h = 0.45, w = 0.5, d = 0.4, t = 0.02;
+        const floorB = box(w, t, d, M.frame);
+        floorB.position.set(bx, 0.2, bz);
+        g.add(floorB);
+        for (const [dx, dz, ww, dd] of [[0, -d / 2, w, t], [0, d / 2, w, t], [-w / 2, 0, t, d], [w / 2, 0, t, d]]) {
+          const wall = box(ww, h - 0.2, dd, M.accent);
+          wall.position.set(bx + dx, 0.2 + (h - 0.2) / 2, bz + dz);
+          g.add(wall);
+        }
+        for (let i = 0; i < 7; i++) {
+          const loose = kit.spawn();
+          loose.position.set(bx + (Math.random() - 0.5) * 0.3, 0.27 + Math.random() * 0.06, bz + (Math.random() - 0.5) * 0.22);
+          loose.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+          loose.scale.setScalar(Math.min(0.85, 0.28 / Math.max(PART.w, PART.d)));
+          g.add(loose);
+        }
+        const post = box(0.05, 1.5, 0.05, M.frame);
+        post.position.set(bx - w / 2 - 0.05, 0.75, bz);
+        g.add(post);
+        const cam = box(0.14, 0.07, 0.1, M.dark);
+        cam.position.set(bx, 1.45, bz);
+        g.add(cam);
+        const arm = box(w / 2 + 0.05, 0.04, 0.04, M.frame);
+        arm.position.set(bx - w / 4 - 0.02, 1.48, bz);
+        g.add(arm);
+        const cone = new THREE.Mesh(
+          new THREE.ConeGeometry(0.3, 1.05, 32, 1, true),
+          new THREE.MeshBasicMaterial({ color: 0x4a90e2, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide })
+        );
+        cone.position.set(bx, 0.92, bz);
+        g.add(cone);
+        const lbl = makeLabel(NAMES.bin);
+        lbl.position.set(bx, 1.7, bz);
+        g.add(lbl);
+        add(g);
+        stations.bin = { point: V(sp.x, 0.3 + PART.h / 2, sp.z), part: null, cone };
+      }
+
+      // Tool stand: the tool changer parks the tool that is not on the arm here.
+      if (needed.has("rack")) {
+        const g = new THREE.Group();
+        const rx = X - sgn * 0.5, rz = 0.72;
+        const post = box(0.06, 0.9, 0.06, M.frame);
+        post.position.set(rx, 0.45, rz + 0.09);
+        g.add(post);
+        const shelf = box(0.32, 0.03, 0.22, M.steel);
+        shelf.position.set(rx, 0.88, rz);
+        g.add(shelf);
+        const cradle = box(0.16, 0.04, 0.02, M.amber);
+        cradle.position.set(rx, 0.91, rz - 0.07);
+        g.add(cradle);
+        const lbl = makeLabel(NAMES.rack);
+        lbl.position.set(rx, 1.5, rz);
+        g.add(lbl);
+        add(g);
+        let parked = null;
+        stations.rack = {
+          group: g,
+          point: V(-sgn * 0.5, 1.2, rz),
+          show(tool) {
+            if (parked) {
+              g.remove(parked.group);
+              parked.group.traverse((o) => o.geometry && o.geometry.dispose());
+              parked = null;
+            }
+            if (!tool || tool.kind === "none") return;
+            parked = makeEoat(tool.kind, tool.look);
+            // Hangs tool-down in the cradle.
+            parked.group.rotation.z = -Math.PI / 2;
+            parked.group.position.set(rx, 1.13, rz);
+            g.add(parked.group);
+          },
+        };
+      }
+      return stations;
     }
 
-    // Tool stand: the tool changer parks the tool that is not on the arm here.
-    if (needed.has("rack")) {
-      const g = new THREE.Group();
-      const rx = X - 0.5, rz = 0.72;
-      const post = box(0.06, 0.9, 0.06, M.frame);
-      post.position.set(rx, 0.45, rz + 0.09);
-      g.add(post);
-      const shelf = box(0.32, 0.03, 0.22, M.steel);
-      shelf.position.set(rx, 0.88, rz);
-      g.add(shelf);
-      const cradle = box(0.16, 0.04, 0.02, M.amber);
-      cradle.position.set(rx, 0.91, rz - 0.07);
-      g.add(cradle);
-      const lbl = makeLabel(STATION_NAMES.rack);
-      lbl.position.set(rx, 1.5, rz);
-      g.add(lbl);
-      add(g);
-      let parked = null;
-      stations.rack = {
-        group: g,
-        point: V(-0.5, 1.2, rz),
-        show(tool) {
-          if (parked) {
-            g.remove(parked.group);
-            parked.group.traverse((o) => o.geometry && o.geometry.dispose());
-            parked = null;
-          }
-          if (!tool || tool.kind === "none") return;
-          parked = makeEoat(tool.kind, tool.look);
-          // Hangs tool-down in the cradle.
-          parked.group.rotation.z = -Math.PI / 2;
-          parked.group.position.set(rx, 1.13, rz);
-          g.add(parked.group);
-        },
-      };
-    }
+    const homeTypes = new Set([...needed].filter((k) => !/_\d+$/.test(k) && !["conveyor", "in", "out"].includes(k)));
+    const farTypes = new Set([...needed].filter((k) => /_2$/.test(k)).map((k) => k.replace(/_2$/, "")));
+    Object.assign(stations, buildStations(X, 1, homeTypes, 0));
+    if (L > 0 && farTypes.size) for (const [k, v] of Object.entries(buildStations(X + L, -1, farTypes, 1))) stations[`${k}_2`] = v;
 
     // Effects: sparks (welding, grinding, spraying) and a liquid stream (filling)
     const sparkCount = 60;
@@ -1383,21 +1944,52 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
 
     /* Robot */
     let robot = null;
-    function buildRobot(s) {
-      if (model && model.scale) s = model.scale;
-      const dims = { h1: 0.45 * s, a1: 0.15 * s, L2: 0.7 * s, L3: 0.75 * s, d6: 0.09 * s };
-      dims.dTool = dims.d6 + TOOL_LEN;
+    /**
+     * A 6-axis arm on its base (upright, or hanging from the overhead track), shaped like a real industrial robot:
+     * cast base and turret, sloped shoulder casting, gear housings with finned servo motors, a tapered upper-arm
+     * casting, a rear housing with the wrist motors, a tapered forearm and a wrist yoke. Joint layout as in dims.
+     */
+    function buildArm(s, dims, paint, trim, cable) {
       const root = new THREE.Group();
       root.position.x = X;
-      // Painted like a real robot: industrial yellow, or white with blue trim for a cobot (see setPaint).
-      const paint = new (THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial)({ color: 0xf2b705, metalness: 0.15, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.18 });
-      const trim = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.55, roughness: 0.35 });
-      const cable = new THREE.MeshStandardMaterial({ color: 0x111418, metalness: 0.1, roughness: 0.7 });
+      root.rotation.x = inverted ? Math.PI : 0;
+      const put = (geo, mat, parent, p, r) => {
+        const m = new THREE.Mesh(geo, mat);
+        m.castShadow = true;
+        m.receiveShadow = true;
+        if (p) m.position.set(p[0], p[1], p[2]);
+        if (r) m.rotation.set(r[0], r[1], r[2]);
+        parent.add(m);
+        return m;
+      };
+      /** A turned part along y: [[radius, height], …] in units of s. */
+      const lathe = (pts, seg = 36) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r * s, y * s)), seg);
+      /** A cast link seen from the side: two rounded ends (r0 at y0, r1 at y1) joined, extruded `depth` thick. */
+      const casting = (x0, y0, r0, x1, y1, r1, depth, bevel = 0.018) => {
+        const sh = new THREE.Shape();
+        const a = Math.atan2(y1 - y0, x1 - x0) - Math.PI / 2;
+        sh.absarc(x0 * s, y0 * s, r0 * s, a, a + Math.PI, true);
+        sh.absarc(x1 * s, y1 * s, r1 * s, a + Math.PI, a + 2 * Math.PI, true);
+        sh.closePath();
+        const b = bevel * s;
+        const geo = new THREE.ExtrudeGeometry(sh, { depth: Math.max(0.001, depth * s - 2 * b), bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 3, curveSegments: 28 });
+        geo.translate(0, 0, -(depth * s - 2 * b) / 2);
+        return geo;
+      };
+      /** A servo motor along z: body, cooling fins, end cap and cable gland. */
+      const motor = (parent, x, y, z, r, len, dir = 1) => {
+        const g = new THREE.Group();
+        g.position.set(x * s, y * s, z * s);
+        put(new THREE.CylinderGeometry(r * s, r * s, len * s, 28), M.dark, g, [0, 0, (dir * len * s) / 2], [Math.PI / 2, 0, 0]);
+        for (let i = 1; i < 5; i++) put(new THREE.CylinderGeometry(r * 1.08 * s, r * 1.08 * s, 0.008 * s, 28), M.frame, g, [0, 0, dir * (len * s * i) / 5], [Math.PI / 2, 0, 0]);
+        put(new THREE.CylinderGeometry(r * 0.92 * s, r * 0.92 * s, 0.03 * s, 28), trim, g, [0, 0, dir * (len + 0.015) * s], [Math.PI / 2, 0, 0]);
+        put(new THREE.CylinderGeometry(0.018 * s, 0.018 * s, 0.05 * s, 10), cable, g, [r * 0.55 * s, r * 0.55 * s, dir * len * 0.7 * s], [0, 0, 0]);
+        parent.add(g);
+        return g;
+      };
 
-      const base = cyl(0.22 * s, 0.12 * s, M.dark);
-      base.position.y = 0.06 * s;
-      root.add(base);
-      // Grouted base plate with anchor bolts.
+      // Base: a flared casting on the grouted plate.
+      put(lathe([[0, 0], [0.27, 0], [0.27, 0.035], [0.22, 0.07], [0.2, 0.12], [0, 0.12]]), M.dark, root);
       const plate = box(0.62 * s, 0.02, 0.62 * s, M.frame);
       plate.position.y = 0.01;
       root.add(plate);
@@ -1410,69 +2002,58 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       const j1 = new THREE.Group();
       j1.position.y = 0.12 * s;
       root.add(j1);
-      const turret = cyl(0.19 * s, 0.18 * s, paint);
-      turret.position.y = 0.09 * s;
-      j1.add(turret);
-      const shoulderBlock = box(0.3 * s, dims.h1 - 0.12 * s - 0.18 * s + 0.12 * s, 0.3 * s, paint);
-      shoulderBlock.position.set(dims.a1 * 0.6, 0.18 * s + (dims.h1 - 0.12 * s - 0.18 * s) / 2, 0);
-      j1.add(shoulderBlock);
+      // Turret with the J1 motor on its side.
+      put(lathe([[0, 0], [0.205, 0], [0.205, 0.04], [0.19, 0.12], [0.17, 0.19], [0, 0.19]]), paint, j1);
+      put(new THREE.CylinderGeometry(0.06 * s, 0.06 * s, 0.17 * s, 24), M.dark, j1, [-0.15 * s, 0.1 * s, 0.1 * s]);
+      put(new THREE.CylinderGeometry(0.052 * s, 0.052 * s, 0.03 * s, 24), trim, j1, [-0.15 * s, 0.2 * s, 0.1 * s]);
+      // Sloped shoulder casting up to the J2 axis.
+      const j2y = (dims.h1 - 0.12 * s) / s;
+      put(casting(0.02, 0.17, 0.16, dims.a1 / s, j2y, 0.13, 0.36), paint, j1);
 
       const j2 = new THREE.Group();
       j2.position.set(dims.a1, dims.h1 - 0.12 * s, 0);
       j1.add(j2);
-      const m2 = cyl(0.12 * s, 0.34 * s, M.dark);
-      m2.rotation.x = Math.PI / 2;
-      j2.add(m2);
-      const cap2 = cyl(0.07 * s, 0.36 * s, trim);
-      cap2.rotation.x = Math.PI / 2;
-      j2.add(cap2);
-      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.085 * s, dims.L2 - 0.17 * s, 8, 20), paint);
-      upper.castShadow = true;
-      upper.position.y = dims.L2 / 2;
-      j2.add(upper);
-
-      const harness2 = cyl(0.022 * s, dims.L2 * 0.8, cable, 10);
-      harness2.position.set(-0.07 * s, dims.L2 / 2, 0.11 * s);
-      j2.add(harness2);
+      // J2 gear housing through the joint, its servo motor on the side.
+      put(new THREE.CylinderGeometry(0.135 * s, 0.135 * s, 0.4 * s, 36), paint, j2, null, [Math.PI / 2, 0, 0]);
+      put(new THREE.CylinderGeometry(0.1 * s, 0.1 * s, 0.42 * s, 36), trim, j2, null, [Math.PI / 2, 0, 0]);
+      motor(j2, 0, 0, 0.21, 0.075, 0.17, 1);
+      // Upper arm: a tapered casting with a recessed side panel.
+      const L2s = dims.L2 / s;
+      put(casting(0, 0, 0.115, 0, L2s, 0.095, 0.2), paint, j2);
+      for (const zz of [-0.101, 0.101]) put(casting(0, 0.16, 0.05, 0, L2s - 0.16, 0.042, 0.004, 0.001), M.dark, j2, [0, 0, zz * s]);
+      // Cable dress down the back of the upper arm, with clamps.
+      const harness = new THREE.CatmullRomCurve3([new THREE.Vector3(-0.1 * s, 0.05 * s, 0.13 * s), new THREE.Vector3(-0.13 * s, (L2s * 0.5) * s, 0.13 * s), new THREE.Vector3(-0.09 * s, (L2s - 0.05) * s, 0.13 * s)]);
+      put(new THREE.TubeGeometry(harness, 20, 0.022 * s, 10, false), cable, j2);
+      for (const t of [0.25, 0.6]) put(new THREE.BoxGeometry(0.07 * s, 0.025 * s, 0.07 * s), M.steel, j2, [-0.12 * s, L2s * t * s, 0.13 * s]);
 
       const j3 = new THREE.Group();
       j3.position.set(0, dims.L2, 0);
       j2.add(j3);
-      const m3 = cyl(0.1 * s, 0.28 * s, M.dark);
-      m3.rotation.x = Math.PI / 2;
-      j3.add(m3);
-      const rear = box(0.2 * s, 0.16 * s, 0.2 * s, paint);
-      rear.position.x = -0.12 * s;
-      j3.add(rear);
-      const fore1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.075 * s, dims.L3 * 0.5 - 0.1 * s, 8, 20), paint);
-      fore1.castShadow = true;
-      fore1.rotation.z = -Math.PI / 2;
-      fore1.position.x = dims.L3 * 0.25;
-      j3.add(fore1);
-
-      const harness3 = cyl(0.018 * s, dims.L3 * 0.42, cable, 10);
-      harness3.rotation.z = Math.PI / 2;
-      harness3.position.set(dims.L3 * 0.24, 0.085 * s, 0.05 * s);
-      j3.add(harness3);
+      // Elbow housing, J3 motor, and the rear housing with the wrist motors.
+      put(new THREE.CylinderGeometry(0.11 * s, 0.11 * s, 0.32 * s, 36), paint, j3, null, [Math.PI / 2, 0, 0]);
+      put(new THREE.CylinderGeometry(0.085 * s, 0.085 * s, 0.34 * s, 36), trim, j3, null, [Math.PI / 2, 0, 0]);
+      motor(j3, 0, 0, -0.17, 0.062, 0.14, -1);
+      put(casting(-0.25, 0, 0.085, 0.05, 0, 0.11, 0.24), paint, j3);
+      for (const zz of [-0.06, 0.06]) put(new THREE.CylinderGeometry(0.045 * s, 0.045 * s, 0.12 * s, 20), M.dark, j3, [-0.3 * s, 0.02 * s, zz * s], [0, 0, Math.PI / 2]);
+      // Forearm: a tapered tube out to the J4 roll joint.
+      const half = (dims.L3 * 0.5) / s;
+      put(lathe([[0, 0.05], [0.095, 0.05], [0.095, 0.1], [0.078, half], [0, half]], 32), paint, j3, null, [0, 0, -Math.PI / 2]);
+      const fh = new THREE.CatmullRomCurve3([new THREE.Vector3(-0.2 * s, 0.1 * s, 0.05 * s), new THREE.Vector3(0.1 * s, 0.11 * s, 0.05 * s), new THREE.Vector3(half * 0.85 * s, 0.085 * s, 0.03 * s)]);
+      put(new THREE.TubeGeometry(fh, 16, 0.016 * s, 8, false), cable, j3);
 
       const j4 = new THREE.Group();
       j4.position.set(dims.L3 * 0.5, 0, 0);
       j3.add(j4);
-      const ring = cyl(0.078 * s, 0.03 * s, trim);
-      ring.rotation.z = Math.PI / 2;
-      j4.add(ring);
-      const fore2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.06 * s, dims.L3 * 0.5 - 0.1 * s, 8, 20), paint);
-      fore2.castShadow = true;
-      fore2.rotation.z = -Math.PI / 2;
-      fore2.position.x = dims.L3 * 0.25;
-      j4.add(fore2);
+      put(new THREE.CylinderGeometry(0.08 * s, 0.08 * s, 0.03 * s, 32), trim, j4, null, [0, 0, Math.PI / 2]);
+      put(lathe([[0, 0.015], [0.07, 0.015], [0.066, half - 0.07], [0.058, half - 0.03], [0, half - 0.03]], 32), paint, j4, null, [0, 0, -Math.PI / 2]);
 
       const j5 = new THREE.Group();
       j5.position.set(dims.L3 * 0.5, 0, 0);
       j4.add(j5);
-      const m5 = cyl(0.065 * s, 0.14 * s, M.dark);
-      m5.rotation.x = Math.PI / 2;
-      j5.add(m5);
+      // Wrist yoke: two side cheeks round the J5 axis, and the J6 nose.
+      for (const zz of [-0.062, 0.062]) put(casting(-0.05, 0, 0.055, 0.0, 0, 0.06, 0.03, 0.006), paint, j5, [0, 0, zz * s]);
+      put(new THREE.CylinderGeometry(0.052 * s, 0.052 * s, 0.1 * s, 28), M.dark, j5, null, [Math.PI / 2, 0, 0]);
+      put(lathe([[0, 0], [0.05, 0], [0.048, 0.05], [0.042, dims.d6 / s], [0, dims.d6 / s]], 28), paint, j5, null, [0, 0, -Math.PI / 2]);
 
       const j6 = new THREE.Group();
       j6.position.set(dims.d6, 0, 0);
@@ -1480,6 +2061,68 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       const flange = cyl(0.05, 0.02, trim);
       flange.rotation.z = Math.PI / 2;
       j6.add(flange);
+      return { root, j6, joints: [j1, j2, j3, j4, j5, j6] };
+    }
+
+    /**
+     * A Cartesian gantry robot: a bridge rides the side rails (X), a carriage runs across it (Z) and a vertical
+     * mast (Y) carries the tool. The flange frame matches the arm's, so every tool fits both.
+     */
+    function buildGantry(paint, trim) {
+      const root = new THREE.Group();
+      const bridge = new THREE.Group();
+      bridge.position.x = X;
+      root.add(bridge);
+      const beam = box(0.22, 0.28, 3.42, paint);
+      beam.position.y = GANTRY_H + 0.1;
+      bridge.add(beam);
+      for (const z of [-1.62, 1.62]) {
+        const truck = box(0.5, 0.16, 0.26, trim);
+        truck.position.set(0, GANTRY_H + 0.28, z);
+        bridge.add(truck);
+      }
+      const chain = box(0.1, 0.08, 1.6, M.dark);
+      chain.position.set(-0.17, GANTRY_H + 0.27, -0.8);
+      bridge.add(chain);
+      const carriage = new THREE.Group();
+      carriage.position.y = GANTRY_H;
+      bridge.add(carriage);
+      const block = box(0.36, 0.36, 0.34, trim);
+      block.position.y = 0.1;
+      carriage.add(block);
+      const motor = cyl(0.06, 0.18, M.dark, 14);
+      motor.position.set(0.12, 0.38, 0.1);
+      carriage.add(motor);
+      const mast = new THREE.Group();
+      carriage.add(mast);
+      const column = box(0.13, 2.1, 0.13, paint);
+      column.position.y = 1.05;
+      mast.add(column);
+      const rackStrip = box(0.02, 2.1, 0.04, M.steel);
+      rackStrip.position.set(0.075, 1.05, 0);
+      mast.add(rackStrip);
+      const flangePlate = box(0.16, 0.04, 0.16, M.dark);
+      flangePlate.position.y = 0.02;
+      mast.add(flangePlate);
+      // The tool frame points down (x), like the arm's flange.
+      const j6 = new THREE.Group();
+      j6.rotation.z = -Math.PI / 2;
+      mast.add(j6);
+      return { root, j6, joints: [bridge, mast, carriage, null, null, j6], gantry: { bridge, carriage, mast } };
+    }
+
+    function buildRobot(s) {
+      if (model && model.scale) s = model.scale;
+      // An inverted robot must reach down to the floor stations from the overhead track.
+      if (inverted) s = Math.max(s, OVERHEAD_SCALE);
+      const dims = { h1: 0.45 * s, a1: 0.15 * s, L2: 0.7 * s, L3: 0.75 * s, d6: 0.09 * s };
+      dims.dTool = dims.d6 + TOOL_LEN;
+      // Painted like a real robot: industrial yellow, or white with blue trim for a cobot (see setPaint).
+      const paint = new (THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial)({ color: 0xf2b705, metalness: 0.15, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.18 });
+      const trim = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.55, roughness: 0.35 });
+      const cable = new THREE.MeshStandardMaterial({ color: 0x111418, metalness: 0.1, roughness: 0.7 });
+      const arm = cartesian ? buildGantry(paint, trim) : buildArm(s, dims, paint, trim, cable);
+      const { root, j6, joints } = arm;
       // End-of-arm tools: the chosen products (arm tool first, then the tool-stand tool), else the gripper the
       // product needs (soft fingers for fruit, a vacuum frame for glass, a claw for sacks).
       const chosen = model && model.tools && model.tools.length;
@@ -1537,13 +2180,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       let modelLabel = null;
       if (model && model.label) {
         modelLabel = makeLabel(model.label, "#93c5fd");
-        modelLabel.position.set(0, 2.05 + (s - 1) * 0.4, 0.2);
+        if (cartesian) modelLabel.position.set(X + L / 2, GANTRY_H + 0.9, 0);
+        else modelLabel.position.set(0, inverted ? -0.75 : 2.05 + (s - 1) * 0.4, inverted ? -0.2 : 0.2);
         root.add(modelLabel);
       }
 
       root.visible = !(buildMode && !(model && model.hasRobot));
       scene.add(root);
-      const r = { root, joints: [j1, j2, j3, j4, j5, j6], tip, fingers: [], fingerTool: false, fingerOpen: 0.075, dims, q: [0, 0, 0, 0, 0, 0], paint, trim, toolSets, heads, activeHead: null, modelLabel, activeTool: 0, eoat: kinds[0] };
+      const r = { root, joints, tip, fingers: [], fingerTool: false, fingerOpen: 0.075, dims, q: [0, 0, 0, 0, 0, 0], paint, trim, toolSets, heads, activeHead: null, modelLabel, activeTool: 0, eoat: kinds[0], cartesian, gantry: arm.gantry || null, travel: 0, lift: 0 };
       /** Put tool i on the flange (tool changer); the gripper animation follows the active tool. */
       r.setTool = (i) => {
         const k = clamp(Math.round(Number(i) || 0), 0, toolSets.length - 1);
@@ -1599,7 +2243,23 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       robot = null;
     }
 
+    /** Put the robot's base where its track, cart, AMR or lift has carried it; the moving carriage follows. */
+    function placeBase() {
+      if (!robot || robot.cartesian) return;
+      robot.root.position.set(X + robot.travel, BASE_Y + robot.lift, 0);
+      if (mover) mover.position.set(robot.travel, robot.lift, 0);
+    }
+
     function applyJoints(q) {
+      if (robot.cartesian) {
+        // Gantry: [bridge x along the rails, flange height, carriage z across the bridge].
+        const g = robot.gantry;
+        g.bridge.position.x = X + q[0];
+        g.mast.position.y = q[1] - GANTRY_H;
+        g.carriage.position.z = q[2];
+        robot.q = q.slice();
+        return;
+      }
       const [j1, j2, j3, j4, j5, j6] = robot.joints;
       j1.rotation.y = q[0];
       j2.rotation.z = q[1];
@@ -1610,9 +2270,24 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       robot.q = q.slice();
     }
 
-    function solveIK(P) {
+    /** Gantry: the flange sits TOOL_LEN above the target, anywhere under the frame. */
+    function gantryIK(P) {
+      const x = P.x - X, y = P.y + TOOL_LEN, z = P.z;
+      const lo = -GANTRY_X + 0.15, hi = L + GANTRY_X - 0.15;
+      const reachable = x >= lo && x <= hi && Math.abs(z) <= 1.45 && y <= GANTRY_H - 0.2 && y >= TOOL_LEN;
+      return { q: [clamp(x, lo, hi), clamp(y, TOOL_LEN, GANTRY_H - 0.2), clamp(z, -1.45, 1.45), 0, 0, 0], reachable };
+    }
+
+    /**
+     * Joint angles that put the tool centre point at P, tool pointing down, from a base at `at` (default: where
+     * the robot is now). An inverted robot works in its own upside-down frame: its tool points "up" there.
+     */
+    function solveIK(P, at) {
+      if (robot.cartesian) return gantryIK(P);
       const d = robot.dims;
-      const Wx = P.x - X, Wy = P.y + d.dTool, Wz = P.z;
+      const bx = at ? at.x : X + robot.travel, by = at ? at.y : BASE_Y + robot.lift;
+      const ly = inverted ? by - P.y : P.y - by;
+      const Wx = P.x - bx, Wy = ly + (inverted ? -d.dTool : d.dTool), Wz = inverted ? -P.z : P.z;
       const q1 = Math.atan2(-Wz, Wx);
       let r = Math.hypot(Wx, Wz) - d.a1;
       let y = Wy - d.h1;
@@ -1639,9 +2314,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       const beta = Math.atan2(y - ey, r - ex);
       const q2 = alpha - Math.PI / 2;
       const q3 = beta - q2;
-      const q5 = -Math.PI / 2 - beta;
+      const q5 = (inverted ? Math.PI / 2 : -Math.PI / 2) - beta;
       // J6 turns with J1 so the tool stays square to the line (fingers close across the product's depth).
-      return { q: [q1, q2, q3, 0, q5, q1], reachable };
+      return { q: [q1, q2, q3, 0, q5, inverted ? -q1 : q1], reachable };
     }
 
     const tipWorld = () => robot.tip.getWorldPosition(new THREE.Vector3());
@@ -1665,24 +2340,63 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     let held = null;
     const unreachable = new Set();
 
+    /** Seconds to ride `m` metres on this cell's track, cart or AMR (accelerate, cruise, brake). */
+    const rideTime = (m) => {
+      const [v, a] = { track: [1.6, 1.5], overhead: [1.6, 1.5], amr: [1, 0.6], rgv: [2, 1] }[motionType] || [1.5, 1.5];
+      return m <= 1e-3 ? 0 : m >= (v * v) / a ? m / v + v / a : 2 * Math.sqrt(m / a);
+    };
+    /** A gantry lifts clear of the machines, travels, then lowers: the share of a move spent on each. */
+    function gantryLegs(q0, q1) {
+      const far = Math.abs(q1[0] - q0[0]) + Math.abs(q1[2] - q0[2]) > 0.3;
+      const up = Math.max(q0[1], q1[1], far ? GANTRY_H - 0.45 : 0);
+      return { up, a: (up - q0[1]) / 1.2, b: Math.hypot(q1[0] - q0[0], q1[2] - q0[2]) / 2.2, c: (up - q1[1]) / 1.2 };
+    }
+    function gantryAt(q0, q1, legs, k) {
+      const T = legs.a + legs.b + legs.c || 1;
+      const t = k * T;
+      const mix = (u) => [q0[0] + (q1[0] - q0[0]) * u, 0, q0[2] + (q1[2] - q0[2]) * u];
+      if (t <= legs.a) return [q0[0], q0[1] + (legs.up - q0[1]) * (legs.a ? t / legs.a : 1), q0[2], 0, 0, 0];
+      if (t <= legs.a + legs.b) {
+        const [x, , z] = mix(legs.b ? (t - legs.a) / legs.b : 1);
+        return [x, legs.up, z, 0, 0, 0];
+      }
+      return [q1[0], legs.up + (q1[1] - legs.up) * (legs.c ? (t - legs.a - legs.b) / legs.c : 1), q1[2], 0, 0, 0];
+    }
+
     function jointMove(getPoint, station) {
-      let q0, q1, dur, t = 0;
+      let q0, q1, dur, legs, tr0, tr1, lf0, lf1, t = 0;
       return {
         init() {
           const P = getPoint();
-          const sol = solveIK(P);
+          // A travelling robot first rides to the stop of the station it is going to; a lift rises with the work.
+          tr0 = robot.travel;
+          lf0 = robot.lift;
+          tr1 = moving && !cartesian ? (station ? stopOf(station) : tr0) : 0;
+          lf1 = liftFor(P.y);
+          const sol = solveIK(P, { x: X + tr1, y: BASE_Y + lf1 });
           if (!sol.reachable && station) unreachable.add(station);
           q0 = robot.q.slice();
           q1 = sol.q;
+          if (robot.cartesian) {
+            legs = gantryLegs(q0, q1);
+            dur = Math.max(0.5, legs.a + legs.b + legs.c);
+            return;
+          }
           q1[0] = q0[0] + wrapPi(q1[0] - q0[0]);
-          q1[5] = q0[5] + wrapPi(q1[0] - q0[5]);
+          q1[5] = q0[5] + wrapPi((inverted ? -q1[0] : q1[0]) - q0[5]);
           const maxDelta = Math.max(...q1.map((v, i) => Math.abs(v - q0[i])));
-          dur = Math.max(0.55, maxDelta / 1.5);
+          dur = Math.max(0.55, maxDelta / 1.5, rideTime(Math.abs(tr1 - tr0)), Math.abs(lf1 - lf0) / 0.3);
         },
         update(dt) {
           t += dt;
           const k = smooth(clamp(t / dur, 0, 1));
-          applyJoints(q0.map((v, i) => v + (q1[i] - v) * k));
+          if (robot.cartesian) applyJoints(gantryAt(q0, q1, legs, k));
+          else {
+            robot.travel = tr0 + (tr1 - tr0) * k;
+            robot.lift = lf0 + (lf1 - lf0) * k;
+            placeBase();
+            applyJoints(q0.map((v, i) => v + (q1[i] - v) * k));
+          }
           return t >= dur;
         },
       };
@@ -1754,8 +2468,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
 
     const waitUntil = (cond) => ({ init() {}, update: () => cond() });
 
-    function doorMove(open) {
-      const c = stations.cnc;
+    function doorMove(open, key = "cnc") {
+      const c = stations[key];
       let t = 0;
       const dur = 0.45;
       let from;
@@ -1794,11 +2508,13 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
 
     function stationPoint(st) {
       const s = stations[st];
-      if (st === "pallet" || st === "carton") return s.slots[s.parts.length % s.slots.length];
+      if (s.slots) return s.slots[s.parts.length % s.slots.length];
       return s.point;
     }
 
     const isBelt = (s) => s === "conveyor" || s === "in";
+    /** The kind of a station key: "cnc_2" (the far end of a track) is a CNC machine. */
+    const kindOf = (k) => String(k || "").replace(/_\d+$/, "");
 
     function buildSegments(step) {
       const s = step.station;
@@ -1827,22 +2543,22 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
             out.push(linearMove(() => above(grab(belt.point)), s, 0.35));
           } else {
             const P = stationPoint(s);
-            const isCnc = s === "cnc";
-            if (isCnc) out.push(doorMove(true));
+            const isCnc = kindOf(s) === "cnc";
+            if (isCnc) out.push(doorMove(true, s));
             out.push(jointMove(() => above(grab(P)), s));
             out.push(linearMove(() => grab(P), s, 0.3));
             out.push(
               gripper(false, () => {
                 const st = stations[s];
                 let part = st.part;
-                if (s === "pallet" || s === "carton") part = st.parts.pop();
+                if (st.slots) part = st.parts.pop();
                 if (!part) part = spawnPart(P);
                 st.part = null;
                 attach(part);
               })
             );
             out.push(linearMove(() => above(grab(P)), s, 0.35));
-            if (isCnc) out.push(doorMove(false));
+            if (isCnc) out.push(doorMove(false, s));
           }
           break;
         }
@@ -1862,9 +2578,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
             break;
           }
           let P;
-          const getP = () => (P = P || stationPoint(s === "vision" ? "table" : s).clone());
-          const isCnc = s === "cnc";
-          if (isCnc) out.push(doorMove(true));
+          const getP = () => (P = P || stationPoint(kindOf(s) === "vision" ? s.replace("vision", "table") : s).clone());
+          const isCnc = kindOf(s) === "cnc";
+          if (isCnc) out.push(doorMove(true, s));
           out.push(jointMove(() => above(grab(getP())), s));
           out.push(linearMove(() => grab(getP()), s, 0.3));
           out.push(
@@ -1874,16 +2590,16 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
                 log(`Nothing to place for "${step.label}"`);
                 return;
               }
-              if (s === "pallet") {
-                const pal = stations.pallet;
+              if (kindOf(s) === "pallet") {
+                const pal = stations[s];
                 pal.parts.push(part);
                 if (pal.parts.length >= pal.slots.length) {
                   log("Pallet full, swapped for an empty one");
                   pal.parts.forEach(removePart);
                   pal.parts = [];
                 }
-              } else if (s === "carton") {
-                const ct = stations.carton;
+              } else if (kindOf(s) === "carton") {
+                const ct = stations[s];
                 ct.parts.push(part);
                 if (ct.parts.length >= ct.slots.length) {
                   log("Carton full, sealed and replaced");
@@ -1900,7 +2616,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
             })
           );
           out.push(linearMove(() => above(grab(getP())), s, 0.35));
-          if (isCnc) out.push(doorMove(false));
+          if (isCnc) out.push(doorMove(false, s));
           break;
         }
         case "process": {
@@ -1909,7 +2625,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
             out.push(stations[s].process());
             break;
           }
-          const c = stations.cnc;
+          const c = stations[s];
           out.push(
             dwell(
               2.4,
@@ -1927,8 +2643,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           break;
         }
         case "inspect": {
-          const v = stations.vision;
-          out.push(jointMove(() => v.point, "vision"));
+          const v = stations[s] || stations.vision;
+          out.push(jointMove(() => v.point, s));
           out.push(
             dwell(
               1.1,
@@ -1943,12 +2659,12 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           break;
         }
         case "weld": {
-          const w = stations.weld;
+          const w = stations[s];
           const seamY = w.topY + PART.h + 0.005;
           const half = clamp(PART.w * 0.35, 0.04, 0.18);
           const A = w.point.clone().setY(seamY).add(new THREE.Vector3(-half, 0, 0));
           const B = w.point.clone().setY(seamY).add(new THREE.Vector3(half, 0, 0));
-          const look = processLook(step, "weld");
+          const look = processLook(step, s);
           const fx = HEAD_FX[look];
           let head = null;
           out.push(
@@ -1957,21 +2673,21 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
               head = putOnTool(look);
             })
           );
-          out.push(jointMove(() => above(A), "weld"));
+          out.push(jointMove(() => above(A), s));
           if (look === "spotgun" || look === "studgun" || look === "iron" || look === "sonotrode") {
             // Spot welds, studs, solder joints and ultrasonic welds: one point at a time.
             const lift = new THREE.Vector3(0, 0.03, 0);
             for (let i = 0; i < 4; i++) {
               const P = A.clone().lerp(B, i / 3);
-              out.push(linearMove(() => P.clone().add(lift), "weld", 0.3));
-              out.push(linearMove(() => P, "weld", 0.15));
+              out.push(linearMove(() => P.clone().add(lift), s, 0.3));
+              out.push(linearMove(() => P, s, 0.15));
               out.push(dwell(0.35, () => fxOn(fx, head), () => fxOff(head), (k) => fx && k < 0.6 && emitSparks(P, fx.spread)));
-              out.push(linearMove(() => P.clone().add(lift), "weld", 0.2));
+              out.push(linearMove(() => P.clone().add(lift), s, 0.2));
             }
           } else {
-            out.push(linearMove(() => A, "weld", 0.3));
+            out.push(linearMove(() => A, s, 0.3));
             out.push(dwell(0.01, () => fxOn(fx, head)));
-            out.push(linearMove(() => B, "weld", look === "fsw" ? 0.03 : 0.05, (P) => fx && emitSparks(P, fx.spread)));
+            out.push(linearMove(() => B, s, look === "fsw" ? 0.03 : 0.05, (P) => fx && emitSparks(P, fx.spread)));
           }
           out.push(
             dwell(0.01, () => {
@@ -1979,13 +2695,13 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
               if (w.part) addWeldMark(w.part);
             })
           );
-          out.push(linearMove(() => above(B), "weld", 0.35));
+          out.push(linearMove(() => above(B), s, 0.35));
           out.push(dwell(0.01, takeOffTool));
           break;
         }
         case "scan": {
           // The 3D camera over the bin finds the next part to pick.
-          const bn = stations.bin;
+          const bn = stations[s] || stations.bin;
           out.push(
             dwell(
               0.9,
@@ -2062,7 +2778,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
 
     /* Tool operations on the part resting on the work table, with the tool the job really uses. */
     function toolSegments(step) {
-      const w = stations.table;
+      const ws = stations[step.station] ? step.station : "table";
+      const w = stations[ws];
       const a = step.action;
       const top = () => new THREE.Vector3(w.point.x, w.topY + PART.h + 0.006, w.point.z);
       // Passes cover the product's own top face.
@@ -2074,9 +2791,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       let head = null;
       const spin = (k, turns) => head && head.spin && (head.spin.rotation.x = k * Math.PI * 2 * turns);
       const pass = (z, vel, onFrame) => {
-        out.push(linearMove(at(-1, z, 0.004), "table", 0.3));
+        out.push(linearMove(at(-1, z, 0.004), ws, 0.3));
         out.push(dwell(0.01, () => fxOn(fx, head)));
-        out.push(linearMove(at(1, z, 0.004), "table", vel, onFrame));
+        out.push(linearMove(at(1, z, 0.004), ws, vel, onFrame));
         out.push(dwell(0.01, () => fxOff(head)));
       };
       const finishWith = (fn) => out.push(dwell(0.05, null, () => w.part && fn(w.part)));
@@ -2087,7 +2804,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           head = putOnTool(look);
         })
       );
-      out.push(jointMove(() => above(top()), "table"));
+      out.push(jointMove(() => above(top()), ws));
 
       if (a === "apply") {
         // A dispensing valve lays a bead; a spray gun coats the whole face.
@@ -2104,11 +2821,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       } else if (a === "finish") {
         if (look === "drill") {
           for (const [fx0, fz0] of [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]]) {
-            out.push(linearMove(at(fx0, fz0, 0.03), "table", 0.3));
+            out.push(linearMove(at(fx0, fz0, 0.03), ws, 0.3));
             out.push(dwell(0.01, () => fxOn(fx, head)));
-            out.push(linearMove(at(fx0, fz0, -0.004), "table", 0.05, (P, k) => (spin(k, 6), emitSparks(P, fx.spread))));
+            out.push(linearMove(at(fx0, fz0, -0.004), ws, 0.05, (P, k) => (spin(k, 6), emitSparks(P, fx.spread))));
             out.push(dwell(0.01, () => fxOff(head)));
-            out.push(linearMove(at(fx0, fz0, 0.03), "table", 0.2));
+            out.push(linearMove(at(fx0, fz0, 0.03), ws, 0.2));
           }
         } else if (look === "blade") {
           for (const dz of [-0.2, 0.2]) pass(dz, 0.07);
@@ -2122,26 +2839,26 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         if (look) {
           // Screws, rivets, nails or ties, one at a time.
           for (const [dx, dz] of pts) {
-            out.push(linearMove(at(dx, dz, 0.05), "table", 0.3));
-            out.push(linearMove(at(dx, dz), "table", 0.15));
+            out.push(linearMove(at(dx, dz, 0.05), ws, 0.3));
+            out.push(linearMove(at(dx, dz), ws, 0.15));
             out.push(dwell(look === "driver" ? 0.55 : 0.3, null, null, (k) => spin(k, 4)));
-            out.push(linearMove(at(dx, dz, 0.05), "table", 0.2));
+            out.push(linearMove(at(dx, dz, 0.05), ws, 0.2));
           }
           finishWith((p) => kit.reveal(p, "assemble") || pts.forEach(([dx, dz]) => addOn(p, screwGeo, 0x475569, new THREE.Vector3(dx * sx, PART.h / 2 + 0.006, dz * sz), { metalness: 0.8 })));
         } else {
           // The gripper places the components.
           for (const [dx, dz] of pts.slice(0, 2)) {
-            out.push(linearMove(at(dx, dz, 0.06), "table", 0.3));
-            out.push(linearMove(at(dx, dz, 0.012), "table", 0.12));
+            out.push(linearMove(at(dx, dz, 0.06), ws, 0.3));
+            out.push(linearMove(at(dx, dz, 0.012), ws, 0.12));
             out.push(gripper(true));
             out.push(gripper(false));
-            out.push(linearMove(at(dx, dz, 0.06), "table", 0.2));
+            out.push(linearMove(at(dx, dz, 0.06), ws, 0.2));
           }
           out.push(gripper(true));
           finishWith((p) => kit.reveal(p, "assemble") || addOn(p, new THREE.BoxGeometry(PART.w * 0.5, 0.012, PART.d * 0.4), 0x334155, new THREE.Vector3(0, PART.h / 2 + 0.006, 0)));
         }
       } else if (a === "fill") {
-        out.push(linearMove(at(0, 0, 0.06), "table", 0.2));
+        out.push(linearMove(at(0, 0, 0.06), ws, 0.2));
         stream.material.color.set(kit.liquid);
         out.push(
           dwell(
@@ -2166,7 +2883,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           )
         );
       } else if (a === "cap") {
-        out.push(linearMove(at(0, 0, 0.012), "table", 0.12));
+        out.push(linearMove(at(0, 0, 0.012), ws, 0.12));
         out.push(
           dwell(
             0.7,
@@ -2179,8 +2896,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         );
       } else if (a === "label") {
         if (look === "laser") out.push(dwell(0.01, () => fxOn(fx, head)));
-        out.push(linearMove(at(-0.8, 0), "table", 0.2));
-        out.push(linearMove(at(0.8, 0), "table", 0.08, (P) => look === "laser" && emitSparks(P, fx.spread)));
+        out.push(linearMove(at(-0.8, 0), ws, 0.2));
+        out.push(linearMove(at(0.8, 0), ws, 0.08, (P) => look === "laser" && emitSparks(P, fx.spread)));
         out.push(
           dwell(0.2, null, () => {
             fxOff(head);
@@ -2196,12 +2913,12 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           [0.7, 0],
           [0, -0.7],
         ]) {
-          out.push(linearMove(at(dx, dz, 0.01), "table", 0.12, (P, k) => spin(k, 2)));
+          out.push(linearMove(at(dx, dz, 0.01), ws, 0.12, (P, k) => spin(k, 2)));
         }
         finishWith((p) => kit.reveal(p, "process") || kit.setState(p, "machined"));
       }
 
-      out.push(linearMove(() => above(top()), "table", 0.35));
+      out.push(linearMove(() => above(top()), ws, 0.35));
       out.push(
         dwell(0.2, null, () => {
           fxOff(head);
@@ -2254,19 +2971,21 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
 
     function clearParts() {
       held = null;
-      for (const k of ["table", "weld", "cnc", "press", "mould", "test", "marker"]) if (stations[k]) stations[k].part = null;
-      if (stations.pallet) stations.pallet.parts = [];
-      if (stations.carton) {
-        stations.carton.parts = [];
-        stations.carton.lid.visible = false;
-        stations.carton.tape.visible = false;
-        stations.carton.closeT = 0;
+      for (const [k, st] of Object.entries(stations)) {
+        if (!st || isBelt(k) || k === "out") continue;
+        if ("part" in st) st.part = null;
+        if (st.parts) st.parts = [];
+        if (st.lid) {
+          st.lid.visible = false;
+          st.tape.visible = false;
+          st.closeT = 0;
+        }
+        if (st.door) {
+          st.door.position.y = st.doorY;
+          st.beacon.material.emissive.setHex(0x000000);
+        }
+        if (st.cone) st.cone.material.opacity = 0;
       }
-      if (stations.cnc) {
-        stations.cnc.door.position.y = stations.cnc.doorY;
-        stations.cnc.beacon.material.emissive.setHex(0x000000);
-      }
-      if (stations.vision) stations.vision.cone.material.opacity = 0;
       stream.visible = false;
       sparks.visible = false;
       if (robot) {
@@ -2343,6 +3062,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         cycles = 0;
         lastCycle = null;
         unreachable.clear();
+        robot.travel = 0;
+        robot.lift = 0;
+        placeBase();
         applyJoints(solveIK(HOME).q);
         setFingers(true);
       },
@@ -2350,8 +3072,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
         updateSparks(dt);
         // Build mode: a cell runs only once the user has put a robot on it.
         if (buildMode && !(model && model.hasRobot)) return;
-        const ct = stations.carton;
-        if (ct && ct.closeT > 0) {
+        for (const ct of Object.values(stations)) {
+          if (!ct || !ct.lid || !(ct.closeT > 0)) continue;
           ct.closeT -= dt;
           if (ct.closeT <= 0) {
             ct.parts.forEach(removePart);
@@ -2375,7 +3097,28 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           } else break;
         }
       },
+      /** How this robot travels, how far, and where it is now (m along the track, up the lift, or gantry X). */
+      get motion() {
+        const at = !robot ? 0 : lifts ? robot.lift : robot.cartesian ? robot.q[0] : robot.travel;
+        return { type: motionType, length: lifts ? liftMax : L, travel: +at.toFixed(3), min: cartesian ? -GANTRY_X + 0.15 : 0, max: lifts ? liftMax : cartesian ? L + GANTRY_X - 0.15 : L };
+      },
+      /** Move the robot along its track (or up its lift, or the gantry bridge) by hand, the arm riding along. */
+      setTravel(m) {
+        if (!robot || motionType === "fixed") return;
+        seg = null;
+        queue = [];
+        if (robot.cartesian) {
+          const q = robot.q.slice();
+          q[0] = clamp(Number(m) || 0, -GANTRY_X + 0.15, L + GANTRY_X - 0.15);
+          applyJoints(q);
+          return;
+        }
+        if (lifts) robot.lift = clamp(Number(m) || 0, 0, liftMax);
+        else robot.travel = clamp(Number(m) || 0, 0, L);
+        placeBase();
+      },
       setJoint(i, rad) {
+        if (robot.cartesian) return;
         const q = robot.q.slice();
         q[i] = rad;
         seg = null;
@@ -2389,8 +3132,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           if (!st) continue;
           // A robot picks at a belt's far end and drops onto the outgoing belt's near end.
           const pts = st.slots ? st.slots : [s.station === "out" ? st.startPoint : st.point].filter(Boolean);
+          // From the stop the robot works that station from (either end of a track), lifted as far as it needs.
+          const at = (p) => ({ x: X + stopOf(s.station), y: BASE_Y + liftFor(p.y) });
           for (const p of pts) {
-            if (!solveIK(p).reachable || !solveIK(above(p)).reachable) out.add(s.station);
+            if (!solveIK(p, at(p)).reachable || !solveIK(above(p), at(above(p))).reachable) out.add(s.station);
           }
         }
         return [...out];
@@ -2441,7 +3186,17 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       steps: (c.steps || []).map((s) => ({ ...s, label: s.label || stepLabel(s) })),
       stations: c.stations || [],
       startTool: c.startTool || 0,
+      motion: c.motion || null,
     }));
+    // Each robot's place on the line: a robot that travels takes its track's length of floor more.
+    cellStart = [];
+    cellEnd = [];
+    let at = 0;
+    list.forEach((c, i) => {
+      cellStart[i] = at;
+      cellEnd[i] = at + travelOf(c.motion);
+      at = cellEnd[i] + CELL_SPACING;
+    });
     // The real product: named in the brief, else by the line's jobs ("Robot 1: Fruit & Vegetable Picking + Palletizing").
     const jobs = list.flatMap((c) => String(c.title || "").replace(/^Robot \d+:?\s*/, "").split(" + ")).filter(Boolean);
     const words = list.flatMap((c) => c.steps.map((s) => s.text || s.label));
@@ -2460,7 +3215,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       }
     lineTools = [...tools];
     // The cell builder always uses the line layout, so one cell looks the same as the first of several.
-    mode = buildMode || list.length > 1 ? "line" : "single";
+    mode = buildMode || list.length > 1 || cellEnd[0] > 0 ? "line" : "single";
     const layout = LAYOUT[mode];
     const infeed = makeConveyor(layout.infeed[0], layout.infeed[1], STATION_NAMES.conveyor, true);
     conveyors.push(infeed);
@@ -2480,12 +3235,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const transfers = [];
     const ownInfeed = [];
     for (let i = 0; i < list.length - 1; i++) {
-      const X = i * CELL_SPACING;
       // Cell builder: the belt between two robots is a transfer only when the first robot has an
       // outfeed; otherwise it is the next robot's own infeed, if the user placed one.
       const passes = !buildMode || has(list[i], "out");
       const own = buildMode && !passes && has(list[i + 1], "conveyor");
-      const t = makeConveyor(X + 0.9, X + CELL_SPACING - 0.75, own ? STATION_NAMES.conveyor : `Transfer to Robot ${i + 2}`, false);
+      const t = makeConveyor(cellEnd[i] + 0.9, cellStart[i + 1] - 0.75, own ? STATION_NAMES.conveyor : `Transfer to Robot ${i + 2}`, false);
       if (buildMode) {
         t.group.visible = passes || own;
         // Parts the next robot does not take leave the line at the end of the belt.
@@ -2502,15 +3256,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const last = list.length - 1;
     let outfeed = null;
     if (buildMode && has(list[last], "out")) {
-      const X = last * CELL_SPACING;
-      outfeed = makeConveyor(X + 0.9, X + 2.4, "Outfeed conveyor", false);
+      outfeed = makeConveyor(cellEnd[last] + 0.9, cellEnd[last] + 2.4, "Outfeed conveyor", false);
       outfeed.sink = true;
       conveyors.push(outfeed);
     }
     cells = list.map((c, i) =>
       createCell(
         i,
-        i * CELL_SPACING,
+        cellStart[i],
         c.steps,
         list.length > 1 ? c.title || `Robot ${i + 1}` : c.title,
         {
@@ -2518,7 +3271,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
           in: transfers[i - 1] || null,
           out: transfers[i] || (i === last ? outfeed : null),
         },
-        { stations: buildMode ? c.stations : [], startTool: c.startTool }
+        { stations: buildMode ? c.stations : [], startTool: c.startTool, motion: c.motion }
       )
     );
     ownInfeed.forEach((t, i) => t && (t.owner = cells[i]));
@@ -2533,7 +3286,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     });
     focus = Math.min(focus, cells.length - 1);
 
-    const span = (cells.length - 1) * CELL_SPACING;
+    const span = cellEnd[cells.length - 1];
     // Where the job happens, behind the line and outside the fence.
     const sc = kit.scenery(jobs.length ? jobs : words);
     if (sc) {
@@ -2641,9 +3394,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     const z0 = b.min.z - 0.25, z1 = b.max.z + 0.25;
     const half = cells.length > 1 ? CELL_SPACING / 2 : Math.max(2.2, (b.max.x - b.min.x) / 2 + 0.25);
     cells.forEach((c, i) => {
-      const X = i * CELL_SPACING;
-      const x0 = cells.length > 1 ? (i === 0 ? Math.min(b.min.x - 0.25, X - half) : X - half) : b.min.x - 0.25;
-      const x1 = cells.length > 1 ? (i === cells.length - 1 ? Math.max(b.max.x + 0.25, X + half) : X + half) : b.max.x + 0.25;
+      const x0 = cells.length > 1 ? (i === 0 ? Math.min(b.min.x - 0.25, cellStart[i] - half) : cellStart[i] - half) : b.min.x - 0.25;
+      const x1 = cells.length > 1 ? (i === cells.length - 1 ? Math.max(b.max.x + 0.25, cellEnd[i] + half) : cellEnd[i] + half) : b.max.x + 0.25;
       g.add(floorRect(x0 + 0.04, z0, x1 - 0.04, z1, ZONE_COLORS[i % ZONE_COLORS.length], 0.12));
       // Short label; the full task list is already on the robot's own title.
       const name = c.title ? String(c.title).split(":")[0] : `Robot ${i + 1}`;
@@ -2651,7 +3403,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       lbl.position.set((x0 + x1) / 2, 0.25, z1 - 0.35);
       g.add(lbl);
     });
-    const xa = Math.min(b.min.x - 0.25, -half), xb = Math.max(b.max.x + 0.25, (cells.length - 1) * CELL_SPACING + half);
+    const xa = Math.min(b.min.x - 0.25, -half), xb = Math.max(b.max.x + 0.25, cellEnd[cells.length - 1] + half);
     // Operator / forklift aisle along the front of the line.
     const aisle = floorRect(xa, z1 + 0.15, xb, z1 + 1.35, 0x22c55e, 0.1);
     g.add(aisle);
@@ -2746,7 +3498,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     outl.position.copy(pts[pts.length - 1]).add(new THREE.Vector3(0, 0.35, 0));
     g.add(inl, outl);
     const total = makeLabel(`Part travel ${len.toFixed(1)} m through ${cells.length} robot${cells.length > 1 ? "s" : ""}`, "#e2e8f0");
-    const span = (cells.length - 1) * CELL_SPACING;
+    const span = cellEnd[cells.length - 1];
     total.position.set(span / 2, 3.0, -1.6);
     g.add(total);
     overlayGroup = g;
@@ -2798,7 +3550,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       return [rect.left + ((p.x + 1) / 2) * rect.width, rect.top + ((1 - p.y) / 2) * rect.height];
     };
     const pts = [];
-    for (let i = 0; i <= cells.length; i++) pts.push(toScreen(i * CELL_SPACING));
+    for (let i = 0; i <= cells.length; i++) pts.push(toScreen(cellMid(i)));
     const gap = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) || 200;
     let best = -1;
     let bestD = Infinity;
@@ -2819,17 +3571,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       return;
     }
     hoverRing.visible = true;
-    hoverRing.position.x = i * CELL_SPACING;
+    hoverRing.position.x = cellMid(i);
     hoverMat.color.setHex(i >= cells.length ? 0x34d399 : 0x38bdf8);
   }
   /** Close-up of the product where the focused robot works on it: the work table, fixture or machine, else the pick. */
   function productView() {
     const st = (cells[focus] || cells[0]).stations;
     const s = st.table || st.weld || st.cnc || st.press || st.mould || st.test || st.marker || st.conveyor || st.in || st.bin || st.pallet || st.carton;
-    const p = s ? (s.point || s.slots[0]).clone() : new THREE.Vector3(focus * CELL_SPACING, 0.8, 0);
+    const c = cells[focus] || cells[0];
+    const baseX = cellStart[focus] + (c.robot ? c.robot.travel : 0);
+    const p = s ? (s.point || s.slots[0]).clone() : new THREE.Vector3(baseX, 0.8, 0);
     const d = 0.5 + Math.max(PART.w, PART.d, PART.h * 1.5, 0.1) * 2.4;
     // Look from the side away from the robot, so the arm works towards the camera instead of blocking it.
-    const away = new THREE.Vector3(p.x - focus * CELL_SPACING, 0, p.z);
+    const away = new THREE.Vector3(p.x - baseX, 0, p.z);
     if (away.lengthSq() < 1e-4) away.set(0, 0, 1);
     away.normalize();
     const side = new THREE.Vector3(-away.z, 0, away.x);
@@ -2838,8 +3592,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
 
   function setView(name) {
     currentView = name;
-    // Signs would cover the product in a close-up.
-    scene.traverse((o) => o.isSprite && o !== hoverRing && (o.visible = name !== "product"));
+    controls.autoRotate = name === "cinematic";
+    const lineEnd = cellEnd[cells.length - 1] || 0;
+    // Signs would cover the product in a close-up, and break the picture in the cinematic shot.
+    scene.traverse((o) => o.isSprite && o !== hoverRing && (o.visible = name !== "product" && name !== "cinematic"));
     if (name === "product" && cells.length) {
       const [pos, at] = productView();
       camera.position.copy(pos);
@@ -2847,7 +3603,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       controls.update();
       return;
     }
-    const span = (cells.length - 1) * CELL_SPACING;
+    const span = lineEnd;
     const cx = span / 2;
     const k = 1 + span / 5;
     const VIEWS = {
@@ -2856,7 +3612,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       top: [new THREE.Vector3(cx + 0.01, 6.2 * k, 0.01), new THREE.Vector3(cx, 0, 0)],
       side: [new THREE.Vector3(cx + 0.1, 1.6 * k, 4.6 * k), new THREE.Vector3(cx, 0.8, 0)],
     };
-    if (cells.length > 1) {
+    if (cells.length > 1 || span > 0) {
       // Fit the whole line across the screen, whatever the stage's shape.
       const vfov = (camera.fov * Math.PI) / 180;
       const hfov = 2 * Math.atan(Math.tan(vfov / 2) * Math.max(visibleAspect(), 0.5));
@@ -2870,6 +3626,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       VIEWS.side = [new THREE.Vector3(cx + span / 2 + 5, 2.2, 0.2), new THREE.Vector3(cx, 0.8, 0)];
       VIEWS.top = [at(0.001, 1, 0.001), new THREE.Vector3(cx, 0, -0.2)];
     }
+    // Cinematic: lower and a little closer than the 3D view, the way a camera crew would shoot it.
+    const low = VIEWS.iso[0].clone().sub(VIEWS.iso[1]);
+    const reach = low.length() * 0.92;
+    low.y *= 0.62;
+    VIEWS.cinematic = [VIEWS.iso[1].clone().addScaledVector(low.normalize(), reach), VIEWS.iso[1].clone()];
     const v = VIEWS[name] || VIEWS.iso;
     if (overlay !== "none") {
       // Plan and flow views: frame the whole line plus its overlay (aisle, dimensions, in/out).
@@ -2924,7 +3685,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       playing,
       speed,
       size: ROBOT_SIZES[sizeKey],
-      joints: f.robot ? f.robot.q.map((v) => +((v * 180) / Math.PI).toFixed(1)) : [0, 0, 0, 0, 0, 0],
+      joints: f.robot && !f.robot.cartesian ? f.robot.q.map((v) => +((v * 180) / Math.PI).toFixed(1)) : [0, 0, 0, 0, 0, 0],
+      motion: f.motion,
+      quality,
       stepIndex: f.stepIdx,
       step: f.steps[f.stepIdx] || null,
       focus,
@@ -2953,6 +3716,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
     raf = requestAnimationFrame(frame);
     // Clamp: a frame timestamp can precede the start time, which would run time backwards.
     let dt = clamp((now - lastT) / 1000, 0, 0.05);
+    const realDt = dt;
     lastT = now;
     if (playing && cells.some((c) => c.steps.length)) {
       dt *= speed;
@@ -2961,27 +3725,47 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       cells.forEach((c) => c.update(dt));
       updateOverlay(dt);
     }
-    controls.update();
-    renderer.render(scene, camera);
+    controls.update(realDt);
+    if (composer) composer.render(dt);
+    else renderer.render(scene, camera);
+    watchFrameRate(now);
     emit(false);
+  }
+
+  // Too slow for the cinematic pipeline (about 22 fps or less over two seconds): fall back to standard by itself.
+  let slowFrames = 0;
+  let frames = 0;
+  let lastFrameAt = 0;
+  function watchFrameRate(now) {
+    const gap = lastFrameAt ? now - lastFrameAt : 16;
+    lastFrameAt = now;
+    if (!qualityAuto || quality !== "high" || document.hidden || gap > 500) return;
+    frames++;
+    if (gap > 45) slowFrames++;
+    if (frames >= 120) {
+      if (slowFrames > 80) setQuality("standard", true);
+      frames = slowFrames = 0;
+    }
   }
 
   function resize() {
     const w = container.clientWidth || 800;
     const h = container.clientHeight || 500;
     renderer.setSize(w, h, false);
+    if (composer) composer.setSize(w, h);
     camera.aspect = w / h;
     // Centre the picture in the part of the stage the side panels leave free.
     const shift = (insets.right - insets.left) / 2;
     if (shift) camera.setViewOffset(w, h, shift, 0, w, h);
     else camera.clearViewOffset();
     camera.updateProjectionMatrix();
-    if (cells.length > 1) setView(currentView);
+    if (cells.length > 1 || cellEnd[0] > 0) setView(currentView);
   }
   const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(resize) : null;
   ro ? ro.observe(container) : window.addEventListener("resize", resize);
 
   buildLine({ cells: [{ steps: [] }] });
+  buildComposer();
   resize();
   reset();
   raf = requestAnimationFrame(frame);
@@ -3089,6 +3873,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       cells[focus].setJoint(i, (Number(deg) * Math.PI) / 180);
       emit(true);
     },
+    /** "high" (cinematic: ambient occlusion, glow, smooth edges) or "standard" (fast, for phones). */
+    setQuality(q) {
+      setQuality(q);
+    },
+    get quality() {
+      return quality;
+    },
+    /** Move the focused robot along its track, lift or gantry by hand (metres); only while paused. */
+    setTravel(m) {
+      if (playing || !cells[focus]) return;
+      cells[focus].setTravel(m);
+      emit(true);
+    },
     checkReach(stepsToCheck) {
       if (cells.length === 1) return cells[0].checkReach(stepsToCheck);
       const out = new Set();
@@ -3109,12 +3906,13 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, contai
       hoverMat.dispose();
       controls.dispose();
       if (envTexture) envTexture.dispose();
-      floorTex.dispose();
+      hallTextures.forEach((t) => t.dispose());
       sceneTextures.forEach((t) => t.dispose());
       building.traverse((o) => {
         if (o.geometry) o.geometry.dispose();
         if (o.material) o.material.dispose();
       });
+      disposeComposer();
       renderer.dispose();
       renderer.domElement.remove();
     },
