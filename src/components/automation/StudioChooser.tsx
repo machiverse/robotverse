@@ -89,6 +89,9 @@ const simHref = (job: string, motion?: string) =>
 function Stage() {
   const [live, setLive] = useState(false);
   const chip = "rounded-[3px] bg-black/55 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-white/90 backdrop-blur-sm";
+  const caption = live
+    ? "Drag to look around, scroll to zoom. Every move is planned by the simulator, not animated by hand."
+    : "Two cobots share a line: the first welds the part, the second coats it and stacks it on a pallet.";
   return (
     <figure>
       <BevelBox console cut={16} innerClassName="relative">
@@ -115,9 +118,10 @@ function Stage() {
             <span className={cn(chip, "hidden sm:inline")}>Weld → Coat → Pallet</span>
           </div>
           <div className="pointer-events-none absolute inset-x-3 bottom-3 flex flex-wrap items-end justify-between gap-3 sm:inset-x-4 sm:bottom-4">
-            <figcaption className="max-w-[46ch] text-[13px] leading-snug text-white/85 sm:text-sm">
-              {live ? "Drag to look around, scroll to zoom. Every move is planned by the simulator, not animated by hand." : "Two cobots share a line: the first welds the part, the second coats it and stacks it on a pallet."}
-            </figcaption>
+            {/* Over the picture on wider screens; below it on phones, where it would cover the robots. */}
+            <p aria-hidden className="hidden max-w-[46ch] text-sm leading-snug text-white/85 sm:block">
+              {caption}
+            </p>
             {live ? (
               <KitButton variant="outline" size="sm" arrow={false} className="pointer-events-auto" onClick={() => setLive(false)}>
                 Stop live view
@@ -130,6 +134,7 @@ function Stage() {
           </div>
         </div>
       </BevelBox>
+      <figcaption className="mt-3 text-sm leading-snug text-muted-foreground sm:sr-only">{caption}</figcaption>
     </figure>
   );
 }
