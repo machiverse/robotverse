@@ -73,6 +73,10 @@ export interface Simulation {
   /** Cell builder: show only the equipment the user chose (no default robot, tool or stations). */
   setBuildMode(on: boolean): void;
   setOverlay(name: "none" | "layout" | "flow"): void;
+  /** The picture as it is now, as a PNG data URL (for "Save image"). */
+  snapshot(): string;
+  /** Frame a shot by hand: camera at `position`, looking at `target` (metres, world axes); `orbit` circles it slowly. */
+  setCamera(position: [number, number, number], target: [number, number, number], orbit?: boolean): void;
   setEquipment(
     cell: number,
     eq: {

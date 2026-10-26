@@ -390,6 +390,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   }
 
   const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 90);
+  // Signs live on their own layer: drawn last, straight to the screen, untouched by shading and tone mapping.
+  const LABELS = 1;
+  camera.layers.enable(LABELS);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.maxPolarAngle = Math.PI * 0.495;
@@ -434,7 +437,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       };
       composer.addPass(gtao);
     }
-    if (post.UnrealBloomPass) composer.addPass(new post.UnrealBloomPass(new THREE.Vector2(w, h), 0.3, 0.5, 1.7));
+    // Only true light sources glow (lamps, skylights, arcs), never sunlit paint.
+    if (post.UnrealBloomPass) composer.addPass(new post.UnrealBloomPass(new THREE.Vector2(w, h), 0.3, 0.4, 2.4));
     composer.addPass(new post.OutputPass());
     // A lens's soft fall-off at the corners draws the eye to the robot.
     if (post.ShaderPass && post.VignetteShader) {
@@ -944,23 +948,51 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     c.width = w;
     c.height = 80;
     ctx.font = `600 ${fs}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = "rgba(14,22,33,0.82)";
     const r = 18;
     ctx.beginPath();
-    ctx.moveTo(r, 0);
-    ctx.arcTo(w, 0, w, 80, r);
-    ctx.arcTo(w, 80, 0, 80, r);
-    ctx.arcTo(0, 80, 0, 0, r);
-    ctx.arcTo(0, 0, w, 0, r);
+    ctx.moveTo(r + 1, 1);
+    ctx.arcTo(w - 1, 1, w - 1, 79, r);
+    ctx.arcTo(w - 1, 79, 1, 79, r);
+    ctx.arcTo(1, 79, 1, 1, r);
+    ctx.arcTo(1, 1, w - 1, 1, r);
+    ctx.fillStyle = "rgba(12,18,27,0.86)";
     ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.14)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.fillStyle = color;
     ctx.textBaseline = "middle";
     ctx.fillText(text, 24, 42);
     const tex = new THREE.CanvasTexture(c);
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+    // Exact sign colours: no tone mapping, and the canvas is sRGB (else edges bleed and the pill turns grey).
+    if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, transparent: true, toneMapped: false }));
     s.scale.set((w / 80) * 0.16, 0.16, 1);
     s.renderOrder = 10;
+    s.layers.set(LABELS);
+    s.userData.label = w / 80;
     return s;
+  }
+
+  // Labels shrink with distance like real signs, but never below a readable size or into giant banners up close.
+  const labelAt = new THREE.Vector3();
+  const labelParent = new THREE.Vector3();
+  function sizeLabels() {
+    const half = (container.clientHeight || 500) / 2;
+    const f = camera.projectionMatrix.elements[5];
+    scene.traverseVisible((o) => {
+      const aspect = o.userData.label;
+      if (!aspect) return;
+      if (o.userData.labelH === undefined) o.userData.labelH = o.scale.y;
+      const k = o.userData.labelH / 0.16;
+      const depth = -labelAt.setFromMatrixPosition(o.matrixWorld).applyMatrix4(camera.matrixWorldInverse).z;
+      if (depth <= 0.01) return;
+      // Pixels per local unit, so a label inside a scaled robot is sized like any other.
+      const perUnit = ((half * f) / depth) * (o.parent ? labelParent.setFromMatrixScale(o.parent.matrixWorld).y : 1);
+      const px = clamp(o.userData.labelH * perUnit, 13 * k, 22 * k);
+      o.scale.set((px / perUnit) * aspect, px / perUnit, 1);
+    });
   }
 
   /* Reference photo of the user's manual process, on a board behind the robots */
@@ -3029,6 +3061,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const [body, trimC] = model && model.paint ? model.paint : industrial ? [0xf2b705, 0x1f2937] : [0xeef1f5, 0x2f7de1];
         robot.paint.color.set(body);
         robot.trim.color.set(trimC);
+        // Light paint is satin, not lacquer: a glossy white coat flares in the hall lights.
+        const light = robot.paint.color.getHSL({ h: 0, s: 0, l: 0 }).l > 0.7;
+        if ("clearcoat" in robot.paint) robot.paint.clearcoat = light ? 0.25 : 0.7;
+        robot.paint.roughness = light ? 0.42 : 0.32;
       },
       buildRobot(scale) {
         lastScale = scale;
@@ -3590,12 +3626,16 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     return [p.clone().addScaledVector(away, d * 0.82).addScaledVector(side, d * 0.38).add(new THREE.Vector3(0, d * 0.62, 0)), p];
   }
 
+  let framedByHand = false;
   function setView(name) {
+    // Signs would cover the product in a close-up, and break the picture in the cinematic shot.
+    scene.traverse((o) => o.isSprite && o !== hoverRing && (o.visible = name !== "product" && name !== "cinematic"));
+    // A shot framed with setCamera stays put when the stage resizes or the line rebuilds.
+    if (framedByHand && name === currentView) return;
+    framedByHand = false;
     currentView = name;
     controls.autoRotate = name === "cinematic";
     const lineEnd = cellEnd[cells.length - 1] || 0;
-    // Signs would cover the product in a close-up, and break the picture in the cinematic shot.
-    scene.traverse((o) => o.isSprite && o !== hoverRing && (o.visible = name !== "product" && name !== "cinematic"));
     if (name === "product" && cells.length) {
       const [pos, at] = productView();
       camera.position.copy(pos);
@@ -3726,10 +3766,28 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       updateOverlay(dt);
     }
     controls.update(realDt);
-    if (composer) composer.render(dt);
-    else renderer.render(scene, camera);
+    draw(dt);
     watchFrameRate(now);
     emit(false);
+  }
+
+  function draw(dt) {
+    sizeLabels();
+    if (composer) {
+      camera.layers.disable(LABELS);
+      composer.render(dt);
+      // Then the signs on top of the finished picture, crisp and in their true colours.
+      const bg = scene.background;
+      scene.background = null;
+      camera.layers.set(LABELS);
+      renderer.autoClear = false;
+      renderer.shadowMap.autoUpdate = false;
+      renderer.render(scene, camera);
+      renderer.shadowMap.autoUpdate = true;
+      renderer.autoClear = true;
+      camera.layers.enable(0);
+      scene.background = bg;
+    } else renderer.render(scene, camera);
   }
 
   // Too slow for the cinematic pipeline (about 22 fps or less over two seconds): fall back to standard by itself.
@@ -3850,6 +3908,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     },
     /** "layout" (factory plan), "flow" (material flow) or "none" on the same live line. */
     setOverlay,
+    /** The picture as it is now, as a PNG data URL (for "Save image"). */
+    snapshot() {
+      draw(0);
+      return renderer.domElement.toDataURL("image/png");
+    },
+    /** Frame a shot by hand: camera at `position`, looking at `target` (metres, world axes); `orbit` circles it slowly. */
+    setCamera(position, target, orbit = false) {
+      framedByHand = true;
+      controls.autoRotate = !!orbit;
+      camera.position.set(position[0], position[1], position[2]);
+      controls.target.set(target[0], target[1], target[2]);
+      controls.update();
+    },
     /** Fence the industrial robot cells: true / false for all, or one flag per cell. */
     setFencing(on) {
       fenceCells = Array.isArray(on) ? on.map(Boolean) : cells.map(() => !!on);

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import AutomationStudio3D from "@/features/automation3d/AutomationStudio3D";
+import { MOTION_ORDER } from "@/features/automation3d/robotMotion";
 
 export default function AutomationStudio3DPage() {
   const [params] = useSearchParams();
@@ -15,6 +16,8 @@ export default function AutomationStudio3DPage() {
     .map((name) => name.trim())
     .filter(Boolean)
     .map((name) => ({ name }));
+  // ?motion=overhead puts the line's robots on that motion system (track, overhead, gantry, amr, lift, rgv)
+  const motion = MOTION_ORDER.find((m) => m === params.get("motion")) ?? null;
 
   return (
     <>
@@ -37,9 +40,10 @@ export default function AutomationStudio3DPage() {
         </div>
       </div>
       <AutomationStudio3D
-        key={line.length ? `line-${params.get("line")}` : process || "default"}
+        key={line.length ? `line-${params.get("line")}-${motion ?? ""}` : process || "default"}
         initialProcess={process}
         processes={line.length ? line : undefined}
+        motion={motion}
         title={line.length ? "Your automated line" : title ? `Robot cell: ${title}` : "Robot Cell Simulator"}
       />
     </>

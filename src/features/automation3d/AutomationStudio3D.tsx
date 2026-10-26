@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, BookOpen, Bot, CheckCircle2, FileText, Info, Minus, Pause, Play, Plus, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
+import { AlertTriangle, BookOpen, Bot, Camera, CheckCircle2, FileText, Info, Maximize2, Minimize2, Minus, Pause, Play, Plus, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/utils/processAnalyzer";
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation, type SimQuality } from "./robotSim.js";
@@ -14,6 +14,7 @@ import { CINEMATIC_POST } from "./cinematicPost";
 import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, recommendRobots, STRATEGIES, type DirectoryRobot, type LinePlan, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, inrRange } from "./solutionCost";
+import type { MotionType } from "./robotMotion";
 
 type LineInput = Parameters<typeof planLine>[0];
 import SolutionReport from "./SolutionReport";
@@ -102,6 +103,8 @@ interface Props {
   overlay?: "none" | "layout" | "flow";
   /** Camera to start from: iso, front, top or side. */
   initialView?: string;
+  /** How the line's robots move when the user has not chosen (e.g. "overhead" from a ?motion= link). */
+  motion?: MotionType | null;
   /** Shown in the toolbar, e.g. the user's process name */
   title?: string;
   subtitle?: string;
@@ -130,6 +133,7 @@ export default function AutomationStudio3D({
   initialProcess,
   overlay = "none",
   initialView = "iso",
+  motion = null,
   title = "Robot Cell Simulator",
   subtitle = "Describe any process and watch a 6-axis robot cell run it in 3D",
   variant = "page",
@@ -140,6 +144,9 @@ export default function AutomationStudio3D({
   mediaAnalysis,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
+  const stageWrapRef = useRef<HTMLDivElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const canFullscreen = typeof document !== "undefined" && !!document.fullscreenEnabled;
   const simRef = useRef<Simulation | null>(null);
   const [text, setText] = useState<string>(initialProcess || PRESETS["Machine tending"]);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -305,6 +312,26 @@ export default function AutomationStudio3D({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [description]);
 
+  useEffect(() => {
+    const onChange = () => setFullscreen(document.fullscreenElement === stageWrapRef.current);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else stageWrapRef.current?.requestFullscreen?.().catch(() => {});
+  }
+
+  function saveImage() {
+    const url = simRef.current?.snapshot();
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(title || "robot-cell").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "robot-cell"}.png`;
+    a.click();
+  }
+
   function openSpecial(desc?: string) {
     simRef.current?.pause();
     if (desc) setBrief(desc);
@@ -347,19 +374,19 @@ export default function AutomationStudio3D({
     if (input.some((p) => p.name === CONCRETE_PRINTING)) return openSpecial();
     setLineInput(input);
     setRobotCount(null);
-    runPlan(planLine(input, option), planNotes);
+    runPlan(planLine(input, option, { motion }), planNotes);
   }
 
   function chooseOption(option: Strategy) {
     setStrategy(option);
     setRobotCount(null);
-    if (lineInput) runPlan(planLine(lineInput, option, { splitBefore }), notes);
+    if (lineInput) runPlan(planLine(lineInput, option, { splitBefore, motion }), notes);
   }
 
   function chooseRobotCount(n: number) {
     if (!lineInput) return;
     setRobotCount(n);
-    runPlan(planLine(lineInput, strategy, { splitBefore, robots: n }), notes);
+    runPlan(planLine(lineInput, strategy, { splitBefore, robots: n, motion }), notes);
   }
 
   // A robot chosen for a station that shares a cell with another robot: give it a cell of its own.
@@ -372,7 +399,7 @@ export default function AutomationStudio3D({
     });
     if (!clash) return;
     setRobotCount(null);
-    runPlan(planLine(lineInput, strategy, { splitBefore }), notes, focus);
+    runPlan(planLine(lineInput, strategy, { splitBefore, motion }), notes, focus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [splitBefore.join("|"), lineInput]);
 
@@ -475,6 +502,46 @@ export default function AutomationStudio3D({
   const autoAdded = steps.filter((s) => s.auto).length;
 
   const embedded = variant === "embedded";
+
+  // Picture tools: realistic picture, save image, full screen (top right on phones, bottom right on wider screens).
+  const pictureTools = (
+    <div role="group" aria-label="Picture" className="flex shrink-0 items-center rounded-md border border-white/10 bg-[#0c121b]/80 p-0.5 text-[#e6ecf3] backdrop-blur">
+      <button
+        type="button"
+        aria-pressed={state?.quality === "high"}
+        aria-label="Realistic picture"
+        title="Realistic picture: soft contact shadows, glowing lamps and arcs. Turn it off for a faster picture on slow devices."
+        onClick={() => simRef.current?.setQuality(state?.quality === "high" ? "standard" : "high")}
+        className={cn(
+          "flex h-7 items-center gap-1.5 rounded-[4px] px-2 text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]",
+          state?.quality === "high" ? "bg-[#4a90e2]/25 text-white" : "text-white/65 hover:bg-white/5 hover:text-white",
+        )}
+      >
+        <Sparkles className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">Realistic</span>
+      </button>
+      <button
+        type="button"
+        aria-label="Save image"
+        title="Save this view as an image"
+        onClick={saveImage}
+        className="flex h-7 w-7 items-center justify-center rounded-[4px] text-white/65 transition-colors duration-150 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+      >
+        <Camera className="h-3.5 w-3.5" />
+      </button>
+      {canFullscreen && (
+        <button
+          type="button"
+          aria-label={fullscreen ? "Exit full screen" : "Full screen"}
+          title={fullscreen ? "Exit full screen" : "Full screen"}
+          onClick={toggleFullscreen}
+          className="flex h-7 w-7 items-center justify-center rounded-[4px] text-white/65 transition-colors duration-150 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+        >
+          {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+        </button>
+      )}
+    </div>
+  );
 
   // With a plan, offer only the templates for the process families it uses.
   const taskCount = plan?.robots.reduce((n, r) => n + r.tasks.length, 0) ?? 0;
@@ -933,11 +1000,16 @@ export default function AutomationStudio3D({
         </aside>
 
         {/* Center: 3D stage */}
-        <div className="relative order-1 min-h-[60vh] bg-[#1a2433] lg:order-2 lg:min-h-0">
+        <div ref={stageWrapRef} className="relative order-1 min-h-[60vh] bg-[#1a2433] lg:order-2 lg:min-h-0">
           <div ref={stageRef} className="absolute inset-0" />
-          <div className="absolute left-3 top-3 max-w-[70%] min-w-[200px] rounded-lg border border-white/10 bg-[#0e1621]/85 px-3 py-2 text-[#e6ecf3] backdrop-blur">
+          <div className="absolute left-3 top-3 max-w-[70%] min-w-[200px] rounded-md border border-white/10 bg-[#0c121b]/80 px-3 py-2 text-[#e6ecf3] backdrop-blur">
+            <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">
+              <span className={cn("h-1.5 w-1.5 rounded-full", state?.playing ? "bg-emerald-400" : "bg-white/40")} />
+              {state?.playing ? "Running" : "Paused"}
+              {!(plan && state?.cells) && state?.step && <span className="tabular-nums">· Step {state.stepIndex + 1} of {steps.length}</span>}
+            </span>
             {plan && state?.cells ? (
-              <ul className="space-y-0.5">
+              <ul className="mt-1 space-y-0.5">
                 {state.cells.map((c, i) => (
                   <li key={i} className={cn("truncate text-[12px]", i === focus ? "font-semibold" : "opacity-75")}>
                     <span className="text-amber-300">R{i + 1}</span> · {c.step?.label || "Waiting"}
@@ -945,62 +1017,45 @@ export default function AutomationStudio3D({
                 ))}
               </ul>
             ) : (
-              <>
-                <span className="text-[11px] uppercase tracking-wide opacity-70">
-                  {state?.step ? `Step ${state.stepIndex + 1} of ${steps.length}` : "Ready"}
-                </span>
-                <b className="block truncate text-[15px]">{state?.step?.label || "Build a process to start"}</b>
-              </>
+              <b className="mt-0.5 block truncate text-[15px] font-semibold">{state?.step?.label || "Build a process to start"}</b>
             )}
           </div>
-          <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
-            <div className="hidden rounded-lg border border-white/10 bg-[#0e1621]/85 px-3 py-2 text-right text-[#e6ecf3] backdrop-blur sm:block">
-              <span className="text-[11px] uppercase tracking-wide opacity-70">{plan ? "Line cycle" : "Cycle"}</span>
-              <b className="block text-[15px] tabular-nums">
-                {state?.lastCycle ? `${state.lastCycle.toFixed(1)} s` : `${(state?.currentCycle ?? 0).toFixed(1)} s`}
-              </b>
-            </div>
-            <button
-              type="button"
-              aria-pressed={state?.quality === "high"}
-              title="Realistic picture: soft contact shadows, glowing lamps and arcs. Turn it off for a faster picture on slow devices."
-              onClick={() => simRef.current?.setQuality(state?.quality === "high" ? "standard" : "high")}
-              className={cn(
-                "flex items-center gap-1.5 rounded-md border bg-[#0e1621]/70 px-2.5 py-1 text-xs text-[#e6ecf3] backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]",
-                state?.quality === "high" ? "border-[#4a90e2]" : "border-white/15",
-              )}
-            >
-              <span className={cn("h-1.5 w-1.5 rounded-full", state?.quality === "high" ? "bg-[#4a90e2]" : "bg-white/30")} />
-              Realistic
-            </button>
-          </div>
-          <div className="absolute bottom-3 left-3 flex gap-1.5">
-            {VIEWS.map(([k, l]) => (
-              <button
-                key={k}
-                aria-pressed={view === k}
-                onClick={() => {
-                  setView(k);
-                  simRef.current?.setView(k);
-                }}
-                className={cn(
-                  "rounded-md border bg-[#0e1621]/70 px-2.5 py-1 text-xs text-[#e6ecf3] backdrop-blur",
-                  view === k ? "border-[#4a90e2]" : "border-white/15",
-                )}
-              >
-                {l}
-              </button>
-            ))}
+          <div className="absolute right-3 top-3 sm:hidden">{pictureTools}</div>
+          <div className="absolute right-3 top-3 hidden rounded-md border border-white/10 bg-[#0c121b]/80 px-3 py-2 text-right text-[#e6ecf3] backdrop-blur sm:block">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">{plan ? "Line cycle" : "Cycle"}</span>
+            <b className="block text-[15px] font-semibold tabular-nums">
+              {state?.lastCycle ? `${state.lastCycle.toFixed(1)} s` : `${(state?.currentCycle ?? 0).toFixed(1)} s`}
+            </b>
           </div>
           {reference && (
-            <figure className="absolute bottom-10 right-3 hidden w-36 overflow-hidden rounded-lg border border-amber-400/60 bg-[#0e1621]/85 sm:block">
+            <figure className="absolute bottom-14 right-3 hidden w-36 overflow-hidden rounded-md border border-amber-400/60 bg-[#0c121b]/85 sm:block">
               <img src={reference} alt="Your manual process" className="h-20 w-full object-cover" />
               <figcaption className="px-2 py-1 text-[10px] text-amber-300">Before: manual work · After: robots</figcaption>
             </figure>
           )}
-          <span className="absolute bottom-3.5 right-3 hidden text-xs text-white/60 sm:inline">
-            Drag to rotate · scroll to zoom
-          </span>
+          <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2">
+            <div role="group" aria-label="Camera view" className="flex min-w-0 overflow-x-auto rounded-md border border-white/10 bg-[#0c121b]/80 p-0.5 backdrop-blur [scrollbar-width:none]">
+              {VIEWS.map(([k, l]) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={view === k}
+                  onClick={() => {
+                    setView(k);
+                    simRef.current?.setView(k);
+                  }}
+                  className={cn(
+                    "shrink-0 rounded-[4px] px-2 py-1 text-[11px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2] sm:px-2.5 sm:text-xs",
+                    view === k ? "bg-[#4a90e2]/25 text-white" : "text-white/65 hover:bg-white/5 hover:text-white",
+                  )}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            <span className="hidden pb-1.5 text-[11px] text-white/45 xl:inline">Drag to rotate · scroll to zoom</span>
+            <div className="hidden sm:block">{pictureTools}</div>
+          </div>
         </div>
 
         {/* Right: metrics */}
