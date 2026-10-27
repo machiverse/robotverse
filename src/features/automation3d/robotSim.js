@@ -362,6 +362,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   const coarse = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
   let quality = canPost && wantQuality !== "standard" && (wantQuality === "high" || (!coarse && (navigator.hardwareConcurrency || 4) >= 4)) ? "high" : "standard";
   let qualityAuto = wantQuality !== "high" && wantQuality !== "standard";
+  // Auto mode starts light so the first picture appears fast, then steps up to cinematic once frames prove smooth.
+  let canUpgrade = qualityAuto && quality === "high";
+  if (canUpgrade) quality = "standard";
   const pixelRatio = () => Math.min(window.devicePixelRatio || 1, quality === "high" ? 1.5 : 1.75);
   renderer.setPixelRatio(pixelRatio());
   renderer.shadowMap.enabled = true;
@@ -3797,11 +3800,18 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   function watchFrameRate(now) {
     const gap = lastFrameAt ? now - lastFrameAt : 16;
     lastFrameAt = now;
-    if (!qualityAuto || quality !== "high" || document.hidden || gap > 500) return;
+    if (!qualityAuto || document.hidden || gap > 500) return;
     frames++;
     if (gap > 45) slowFrames++;
-    if (frames >= 120) {
-      if (slowFrames > 80) setQuality("standard", true);
+    if (quality === "standard") {
+      if (!canUpgrade || frames < 90) return;
+      canUpgrade = false;
+      if (slowFrames < 10) setQuality("high", true);
+      frames = slowFrames = 0;
+      return;
+    }
+    if (frames >= 40) {
+      if (slowFrames > 25) setQuality("standard", true);
       frames = slowFrames = 0;
     }
   }
