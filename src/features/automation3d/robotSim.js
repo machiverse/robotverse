@@ -373,19 +373,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
 
   // Physically based look: sRGB output, filmic tone mapping, soft image-based lighting.
   if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMapping = THREE.AgXToneMapping !== undefined ? THREE.AgXToneMapping : THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = THREE.AgXToneMapping !== undefined ? 1.15 : 1.0;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1c2128);
+  scene.background = new THREE.Color(0x2a2f35);
   // A little haze in the hall air, so distant racks and walls fall back.
-  scene.fog = new THREE.Fog(0x1c2128, 16, 46);
+  scene.fog = new THREE.Fog(0x2a2f35, 20, 60);
   let envTexture = null;
   if (RoomEnvironment) {
     const pmrem = new THREE.PMREMGenerator(renderer);
     envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = envTexture;
-    if ("environmentIntensity" in scene) scene.environmentIntensity = 0.62;
+    if ("environmentIntensity" in scene) scene.environmentIntensity = 0.75;
     pmrem.dispose();
   }
 
@@ -425,7 +425,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       gtao = new post.GTAOPass(scene, camera, w, h);
       gtao.updateGtaoMaterial({ radius: 0.32, distanceExponent: 1.5, thickness: 1.4, scale: 1.15, samples: 12, distanceFallOff: 1 });
       gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
-      gtao.blendIntensity = 0.9;
+      gtao.blendIntensity = 0.75;
       // Signs, glass, mist and fence mesh cast no contact shadow.
       const hide = gtao.overrideVisibility.bind(gtao);
       gtao.overrideVisibility = function () {
@@ -438,13 +438,13 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       composer.addPass(gtao);
     }
     // Only true light sources glow (lamps, skylights, arcs), never sunlit paint.
-    if (post.UnrealBloomPass) composer.addPass(new post.UnrealBloomPass(new THREE.Vector2(w, h), 0.3, 0.4, 2.4));
+    if (post.UnrealBloomPass) composer.addPass(new post.UnrealBloomPass(new THREE.Vector2(w, h), 0.18, 0.35, 2.8));
     composer.addPass(new post.OutputPass());
     // A lens's soft fall-off at the corners draws the eye to the robot.
     if (post.ShaderPass && post.VignetteShader) {
       const lens = new post.ShaderPass(post.VignetteShader);
-      lens.uniforms.offset.value = 0.85;
-      lens.uniforms.darkness.value = 1;
+      lens.uniforms.offset.value = 1.0;
+      lens.uniforms.darkness.value = 0.55;
       composer.addPass(lens);
     }
     composer.setPixelRatio(renderer.getPixelRatio());
@@ -468,16 +468,16 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   }
 
   // Sky light from the roof lights above, bounce from the concrete below.
-  scene.add(new THREE.HemisphereLight(0xe6eef8, 0x4a4640, (RoomEnvironment ? 0.42 : 0.75) * LIGHT_K));
+  scene.add(new THREE.HemisphereLight(0xf2f4f6, 0x5a544c, (RoomEnvironment ? 0.42 : 0.75) * LIGHT_K));
   // Key light: warm daylight through the skylights, casting the shadows.
-  const sun = new THREE.DirectionalLight(0xfff1e0, 1.05 * LIGHT_K);
+  const sun = new THREE.DirectionalLight(0xfff6ec, 1.15 * LIGHT_K);
   sun.castShadow = true;
   sun.shadow.mapSize.set(quality === "high" ? 4096 : 2048, quality === "high" ? 4096 : 2048);
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.02;
-  sun.shadow.radius = 3;
+  sun.shadow.radius = 4;
   scene.add(sun, sun.target);
-  const rim = new THREE.DirectionalLight(0x8fb6ff, 0.35 * LIGHT_K);
+  const rim = new THREE.DirectionalLight(0xdfe8f2, 0.22 * LIGHT_K);
   rim.position.set(-4, 3, -3);
   scene.add(rim);
 
@@ -507,9 +507,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     }
   };
   const M = {
-    body: new THREE.MeshStandardMaterial({ color: 0xe9edf2, metalness: 0.25, roughness: 0.38 }),
-    dark: new THREE.MeshStandardMaterial({ color: 0x2b3442, metalness: 0.5, roughness: 0.45 }),
-    accent: new THREE.MeshStandardMaterial({ color: 0x4a90e2, metalness: 0.3, roughness: 0.35 }),
+    body: new THREE.MeshPhysicalMaterial({ color: 0xe6e9ed, metalness: 0, roughness: 0.42, clearcoat: 0.6, clearcoatRoughness: 0.25 }),
+    dark: new THREE.MeshStandardMaterial({ color: 0x2a2e34, metalness: 0.35, roughness: 0.55 }),
+    accent: new THREE.MeshPhysicalMaterial({ color: 0x3f6f9e, metalness: 0, roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.3 }),
     // Brushed stainless: fine streaks catch the light like a real table top.
     steel: new THREE.MeshStandardMaterial({ map: canvasTex(128, 128, streaks("#9aa4ae", "rgba(255,255,255,0.18)", "rgba(40,48,60,0.16)", 220)), metalness: 0.72, roughness: 0.32 }),
     frame: new THREE.MeshStandardMaterial({ color: 0x3a4555, metalness: 0.4, roughness: 0.55 }),
