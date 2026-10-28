@@ -20,6 +20,7 @@ import LeadDialog from "@/components/leads/LeadDialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
 import CellEquipmentList from "./CellEquipmentList";
+import RobotSystemSheet from "./RobotSystemSheet";
 import { budgetFor, CycleTracker, decodeLine, encodeLine, isCobotMatch, reportHtml, roi, STARTERS, STEP_GROUP, suggest, suggestSwap, type Raw, type StarterCell, type StepTime } from "./builderExtras";
 import { inr as inrShort } from "./solutionCost";
 import { KIND_JOB, thinkCell, type Thought } from "./engineerPlaybook";
@@ -1642,6 +1643,13 @@ export default function CellBuilder() {
                         <div className="rounded-md border border-border bg-background/60 p-2">
                           <p className="mb-1 font-medium text-foreground">Everything this cell needs</p>
                           <CellEquipmentList jobs={[c.job]} fenced={!!c.fenced} products={parts.map((m) => m.name)} compact withLine={false} />
+                          <p className="mb-1 mt-3 font-medium text-foreground">Robot system & cables</p>
+                          <RobotSystemSheet
+                            compact
+                            job={c.job}
+                            fenced={!!c.fenced}
+                            robot={c.choice.robot ? { name: c.choice.robot.name, brand: c.choice.robot.brand } : undefined}
+                          />
                         </div>
                       )}
                       {kit.software.length > 0 && (

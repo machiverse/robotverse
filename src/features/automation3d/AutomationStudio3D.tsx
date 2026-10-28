@@ -12,6 +12,7 @@ import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/uti
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation, type SimQuality } from "./robotSim.js";
 import { CINEMATIC_POST } from "./cinematicPost";
 import CellEquipmentList from "./CellEquipmentList";
+import RobotSystemSheet from "./RobotSystemSheet";
 import RobotBaseControl, { type MotionChoice } from "./RobotBaseControl";
 import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, recommendRobots, STRATEGIES, type DirectoryRobot, type LinePlan, type Strategy } from "./robotKnowledge";
@@ -1143,6 +1144,16 @@ export default function AutomationStudio3D({
               steps={steps}
             />
           </Panel>
+          {plan && plan.robots[focus]?.tasks[0]?.name && (
+            <Panel title="Robot system & cables">
+              <RobotSystemSheet
+                compact
+                job={plan.robots[focus].tasks[0].name}
+                fenced={!plan.robots[focus].collaborative}
+                robot={perCell.get(focus)?.robot ? { name: perCell.get(focus)!.robot!.name, brand: perCell.get(focus)!.robot!.brand } : undefined}
+              />
+            </Panel>
+          )}
           <Panel title="Reach check">
             <div
               className={cn(
