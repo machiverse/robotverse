@@ -404,7 +404,6 @@ export const PROCESS_SYSTEMS: Record<SystemArea, ProcessSystem> = {
     signals: ["Trigger scan", "Pose result", "No part found", "Bin empty"],
     consumables: [W("Gripper pads / fingers", "When worn"), W("Camera window", "Clean weekly")],
   },
-  force_unused: undefined as never,
   vision: {
     howItWorks: ["The part arrives under the camera.", "The robot or sensor triggers the camera.", "Lights switch on and the camera takes the image.", "The vision controller checks the part.", "Pass or fail and an offset go back to the robot.", "Bad parts are rejected; good parts go on."],
     eoat: [T("Smart camera", "Cognex In-Sight, Keyence", "Takes and checks the image."), T("Lights", "Ring / bar lights", "Light the part evenly.")],
@@ -485,8 +484,7 @@ export const PROCESS_SYSTEMS: Record<SystemArea, ProcessSystem> = {
     signals: ["Part present", "Start", "Done", "Fault"],
     consumables: [W("Gripper pads / fingers", "When worn"), W("Filters", "Monthly")],
   },
-} as Record<SystemArea, ProcessSystem>;
-delete (PROCESS_SYSTEMS as Record<string, unknown>).force_unused;
+};
 
 const TIG_WEAR: WearItem[] = [W("Tungsten electrodes", "When contaminated or tip worn"), W("Ceramic cups", "When cracked"), W("Collets", "When worn")];
 
