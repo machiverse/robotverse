@@ -976,6 +976,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     s.renderOrder = 10;
     s.layers.set(LABELS);
     s.userData.label = w / 80;
+    s.userData.text = text;
     return s;
   }
 
@@ -1148,7 +1149,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const t = new THREE.Box3();
     root.updateMatrixWorld(true);
     root.traverse((o) => {
-      if (!o.isMesh || o.isSprite || !o.geometry || o.visible === false) return;
+      if (!o.isMesh || o.isSprite || !o.geometry || o.visible === false || o.userData.zone) return;
       if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
       t.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
       b.union(t);
@@ -1204,6 +1205,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const stand = (item, x, z, rotY, parent, names, opts) => {
       const built = equipModels.buildModel(item.model, { ...item, ...opts });
       if (!built) return false;
+      built.group.userData.what = item.label;
+      built.group.userData.attached = item.at === "work" || item.at === "pallet";
       built.group.position.set(x, 0, z);
       built.group.rotation.y = rotY;
       parent.add(built.group);
@@ -1212,6 +1215,43 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     };
     /** Facing a point: the model's front (+z) turned towards (tx, tz). */
     const facing = (x, z, tx, tz) => Math.atan2(tx - x, tz - z);
+    /** Cabinets that power or feed the robot and its tools: cabled to it. */
+    const FEEDS = new Set(["controller", "cobotBox", "weldPower", "airUnit", "laserSource", "chiller", "paintSupply", "dosingUnit", "cabinet", "ctrlBox", "waterUnit", "intensifier"]);
+    /** A floor cable duct (black, yellow centre stripe) along x or along z. */
+    const floorDuct = (x1, z1, x2, z2) => {
+      const alongX = Math.abs(x2 - x1) >= Math.abs(z2 - z1);
+      const len = alongX ? Math.abs(x2 - x1) : Math.abs(z2 - z1);
+      if (len < 0.02) return;
+      const [w, d] = alongX ? [len + 0.12, 0.12] : [0.12, len + 0.12];
+      const base = box(w, 0.022, d, M.dark);
+      base.position.set((x1 + x2) / 2, 0.011, (z1 + z2) / 2);
+      base.castShadow = false;
+      const stripe = box(alongX ? len + 0.1 : 0.03, 0.004, alongX ? 0.03 : len + 0.1, M.amber);
+      stripe.position.set((x1 + x2) / 2, 0.024, (z1 + z2) / 2);
+      stripe.castShadow = false;
+      equipOutside.add(base, stripe);
+    };
+    /** Overhead ducting from an extractor up, across and down to its hood or booth. */
+    const overheadDuct = ([x1, h1, z1], [x2, z2, h2]) => {
+      const Y = 2.45;
+      const pipe = (a, b) => {
+        const v = new THREE.Vector3().subVectors(b, a);
+        const len = v.length();
+        if (len < 0.02) return;
+        const m = cyl(0.065, len, M.steel, 14);
+        m.position.copy(a).addScaledVector(v, 0.5);
+        m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.normalize());
+        m.castShadow = false;
+        equipOutside.add(m);
+      };
+      const P = [new THREE.Vector3(x1, h1, z1), new THREE.Vector3(x1, Y, z1), new THREE.Vector3(x1, Y, z2), new THREE.Vector3(x2, Y, z2), new THREE.Vector3(x2, h2, z2)];
+      for (let i = 0; i < P.length - 1; i++) pipe(P[i], P[i + 1]);
+      for (let i = 1; i < P.length - 1; i++) {
+        const j = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 8), M.steel);
+        j.position.copy(P[i]);
+        equipOutside.add(j);
+      }
+    };
 
     cells.forEach((c, i) => {
       // A builder cell without a robot yet has no set-up to show.
@@ -1224,6 +1264,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       // A robot hanging from a track or in a gantry has no floor base to stand things beside.
       const fixedBase = !(c.motion && (c.motion.type === "overhead" || c.motion.type === "gantry"));
 
+      // Where extraction connects: the hood's post, the booth's back wall.
+      let hoodAt = null;
+      let boothAt = null;
       // At the work table: fume hood, welding screens or the spray booth round it.
       const work = c.stations.weld || c.stations.table || c.stations.press || c.stations.cnc || null;
       if (work && work.point) {
@@ -1244,7 +1287,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
                 return hits([x - 0.1, z - 0.1, x + 0.1, z + 0.1], 0.02);
               });
             const b = stand(item, px, pz, rot, equipGroup, names, { left: wallFree(-1), right: wallFree(1) });
-            if (b) rects.push(footprint(px + dx * 0.25, pz + dz * 0.25, 1.85, 1.2, Math.atan2(dx, dz)));
+            if (b) {
+              rects.push(footprint(px + dx * 0.25, pz + dz * 0.25, 1.85, 1.2, Math.atan2(dx, dz)));
+              boothAt = [px + dx * 0.8, pz + dz * 0.8, 1.95];
+            }
           } else if (item.model === "weldScreen") {
             // One screen each side of the table, along the line from the robot, where the floor is free.
             let placed = 0;
@@ -1270,6 +1316,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
               if (hits(r, 0.02)) continue;
               stand(item, x, z, facing(x, z, px, pz), equipGroup, names);
               rects.push(r);
+              hoodAt = [x, z, 1.93];
               break;
             }
           }
@@ -1314,6 +1361,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           continue;
         }
         const [x, z, rot, fr] = spot;
+        built.group.userData.what = item.label;
         built.group.position.set(x, 0, z);
         built.group.rotation.y = rot;
         equipGroup.add(built.group);
@@ -1340,6 +1388,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       let rowFront = row0;
       let rowDepth = 0;
       const xMax = X + L + 1.65;
+      const behind = [];
       for (const item of items.filter((x) => x.at === "outside" && x.model)) {
         const built = equipModels.buildModel(item.model, item);
         if (!built) continue;
@@ -1353,8 +1402,31 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         built.group.position.set(x, 0, z);
         equipOutside.add(built.group);
         tag(chosenProduct(item, names) || item.label, x, h, z, equipOutside);
+        behind.push({ model: item.model, x, z, w, h, d });
         cursor += w + 0.14;
         rowDepth = Math.max(rowDepth, d);
+      }
+
+      // Connections. Every cabinet behind the fence feeds the robot through one floor cable duct (to the base, or
+      // to the cable chain of its track); the extractors reach their hood or booth through overhead ducting.
+      const feeds = behind.filter((b) => FEEDS.has(b.model));
+      const mt = c.motion ? c.motion.type : "fixed";
+      const entry =
+        mt === "amr" ? null
+        : mt === "track" ? [X + L / 2, -0.6]
+        : mt === "overhead" ? [X - 0.65, -0.95]
+        : mt === "gantry" ? [X - GANTRY_X, -1.55]
+        : [X, -0.45];
+      if (feeds.length && entry) {
+        const zT = -2.52;
+        const xs = feeds.map((f) => f.x);
+        floorDuct(Math.min(...xs, entry[0]), zT, Math.max(...xs, entry[0]), zT);
+        for (const f of feeds) floorDuct(f.x, f.z + f.d / 2, f.x, zT);
+        floorDuct(entry[0], zT, entry[0], entry[1]);
+      }
+      for (const b of behind) {
+        const to = b.model === "boothExhaust" ? boothAt : b.model === "fumeUnit" || b.model === "dustCollector" ? hoodAt : null;
+        if (to) overheadDuct([b.x, b.h, b.z], to);
       }
     });
 
@@ -1365,6 +1437,43 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     }
     scene.add(equipGroup);
     scene.add(equipOutside);
+  }
+
+  /**
+   * The layout check: stations, conveyors, robot bases and the equipment placed round them must each have their
+   * own floor. Hoods, screens, booths and light curtains are fitted to their station on purpose and not counted.
+   */
+  function layoutIssues() {
+    const parts = [];
+    const rect = (b) => [b.min.x, b.min.z, b.max.x, b.max.z];
+    cells.forEach((c, i) => {
+      for (const p of c.layoutParts()) parts.push({ what: cells.length > 1 ? `${p.what} (R${i + 1})` : p.what, r: rect(p.box), cell: i });
+      const mt = c.motion ? c.motion.type : "fixed";
+      if (mt === "fixed" || mt === "lift") parts.push({ what: cells.length > 1 ? `Robot ${i + 1} base` : "Robot base", r: [cellStart[i] - 0.3, -0.3, cellStart[i] + 0.3, 0.3], cell: i, base: true });
+    });
+    for (const cv of conveyors)
+      if (cv.group.visible) {
+        let what = "Conveyor";
+        cv.group.traverse((o) => what === "Conveyor" && o.isSprite && o.userData.text && !/·/.test(o.userData.text) && (what = o.userData.text));
+        const b = meshBox(cv.group);
+        if (!b.isEmpty()) parts.push({ what, r: rect(b), belt: true });
+      }
+    if (equipGroup)
+      for (const g of equipGroup.children)
+        if (g.isGroup && g.userData.what && !g.userData.attached) {
+          const b = meshBox(g);
+          if (!b.isEmpty()) parts.push({ what: g.userData.what, r: rect(b) });
+        }
+    const out = [];
+    const m = 0.03;
+    for (let i = 0; i < parts.length; i++)
+      for (let j = i + 1; j < parts.length; j++) {
+        const a = parts[i].r, b = parts[j].r;
+        // A belt feeding a machine or a supply crate at its end touches it by design.
+        if (parts[i].belt || parts[j].belt) continue;
+        if (a[0] < b[2] - m && a[2] > b[0] + m && a[1] < b[3] - m && a[3] > b[1] + m) out.push(`${parts[i].what} overlaps ${parts[j].what}`);
+      }
+    return out;
   }
 
   /* Parts: the line's real product (fruit, bottles, sacks, castings…), built by workpieces.js */
@@ -1569,6 +1678,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const needed = new Set([...steps.map((s) => s.station).filter(Boolean), ...(extra.stations || [])]);
     // Tool work happens on a part resting on a work table (at either end of a track).
     for (const s of steps) if (TOOL_ACTIONS[s.action]) needed.add(s.station && /^table/.test(s.station) ? s.station : "table");
+    // A robot that handles the part with its gripper and also welds, sprays or grinds it changes tools on a tool
+    // stand: the process tool waits in its nest while the gripper works, and the gripper while the tool works.
+    const headLooks = [...new Set(steps.filter((s) => s.action === "weld" || TOOL_ACTIONS[s.action]).map((s) => headFor(s.text || s.label, s.action)).filter(Boolean))].slice(0, 2);
+    if (!buildMode && headLooks.length && steps.some((s) => s.action === "pick" || s.action === "place")) needed.add("rack");
     const startTool = extra.startTool || 0;
     const stations = {};
     let zoneGroup = null;
@@ -1626,6 +1739,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       const g = new THREE.Group();
       g.add(zone);
       zoneGroup = g;
+      g.userData.skipLayout = true;
       zoneLine = zone;
       if (title) {
         const lbl = makeLabel(title, "#fbbf24");
@@ -1638,25 +1752,49 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
 
     /* The track, rail, gantry frame, route or column, and the part of it that moves with the robot. */
     let mover = null;
+    /** The cable chain's upper run on a floor track: it stretches from its fixed end to the carriage. */
+    let chainUpper = null;
     if (motionType !== "fixed") {
       const g = new THREE.Group();
       const x0 = X - 0.55, x1 = X + L + 0.55, len = x1 - x0, mx = (x0 + x1) / 2;
-      const put = (mesh, x, y, z, parent = g) => {
+      const put = (mesh, x, y, z, parent) => {
         mesh.position.set(x, y, z);
-        parent.add(mesh);
+        (parent || g).add(mesh);
         return mesh;
       };
       mover = new THREE.Group();
       if (motionType === "track") {
+        // The 7th axis: a steel base on levelling feet, two linear rails, a toothed rack the carriage's servo
+        // motor drives through its gearbox and pinion, buffers at both ends, and the cable chain that carries
+        // power, signals and air to the robot as it travels.
         put(box(len, 0.06, 0.66, M.frame), mx, 0.03, 0);
+        for (let x = x0 + 0.15; x <= x1 - 0.1; x += 0.9) for (const z of [-0.3, 0.3]) put(cyl(0.035, 0.02, M.dark, 12), x, 0.01, z);
         for (const z of [-0.22, 0.22]) put(box(len, 0.045, 0.05, M.steel), mx, 0.083, z);
         put(box(len, 0.03, 0.035, M.dark), mx, 0.075, 0.3);
-        // Energy chain carrying power, signals and air to the carriage.
-        put(box(len * 0.55, 0.11, 0.13, M.dark), x0 + len * 0.275, 0.115, -0.48);
-        put(box(len * 0.55, 0.012, 0.15, M.amber), x0 + len * 0.275, 0.175, -0.48);
-        for (const x of [x0, x1]) put(box(0.08, 0.2, 0.6, M.amber), x, 0.1, 0);
+        const teeth = [];
+        for (let x = x0 + 0.02; x < x1 - 0.01; x += 0.035) teeth.push([new THREE.BoxGeometry(0.014, 0.012, 0.03), [x, 0.096, 0.3]]);
+        put(new THREE.Mesh(mergeParts(teeth), M.steel), 0, 0, 0);
+        // Cable chain: its trough along the back, the upper run reaching to the carriage (stretched as it moves).
+        put(box(len, 0.13, 0.17, M.frame), mx, 0.065, -0.5);
+        put(box(len * 0.5, 0.06, 0.13, M.dark), x0 + len * 0.25, 0.1, -0.5);
+        chainUpper = put(box(1, 0.06, 0.13, M.dark), X, 0.16, -0.5);
+        chainUpper.userData.fixedX = x0 + len * 0.5;
+        put(cyl(0.05, 0.13, M.dark, 16), X, 0.13, -0.5, mover).rotation.x = Math.PI / 2;
+        put(box(0.08, 0.1, 0.22, M.dark), X, 0.18, -0.38, mover);
+        // End buffers.
+        for (const x of [x0, x1]) {
+          put(box(0.08, 0.2, 0.6, M.amber), x, 0.1, 0);
+          put(cyl(0.04, 0.07, M.dark, 14), x + (x === x0 ? 0.06 : -0.06), 0.13, 0, null).rotation.z = Math.PI / 2;
+        }
         put(box(0.78, 0.1, 0.62, M.dark), X, 0.15, 0, mover);
         put(box(0.5, 0.04, 0.5, M.steel), X, 0.2, 0, mover);
+        // The 7th-axis servo motor and its right-angle gearbox on the carriage, driving the pinion into the rack.
+        put(box(0.17, 0.15, 0.16, M.frame), X + 0.26, 0.275, 0.32, mover);
+        put(cyl(0.072, 0.26, M.dark, 24), X + 0.26, 0.48, 0.32, mover);
+        put(cyl(0.075, 0.025, M.accent, 24), X + 0.26, 0.62, 0.32, mover);
+        for (const dy of [0.4, 0.46, 0.52]) put(cyl(0.076, 0.008, M.frame, 24), X + 0.26, dy, 0.32, mover);
+        put(cyl(0.04, 0.03, M.steel, 16), X + 0.26, 0.12, 0.32, mover);
+        put(box(0.04, 0.04, 0.1, M.amber), X + 0.26, 0.56, 0.41, mover);
       } else if (motionType === "rgv") {
         for (const z of [-0.36, 0.36]) put(box(len + 0.4, 0.025, 0.07, M.steel), mx, 0.0125, z);
         for (const x of [x0 - 0.2, x1 + 0.2]) put(box(0.1, 0.18, 0.9, M.amber), x, 0.09, 0);
@@ -1704,9 +1842,16 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         put(box(0.56, 0.06, 0.56, M.steel), X, BASE_Y - 0.03, 0, mover);
         put(box(0.3, 0.2, 0.12, M.dark), X, BASE_Y + 0.05, -0.3, mover);
       }
+      g.userData.skipLayout = true;
+      mover.userData.skipLayout = true;
       add(g);
       add(mover);
       const sys = { track: "Floor track (7th axis)", overhead: "Overhead track", gantry: "Gantry robot", amr: "Mobile robot (AMR)", lift: "Lift column", rgv: "Rail-guided cart (RGV)" }[motionType];
+      if (motionType === "track") {
+        const ml = makeLabel("7th-axis servo motor · rack & pinion", "#bae6fd");
+        ml.position.set(X + 0.26, 0.95, 0.42);
+        mover.add(ml);
+      }
       const lbl = makeLabel(`${sys}${moving ? ` · ${L.toFixed(1)} m` : ` · ${liftMax.toFixed(1)} m lift`}`, "#5eead4");
       lbl.position.set(X + L / 2, cartesian ? GANTRY_H + 0.3 : inverted ? OVERHEAD_Y + 0.75 : 0.55, cartesian || inverted ? 0 : 0.75);
       g.add(lbl);
@@ -2162,41 +2307,66 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         stations.bin = { point: V(sp.x, 0.3 + PART.h / 2, sp.z), part: null, cone };
       }
 
-      // Tool stand: the tool changer parks the tool that is not on the arm here.
+      // Tool stand: a nest for each tool the robot puts down — the gripper, and the torch, gun or spindle it changes to.
+      // The robot lowers the tool into its nest, the changer unlocks, it moves to the other nest and locks that tool on.
       if (needed.has("rack")) {
         const g = new THREE.Group();
-        const rx = X - sgn * 0.5, rz = 0.72;
-        const post = box(0.06, 0.9, 0.06, M.frame);
-        post.position.set(rx, 0.45, rz + 0.09);
-        g.add(post);
-        const shelf = box(0.32, 0.03, 0.22, M.steel);
-        shelf.position.set(rx, 0.88, rz);
-        g.add(shelf);
-        const cradle = box(0.16, 0.04, 0.02, M.amber);
-        cradle.position.set(rx, 0.91, rz - 0.07);
-        g.add(cradle);
-        const lbl = makeLabel(NAMES.rack);
-        lbl.position.set(rx, 1.5, rz);
+        // In the builder: a nest for every tool the program changes to; in the studio: the gripper and the job's heads.
+        const changes = [...new Set([startTool, ...steps.filter((s) => s.action === "toolchange").map((s) => s.tool || 0)])].slice(0, 4);
+        const keys = buildMode ? (changes.length > 1 ? changes : [0, 1]).map((t) => `tool:${t}`) : ["tool:0", ...headLooks.map((l) => `head:${l}`)];
+        const pitch = 0.27, FLANGE_Y = 1.16;
+        const rx = X - sgn * 0.55, rz = 0.66;
+        const width = (keys.length - 1) * pitch + 0.3;
+        const put = (m, x, y, z) => (m.position.set(x, y, z), g.add(m), m);
+        put(box(width + 0.12, 0.03, 0.36, M.dark), rx, 0.015, rz - 0.06);
+        for (const dx of [-width / 2, width / 2]) put(box(0.06, FLANGE_Y - 0.08, 0.06, M.frame), rx + dx, 0.03 + (FLANGE_Y - 0.08) / 2, rz - 0.14);
+        put(box(width + 0.08, 0.06, 0.08, M.steel), rx, FLANGE_Y - 0.08, rz - 0.14);
+        const nests = keys.map((key, i) => {
+          const x = rx + (i - (keys.length - 1) / 2) * pitch;
+          // A fork that takes the tool plate, and the sensor that says the nest holds a tool.
+          for (const fx of [-0.07, 0.07]) put(box(0.026, 0.026, 0.17, M.amber), x + fx, FLANGE_Y - 0.055, rz - 0.06);
+          put(box(0.03, 0.03, 0.03, M.dark), x, FLANGE_Y - 0.055, rz - 0.15);
+          return { key, x, z: rz };
+        });
+        const lbl = makeLabel(`${NAMES.rack} · ${keys.length} nests`);
+        lbl.position.set(rx, FLANGE_Y + 0.85, rz);
         g.add(lbl);
         add(g);
-        let parked = null;
-        stations.rack = {
+        const parked = new Map();
+        const nest = (key) => nests.find((n) => n.key === key);
+        const rack = {
           group: g,
-          point: V(-sgn * 0.5, 1.2, rz),
-          show(tool) {
-            if (parked) {
-              g.remove(parked.group);
-              parked.group.traverse((o) => o.geometry && o.geometry.dispose());
-              parked = null;
-            }
-            if (!tool || tool.kind === "none") return;
-            parked = makeEoat(tool.kind, tool.look);
-            // Hangs tool-down in the cradle.
-            parked.group.rotation.z = -Math.PI / 2;
-            parked.group.position.set(rx, 1.13, rz);
-            g.add(parked.group);
+          nests,
+          point: V(-sgn * 0.55, FLANGE_Y - TOOL_LEN, rz),
+          has: (key) => !!key && !!nest(key),
+          holds: (key) => parked.has(key),
+          /** Where the tool centre point goes to set the tool down in (or lift it from) its nest. */
+          dock: (key) => {
+            const n = nest(key) || nests[0];
+            return new THREE.Vector3(n.x, FLANGE_Y - TOOL_LEN, n.z);
+          },
+          take(key) {
+            const p = parked.get(key);
+            if (!p) return;
+            g.remove(p.group);
+            p.group.traverse((o) => o.geometry && o.geometry.dispose());
+            parked.delete(key);
+          },
+          park(key, tool) {
+            rack.take(key);
+            const n = nest(key);
+            if (!n || !tool) return;
+            // Hangs tool-down in the fork, its tool plate up where the changer meets it.
+            tool.group.rotation.z = -Math.PI / 2;
+            tool.group.position.set(n.x, FLANGE_Y, n.z);
+            g.add(tool.group);
+            parked.set(key, tool);
+          },
+          clear() {
+            [...parked.keys()].forEach((k) => rack.take(k));
           },
         };
+        stations.rack = rack;
       }
       return stations;
     }
@@ -2422,7 +2592,12 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       // Accessories the user attached in the configurator: tool changer / force-torque sensor at the
       // flange, a vision camera on the side of the wrist.
       const acc = (model && model.accessories) || [];
-      if (acc.includes("changer")) {
+      // Tool changer: the master plate on the flange, its lamp green while a tool is locked on, red while released.
+      let lockLed = null;
+      if (acc.includes("changer") || stations.rack) {
+        lockLed = new THREE.Mesh(new THREE.SphereGeometry(0.011, 12, 8), new THREE.MeshStandardMaterial({ color: 0x14532d, emissive: 0x22c55e, emissiveIntensity: 1.4 }));
+        lockLed.position.set(0.016, 0.0, 0.064);
+        j6.add(lockLed);
         const plate = cyl(0.058, 0.025, M.steel, 20);
         plate.rotation.z = Math.PI / 2;
         plate.position.x = 0.012;
@@ -2470,12 +2645,25 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
 
       root.visible = !(buildMode && !(model && model.hasRobot));
       scene.add(root);
-      const r = { root, joints, tip, fingers: [], fingerTool: false, fingerOpen: 0.075, dims, q: [0, 0, 0, 0, 0, 0], paint, trim, toolSets, heads, activeHead: null, modelLabel, activeTool: 0, eoat: kinds[0], cartesian, gantry: arm.gantry || null, travel: 0, lift: 0 };
+      const r = { root, joints, tip, fingers: [], fingerTool: false, fingerOpen: 0.075, dims, q: [0, 0, 0, 0, 0, 0], paint, trim, toolSets, heads, activeHead: null, activeLook: null, empty: false, lockLed, modelLabel, activeTool: 0, eoat: kinds[0], cartesian, gantry: arm.gantry || null, travel: 0, lift: 0 };
+      /** The changer's lock lamp: green with a tool locked on, red while it lets go. */
+      r.setLock = (on) => lockLed && lockLed.material.emissive.setHex(on ? 0x22c55e : 0xef4444);
+      /** The flange with no tool on it, between parking one tool and locking on the next. */
+      r.clearTool = () => {
+        heads.forEach((h) => (h.group.visible = false));
+        toolSets.forEach((t) => (t.group.visible = false));
+        r.activeHead = null;
+        r.activeLook = null;
+        r.fingers = [];
+        r.empty = true;
+      };
       /** Put tool i on the flange (tool changer); the gripper animation follows the active tool. */
       r.setTool = (i) => {
         const k = clamp(Math.round(Number(i) || 0), 0, toolSets.length - 1);
         heads.forEach((h) => (h.group.visible = false));
         r.activeHead = null;
+        r.activeLook = null;
+        r.empty = false;
         toolSets.forEach((t, n) => (t.group.visible = n === k));
         const t = toolSets[k];
         r.fingers = t.fingers;
@@ -2496,6 +2684,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         toolSets.forEach((t) => (t.group.visible = false));
         heads.forEach((x) => (x.group.visible = x === h));
         r.activeHead = h;
+        r.activeLook = look;
+        r.empty = false;
         return h;
       };
       r.hideHead = () => {
@@ -2505,6 +2695,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           if (h.spin) h.spin.rotation.x = 0;
         });
         r.activeHead = null;
+        r.activeLook = null;
+        r.empty = false;
         toolSets.forEach((t, n) => (t.group.visible = n === r.activeTool));
       };
       /** The tool that waits on the tool stand. */
@@ -2519,6 +2711,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       robot.root.traverse((o) => o.geometry && o.geometry.dispose());
       robot.paint.dispose();
       robot.trim.dispose();
+      if (robot.lockLed) robot.lockLed.material.dispose();
       if (robot.modelLabel) {
         robot.modelLabel.material.map.dispose();
         robot.modelLabel.material.dispose();
@@ -2531,6 +2724,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       if (!robot || robot.cartesian) return;
       robot.root.position.set(X + robot.travel, BASE_Y + robot.lift, 0);
       if (mover) mover.position.set(robot.travel, robot.lift, 0);
+      if (chainUpper) {
+        const a = chainUpper.userData.fixedX, b = X + robot.travel;
+        chainUpper.scale.x = Math.max(0.05, Math.abs(b - a));
+        chainUpper.position.x = (a + b) / 2;
+      }
     }
 
     function applyJoints(q) {
@@ -2770,6 +2968,80 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     }
 
     const above = (p) => p.clone().add(new THREE.Vector3(0, APPROACH, 0));
+
+    /** The tool on the arm: "tool:<i>" (gripper or chosen tool), "head:<look>" (torch, gun, spindle…), null when empty. */
+    const onArm = () => (!robot || robot.empty ? null : robot.activeLook ? `head:${robot.activeLook}` : `tool:${robot.activeTool}`);
+    const toolLabel = (key) => {
+      if (!key) return "nothing";
+      if (key.startsWith("head:")) return TOOL_LOOK_NAMES[key.slice(5)] || key.slice(5);
+      const t = robot.toolSets[+key.slice(5)];
+      return (t && (TOOL_LOOK_NAMES[t.look] || t.look || t.kind)) || "gripper";
+    };
+    /** A copy of a tool to hang in the stand. */
+    function makeTool(key) {
+      if (key.startsWith("head:")) return makeEoat("head", key.slice(5));
+      const t = robot.toolSets[+key.slice(5)];
+      return t && t.kind !== "none" ? makeEoat(t.kind, t.look) : null;
+    }
+    const mountTool = (key) => {
+      if (key.startsWith("head:")) robot.showHead(key.slice(5));
+      else {
+        robot.setTool(+key.slice(5));
+        setFingers(true);
+      }
+    };
+    /** The stand shows every tool that is not on the arm. */
+    function syncRack() {
+      const rk = stations.rack;
+      if (!rk || !robot) return;
+      const on = onArm();
+      // A robot that carries its own torch, spindle or nozzle does not fetch a second one from the stand.
+      const ownHead = robot.toolSets.some((t) => PROCESS_TOOLS.includes(t.kind));
+      for (const n of rk.nests) {
+        if (n.key === on || (ownHead && n.key.startsWith("head:"))) rk.take(n.key);
+        else if (!rk.holds(n.key)) rk.park(n.key, makeTool(n.key));
+      }
+    }
+    /**
+     * Change tools at the stand: lower the tool on the arm into its nest, unlock, lift away empty, move over
+     * the other nest, lower onto that tool, lock, and lift it out. False when there is nothing to change.
+     */
+    function changeTool(out, key) {
+      const rk = stations.rack;
+      const from = onArm();
+      if (!rk || !from || from === key || !rk.has(key) || !rk.has(from)) return false;
+      out.push(jointMove(() => above(rk.dock(from)), "rack"));
+      out.push(linearMove(() => rk.dock(from), "rack", 0.2));
+      out.push(
+        dwell(
+          0.45,
+          () => robot.setLock(false),
+          () => {
+            rk.park(from, makeTool(from));
+            robot.clearTool();
+            log(`Tool change: ${toolLabel(from)} parked in the stand`);
+          }
+        )
+      );
+      out.push(linearMove(() => above(rk.dock(from)), "rack", 0.3));
+      out.push(linearMove(() => above(rk.dock(key)), "rack", 0.45));
+      out.push(linearMove(() => rk.dock(key), "rack", 0.2));
+      out.push(
+        dwell(
+          0.45,
+          () => {
+            rk.take(key);
+            mountTool(key);
+          },
+          () => {
+            robot.setLock(true);
+            log(`Tool change: ${toolLabel(key)} locked on`);
+          }
+        )
+      );
+      out.push(linearMove(() => above(rk.dock(key)), "rack", 0.3));
+      return true;
+    }
     /** Where the tool centre point goes to hold a part centred at p: its top face for vacuum, magnet and claw tools. */
     const grab = (p) => (TOP_GRIP.has(robot.eoat) ? p.clone().add(new THREE.Vector3(0, PART.h / 2, 0)) : p);
 
@@ -2812,6 +3084,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
             log(`Skipped "${step.label}": already holding a part`);
             break;
           }
+          // A torch or gun still on the arm goes back to the stand; the gripper comes on.
+          if (stations.rack && robot.activeLook) changeTool(out, `tool:${robot.activeTool}`);
           if (isBelt(s)) {
             const belt = stations[s];
             out.push(jointMove(() => above(grab(belt.point)), s));
@@ -2950,6 +3224,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           const look = processLook(step, s);
           const fx = HEAD_FX[look];
           let head = null;
+          // With a tool stand the robot fetches the torch and keeps it on until the gripper is needed again.
+          const viaStand = !PROCESS_TOOLS.includes(robot.eoat) && !!stations.rack && stations.rack.has(`head:${look}`);
+          if (viaStand) changeTool(out, `head:${look}`);
           out.push(
             dwell(0.01, () => {
               if (!w.part) w.part = spawnPart(w.point);
@@ -2979,7 +3256,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
             })
           );
           out.push(linearMove(() => above(B), s, 0.35));
-          out.push(dwell(0.01, takeOffTool));
+          if (!viaStand) out.push(dwell(0.01, takeOffTool));
           break;
         }
         case "scan": {
@@ -2996,21 +3273,18 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           break;
         }
         case "toolchange": {
-          // Tool changer: park the current tool on the stand and lock the other one on.
+          // Tool changer: park the current tool in its nest on the stand and lock the other one on.
           const tgt = step.tool || 0;
-          const rk = stations.rack;
-          const swap = () => {
-            robot.setTool(tgt);
-            setFingers(true);
-            if (rk) rk.show(robot.parked());
-            log(`Tool change: ${robot.eoat}`);
-          };
-          if (rk) {
-            out.push(jointMove(() => above(rk.point), "rack"));
-            out.push(linearMove(() => rk.point, "rack", 0.3));
-            out.push(dwell(0.7, null, swap));
-            out.push(linearMove(() => above(rk.point), "rack", 0.35));
-          } else out.push(dwell(0.9, null, swap));
+          if (changeTool(out, `tool:${tgt}`)) break;
+          // No stand (or the tool is already on): the swap happens where the robot stands.
+          out.push(
+            dwell(0.9, null, () => {
+              robot.setTool(tgt);
+              setFingers(true);
+              syncRack();
+              log(`Tool change: ${toolLabel(`tool:${tgt}`)} on`);
+            })
+          );
           break;
         }
         case "manual": {
@@ -3081,6 +3355,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       };
       const finishWith = (fn) => out.push(dwell(0.05, null, () => w.part && fn(w.part)));
 
+      // With a tool stand the robot fetches the gun, spindle or nozzle and keeps it on until the gripper is needed.
+      const viaStand = !!look && !PROCESS_TOOLS.includes(robot.eoat) && !!stations.rack && stations.rack.has(`head:${look}`);
+      if (viaStand) changeTool(out, `head:${look}`);
       out.push(
         dwell(0.25, () => {
           if (!w.part) w.part = spawnPart(w.point);
@@ -3205,7 +3482,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       out.push(
         dwell(0.2, null, () => {
           fxOff(head);
-          takeOffTool();
+          if (!viaStand) takeOffTool();
           if (!look) setFingers(true);
         })
       );
@@ -3272,9 +3549,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       stream.visible = false;
       sparks.visible = false;
       if (robot) {
+        // Back to the start: the first tool on the arm and locked, the rest in the stand.
         robot.setTool(startTool);
         robot.hideHead();
-        if (stations.rack) stations.rack.show(robot.parked());
+        robot.setLock(true);
+        if (stations.rack) {
+          stations.rack.clear();
+          syncRack();
+        }
       }
     }
 
@@ -3286,6 +3568,17 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       title,
       steps,
       stations,
+      /** Each station of the cell with its name, for the layout check. */
+      layoutParts() {
+        return groups
+          .filter((g) => !g.userData.skipLayout)
+          .map((g) => {
+            let what = "";
+            g.traverse((o) => !what && o.isSprite && o.userData.text && (what = o.userData.text));
+            return { what: what || "Station", box: meshBox(g) };
+          })
+          .filter((p) => !p.box.isEmpty());
+      },
       /** Floor this cell's stations, track and robot base take, for placing its other equipment. */
       occupied() {
         const out = [];
@@ -3333,7 +3626,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         disposeRobot();
         robot = buildRobot(scale);
         cell.setPaint(paintIndustrial);
-        if (stations.rack) stations.rack.show(robot.parked());
+        if (stations.rack) {
+          stations.rack.clear();
+          syncRack();
+        }
       },
       setModel(m) {
         model = m;
@@ -4234,6 +4530,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       cells[focus].setTravel(m);
       emit(true);
     },
+    /** Stations, conveyors, robot bases and equipment that stand on each other's floor (none in a good layout). */
+    layoutIssues,
     checkReach(stepsToCheck) {
       if (cells.length === 1) return cells[0].checkReach(stepsToCheck);
       const out = new Set();

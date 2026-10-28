@@ -846,6 +846,8 @@ export function createEquipmentModels(THREE) {
       const fan = new THREE.Mesh(geo(new THREE.CircleGeometry(1.6, 32, Math.PI * 0.15, Math.PI * 0.7)), C.scan);
       fan.rotation.x = -Math.PI / 2;
       fan.position.y = 0.006;
+      // The field it watches is drawn on the floor, not floor it takes.
+      fan.userData.zone = true;
       g.add(fan);
       return { group: g, size: [0.15, 0.2, 0.15] };
     },

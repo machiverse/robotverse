@@ -424,6 +424,26 @@ export const JOB_NOTES: Record<string, string[]> = {
   "Parcel Induction & Singulation": ["Vision picks one parcel at a time from the pile onto the sorter", "Multi-zone suction grips boxes and poly bags", "Plan around 1,000–1,500 picks an hour per robot"],
   "Textile & Garment Handling": ["Fabric is limp: needle, electro-adhesion or air grippers pick single plies", "Ply separation sensing stops double picks", "Colours and fabrics change every order: keep changeover simple"],
   "Friction Stir Welding": ["Several kN of process force: a heavy, stiff robot or a gantry", "Rigid clamping with a backing bar under the joint", "No filler, no fumes: good for aluminium and EV battery trays"],
+  "Multi-Machine Tending on a 7th-Axis Track": [
+    "Count machines from cycle times: one robot serves as many machines as fit in one machine's cycle (often 2–4); add more and machines wait for the robot",
+    "The track runs as the robot's 7th axis on the same controller, so travel and arm moves are coordinated; rack-and-pinion tracks carry robots up to about 2 t over 12 m or more",
+    "Keep the pinion tight and the rack clean and greased: a loose pinion, wrong backlash and chips wear the rack; set acceleration so the robot does not shock-load the track",
+  ],
+  "Overhead Gantry Machine Loading": [
+    "A gantry loads from above, so the floor round the machines stays free for operators, chip carts and maintenance",
+    "Size the gantry for the heaviest part plus the gripper, and for the vertical stroke down into each machine",
+    "Plan a turnover station when both ends of the part are machined, and a buffer for raw and finished parts",
+  ],
+  "Multi-Line Palletizing on a 7th-Axis Track": [
+    "One robot serves several lines when their combined case rate fits the robot's picks per minute, travel included",
+    "Each pallet station needs pallet-present sensing and a light curtain, so full pallets are changed while the robot works the other lines",
+    "Run the track along the line ends so travel between lines is short; every metre of travel adds cycle time",
+  ],
+  "Long-Part Welding on a 7th-Axis Track": [
+    "The robot rides the track along the part, so long seams are welded in one pass without restarts or re-clamping",
+    "Use touch sensing and through-arc seam tracking: long parts bow and vary along their length",
+    "Coordinate the track as the 7th axis so the torch keeps its angle and travel speed while the robot moves",
+  ],
   "Heavy Fabrication & Gantry Welding": ["A gantry or track-mounted robot reaches long structures", "Touch sensing and through-arc seam tracking cover large tolerances", "Plan multi-pass welds and interpass temperature"],
   "NDT Inspection (Ultrasonic & Eddy Current)": ["The robot scans with the probe at a set angle and couplant flow", "Path from the CAD model; position encoded for the C-scan", "Calibrate on reference blocks; qualified NDT staff sign off"],
   "Tube & Pipe Bending": ["The robot feeds the bender and turns the tube between bends", "Measure bend angles and springback; correct automatically", "Support long tubes and mind the swing radius"],

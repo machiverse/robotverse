@@ -12,6 +12,7 @@ import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/uti
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation, type SimQuality } from "./robotSim.js";
 import { CINEMATIC_POST } from "./cinematicPost";
 import CellEquipmentList from "./CellEquipmentList";
+import RobotBaseControl, { type MotionChoice } from "./RobotBaseControl";
 import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, recommendRobots, STRATEGIES, type DirectoryRobot, type LinePlan, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, inrRange } from "./solutionCost";
@@ -146,6 +147,8 @@ export default function AutomationStudio3D({
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const stageWrapRef = useRef<HTMLDivElement>(null);
+  /** How each robot is mounted and moves (fixed, 7th-axis track…), by its first task: the user's choice. */
+  const [motions, setMotions] = useState<Record<string, MotionChoice>>({});
   const [fullscreen, setFullscreen] = useState(false);
   const canFullscreen = typeof document !== "undefined" && !!document.fullscreenEnabled;
   const simRef = useRef<Simulation | null>(null);
@@ -157,6 +160,8 @@ export default function AutomationStudio3D({
   const [speed, setSpeed] = useState(1);
   const [state, setState] = useState<SimState | null>(null);
   const [unreachable, setUnreachable] = useState<string[]>([]);
+  /** Stations, cabinets and stands that stand on each other's floor (none in a good layout). */
+  const [overlaps, setOverlaps] = useState<string[]>([]);
   const [plan, setPlan] = useState<LinePlan | null>(null);
   // The tasks the current plan was made from, so another solution option can re-plan them.
   const [lineInput, setLineInput] = useState<LineInput | null>(null);
@@ -274,6 +279,7 @@ export default function AutomationStudio3D({
       );
     });
     setUnreachable(sim.checkReach() || []);
+    setOverlaps(sim.layoutIssues());
   }, [perCell, plan]);
 
   // Per-cell picks are saved per brief too.
@@ -375,19 +381,30 @@ export default function AutomationStudio3D({
     if (input.some((p) => p.name === CONCRETE_PRINTING)) return openSpecial();
     setLineInput(input);
     setRobotCount(null);
+    setMotions({});
     runPlan(planLine(input, option, { motion }), planNotes);
+  }
+
+  /** Put a robot on a track, a gantry, a mobile base… or back on a fixed base, and re-plan the line. */
+  function chooseMotion(i: number, m: MotionChoice) {
+    if (!lineInput || !plan) return;
+    const key = plan.robots[i]?.tasks[0]?.name;
+    if (!key) return;
+    const next = { ...motions, [key]: m };
+    setMotions(next);
+    runPlan(planLine(lineInput, strategy, { splitBefore, robots: robotCount ?? undefined, motion, motions: next }), notes, i);
   }
 
   function chooseOption(option: Strategy) {
     setStrategy(option);
     setRobotCount(null);
-    if (lineInput) runPlan(planLine(lineInput, option, { splitBefore, motion }), notes);
+    if (lineInput) runPlan(planLine(lineInput, option, { splitBefore, motion, motions }), notes);
   }
 
   function chooseRobotCount(n: number) {
     if (!lineInput) return;
     setRobotCount(n);
-    runPlan(planLine(lineInput, strategy, { splitBefore, robots: n, motion }), notes);
+    runPlan(planLine(lineInput, strategy, { splitBefore, robots: n, motion, motions }), notes);
   }
 
   // A robot chosen for a station that shares a cell with another robot: give it a cell of its own.
@@ -400,7 +417,7 @@ export default function AutomationStudio3D({
     });
     if (!clash) return;
     setRobotCount(null);
-    runPlan(planLine(lineInput, strategy, { splitBefore, motion }), notes, focus);
+    runPlan(planLine(lineInput, strategy, { splitBefore, motion, motions }), notes, focus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [splitBefore.join("|"), lineInput]);
 
@@ -417,6 +434,7 @@ export default function AutomationStudio3D({
     simRef.current?.setFocus(f);
     simRef.current?.play();
     setUnreachable(simRef.current?.checkReach() || []);
+    setOverlaps(simRef.current?.layoutIssues() || []);
   }
 
   function restart() {
@@ -462,6 +480,7 @@ export default function AutomationStudio3D({
     simRef.current?.setSteps(parsed);
     simRef.current?.play();
     setUnreachable(simRef.current?.checkReach(parsed) || []);
+    setOverlaps(simRef.current?.layoutIssues() || []);
   }
 
   // Photos / video analysed by AI: plan exactly the tasks it found and show the photo in 3D.
@@ -492,6 +511,7 @@ export default function AutomationStudio3D({
     simRef.current?.setRobotSize(key);
     restart();
     setUnreachable((plan ? simRef.current?.checkReach() : simRef.current?.checkReach(steps)) || []);
+    setOverlaps(simRef.current?.layoutIssues() || []);
   }
 
   const playing = state?.playing ?? true;
@@ -962,6 +982,7 @@ export default function AutomationStudio3D({
                         <span className="mt-1 block truncate text-[11px] text-amber-600">Now: {cell.step.label}</span>
                       )}
                     </button>
+                    <RobotBaseControl value={r.motion} onChange={(m) => chooseMotion(i, m)} />
                     <Button size="sm" variant={chosen?.robot ? "secondary" : "outline"} className="h-7 w-full text-xs" onClick={() => setPickFor(i)}>
                       <Bot className="mr-1.5 h-3.5 w-3.5" /> {chosen?.robot ? "Change robot, tool & accessories" : "Build robot: drag robot, tool & accessories"}
                     </Button>
@@ -1140,6 +1161,19 @@ export default function AutomationStudio3D({
                   : plan
                     ? "Every station is within each robot's reach."
                     : "Every station is within this robot's reach."}
+              </span>
+            </div>
+            <div
+              className={cn(
+                "mt-1.5 flex gap-2 rounded-md border px-2.5 py-2 text-xs",
+                overlaps.length ? "border-amber-500/50 text-amber-600" : "border-green-600/50 text-green-600",
+              )}
+            >
+              {overlaps.length ? <AlertTriangle className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}
+              <span>
+                {overlaps.length
+                  ? `Too close: ${overlaps.slice(0, 3).join("; ")}${overlaps.length > 3 ? ` and ${overlaps.length - 3} more` : ""}. Give them more floor.`
+                  : "Floor space: every station, cabinet and stand has its own floor."}
               </span>
             </div>
           </Panel>

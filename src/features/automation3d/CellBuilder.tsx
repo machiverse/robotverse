@@ -26,7 +26,8 @@ import { KIND_JOB, thinkCell, type Thought } from "./engineerPlaybook";
 import { attachmentIssues, type FitIssue } from "./attachmentFit";
 import { analyzeJob, JOB_EXAMPLES, type JobTask } from "./customJob";
 import { processKind } from "./processProfiles";
-import { CELL_STATIONS, cellProgram, stationLabel, stationsFor, TOOL_NAMES, type CellProgram, type StationKey } from "./cellProgram";
+import { CELL_STATIONS, cellProgram, FAR_STATIONS, stationLabel, stationsFor, TOOL_NAMES, type CellProgram, type StationKey } from "./cellProgram";
+import RobotBaseControl, { type MotionChoice } from "./RobotBaseControl";
 import { isComponent } from "./jobGear";
 import { jobKit, type JobKit } from "./jobKit";
 import { providerPlan, understandJob } from "./jobUnderstanding";
@@ -61,6 +62,19 @@ interface Cell {
   stations?: StationKey[];
   /** Components the user added: power source, wire feeder, torch cleaner, vacuum generator, adapters… */
   parts?: Match[];
+  /** How the robot is mounted and moves: fixed, a 7th-axis track, overhead track, gantry, AMR, lift or rail cart. */
+  motion?: MotionChoice;
+  /** Equipment repeated at the far end of the robot's travel (a second machine, a second pallet…). */
+  far?: StationKey[];
+}
+
+/** What stands at the far end of a travelling robot: the user's choice, else its machine or its pallet. */
+function farOf(c: Cell): StationKey[] {
+  if (!c.motion || c.motion.type === "fixed" || c.motion.type === "lift") return [];
+  const placed = (c.stations ?? []).filter((k) => FAR_STATIONS.includes(k));
+  if (c.far) return c.far.filter((k) => placed.includes(k));
+  const main = (["cnc", "press", "mould", "weld", "pallet", "table"] as StationKey[]).find((k) => placed.includes(k));
+  return main ? [main] : [];
 }
 type PaletteTab = "robots" | "tools" | "acc" | "layout" | "cell";
 
@@ -270,6 +284,8 @@ export default function CellBuilder() {
           camera: !!c.choice.camera,
           // The previous robot hands parts over on its outfeed conveyor.
           fromPrev: !!prev && !!cells[i - 1]?.choice.robot && prev.steps.some((s) => s.action === "place" && s.station === "out"),
+          motion: c.motion?.type,
+          far: farOf(c),
         }),
       );
     });
@@ -283,13 +299,14 @@ export default function CellBuilder() {
         steps: c.choice.robot ? programs[i].steps : [],
         stations: c.stations ?? [],
         startTool: programs[i].startTool,
+        motion: c.motion && c.motion.type !== "fixed" ? c.motion : null,
       })),
     }),
     [cells, programs, plan],
   );
 
   // Push the plan and every cell's equipment into the 3D scene.
-  const planKey = JSON.stringify(simPlan.cells.map((c) => [c.title, c.steps.map((s) => `${s.action}@${s.station}${s.tool ?? ""}`), c.stations, c.startTool]));
+  const planKey = JSON.stringify(simPlan.cells.map((c) => [c.title, c.steps.map((s) => `${s.action}@${s.station}${s.tool ?? ""}`), c.stations, c.startTool, c.motion]));
   useEffect(() => {
     const s = simRef.current;
     if (!s) return;
@@ -1526,6 +1543,43 @@ export default function CellBuilder() {
                         </button>
                       ))}
                       {!placed.length && !wanted.length && <span className="text-muted-foreground">No cell equipment yet — add it from Layout</span>}
+                    </div>
+                  );
+                })()}
+                {selected === i && (() => {
+                  // How the robot is mounted: bolt it down, or put it on a 7th-axis track (or gantry, AMR…) to serve
+                  // equipment at both ends — one robot for two machines or two pallets.
+                  const m = c.motion ?? { type: "fixed" as const, length: 0 };
+                  const far = farOf(c);
+                  const farChoices = (c.stations ?? []).filter((k) => FAR_STATIONS.includes(k));
+                  return (
+                    <div className="mt-2 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                      <RobotBaseControl value={m} onChange={(next) => update(i, (x) => ({ ...x, motion: next }))} />
+                      {m.type !== "fixed" && m.type !== "lift" && (
+                        <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                          <span className="text-muted-foreground">At the far end:</span>
+                          {farChoices.length ? (
+                            farChoices.map((k) => {
+                              const on = far.includes(k);
+                              return (
+                                <button
+                                  key={k}
+                                  type="button"
+                                  aria-pressed={on}
+                                  title={on ? "The robot travels to a second one at the far end" : "Add a second one at the far end"}
+                                  onClick={() => update(i, (x) => ({ ...x, far: on ? far.filter((f) => f !== k) : [...far, k] }))}
+                                  className={cn("rounded-full border px-2 py-0.5", on ? "border-primary bg-primary/10 text-primary" : "border-dashed border-border text-muted-foreground hover:border-primary/60")}
+                                >
+                                  {on ? "✓ " : "+ "}
+                                  {stationLabel(k)}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <span className="text-muted-foreground">place a machine, table or pallet first</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

@@ -96,6 +96,8 @@ export interface Simulation {
   setQuality(q: SimQuality): void;
   readonly quality: SimQuality;
   checkReach(steps?: SimStep[]): string[];
+  /** Stations, conveyors, robot bases and equipment that stand on each other's floor (none in a good layout). */
+  layoutIssues(): string[];
   dispose(): void;
 }
 
