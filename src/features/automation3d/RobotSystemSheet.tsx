@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
-import { robotSystem } from "./robotSystem";
+import { robotSystem, type ChosenRobot } from "./robotSystem";
 
 const H = ({ children }: { children: React.ReactNode }) => (
   <h4 className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{children}</h4>
@@ -15,12 +15,12 @@ export default function RobotSystemSheet({
   className,
 }: {
   job: string;
-  robot?: { name: string; brand?: string };
+  robot?: ChosenRobot;
   fenced?: boolean;
   compact?: boolean;
   className?: string;
 }) {
-  const s = useMemo(() => robotSystem(job, { robot, fenced }), [job, robot?.name, robot?.brand, fenced]); // eslint-disable-line react-hooks/exhaustive-deps
+  const s = useMemo(() => robotSystem(job, { robot, fenced }), [job, robot?.name, robot?.brand, robot?.payload, robot?.reach, fenced]); // eslint-disable-line react-hooks/exhaustive-deps
   const [more, setMore] = useState(!compact);
   const row = (a: React.ReactNode, b?: React.ReactNode, k?: string | number) => (
     <li key={k} className="py-0.5">
@@ -61,7 +61,7 @@ export default function RobotSystemSheet({
         <>
           <section>
             <H>End-of-arm tool</H>
-            <ul className="mt-0.5">{s.eoat.map((x, i) => row(x.name, `${x.examples} — ${x.what}`, i))}</ul>
+            <ul className="mt-0.5">{s.eoat.map((x, i) => row(x.name, [x.examples, x.what].filter(Boolean).join(" — ") || undefined, i))}</ul>
             <p className="mt-1 text-[11px] text-muted-foreground">On the flange: {s.onArm.join(" · ")}</p>
           </section>
           <section>

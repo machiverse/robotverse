@@ -1150,7 +1150,7 @@ export default function AutomationStudio3D({
                 compact
                 job={plan.robots[focus].tasks[0].name}
                 fenced={!plan.robots[focus].collaborative}
-                robot={perCell.get(focus)?.robot ? { name: perCell.get(focus)!.robot!.name, brand: perCell.get(focus)!.robot!.brand } : undefined}
+                robot={perCell.get(focus)?.robot}
               />
             </Panel>
           )}

@@ -64,8 +64,8 @@ export const BRAND_SYSTEMS: Record<string, BrandSystem> = {
     brand: "ABB",
     arm: true,
     controllers: {
-      current: "OmniCore C30",
-      compact: "OmniCore E10",
+      current: "OmniCore V250XT",
+      compact: "OmniCore C30",
       large: "OmniCore V250XT / V400XT",
       older: "IRC5",
       notes: "C30 / C90XT up to IRB 1600 class; V250XT / V400XT for large robots such as IRB 6700; IRC5P for IRB 5500 paint robots",
@@ -107,7 +107,7 @@ export const BRAND_SYSTEMS: Record<string, BrandSystem> = {
     arm: true,
     controllers: { current: "F-series (F60)", older: "E-series (E01–E04)" },
     pendant: "5.7\" touch teach pendant",
-    pendantCable: "10 m",
+    pendantCable: "length per order",
     armCables: "Motor power cable + encoder signal cable",
     software: ["K-ROSET (offline simulation)", "AS language"],
     safety: "Cubic-S",
@@ -132,7 +132,7 @@ export const BRAND_SYSTEMS: Record<string, BrandSystem> = {
     arm: true,
     controllers: { current: "CS9" },
     pendant: "SP2 pendant (SP1 older)",
-    pendantCable: "10 m",
+    pendantCable: "length per order",
     armCables: "Arm power + signal cable",
     software: ["Stäubli Robotics Suite (offline simulation)", "VAL 3", "uniVAL drive / PLC integration"],
     safety: "CS9 built-in safety",
@@ -144,7 +144,7 @@ export const BRAND_SYSTEMS: Record<string, BrandSystem> = {
     arm: true,
     controllers: { current: "RC800", compact: "Built-in controller (VT6L, T-series)", older: "RC700-E / RC700-A" },
     pendant: "TP4 / TP3 teach pendant (or PC with Epson RC+)",
-    pendantCable: "5 m",
+    pendantCable: "length per order",
     armCables: "Motor power + signal cable",
     software: ["Epson RC+ (programming and simulation)"],
     safety: "Safety Board option",
@@ -157,13 +157,62 @@ export const BRAND_SYSTEMS: Record<string, BrandSystem> = {
     arm: true,
     controllers: { current: "Cobot controller", compact: "Cobot controller" },
     pendant: "Teach pendant (touch)",
-    pendantCable: "4.5 m",
+    pendantCable: "length per order",
     armCables: "Arm cable",
     software: ["DART-Platform", "DART-Studio"],
     safety: "Built-in collaborative safety functions",
     fieldbus: "Modbus TCP, EtherNet/IP, PROFINET",
     flange: "ISO 9409-1-50-4-M6",
     singlePhase: true,
+  },
+  Nachi: {
+    brand: "Nachi",
+    arm: true,
+    controllers: { current: "CFD / FD series controller" },
+    pendant: "Nachi teach pendant",
+    pendantCable: "length per order",
+    armCables: "Motor power + encoder cables",
+    software: ["FD on Desk (offline simulation)"],
+    safety: "Safety unit option",
+    fieldbus: "EtherNet/IP, PROFINET",
+    flange: "ISO 9409-1 flange",
+  },
+  DENSO: {
+    brand: "DENSO",
+    arm: true,
+    controllers: { current: "RC9", older: "RC8 / RC8A" },
+    pendant: "DENSO teach pendant",
+    pendantCable: "length per order",
+    armCables: "Motor power + encoder cables",
+    software: ["WINCAPS (programming and simulation)"],
+    safety: "Safety motion option",
+    fieldbus: "EtherNet/IP, PROFINET",
+    flange: "Tool flange per model",
+    singlePhase: true,
+  },
+  "Mitsubishi Electric": {
+    brand: "Mitsubishi Electric",
+    arm: true,
+    controllers: { current: "CR800", older: "CR750" },
+    pendant: "R56TB / R32TB teaching box",
+    pendantCable: "length per order",
+    armCables: "Motor power + encoder cables",
+    software: ["RT ToolBox (programming and simulation)"],
+    safety: "SafePlus option",
+    fieldbus: "CC-Link IE, EtherNet/IP, PROFINET",
+    flange: "Tool flange per model",
+  },
+  Comau: {
+    brand: "Comau",
+    arm: true,
+    controllers: { current: "R-1C", older: "C5G" },
+    pendant: "Comau teach pendant",
+    pendantCable: "length per order",
+    armCables: "Motor power + encoder cables",
+    software: ["RoboSim (offline simulation)"],
+    safety: "SafeRobot option",
+    fieldbus: "PROFINET, EtherNet/IP",
+    flange: "ISO 9409-1 flange",
   },
   Other: {
     brand: "Other",
@@ -179,6 +228,20 @@ export const BRAND_SYSTEMS: Record<string, BrandSystem> = {
   },
 };
 
+/** A robot arm of a maker not listed above: its own controller, pendant and cables. */
+const anyArm = (brand: string): BrandSystem => ({
+  brand,
+  arm: true,
+  controllers: { current: `${brand} robot controller` },
+  pendant: `${brand} teach pendant`,
+  pendantCable: "length per order",
+  armCables: "Motor power + encoder cables",
+  software: [`${brand} programming and offline simulation software`],
+  safety: "Safety functions per robot maker",
+  fieldbus: "EtherNet/IP or PROFINET (option)",
+  flange: "ISO 9409-1 flange",
+});
+
 /** The brand of a robot model or name text ("Staubli" and "Stäubli" are the same brand). */
 export function brandOf(text: string | undefined | null): string {
   const t = String(text || "").toLowerCase();
@@ -191,6 +254,10 @@ export function brandOf(text: string | undefined | null): string {
   if (/st(a|ä)ubli/.test(t)) return "Stäubli";
   if (/epson/.test(t)) return "Epson";
   if (/doosan/.test(t)) return "Doosan Robotics";
+  if (/nachi/.test(t)) return "Nachi";
+  if (/denso/.test(t)) return "DENSO";
+  if (/mitsubishi|melfa/.test(t)) return "Mitsubishi Electric";
+  if (/comau/.test(t)) return "Comau";
   return "Other";
 }
 
@@ -520,15 +587,25 @@ const skillOf = (job: string) => {
 
 const words = (s: string) => s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 3);
 
-export function robotSystem(job: string, opts: { robot?: { name: string; brand?: string }; fenced?: boolean } = {}): RobotSystem {
+/** A robot the user chose (Studio "Build robot", Cell Builder): its payload in kg and reach in mm when known. */
+export interface ChosenRobot {
+  name: string;
+  brand?: string;
+  payload?: number | null;
+  reach?: number | null;
+}
+
+export function robotSystem(job: string, opts: { robot?: ChosenRobot; fenced?: boolean } = {}): RobotSystem {
   const t = skillOf(job || "")?.template;
   const area: SystemArea = (areaOf(job || "") as SystemArea) || "general";
   const proc = PROCESS_SYSTEMS[area] ?? PROCESS_SYSTEMS.general;
   const model = opts.robot?.name ?? t?.robot.model ?? "Industrial robot";
   const brandKey = brandOf(opts.robot ? `${opts.robot.brand ?? ""} ${opts.robot.name}` : t?.robot.model);
-  const b = BRAND_SYSTEMS[brandKey];
+  // A robot the user picked is always an arm, even of a maker not listed.
+  const b = brandKey === "Other" && opts.robot ? anyArm(opts.robot.brand || opts.robot.name.split(" ")[0]) : BRAND_SYSTEMS[brandKey];
   const tText = t?.robot.controller ?? "";
-  const cobot = /cobot|collab|\bcrx|lr mate|\bur\d|agilus|iisy|gofa|yumi|hc\d|motomini|\bgp[78]\b|gp12|micro/i.test(`${model} ${tText}`);
+  // Cobots and small arms run on the compact controller (ABB C30 is for robots up to the IRB 1600 class).
+  const cobot = /cobot|collab|\bcrx|lr mate|\bur\d|agilus|iisy|gofa|yumi|hc\d|motomini|\bgp[78]\b|gp12|micro|irb ?(1[0-6]00|910|120\b|1010|14000|15000)/i.test(`${model} ${tText}`);
   const big = (parseFloat(opts.robot ? "" : t?.robot.payload ?? "") || 0) >= 200;
 
   let controller: string;
@@ -553,25 +630,30 @@ export function robotSystem(job: string, opts: { robot?: { name: string; brand?:
     C("Earth cable", "Robot base", "Robot controller", `Protective earth${area === "arc" || area === "spot" || area === "stud" ? " — essential for welding" : ""}`, "earth"),
     C("Safety I/O cables", "E-stops, door switch, light curtain / area scanner", "Safety controller", "Dual-channel safety signals", "safety"),
     C("Ethernet / fieldbus", "Robot controller", "Line PLC and HMI", b.fieldbus, "fieldbus"),
-    C("Dress pack along the arm", "Axis 1", "Wrist", "Air, signals, vacuum or process media; retract system on axes 3–6", "dress"),
+    C("Dress pack along the arm", "Upper arm (axis 3)", "Wrist", "Air, signals, vacuum or process media; retract system on axes 3–6", "dress"),
     C("Tool cable", "Wrist", "Tool-changer modules / tool connector", "Tool power and signals", "tool"),
   ];
   if (track) common.push(C("Track servo motor cable", "Robot controller", "Track motor", "Servo power + encoder, in the cable chain", "track"));
 
   // The template's own tool names first, matched to the area's typical models.
+  // An area tool the template already names (its "MIG Torch Package" is the "Robotic MIG torch") is not listed twice.
   const eoat: ToolItem[] = [];
+  const named = new Set<ToolItem>();
   for (const name of t?.eoat ?? []) {
     const w = words(name);
-    const hit = proc.eoat.find((x) => words(x.name).some((y) => w.includes(y)));
-    eoat.push({ name, examples: hit?.examples ?? "Typical industrial models", what: hit?.what ?? "Part of the end-of-arm tooling for this job." });
+    const hit = proc.eoat.find((x) => !named.has(x) && words(x.name).some((y) => w.includes(y)));
+    if (hit) named.add(hit);
+    eoat.push({ name, examples: hit?.examples ?? "", what: hit?.what ?? "" });
   }
-  for (const x of proc.eoat) if (!eoat.some((y) => y.name === x.name)) eoat.push(x);
+  for (const x of proc.eoat) if (!named.has(x)) eoat.push(x);
 
   const tig = area === "arc" && /\btig\b/i.test(job);
   return {
     job,
     area,
-    robot: { model, payload: t?.robot.payload ?? "", reach: t?.robot.reach ?? "" },
+    robot: opts.robot
+      ? { model, payload: opts.robot.payload ? `${opts.robot.payload} kg` : "", reach: opts.robot.reach ? `${opts.robot.reach} mm` : "" }
+      : { model, payload: t?.robot.payload ?? "", reach: t?.robot.reach ?? "" },
     brand: b.arm ? b.brand : brandOf(model) === "Other" ? (t?.robot.model.split(" ")[0] ?? "Other") : b.brand,
     isArm: b.arm,
     controller,

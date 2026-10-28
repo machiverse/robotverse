@@ -1648,7 +1648,7 @@ export default function CellBuilder() {
                             compact
                             job={c.job}
                             fenced={!!c.fenced}
-                            robot={c.choice.robot ? { name: c.choice.robot.name, brand: c.choice.robot.brand } : undefined}
+                            robot={c.choice.robot}
                           />
                         </div>
                       )}
