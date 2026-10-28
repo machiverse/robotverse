@@ -314,7 +314,7 @@ export const PROCESS_SYSTEMS: Record<SystemArea, ProcessSystem> = {
     onArm: ["ISO 9409-1 adapter plate", "Spindle mount with force sensor"],
     cables: [C("Spindle power + encoder cable", "Spindle drive", "FSW head", "Spindle drive"), C("Coolant hoses", "Cooler", "FSW head", "Spindle cooling")],
     signals: ["Spindle on", "Axial force", "Weld complete", "Fault"],
-    consumables: [W("Pin tool", "By weld length or when worn")],
+    consumables: [W("Pin tool", "By weld length or when worn"), W("Tool shoulder", "When worn"), W("Spindle coolant", "Top up")],
   },
   stud: {
     howItWorks: ["The part is placed in the fixture.", "The feeder blows a stud into the gun.", "The robot places the gun on the weld spot.", "The controller fires the arc and plunges the stud.", "The robot moves to the next spot.", "The part is unloaded."],
