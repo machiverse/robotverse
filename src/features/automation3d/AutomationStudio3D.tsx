@@ -11,6 +11,7 @@ import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/utils/processAnalyzer";
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation, type SimQuality } from "./robotSim.js";
 import { CINEMATIC_POST } from "./cinematicPost";
+import CellEquipmentList from "./CellEquipmentList";
 import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfiles";
 import { planLine, recommendRobots, STRATEGIES, type DirectoryRobot, type LinePlan, type Strategy } from "./robotKnowledge";
 import { buildBom, compareOptions, inrRange } from "./solutionCost";
@@ -1114,6 +1115,13 @@ export default function AutomationStudio3D({
               </button>
             </Panel>
           )}
+          <Panel title={plan && plan.robots.length > 1 ? `Cell equipment: Robot ${focus + 1}` : "Cell equipment"}>
+            <CellEquipmentList
+              jobs={plan ? (plan.robots[focus]?.tasks ?? []).map((t) => t.name) : []}
+              fenced={plan ? !plan.robots[focus]?.collaborative : false}
+              steps={steps}
+            />
+          </Panel>
           <Panel title="Reach check">
             <div
               className={cn(

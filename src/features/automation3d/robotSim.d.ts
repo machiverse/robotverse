@@ -85,6 +85,8 @@ export interface Simulation {
       /** Tools the robot can use: on the arm first, then on the tool stand (tool changer). */
       tools?: { name: string; kind?: string }[];
       accessories?: ("changer" | "sensor" | "camera")[];
+      /** Components the user chose (power source, wire feeder, torch cleaner…): their names label the matching equipment. */
+      components?: string[];
     } | null,
   ): void;
   setJoint(i: number, deg: number | string): void;

@@ -19,6 +19,7 @@ import { loadDirectoryRobots, loadDirectoryTools, loadMarketRobots, loadMarketTo
 import LeadDialog from "@/components/leads/LeadDialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
+import CellEquipmentList from "./CellEquipmentList";
 import { budgetFor, CycleTracker, decodeLine, encodeLine, isCobotMatch, reportHtml, roi, STARTERS, STEP_GROUP, suggest, suggestSwap, type Raw, type StarterCell, type StepTime } from "./builderExtras";
 import { inr as inrShort } from "./solutionCost";
 import { KIND_JOB, thinkCell, type Thought } from "./engineerPlaybook";
@@ -320,7 +321,7 @@ export default function CellBuilder() {
     let changed = false;
     cells.forEach((c, i) => {
       const eq = c.choice;
-      const key = SLOTS.map((sl) => (eq[sl.key] ? `${eq[sl.key]!.source}:${eq[sl.key]!.id}` : "")).join("|");
+      const key = [...SLOTS.map((sl) => (eq[sl.key] ? `${eq[sl.key]!.source}:${eq[sl.key]!.id}` : "")), ...(c.parts ?? []).map((m) => `${m.source}:${m.id}`)].join("|");
       if (eqKeys.current[i] === key) return;
       eqKeys.current[i] = key;
       changed = true;
@@ -335,6 +336,8 @@ export default function CellBuilder() {
               // Arm tool first, then the tool on the stand (the robot swaps them with the tool changer).
               tools: eq.tool ? tools : [{ name: "none", kind: "none" }, ...tools],
               accessories: [eq.changer && "changer", eq.sensor && "sensor", eq.camera && "camera"].filter(Boolean) as ("changer" | "sensor" | "camera")[],
+              // The power source, feeder, cleaner… the user chose: their names label the equipment in the cell.
+              components: (c.parts ?? []).map((m) => m.name),
             }
           : null,
       );
@@ -1581,10 +1584,11 @@ export default function CellBuilder() {
                           )}
                         </div>
                       )}
-                      {selected === i && kit.also.length > 0 && (
-                        <p className="text-muted-foreground">
-                          <b className="font-medium text-foreground">Also needed:</b> {kit.also.join(" · ")}
-                        </p>
+                      {selected === i && c.job && (
+                        <div className="rounded-md border border-border bg-background/60 p-2">
+                          <p className="mb-1 font-medium text-foreground">Everything this cell needs</p>
+                          <CellEquipmentList jobs={[c.job]} fenced={!!c.fenced} products={parts.map((m) => m.name)} compact withLine={false} />
+                        </div>
                       )}
                       {kit.software.length > 0 && (
                         <p className="flex flex-wrap items-center gap-1">

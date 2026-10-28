@@ -16,6 +16,7 @@ import { PROCESS_HEAD, processKind, type ProcessKind } from "./processProfiles";
 import type { Match } from "./equipmentScore";
 import { COBOT_EOAT, gearFor, isCobotName, isComponent } from "./jobGear";
 import { TOOL_NAMES } from "./cellProgram";
+import { areaOf, JOB_ALSO, type Area } from "./cellEquipment.js";
 
 export type KitSlot = "changer" | "sensor" | "camera";
 export interface KitAccessory { slot: KitSlot; why: string; match: Match }
@@ -52,114 +53,9 @@ function find(catalog: Match[], re: RegExp, extra?: (m: Match) => boolean): Matc
 
 /* ---------------------------------------------------------------- job areas */
 
-type Area = "arc" | "spot" | "laserweld" | "ultrasonic" | "solder" | "fsw" | "stud" | "laserclean" | "pallet" | "paint" | "dispense" | "pick" | "bin" | "force" | "vision" | "screw" | "rivet" | "tend" | "head" | "mark" | "label" | "mobile";
-/** What kind of work a job is, for its equipment and software. */
-export function areaOf(job: string, kind: ProcessKind = processKind({ name: job || "Loading & Unloading" })): Area {
-  const j = job.toLowerCase();
-  if (/spot weld/.test(j)) return "spot";
-  if (/laser weld/.test(j)) return "laserweld";
-  if (/ultrasonic/.test(j)) return "ultrasonic";
-  // Joining without an arc torch and wire: no MIG power source, wire feeder or torch cleaner.
-  if (/solder/.test(j)) return "solder";
-  if (/friction stir/.test(j)) return "fsw";
-  if (/stud weld/.test(j)) return "stud";
-  if (kind === "welding") return "arc";
-  if (/laser clean/.test(j)) return "laserclean";
-  if (/bag plac|rotary packer|packer spout/.test(j)) return "pick";
-  if (/pallet|sack|bag|stack/.test(j)) return "pallet";
-  if (/paint|spray/.test(j)) return "paint";
-  if (/rivet/.test(j)) return "rivet";
-  if (/screw|\bcap(?:ping)?\b/.test(j)) return "screw";
-  if (/laser mark|marking|coding|engrav/.test(j)) return "mark";
-  if (/label/.test(j)) return "label";
-  if (/mobile manipulator/.test(j)) return "mobile";
-  if (/bin pick/.test(j)) return "bin";
-  if (kind === "coating" || kind === "filling") return "dispense";
-  if (kind === "finishing" || /insert|assembl|harness/.test(j)) return "force";
-  if (kind === "inspection") return "vision";
-  // The robot carries the cutting, drilling or hemming head: no machine to tend.
-  if (kind === "machining" && PROCESS_HEAD.test(j)) return "head";
-  if (kind === "machining") return "tend";
-  return "pick";
-}
-
-/** What a job needs around the robot that the catalogue does not list: what an integrator adds to the quote. */
-const JOB_ALSO: [RegExp, string[]][] = [
-  [/order pick|parcel|recycl|classification|singulat|fruit|\begg|gemstone|diamond/i, ["Camera over the pick area for vision-guided picking"]],
-  [/meat|debon/i, ["Knife sterilizer (82 °C) between cuts", "Washdown-rated (IP69K) robot and cover"]],
-  [/waterjet/i, ["High-pressure intensifier pump", "Catcher tank under the cut"]],
-  [/plasma|laser cut|cutting & sawing/i, ["Plasma or fibre-laser power source", "Fume extraction and a spark-proof cutting table"]],
-  [/drill|rout(?:ing|er)\b/i, ["Spindle drive with chip or dust extraction", "Tool length setter and tool rack"]],
-  [/part cleaning|wash/i, ["High-pressure pump with filtration and water recycling", "Splash-proof enclosure"]],
-  [/blast/i, ["Blast pot with abrasive recovery", "Blast-proof robot jacket and dust collector"]],
-  [/crate|\btotes?\b/i, ["Crate destacker and stacker conveyors"]],
-  [/strapping|bundle/i, ["Strapping machine (PET or steel strap)"]],
-  [/tube bend|pipe bend/i, ["CNC tube bender interface", "Tube supports for long lengths"]],
-  [/solar module|photovolt/i, ["Electroluminescence (EL) crack tester", "Laminator and framer interfaces"]],
-  [/plating|dip coat|galvani|anodi/i, ["Corrosion-proof robot cover", "Tank-line controller interface with dwell-time records"]],
-  [/mask/i, ["Plug and cap feeder"]],
-  [/friction stir/i, ["Heavy clamping fixture with a backing bar"]],
-  [/stud weld/i, ["Stud feeder and stud-welding controller"]],
-  [/heavy fabrication|gantry weld/i, ["Positioner, track or gantry for long structures", "Touch sensing and through-arc seam tracking"]],
-  [/pipe & orbital|pipe weld/i, ["Pipe rotator / positioner"]],
-  [/wire arc|waam/i, ["Build plate, interpass temperature check and CAM slicing software"]],
-  [/thermal spray|cladding/i, ["Spray booth with dust extraction and sound enclosure", "Powder or wire feeder"]],
-  [/glaze/i, ["Glaze pump with recirculation", "Spray booth with water curtain"]],
-  [/sole|footwear/i, ["Adhesive heating or UV activation tunnel", "3D scanner for the bonding line"]],
-  [/glass handling/i, ["Glass racks / A-frames", "Breakage detection"]],
-  [/tyre|tire/i, ["Tyre centring station"]],
-  [/bobbin|yarn|\bcones?\b/i, ["Doffing trolley or creel interface"]],
-  [/bag plac|rotary packer/i, ["Empty-bag magazine and separator"]],
-  [/compression|rubber mou?ld/i, ["Charge weighing scale", "Mould-release spray"]],
-  [/blow mou?ld/i, ["Trimming station", "Leak tester"]],
-  [/smt|reel/i, ["Reel barcode reader", "ESD grounding"]],
-  [/steel plant|probing/i, ["Probe magazine", "Heat shield and cooled robot jacket"]],
-  [/wafer/i, ["Equipment front-end module (EFEM) or ISO 5 mini-environment", "Wafer aligner"]],
-  [/aseptic|vial/i, ["Isolator or RABS with VHP decontamination"]],
-  [/blister|pharmacy|pharma/i, ["GMP documentation (IQ / OQ / PQ)"]],
-  [/bakery|food|slice|portion|icing|kitchen|tray seal/i, ["Food-grade (NSF H1) grease and washdown covers"]],
-  [/greenhouse|seedling/i, ["Tray conveyors and plant rejection camera"]],
-  [/milking/i, ["Teat-cup cleaning and milk-quality sensors", "Cow ID reader"]],
-  [/truck|container/i, ["Telescopic conveyor into the truck"]],
-  [/coil|\broll(?:s)?\b/i, ["Coil saddle, mandrel or C-hook"]],
-  [/extrusion/i, ["Profile saw and run-out table interface", "Ageing baskets or stillages"]],
-  [/harden|heat treat|induction/i, ["Induction generator interface", "Quench tank"]],
-  [/ladl|pour/i, ["Heat-resistant robot jacket", "Furnace and mould line interface"]],
-  [/sand core/i, ["Core gluing or venting station"]],
-  [/rebar/i, ["Tie-wire feeder"]],
-  [/battery/i, ["Insulated tools and cell polarity check"]],
-  [/stator|hairpin/i, ["Hairpin forming, twisting and laser-welding stations"]],
-  [/cabinet wiring|panel wiring/i, ["Wire processing machine (cut, strip, crimp, print)"]],
-  [/crimp/i, ["Crimp press with crimp-force monitoring"]],
-  [/\btht\b/i, ["Component feeders (tape, tube, tray)", "Selective or wave soldering after insertion"]],
-  [/disassembl/i, ["Sorting bins for reuse, recycling and scrap"]],
-  [/printer farm/i, ["Flexible build plates for easy part release"]],
-  [/layup|composite/i, ["Ply cutting table", "Temperature- and humidity-controlled layup room"]],
-  [/drywall|ceiling/i, ["Total station for positioning from the BIM model"]],
-  [/nail|stapl/i, ["Nail or staple feeder"]],
-  [/screen|pad print/i, ["Ink drying (UV or IR)"]],
-  [/ev charg/i, ["Charge-port camera and vehicle detection"]],
-  [/pipet/i, ["Barcode reader and LIMS connection"]],
-  [/x-ray|xray/i, ["Radiation-shielded cabinet and interlocks"]],
-  [/ndt/i, ["Water couplant (squirter) and ultrasonic acquisition"]],
-  [/denest/i, ["Tray or cup magazine with separator fingers"]],
-  [/bag opening|emptying/i, ["Bag-cutting knife, dust extraction and empty-bag compactor"]],
-  [/asrs|goods-to-person/i, ["Storage grid and picking port"]],
-  [/furniture|edge band/i, ["Edge-banding machine interface", "Label scanner for batch-size-one parts"]],
-  [/shell build|wax tree/i, ["Slurry tanks with mixers and a rainfall or fluidised-bed sander", "Drying room with humidity control"]],
-  [/lamination|transformer core/i, ["Step-lap stacking table with centring pins", "Lamination cutting line interface"]],
-  [/hemm/i, ["Hemming bed (anvil) for each panel model", "Hem adhesive dispensing before hemming"]],
-  [/\begg/i, ["Egg candling and crack detection"]],
-  [/ceramic tile/i, ["Shade and calibre grading camera", "Box erector and case sealer"]],
-  [/panel clean|solar clean/i, ["Row-to-row transfer shuttle", "Docking and charging station with a soiling sensor"]],
-  [/battery cell|cell grad/i, ["OCV / internal-resistance tester", "Grade bins or trays for each cell class"]],
-  [/plaster|wall finish/i, ["Mortar or paint pump", "Wall scanner and site positioning"]],
-  [/jewel/i, ["Buffing wheels with compound feed", "Dust collector for gold recovery"]],
-  [/diamond|gemstone/i, ["Stone imaging and measuring camera", "Graded parcel trays with traceability"]],
-  [/windshield|windscreen/i, ["Heated urethane pump and primer station", "Bead inspection camera"]],
-  [/\bbale/i, ["Bale weighing scale and ID reader", "Bale opener or truck-loading interface"]],
-  [/sample tube|pathology/i, ["Decapper / recapper", "Barcode reader and LIS connection"]],
-];
+// What kind of work a job is, and the integrator's notes per job, live with the cell's 3D set-up
+// (cellEquipment.js), so the suggestions here and the equipment drawn in the cell agree.
+export { areaOf };
 
 /* ------------------------------------------------------------- accessories */
 

@@ -8,6 +8,7 @@
 
 import { createWorkpieces, productFor } from "./workpieces.js";
 import { createToolKit, eoatLook, headFor, HEAD_FX, TOOL_LOOK_NAMES } from "./toolHeads.js";
+import { cellEquipment, chosenProduct, createEquipmentModels, jobsOfTitle, lineEquipment } from "./cellEquipment.js";
 
 export const ROBOT_SIZES = {
   compact: { key: "compact", label: "Compact", reach: 0.95, payload: 7, scale: 0.66 },
@@ -1053,6 +1054,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   let fenceCells = [];
   let fenceGroup = null;
   const fenceMesh = new THREE.MeshStandardMaterial({ color: 0xf2b705, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false });
+  const laserPanel = new THREE.MeshStandardMaterial({ color: 0x1f3b2c, metalness: 0.2, roughness: 0.2, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
   function clearFence() {
     if (!fenceGroup) return;
     scene.remove(fenceGroup);
@@ -1072,7 +1074,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const bounds = new THREE.Box3();
     const tmp = new THREE.Box3();
     for (const o of scene.children) {
-      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o === propsGroup || o.isLight || o === sun.target || !o.visible) continue;
+      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o === propsGroup || o === equipOutside || o.isLight || o === sun.target || !o.visible) continue;
       if (o.isSprite) continue;
       tmp.setFromObject(o);
       if (!tmp.isEmpty()) bounds.union(tmp);
@@ -1087,11 +1089,12 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       p.position.set(x, H / 2, z);
       g.add(p);
     };
+    let panelMat = fenceMesh;
     const side = (ax, az, bx, bz) => {
       const len = Math.hypot(bx - ax, bz - az);
       const n = Math.max(1, Math.ceil(len / 1.4));
       for (let i = 0; i <= n; i++) post(ax + ((bx - ax) * i) / n, az + ((bz - az) * i) / n);
-      const panel = new THREE.Mesh(new THREE.PlaneGeometry(len, H - 0.15), fenceMesh);
+      const panel = new THREE.Mesh(new THREE.PlaneGeometry(len, H - 0.15), panelMat);
       panel.position.set((ax + bx) / 2, 0.15 + (H - 0.15) / 2, (az + bz) / 2);
       panel.rotation.y = -Math.atan2(bz - az, bx - ax);
       g.add(panel);
@@ -1107,16 +1110,261 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       while (j + 1 < n && fenceCells[j + 1]) j++;
       const x0 = i === 0 ? bounds.min.x - 0.35 : cellStart[i] - CELL_SPACING / 2 + 0.05;
       const x1 = j === n - 1 ? bounds.max.x + 0.35 : cellEnd[j] + CELL_SPACING / 2 - 0.05;
+      // A laser cell is closed with tinted laser-safe panels instead of mesh.
+      const laser = laserCells.slice(i, j + 1).some(Boolean);
+      panelMat = laser ? laserPanel : fenceMesh;
       side(x0, z0, x1, z0);
       side(x1, z0, x1, z1);
       side(x1, z1, x0, z1);
       side(x0, z1, x0, z0);
-      const lbl = makeLabel("Safety fence with interlocked door", "#f2b705");
+      const lbl = makeLabel(laser ? "Laser-safe enclosure (Class 1) with interlocked door" : "Safety fence with interlocked door", "#f2b705");
       lbl.position.set((x0 + x1) / 2, H + 0.18, z1);
       g.add(lbl);
     }
     scene.add(g);
     fenceGroup = g;
+  }
+
+  /*
+   * The rest of each cell's set-up (cellEquipment.js): the robot controller, the job's process equipment —
+   * welding power source, wire drum, gas, torch cleaner, fume extraction, spot-weld timer, laser source,
+   * chiller, paint supply and booth, dosing unit, dust collector, feeders… — and its safety and utilities.
+   * Controllers, power sources and extraction units stand in a row behind the fence; what the robot uses
+   * stands in free floor inside its reach; hoods, screens and booths go round the work table.
+   */
+  const equipModels = createEquipmentModels(THREE);
+  /** Inside the cells (inside the fence) and outside them (behind the fence, at the front). */
+  let equipGroup = null;
+  let equipOutside = null;
+  /** Wire feeders and other equipment mounted on the arms: [parent, object]. */
+  let armEquipment = [];
+  /** Cells that need a laser-safe enclosure. */
+  let laserCells = [];
+  /** Product names the user chose per cell (builder), shown on the equipment they match. */
+  let cellProducts = [];
+  /** The floor a group's meshes cover (labels and lines left out). */
+  function meshBox(root) {
+    const b = new THREE.Box3();
+    const t = new THREE.Box3();
+    root.updateMatrixWorld(true);
+    root.traverse((o) => {
+      if (!o.isMesh || o.isSprite || !o.geometry || o.visible === false) return;
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      t.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+      b.union(t);
+    });
+    return b;
+  }
+  function clearEquipment() {
+    for (const g of [equipGroup, equipOutside]) {
+      if (!g) continue;
+      scene.remove(g);
+      g.traverse((o) => {
+        if (o.isSprite) {
+          if (o.material.map) o.material.map.dispose();
+          o.material.dispose();
+        } else if (o.geometry) o.geometry.dispose();
+      });
+    }
+    for (const [parent, o] of armEquipment) {
+      parent.remove(o);
+      o.traverse((m) => m.geometry && m.geometry.dispose());
+    }
+    armEquipment = [];
+    equipGroup = equipOutside = null;
+  }
+  function placeEquipment() {
+    clearEquipment();
+    laserCells = [];
+    if (!cells.length) return;
+    equipGroup = new THREE.Group();
+    equipOutside = new THREE.Group();
+    // Floor already taken: conveyors, every cell's stations and track, the robot bases.
+    const rects = [];
+    const rectOf = (b) => [b.min.x, b.min.z, b.max.x, b.max.z];
+    for (const c of conveyors) if (c.group.visible) {
+      const b = meshBox(c.group);
+      if (!b.isEmpty()) rects.push(rectOf(b));
+    }
+    cells.forEach((c) => c.occupied().forEach((b) => rects.push(rectOf(b))));
+    const hits = (r, m = 0.08) => rects.some((o) => r[0] < o[2] + m && r[2] > o[0] - m && r[1] < o[3] + m && r[3] > o[1] - m);
+    /** The floor rectangle of a footprint w × d centred at (x, z), turned by rotY. */
+    const footprint = (x, z, w, d, rotY) => {
+      const c = Math.abs(Math.cos(rotY)), sn = Math.abs(Math.sin(rotY));
+      const hw = (w * c + d * sn) / 2, hd = (w * sn + d * c) / 2;
+      return [x - hw, z - hd, x + hw, z + hd];
+    };
+    let labelN = 0;
+    const tag = (text, x, y, z, parent) => {
+      const l = makeLabel(text.length > 38 ? `${text.slice(0, 36)}…` : text, "#bae6fd");
+      l.position.set(x, y + 0.26 + (labelN++ % 3) * 0.2, z);
+      parent.add(l);
+    };
+    /** Build an item's model and stand it at (x, z) facing rotY; false when it is not drawn. */
+    const stand = (item, x, z, rotY, parent, names, opts) => {
+      const built = equipModels.buildModel(item.model, { ...item, ...opts });
+      if (!built) return false;
+      built.group.position.set(x, 0, z);
+      built.group.rotation.y = rotY;
+      parent.add(built.group);
+      tag(chosenProduct(item, names) || item.label, x, built.size[1], z, parent);
+      return built;
+    };
+    /** Facing a point: the model's front (+z) turned towards (tx, tz). */
+    const facing = (x, z, tx, tz) => Math.atan2(tx - x, tz - z);
+
+    cells.forEach((c, i) => {
+      // A builder cell without a robot yet has no set-up to show.
+      if (buildMode && c.robot && !c.robot.root.visible) return;
+      const X = cellStart[i];
+      const L = cellEnd[i] - cellStart[i];
+      const items = cellEquipment(jobsOfTitle(c.title), { fenced: !!fenceCells[i], steps: c.steps });
+      laserCells[i] = items.some((x) => x.enclosure === "laser");
+      const names = cellProducts[i] || [];
+      // A robot hanging from a track or in a gantry has no floor base to stand things beside.
+      const fixedBase = !(c.motion && (c.motion.type === "overhead" || c.motion.type === "gantry"));
+
+      // At the work table: fume hood, welding screens or the spray booth round it.
+      const work = c.stations.weld || c.stations.table || c.stations.press || c.stations.cnc || null;
+      if (work && work.point) {
+        const px = work.point.x, pz = work.point.z;
+        let dx = px - X, dz = pz;
+        const len = Math.hypot(dx, dz);
+        if (len < 0.2) [dx, dz] = [0, 1];
+        else [dx, dz] = [dx / len, dz / len];
+        const [qx, qz] = [-dz, dx];
+        for (const item of items.filter((x) => x.at === "work" && x.model)) {
+          if (item.model === "sprayBooth") {
+            // Open towards the robot; a side wall that would stand in a neighbouring station is left off.
+            const rot = facing(px, pz, X, 0);
+            const ax = [Math.cos(rot), -Math.sin(rot)], az = [Math.sin(rot), Math.cos(rot)];
+            const wallFree = (sx) =>
+              ![-0.8, -0.22, 0.35].some((lz) => {
+                const x = px + ax[0] * sx * 0.9 + az[0] * lz, z = pz + ax[1] * sx * 0.9 + az[1] * lz;
+                return hits([x - 0.1, z - 0.1, x + 0.1, z + 0.1], 0.02);
+              });
+            const b = stand(item, px, pz, rot, equipGroup, names, { left: wallFree(-1), right: wallFree(1) });
+            if (b) rects.push(footprint(px + dx * 0.25, pz + dz * 0.25, 1.85, 1.2, Math.atan2(dx, dz)));
+          } else if (item.model === "weldScreen") {
+            // One screen each side of the table, along the line from the robot, where the floor is free.
+            let placed = 0;
+            for (const sd of [1, -1]) {
+              const x = px + qx * sd * 0.8 + dx * 0.2, z = pz + qz * sd * 0.8 + dz * 0.2;
+              const rot = Math.atan2(qx, qz);
+              // A long thin screen at an angle: test the floor along its length, not its bounding square.
+              const along = [-0.62, -0.31, 0, 0.31, 0.62].map((t) => [x + dx * t - 0.14, z + dz * t - 0.14, x + dx * t + 0.14, z + dz * t + 0.14]);
+              if (along.some((r) => hits(r, 0.02))) continue;
+              const r = footprint(x, z, 0.3, 0.3, 0);
+              const b = equipModels.buildModel(item.model, item);
+              b.group.position.set(x, 0, z);
+              b.group.rotation.y = rot;
+              equipGroup.add(b.group);
+              rects.push(r, ...along);
+              if (!placed++) tag(item.label, x, b.size[1], z, equipGroup);
+            }
+          } else {
+            // Fume or extraction hood: its post just beyond the table, the hood reaching back over it.
+            for (const [ox, oz] of [[dx * 0.66, dz * 0.66], [qx * 0.62 + dx * 0.25, qz * 0.62 + dz * 0.25], [-qx * 0.62 + dx * 0.25, -qz * 0.62 + dz * 0.25]]) {
+              const x = px + ox, z = pz + oz;
+              const r = footprint(x, z, 0.3, 0.3, 0);
+              if (hits(r, 0.02)) continue;
+              stand(item, x, z, facing(x, z, px, pz), equipGroup, names);
+              rects.push(r);
+              break;
+            }
+          }
+        }
+      }
+
+      // At the pallet's aisle side: the light curtain people walk through to take the pallet.
+      const pallet = c.stations.pallet;
+      for (const item of items.filter((x) => x.at === "pallet" && x.model)) {
+        const st = item.model === "lightCurtain" && /press/i.test(item.label) ? c.stations.press || c.stations.cnc : pallet;
+        const at = st && (st.center || st.point);
+        if (!at) continue;
+        const x = at.x, z = at.z + 0.58;
+        stand(item, x, z, 0, equipGroup, names, { width: 1.2 });
+        rects.push([x - 0.7, z - 0.1, x + 0.7, z + 0.1]);
+      }
+
+      // Inside the cell: beside the base, then where the robot reaches, in free floor.
+      const inCell = (r) => r[0] >= X - 1.7 && r[2] <= X + L + 1.7 && r[1] >= -1.95 && r[3] <= 1.6;
+      const DEG = Math.PI / 180;
+      const near = { base: [[0.62, 0.78, 0.94], [-135, -90, -160, 180, -45, 135, 160, 110]], reach: [[0.95, 1.1, 1.25, 1.4], [135, 160, 110, 180, -160, 45, 20, -20, -135, -45, 90, 70, -110]] };
+      for (const item of items.filter((x) => (x.at === "base" || x.at === "reach") && x.model)) {
+        const built = equipModels.buildModel(item.model, item);
+        if (!built) continue;
+        const [w, , d] = built.size;
+        // The area scanner sits low in front of the base; the rest search a ring round the robot.
+        const [radii, angles] = item.model === "scanner" ? [[0.42, 0.5], [90, 60, 120]] : item.at === "base" && fixedBase ? near.base : near.reach;
+        let spot = null;
+        for (const r of radii) {
+          for (const a of angles) {
+            const x = X + Math.cos(a * DEG) * r, z = Math.sin(a * DEG) * r;
+            const rot = facing(x, z, X, 0);
+            const fr = footprint(x, z, w, d, rot);
+            if (!inCell(fr) || (item.model !== "scanner" && hits(fr))) continue;
+            spot = [x, z, rot, fr];
+            break;
+          }
+          if (spot) break;
+        }
+        if (!spot) {
+          built.group.traverse((o) => o.geometry && o.geometry.dispose());
+          continue;
+        }
+        const [x, z, rot, fr] = spot;
+        built.group.position.set(x, 0, z);
+        built.group.rotation.y = rot;
+        equipGroup.add(built.group);
+        if (item.model !== "scanner") rects.push(fr);
+        tag(chosenProduct(item, names) || item.label, x, built.size[1], z, equipGroup);
+      }
+
+      // On the arm: the wire feeder on the upper arm's rear housing.
+      const arm = c.robot && !c.robot.cartesian && c.robot.joints && c.robot.joints[2];
+      if (arm)
+        for (const item of items.filter((x) => x.at === "arm" && x.model)) {
+          const built = equipModels.buildModel(item.model, item);
+          if (!built) continue;
+          const sc = c.robot.dims ? c.robot.dims.L2 / 0.7 : 1;
+          built.group.scale.setScalar(sc);
+          built.group.position.set(-0.2 * sc, 0.13 * sc, 0);
+          arm.add(built.group);
+          armEquipment.push([arm, built.group]);
+        }
+
+      // Behind the fence: a row of cabinets facing the cell, front edges in line, wrapping to a second row.
+      const row0 = -2.62;
+      let cursor = X - 1.6;
+      let rowFront = row0;
+      let rowDepth = 0;
+      const xMax = X + L + 1.65;
+      for (const item of items.filter((x) => x.at === "outside" && x.model)) {
+        const built = equipModels.buildModel(item.model, item);
+        if (!built) continue;
+        const [w, h, d] = built.size;
+        if (cursor + w > xMax && cursor > X - 1.6) {
+          rowFront -= rowDepth + 0.35;
+          cursor = X - 1.6;
+          rowDepth = 0;
+        }
+        const x = cursor + w / 2, z = rowFront - d / 2;
+        built.group.position.set(x, 0, z);
+        equipOutside.add(built.group);
+        tag(chosenProduct(item, names) || item.label, x, h, z, equipOutside);
+        cursor += w + 0.14;
+        rowDepth = Math.max(rowDepth, d);
+      }
+    });
+
+    // The line's operator panel, in the aisle in front of the first robot.
+    for (const item of lineEquipment()) {
+      const x = cellStart[0] - 1.35, z = 2.5;
+      stand(item, x, z, 0, equipOutside, []);
+    }
+    scene.add(equipGroup);
+    scene.add(equipOutside);
   }
 
   /* Parts: the line's real product (fruit, bottles, sacks, castings…), built by workpieces.js */
@@ -1606,7 +1854,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         g.add(lbl);
         add(g);
         const slots = gridSlots(cx, cz, floorY, area[0], area[1], layers);
-        stations.pallet = { slots, parts: [], point: slots[0] };
+        stations.pallet = { slots, parts: [], point: slots[0], center: V(sgn * 1.0, 0, cz) };
       }
 
       if (needed.has("vision")) {
@@ -3038,6 +3286,17 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       title,
       steps,
       stations,
+      /** Floor this cell's stations, track and robot base take, for placing its other equipment. */
+      occupied() {
+        const out = [];
+        for (const g of groups) {
+          if (g === zoneGroup) continue;
+          const b = meshBox(g);
+          if (!b.isEmpty()) out.push(b);
+        }
+        if (!cartesian && !inverted) out.push(new THREE.Box3(new THREE.Vector3(X - 0.45, 0, -0.45), new THREE.Vector3(X + L + 0.45, 1, 0.45)));
+        return out;
+      },
       get robot() {
         return robot;
       },
@@ -3192,6 +3451,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
 
   /* Plan / line construction */
   function disposeLine() {
+    clearEquipment();
     cells.forEach((c) => c.dispose());
     conveyors.forEach((c) => {
       c.clear();
@@ -3330,7 +3590,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const sc = kit.scenery(jobs.length ? jobs : words);
     if (sc) {
       propsGroup = sc.group;
-      propsGroup.position.set(span / 2, 0, -3.15);
+      // Behind the cabinets and power sources that stand behind the fence.
+      propsGroup.position.set(span / 2, 0, -4.6);
       scene.add(propsGroup);
     }
     sun.position.set(span / 2 + 3.5, 6 + span * 0.3, 2.5);
@@ -3339,6 +3600,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: 4, bottom: -4, near: 0.5, far: 30 + span });
     sun.shadow.camera.updateProjectionMatrix();
     placeReference();
+    placeEquipment();
     placeFence();
     // Push the fog back so a long line stays clear.
     scene.fog.near = 9 + span * 1.2;
@@ -3381,7 +3643,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const bounds = new THREE.Box3();
     const tmp = new THREE.Box3();
     for (const o of scene.children) {
-      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o === propsGroup || o.isLight || o === sun.target || !o.visible || o.isSprite) continue;
+      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o === propsGroup || o === equipOutside || o.isLight || o === sun.target || !o.visible || o.isSprite) continue;
       tmp.setFromObject(o);
       if (!tmp.isEmpty()) bounds.union(tmp);
     }
@@ -3710,6 +3972,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (!ROBOT_SIZES[key]) return;
     sizeKey = key;
     cells.forEach((c) => c.buildRobot(ROBOT_SIZES[key].scale));
+    placeEquipment();
     placeFence();
     reset();
   }
@@ -3894,6 +4157,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           accessories: eq.accessories || [],
         });
       }
+      cellProducts[i] = (eq && eq.components) || [];
+      placeEquipment();
       placeFence();
       if (overlay !== "none") setOverlay(overlay);
       reset();
@@ -3936,6 +4201,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       fenceCells = Array.isArray(on) ? on.map(Boolean) : cells.map(() => !!on);
       // Industrial robots (fenced) in yellow; cobots in white and blue.
       cells.forEach((c, i) => c.setPaint(!!fenceCells[i]));
+      // A fenced cell has a controller cabinet and a light curtain; a cobot cell a control box and an area scanner.
+      placeEquipment();
       placeFence();
       if (overlay === "layout") setOverlay(overlay);
     },
@@ -3982,6 +4249,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       disposeLine();
       if (kit) kit.dispose();
       toolKit.dispose();
+      equipModels.dispose();
+      laserPanel.dispose();
       addOnMats.forEach((m) => m.dispose());
       hoverRing.geometry.dispose();
       hoverMat.dispose();
