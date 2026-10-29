@@ -8,6 +8,7 @@ import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthReady } from '@/hooks/useAuthReady';
 import { usePostInteractions } from "@/hooks/usePostInteractions";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
@@ -88,6 +89,7 @@ interface CommunityPost {
 
 const Community = () => {
   const { user } = useAuth();
+  const { isReady } = useAuthReady();
   const [searchParams, setSearchParams] = useSearchParams();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
@@ -116,8 +118,8 @@ const Community = () => {
 
 
   useEffect(() => {
-    fetchPosts();
-  }, [sortBy, filterType, user?.id]);
+    if (isReady) fetchPosts();
+  }, [sortBy, filterType, user?.id, isReady]);
 
   useEffect(() => {
     if (posts.length > 0) {
@@ -166,6 +168,7 @@ const Community = () => {
         // Transform old blogs to match new community post format
         blogData = (oldBlogs || []).map(blog => ({
           ...blog,
+          source: 'blog',
           post_type: 'blog',
           comment_count: 0,
           share_count: 0,
@@ -755,7 +758,7 @@ const Community = () => {
           ) : (
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {filteredPosts.slice(0, visible).map((post, i) => (
-                <ArticleCard key={post.id} post={post} featured={i === 0 && !hasFilters && filteredPosts.length > 2} />
+                <ArticleCard key={post.id} post={post} featured={i === 0 && !hasFilters && filteredPosts.length > 2} onPostUpdated={fetchPosts} onPostDeleted={handlePostDeleted} />
               ))}
             </div>
           )}

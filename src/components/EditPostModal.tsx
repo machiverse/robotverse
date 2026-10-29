@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import PostMediaManager from "@/components/post/PostMediaManager";
 import { PostMediaItem, kindForUrl, normalizePostMedia, splitPostMedia } from "@/components/post/postMedia";
 import RichTextEditor from "@/components/RichTextEditor";
+import { postPublicationUpdate } from '@/lib/postManagement';
 
 interface CommunityPost {
   id: string;
@@ -44,6 +45,8 @@ interface CommunityPost {
   edited_at?: string;
   edit_history?: any[];
   video_thumbnail?: string;
+  status?: string;
+  scheduled_publish_at?: string | null;
 }
 
 interface EditPostModalProps {
@@ -209,17 +212,8 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
         updated_at: new Date().toISOString(),
         edited_at: new Date().toISOString(),
         edit_history: editHistory,
-        status,
-        is_draft: status === 'draft',
+        ...postPublicationUpdate(mode, post.status, post.scheduled_publish_at, scheduleIso),
       };
-      if (mode === 'schedule') {
-        updateData.scheduled_publish_at = scheduleIso;
-      } else if (mode === 'save') {
-        // keep the existing schedule untouched
-        updateData.scheduled_publish_at = (post as any).scheduled_publish_at ?? null;
-      } else {
-        updateData.scheduled_publish_at = null;
-      }
       if (mode === 'publish') {
         updateData.published_at = new Date().toISOString();
       }
@@ -228,13 +222,15 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
         .from('community_posts')
         .update(updateData)
         .eq('id', post.id)
-        .eq('author_id', user.id);
+        .eq('author_id', user.id)
+        .select('id')
+        .single();
 
       if (error) throw error;
 
       toast.success(
         mode === 'draft' ? 'Draft saved!' :
-        mode === 'schedule' ? `Post scheduled for ${new Date(scheduleIso!).toLocaleString()}` :
+        mode === 'schedule' && scheduleIso ? `Post scheduled for ${new Date(scheduleIso).toLocaleString()}` :
         mode === 'save' ? 'Changes saved!' :
         'Post published!'
       );
@@ -262,7 +258,9 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
           updated_at: new Date().toISOString(),
         })
         .eq('id', post.id)
-        .eq('author_id', user.id);
+        .eq('author_id', user.id)
+        .select('id')
+        .single();
       if (error) throw error;
       toast.success('Scheduling cancelled — post moved to drafts');
       setScheduledAt('');

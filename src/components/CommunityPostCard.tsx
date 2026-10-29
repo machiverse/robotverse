@@ -46,6 +46,7 @@ import EditPostModal from "@/components/EditPostModal";
 import { ContentInteractionButtons } from "@/components/content/ContentInteractionButtons";
 import { buildRoboBookPostPath, buildRoboBookPostUrl } from "@/utils/blogSeo";
 import PreviewLinkCard from "@/components/blog/PreviewLinkCard";
+import { canManagePost } from '@/lib/postManagement';
 
 interface CommunityPost {
   id: string;
@@ -69,6 +70,7 @@ interface CommunityPost {
   edit_history?: any[];
   video_thumbnail?: string;
   status?: string;
+  source?: string;
   scheduled_publish_at?: string | null;
   published_at?: string | null;
   preview_token?: string | null;
@@ -255,6 +257,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking on buttons or interactive elements
     const target = e.target as HTMLElement;
+    if (!e.currentTarget.contains(target)) return;
     if (
       target.closest('button') || 
       target.closest('a') || 
@@ -334,13 +337,14 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
           </Badge>
 
           {/* Edit/Delete Menu */}
-          {user && post.author_id === user.id && (
+          {canManagePost(post.author_id, user?.id, post.source) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0"
+                  aria-label="Post options"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="h-4 w-4" />
