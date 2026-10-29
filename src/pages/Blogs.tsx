@@ -9,6 +9,7 @@ import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthReady } from '@/hooks/useAuthReady';
+import { postManagementStatus } from '@/lib/postManagement';
 import { usePostInteractions } from "@/hooks/usePostInteractions";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
@@ -158,10 +159,11 @@ const Community = () => {
       // Fetch old blogs (only if not filtering by specific post type or if filtering by blog)
       let blogData: any[] = [];
       if (filterType === 'all' || filterType === 'blog') {
-        const { data: oldBlogs, error: blogError } = await supabase
+        let blogQuery = supabase
           .from('blogs')
-          .select('*')
-          .eq('status', 'published');
+          .select('*');
+        blogQuery = user?.id ? blogQuery.or(`status.eq.published,author_id.eq.${user.id}`) : blogQuery.eq('status', 'published');
+        const { data: oldBlogs, error: blogError } = await blogQuery;
 
         if (blogError) console.error('Error fetching blogs:', blogError);
 
@@ -169,6 +171,7 @@ const Community = () => {
         blogData = (oldBlogs || []).map(blog => ({
           ...blog,
           source: 'blog',
+          status: postManagementStatus(blog.status, blog.scheduled_publish_at),
           post_type: 'blog',
           comment_count: 0,
           share_count: 0,

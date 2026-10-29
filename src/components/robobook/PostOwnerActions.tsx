@@ -8,11 +8,13 @@ import EditPostModal from '@/components/EditPostModal';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import type { ComponentProps } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 type ManagedPost = ComponentProps<typeof EditPostModal>['post'] & { source?: string };
 
 export default function PostOwnerActions({ post, onUpdated, onDeleted }: { post: ManagedPost; onUpdated?: () => void; onDeleted?: (id: string) => void }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -22,7 +24,7 @@ export default function PostOwnerActions({ post, onUpdated, onDeleted }: { post:
     if (!user || !canManagePost(post.author_id, user.id, post.source)) return;
     setBusy(true);
     try {
-      const { data, error } = await supabase.from('community_posts').delete().eq('id', post.id).eq('author_id', user.id).select('id').single();
+      const { data, error } = await supabase.from(post.source === 'blog' ? 'blogs' : 'community_posts').delete().eq('id', post.id).eq('author_id', user.id).select('id').single();
       if (error) throw error;
       if (!data) throw new Error('Post could not be deleted. Please try again.');
       setDeleting(false);
@@ -35,7 +37,7 @@ export default function PostOwnerActions({ post, onUpdated, onDeleted }: { post:
 
   return (
     <div className="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3" onClick={(event) => event.stopPropagation()}>
-      <Button variant="outline" size="sm" onClick={() => setEditing(true)}><Edit className="mr-2 h-4 w-4" />Edit Post</Button>
+      <Button variant="outline" size="sm" onClick={() => post.source === 'blog' ? navigate(`/robobook/${post.id}/edit`) : setEditing(true)}><Edit className="mr-2 h-4 w-4" />Edit Post</Button>
       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleting(true)}><Trash2 className="mr-2 h-4 w-4" />Delete Post</Button>
       <EditPostModal post={post} open={editing} onOpenChange={setEditing} onPostUpdated={onUpdated} />
       <AlertDialog open={deleting} onOpenChange={(open) => { if (!busy) setDeleting(open); }}>

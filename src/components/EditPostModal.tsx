@@ -194,12 +194,6 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
         },
       ];
 
-      const currentStatus = (post as any).status || 'published';
-      const status =
-        mode === 'draft' ? 'draft' :
-        mode === 'schedule' ? 'scheduled' :
-        mode === 'save' ? currentStatus :
-        'published';
       const updateData: any = {
         post_type: postType,
         title: title.trim() || null,

@@ -224,7 +224,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
       console.log('[DeletePost] attempting delete', { id: post.id, status: post.status, author_id: post.author_id, user_id: user.id });
 
       const { data, error, count } = await supabase
-        .from('community_posts')
+        .from(post.source === 'blog' ? 'blogs' : 'community_posts')
         .delete({ count: 'exact' })
         .eq('id', post.id)
         .eq('author_id', user.id)
@@ -354,7 +354,8 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
-                    setShowEditModal(true);
+                    if (post.source === 'blog') navigate(`/robobook/${post.id}/edit`);
+                    else setShowEditModal(true);
                   }}
                 >
                   <Edit className="h-4 w-4 mr-2" />
