@@ -8,6 +8,8 @@ import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthReady } from '@/hooks/useAuthReady';
+import { postManagementStatus } from '@/lib/postManagement';
 import { usePostInteractions } from "@/hooks/usePostInteractions";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
@@ -88,6 +90,7 @@ interface CommunityPost {
 
 const Community = () => {
   const { user } = useAuth();
+  const { isReady } = useAuthReady();
   const [searchParams, setSearchParams] = useSearchParams();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
@@ -116,8 +119,8 @@ const Community = () => {
 
 
   useEffect(() => {
-    fetchPosts();
-  }, [sortBy, filterType, user?.id]);
+    if (isReady) fetchPosts();
+  }, [sortBy, filterType, user?.id, isReady]);
 
   useEffect(() => {
     if (posts.length > 0) {
@@ -156,16 +159,19 @@ const Community = () => {
       // Fetch old blogs (only if not filtering by specific post type or if filtering by blog)
       let blogData: any[] = [];
       if (filterType === 'all' || filterType === 'blog') {
-        const { data: oldBlogs, error: blogError } = await supabase
+        let blogQuery = supabase
           .from('blogs')
-          .select('*')
-          .eq('status', 'published');
+          .select('*');
+        blogQuery = user?.id ? blogQuery.or(`status.eq.published,author_id.eq.${user.id}`) : blogQuery.eq('status', 'published');
+        const { data: oldBlogs, error: blogError } = await blogQuery;
 
         if (blogError) console.error('Error fetching blogs:', blogError);
 
         // Transform old blogs to match new community post format
         blogData = (oldBlogs || []).map(blog => ({
           ...blog,
+          source: 'blog',
+          status: postManagementStatus(blog.status, blog.scheduled_publish_at),
           post_type: 'blog',
           comment_count: 0,
           share_count: 0,
@@ -755,7 +761,7 @@ const Community = () => {
           ) : (
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {filteredPosts.slice(0, visible).map((post, i) => (
-                <ArticleCard key={post.id} post={post} featured={i === 0 && !hasFilters && filteredPosts.length > 2} />
+                <ArticleCard key={post.id} post={post} featured={i === 0 && !hasFilters && filteredPosts.length > 2} onPostUpdated={fetchPosts} onPostDeleted={handlePostDeleted} />
               ))}
             </div>
           )}

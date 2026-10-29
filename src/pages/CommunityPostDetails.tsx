@@ -47,6 +47,7 @@ import BlogShareBar from "@/components/blog/BlogShareBar";
 import PreviewLinkCard from "@/components/blog/PreviewLinkCard";
 import EditPostModal from "@/components/EditPostModal";
 import { buildRoboBookPostUrl } from "@/utils/blogSeo";
+import { useAuthReady } from '@/hooks/useAuthReady';
 
 interface CommunityPost {
   id: string;
@@ -81,6 +82,7 @@ const CommunityPostDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isReady } = useAuthReady();
   const { trackButtonClick } = useButtonTracking();
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [loading, setLoading] = useState(true);
@@ -126,10 +128,10 @@ const CommunityPostDetails = () => {
   };
 
   useEffect(() => {
-    if (id) {
+    if (id && isReady) {
       fetchPost();
     }
-  }, [id]);
+  }, [id, user?.id, isReady]);
 
   // Separate useEffect for incrementing view count after post is loaded
   useEffect(() => {
@@ -162,10 +164,10 @@ const CommunityPostDetails = () => {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || "");
 
       // Try to fetch from community_posts first by slug or UUID
-      const communityBaseQuery = supabase
+      let communityBaseQuery = supabase
         .from('community_posts')
-        .select('*')
-        .eq('status', 'published');
+        .select('*');
+      communityBaseQuery = user?.id ? communityBaseQuery.or(`status.eq.published,author_id.eq.${user.id}`) : communityBaseQuery.eq('status', 'published');
       const { data: communityPost, error: communityError } = isUuid
         ? await communityBaseQuery.eq('id', id).maybeSingle()
         : await communityBaseQuery.eq('slug', id).maybeSingle();
@@ -175,10 +177,10 @@ const CommunityPostDetails = () => {
       
       // If not found in community_posts, try blogs table
       if (!communityPost && !communityError) {
-        const blogBaseQuery = supabase
+        let blogBaseQuery = supabase
           .from('blogs')
-          .select('*')
-          .eq('status', 'published');
+          .select('*');
+        blogBaseQuery = user?.id ? blogBaseQuery.or(`status.eq.published,author_id.eq.${user.id}`) : blogBaseQuery.eq('status', 'published');
         const { data: blogPost, error: blogError } = isUuid
           ? await blogBaseQuery.eq('id', id).maybeSingle()
           : await blogBaseQuery.eq('slug', id).maybeSingle();
@@ -231,9 +233,9 @@ const CommunityPostDetails = () => {
   };
 
   const handleDeletePost = async () => {
-    if (!post) return;
+    if (!post || !user || post.author_id !== user.id) return;
     try {
-      const { error } = await supabase.from(sourceTable).delete().eq('id', post.id);
+      const { error } = await supabase.from(sourceTable).delete().eq('id', post.id).eq('author_id', user.id).select('id').single();
       if (error) throw error;
       toast.success('Post deleted');
       navigate('/robobook');
@@ -246,7 +248,7 @@ const CommunityPostDetails = () => {
   const handleEditClick = () => {
     if (!post) return;
     if (sourceTable === 'blogs') {
-      navigate(`/robobook/${(post as any).slug || post.id}/edit`);
+      navigate(`/robobook/${post.id}/edit`);
     } else {
       setEditOpen(true);
     }

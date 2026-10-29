@@ -1,5 +1,10 @@
 # Phone and tablet fit
 
+# RoboBook post management
+- [x] Restore owner edit/delete controls in grid and feed, including drafts and scheduled posts in both post stores; prevent dialog clicks navigating away.
+- [x] Verify status preservation and ownership rules with tests; all existing tests pass and public RoboBook renders without errors.
+- [ ] Verify signed-in edit/save/delete end to end — blocked by externally managed authentication without a preview session.
+
 - [x] Audit 35 public page-family URLs at phone and tablet widths; open real robot and service details.
 - [x] Fix directory/talent tabs, cell-builder steps, service titles, header sizing, CRM controls, and dialog/drawer bounds without changing functionality.
 - [x] Verify corrected views and mobile navigation visually at 375, 768, 932, and 1024 pixels; preview build passes.

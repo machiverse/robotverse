@@ -1,0 +1,2 @@
+# Project rules
+- RoboBook grid cards mount owner actions outside their navigation link and target the post's original store; community publication changes use the shared helper and blog autosave preserves publication state.
