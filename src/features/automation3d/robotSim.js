@@ -763,6 +763,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   /* The hall: sandwich-panel wall with a clerestory window band, steel columns with hazard sleeves, roof trusses
      and skylights, high-bay LED lamps, a cable tray, pallet racking along the back wall, a green walkway. */
   const building = new THREE.Group();
+  /** The roof (trusses, deck, light strips, lamps): out of the way when the camera looks down from above it. */
+  const roofParts = [];
   {
     const add = (geo, mat, { shadow = false } = {}) => {
       const m = new THREE.Mesh(geo, mat);
@@ -848,13 +850,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       }
     }
     for (let z = -7; z <= 9; z += 2) truss.push([B(60, 0.1, 0.08), [0, yt + 0.11, z]]);
-    add(mergeParts(truss), steelDark);
+    roofParts.push(add(mergeParts(truss), steelDark));
     const deck = add(new THREE.PlaneGeometry(60, 17), new THREE.MeshStandardMaterial({ color: 0x2b323b, roughness: 0.8, side: THREE.DoubleSide }));
     deck.rotation.x = Math.PI / 2;
     deck.position.set(0, yt + 0.2, 0.8);
+    roofParts.push(deck);
     const lights = [];
     for (let z = -5; z <= 7; z += 4) lights.push([B(60, 0.03, 0.9), [0, yt + 0.17, z]]);
-    add(mergeParts(lights), new THREE.MeshStandardMaterial({ color: 0xeaf2fb, emissive: 0xeaf2fb, emissiveIntensity: 1.6 }));
+    roofParts.push(add(mergeParts(lights), new THREE.MeshStandardMaterial({ color: 0xeaf2fb, emissive: 0xeaf2fb, emissiveIntensity: 1.6 })));
 
     // High-bay LED lamps on drop rods.
     const housings = [], lenses = [], rods = [];
@@ -864,9 +867,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         lenses.push([new THREE.CylinderGeometry(0.31, 0.31, 0.02, 24), [x + 3, 6.12, z]]);
         rods.push([new THREE.CylinderGeometry(0.012, 0.012, yb - 6.37, 6), [x + 3, (yb + 6.37) / 2, z]]);
       }
-    add(mergeParts(housings), new THREE.MeshStandardMaterial({ color: 0x4a5462, metalness: 0.7, roughness: 0.35 }));
-    add(mergeParts(lenses), new THREE.MeshStandardMaterial({ color: 0xfff6e6, emissive: 0xfff2dc, emissiveIntensity: 5 }));
-    add(mergeParts(rods), steelDark);
+    roofParts.push(
+      add(mergeParts(housings), new THREE.MeshStandardMaterial({ color: 0x4a5462, metalness: 0.7, roughness: 0.35 })),
+      add(mergeParts(lenses), new THREE.MeshStandardMaterial({ color: 0xfff6e6, emissive: 0xfff2dc, emissiveIntensity: 5 })),
+      add(mergeParts(rods), steelDark),
+    );
 
     // Galvanised cable tray along the hall.
     const galv = new THREE.MeshStandardMaterial({ color: 0xaab2bb, metalness: 0.8, roughness: 0.35 });
@@ -1050,9 +1055,114 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     });
   }
 
+  /*
+   * Free space between robots. A robot's tool sweeps a circle round its base (a stadium along its track): its
+   * envelope. "clear" keeps 0.5 m between neighbouring envelopes, so no robot can touch another robot's equipment
+   * or arm; "roomy" adds a metre more; "compact" packs cells 3.6 m apart and shares space between neighbours.
+   */
+  const CLEARANCE = 0.5;
+  let spacing = "clear";
+  /** Floor between cell i and cell i + 1 (m). */
+  let cellGaps = [];
+  let lastPlan = null;
+  /** How far a robot's tool reaches from its base axis: arm, wrist and tool (m). */
+  const envelopeOf = (scale) => 1.69 * scale + TOOL_LEN;
+  const gapAfter = (i) => cellGaps[i] || CELL_SPACING;
+  function gapBetween(ra, rb) {
+    if (spacing === "compact") return CELL_SPACING;
+    const need = ra + rb + CLEARANCE + (spacing === "roomy" ? 1 : 0);
+    return Math.max(CELL_SPACING, Math.ceil(need * 10) / 10);
+  }
+  /** Robot i's envelope: the segment its base travels along (z = 0) and the reach round it. */
+  function envelopeOfCell(i) {
+    const c = cells[i];
+    // A builder cell with no robot chosen yet has no envelope.
+    if (!c || !c.robot || !c.robot.root.visible) return null;
+    const X = cellStart[i], L = cellEnd[i] - cellStart[i];
+    if (c.robot.cartesian) return { x0: X - GANTRY_X, x1: X + L + GANTRY_X, r: 0.3 };
+    return { x0: X, x1: X + L, r: envelopeOf(c.robot.dims.L2 / 0.7) };
+  }
+  /**
+   * Where robots get in each other's way: a robot that can reach another robot's stations, equipment or base,
+   * and two robots that can reach the same floor. Belts between robots are shared on purpose and not counted.
+   */
+  function interference() {
+    const out = [];
+    const rectGap = (e, r) => {
+      const gx = Math.max(0, r[0] - e.x1, e.x0 - r[2]);
+      const gz = r[1] > 0 ? r[1] : r[3] < 0 ? -r[3] : 0;
+      return Math.hypot(gx, gz);
+    };
+    const rect = (b) => [b.min.x, b.min.z, b.max.x, b.max.z];
+    const envs = cells.map((c, i) => envelopeOfCell(i));
+    cells.forEach((c, j) => {
+      const things = c.layoutParts().map((p) => ({ what: p.what, r: rect(p.box) }));
+      if (equipGroup)
+        for (const g of equipGroup.children)
+          if (g.userData.cell === j && g.userData.what) {
+            const b = meshBox(g);
+            if (!b.isEmpty()) things.push({ what: g.userData.what, r: rect(b) });
+          }
+      const ej = envs[j];
+      if (ej && !c.robot.cartesian) things.push({ what: "robot base", r: [ej.x0 - 0.3, -0.3, ej.x1 + 0.3, 0.3] });
+      envs.forEach((e, i) => {
+        if (!e || i === j) return;
+        let worst = null;
+        for (const t of things) {
+          const depth = e.r - rectGap(e, t.r);
+          if (depth > 0.02 && (!worst || depth > worst.depth)) worst = { what: t.what, depth };
+        }
+        if (worst) out.push({ kind: "reach", robot: i, other: j, what: String(worst.what).split(" · ")[0], depth: +worst.depth.toFixed(2) });
+      });
+    });
+    for (let i = 0; i < envs.length; i++)
+      for (let j = i + 1; j < envs.length; j++) {
+        const a = envs[i], b = envs[j];
+        if (!a || !b) continue;
+        const gap = Math.max(0, b.x0 - a.x1, a.x0 - b.x1);
+        const shared = a.r + b.r - gap;
+        if (shared > 0.02) out.push({ kind: "shared", robot: i, other: j, what: "working space", depth: +shared.toFixed(2) });
+      }
+    return out;
+  }
+  /** Reach rings turn red on robots that get in another robot's way. */
+  function refreshZones() {
+    const hits = interference();
+    cells.forEach((c, i) => c.alertZone(hits.some((h) => h.robot === i || h.other === i)));
+    return hits;
+  }
+  /** Lay the line out again (new spacing, bigger robots) and keep each robot the user chose. */
+  function relayout() {
+    if (!lastPlan) return;
+    const models = cells.map((c) => c.model);
+    buildLine(lastPlan, models.map((m) => (m && m.scale) || null));
+    cells.forEach((c, i) => {
+      if (models[i]) c.setModel(models[i]);
+      c.setPaint(industrialOf(i));
+    });
+    placeEquipment();
+    placeFence();
+    if (overlay !== "none") setOverlay(overlay);
+    reset();
+  }
+  /** True when the robots now on the line need other gaps than they stand at. */
+  function gapsChanged() {
+    if (spacing === "compact" || cells.length < 2) return false;
+    const r = cells.map((c, i) => {
+      const e = envelopeOfCell(i);
+      return e ? (c.robot.cartesian ? GANTRY_X + 0.3 : e.r) : envelopeOf(ROBOT_SIZES[sizeKey].scale);
+    });
+    return cells.some((c, i) => i < cells.length - 1 && Math.abs(gapBetween(r[i], r[i + 1]) - gapAfter(i)) > 0.05);
+  }
+
   /* Safety fence around industrial robot cells (cobot lines run without one) */
   /** Per robot cell: true when that cell needs a fence (industrial robot). */
   let fenceCells = [];
+  /** One enclosure per robot instead of one round each run of fenced neighbours. */
+  let fenceSeparate = false;
+  /** Per robot cell: a collaborative robot (cobot paint, control box). Empty: follow the fence. */
+  let cobotCells = [];
+  const industrialOf = (i) => (cobotCells.length ? !cobotCells[i] : !!fenceCells[i]);
   let fenceGroup = null;
   const fenceMesh = new THREE.MeshStandardMaterial({ color: 0xf2b705, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false });
   const laserPanel = new THREE.MeshStandardMaterial({ color: 0x1f3b2c, metalness: 0.2, roughness: 0.2, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
@@ -1104,13 +1214,15 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       rail.rotation.y = panel.rotation.y;
       g.add(rail);
     };
-    // One fenced area per run of neighbouring industrial cells; cobot cells stay open.
+    // One fenced area per run of neighbouring fenced cells (or one per robot); open cells stay open.
+    // Separate fences stand apart, with an aisle between them the transfer belt passes through.
+    const inset = fenceSeparate ? 0.2 : 0.05;
     for (let i = 0; i < n; i++) {
-      if (!fenceCells[i] || (i > 0 && fenceCells[i - 1])) continue;
+      if (!fenceCells[i] || (!fenceSeparate && i > 0 && fenceCells[i - 1])) continue;
       let j = i;
-      while (j + 1 < n && fenceCells[j + 1]) j++;
-      const x0 = i === 0 ? bounds.min.x - 0.35 : cellStart[i] - CELL_SPACING / 2 + 0.05;
-      const x1 = j === n - 1 ? bounds.max.x + 0.35 : cellEnd[j] + CELL_SPACING / 2 - 0.05;
+      while (!fenceSeparate && j + 1 < n && fenceCells[j + 1]) j++;
+      const x0 = i === 0 ? bounds.min.x - 0.35 : cellStart[i] - gapAfter(i - 1) / 2 + inset;
+      const x1 = j === n - 1 ? bounds.max.x + 0.35 : cellEnd[j] + gapAfter(j) / 2 - inset;
       // A laser cell is closed with tinted laser-safe panels instead of mesh.
       const laser = laserCells.slice(i, j + 1).some(Boolean);
       panelMat = laser ? laserPanel : fenceMesh;
@@ -1196,6 +1308,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       return [x - hw, z - hd, x + hw, z + hd];
     };
     let labelN = 0;
+    /** The cell whose equipment is being placed (for the free-space check). */
+    let cellNow = -1;
     const tag = (text, x, y, z, parent) => {
       const l = makeLabel(text.length > 38 ? `${text.slice(0, 36)}…` : text, "#bae6fd");
       l.position.set(x, y + 0.26 + (labelN++ % 3) * 0.2, z);
@@ -1206,6 +1320,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       const built = equipModels.buildModel(item.model, { ...item, ...opts });
       if (!built) return false;
       built.group.userData.what = item.label;
+      built.group.userData.cell = cellNow;
       built.group.userData.attached = item.at === "work" || item.at === "pallet";
       built.group.position.set(x, 0, z);
       built.group.rotation.y = rotY;
@@ -1258,7 +1373,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       if (buildMode && c.robot && !c.robot.root.visible) return;
       const X = cellStart[i];
       const L = cellEnd[i] - cellStart[i];
-      const items = cellEquipment(jobsOfTitle(c.title), { fenced: !!fenceCells[i], steps: c.steps });
+      cellNow = i;
+      const items = cellEquipment(jobsOfTitle(c.title), { fenced: !!fenceCells[i], cobot: !industrialOf(i), steps: c.steps });
       laserCells[i] = items.some((x) => x.enclosure === "laser");
       const names = cellProducts[i] || [];
       // A robot hanging from a track or in a gantry has no floor base to stand things beside.
@@ -1362,6 +1478,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         }
         const [x, z, rot, fr] = spot;
         built.group.userData.what = item.label;
+        built.group.userData.cell = i;
         built.group.position.set(x, 0, z);
         built.group.rotation.y = rot;
         equipGroup.add(built.group);
@@ -1437,6 +1554,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     }
     scene.add(equipGroup);
     scene.add(equipOutside);
+    refreshZones();
   }
 
   /**
@@ -3636,6 +3754,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         cell.buildRobot(lastScale);
         cell.fitZone();
       },
+      /** Red ring: this robot can reach another robot's equipment or space. */
+      alertZone(on) {
+        if (zoneLine) zoneLine.material.color.setHex(on ? 0xef4444 : 0xf2b705);
+      },
       /** The dashed ring shows the chosen robot's reach; in build mode it appears with the robot. */
       fitZone() {
         if (!zoneGroup) return;
@@ -3774,8 +3896,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     return out;
   }
 
-  function buildLine(plan) {
+  function buildLine(plan, scales) {
     disposeLine();
+    lastPlan = plan;
     const list = (plan && plan.cells && plan.cells.length ? plan.cells : [{ steps: [] }]).map((c) => ({
       title: c.title,
       steps: (c.steps || []).map((s) => ({ ...s, label: s.label || stepLabel(s) })),
@@ -3786,11 +3909,17 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     // Each robot's place on the line: a robot that travels takes its track's length of floor more.
     cellStart = [];
     cellEnd = [];
+    // Free space between robots: each one's reach (and its track) clear of the next one's, by the spacing chosen.
+    const reachOfCell = (k) => {
+      const mt = list[k].motion ? list[k].motion.type : "fixed";
+      return mt === "gantry" ? GANTRY_X + 0.3 : envelopeOf((scales && scales[k]) || ROBOT_SIZES[sizeKey].scale);
+    };
+    cellGaps = list.map((c, i) => (i < list.length - 1 ? gapBetween(reachOfCell(i), reachOfCell(i + 1)) : CELL_SPACING));
     let at = 0;
     list.forEach((c, i) => {
       cellStart[i] = at;
       cellEnd[i] = at + travelOf(c.motion);
-      at = cellEnd[i] + CELL_SPACING;
+      at = cellEnd[i] + cellGaps[i];
     });
     // The real product: named in the brief, else by the line's jobs ("Robot 1: Fruit & Vegetable Picking + Palletizing").
     const jobs = list.flatMap((c) => String(c.title || "").replace(/^Robot \d+:?\s*/, "").split(" + ")).filter(Boolean);
@@ -3991,8 +4120,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const z0 = b.min.z - 0.25, z1 = b.max.z + 0.25;
     const half = cells.length > 1 ? CELL_SPACING / 2 : Math.max(2.2, (b.max.x - b.min.x) / 2 + 0.25);
     cells.forEach((c, i) => {
-      const x0 = cells.length > 1 ? (i === 0 ? Math.min(b.min.x - 0.25, cellStart[i] - half) : cellStart[i] - half) : b.min.x - 0.25;
-      const x1 = cells.length > 1 ? (i === cells.length - 1 ? Math.max(b.max.x + 0.25, cellEnd[i] + half) : cellEnd[i] + half) : b.max.x + 0.25;
+      const before = i > 0 ? gapAfter(i - 1) / 2 : half;
+      const after = i < cells.length - 1 ? gapAfter(i) / 2 : half;
+      const x0 = cells.length > 1 ? (i === 0 ? Math.min(b.min.x - 0.25, cellStart[i] - before) : cellStart[i] - before) : b.min.x - 0.25;
+      const x1 = cells.length > 1 ? (i === cells.length - 1 ? Math.max(b.max.x + 0.25, cellEnd[i] + after) : cellEnd[i] + after) : b.max.x + 0.25;
       g.add(floorRect(x0 + 0.04, z0, x1 - 0.04, z1, ZONE_COLORS[i % ZONE_COLORS.length], 0.12));
       // Short label; the full task list is already on the robot's own title.
       const name = c.title ? String(c.title).split(":")[0] : `Robot ${i + 1}`;
@@ -4268,6 +4399,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (!ROBOT_SIZES[key]) return;
     sizeKey = key;
     cells.forEach((c) => c.buildRobot(ROBOT_SIZES[key].scale));
+    if (gapsChanged()) return relayout();
     placeEquipment();
     placeFence();
     reset();
@@ -4320,6 +4452,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     let dt = clamp((now - lastT) / 1000, 0, 0.05);
     const realDt = dt;
     lastT = now;
+    // A long line framed from high up: look in through the open roof, not at its deck.
+    const roofOn = camera.position.y < 6;
+    if (roofParts[0].visible !== roofOn) roofParts.forEach((m) => (m.visible = roofOn));
     if (playing && cells.some((c) => c.steps.length)) {
       dt *= speed;
       simTime += dt;
@@ -4454,6 +4589,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         });
       }
       cellProducts[i] = (eq && eq.components) || [];
+      if (gapsChanged()) return relayout();
       placeEquipment();
       placeFence();
       if (overlay !== "none") setOverlay(overlay);
@@ -4492,16 +4628,34 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       controls.target.set(target[0], target[1], target[2]);
       controls.update();
     },
-    /** Fence the industrial robot cells: true / false for all, or one flag per cell. */
-    setFencing(on) {
+    /**
+     * Fence the robot cells: true / false for all, or one flag per cell. Neighbouring fenced cells share one
+     * enclosure; `separate` gives every robot its own.
+     */
+    setFencing(on, opts = {}) {
       fenceCells = Array.isArray(on) ? on.map(Boolean) : cells.map(() => !!on);
-      // Industrial robots (fenced) in yellow; cobots in white and blue.
-      cells.forEach((c, i) => c.setPaint(!!fenceCells[i]));
+      fenceSeparate = !!opts.separate;
+      // Industrial robots in yellow; cobots in white and blue (a fence alone does not make a robot industrial).
+      cells.forEach((c, i) => c.setPaint(industrialOf(i)));
       // A fenced cell has a controller cabinet and a light curtain; a cobot cell a control box and an area scanner.
       placeEquipment();
       placeFence();
       if (overlay === "layout") setOverlay(overlay);
     },
+    /** Which robots are cobots (paint, control box, area scanner); call before setFencing. Empty: follow the fence. */
+    setCobots(flags) {
+      cobotCells = Array.isArray(flags) ? flags.map(Boolean) : [];
+      cells.forEach((c, i) => c.setPaint(industrialOf(i)));
+    },
+    /** Space between robots: "compact" (3.6 m, neighbours share space), "clear" (0.5 m between reaches), "roomy". */
+    setSpacing(mode) {
+      const m = mode === "compact" || mode === "roomy" ? mode : "clear";
+      if (m === spacing) return;
+      spacing = m;
+      if (cells.length > 1) relayout();
+    },
+    /** Robots that can reach another robot's stations, equipment, base or working space (none in a clear line). */
+    interference,
     /** Show a photo of the user's manual process behind the line (null hides it). */
     setReference(url, label) {
       refUrl = url || null;

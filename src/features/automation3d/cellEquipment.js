@@ -352,21 +352,39 @@ const JOB_SET = [
   [/order pick|parcel|recycl|classification|singulat|fruit|\begg|gemstone|diamond|kitting/i, [I("Camera over the pick area", "Pick camera", "Finds each item for vision-guided picking", "process", null, null)]],
 ];
 
-/** Robot system, safety and utilities: every cell has them. */
-function baseSet(fenced) {
-  return fenced
+/**
+ * Robot system, safety and utilities: every cell has them. An industrial robot has a controller cabinet, a
+ * cobot a control box; a fenced cell has the fence and its interlocked door, an open cell an area scanner. An
+ * industrial robot without a fence is guarded by scanners and light curtains that stop it (ISO 10218-2).
+ */
+function baseSet(fenced, cobot) {
+  const robot = cobot
     ? [
-        I("Robot controller cabinet with teach pendant", "Robot controller", "Drives the six axes and runs the program", "robot", "controller", "outside"),
-        I("Robot base plate anchored to the floor", "Base plate", "Holds the robot rigid at full speed", "robot", null, null),
-        I("Safety fence with interlocked door", "Safety fence", "Keeps people out while the robot runs", "safety", null, null),
-        I("Safety PLC / safety relay and emergency stops", "Safety controller", "Stops the robot safely when a door opens or a button is pressed", "safety", null, null),
-      ]
-    : [
         I("Cobot control box with teach pendant", "Cobot controller", "Drives the arm and runs the program", "robot", "cobotBox", "outside"),
         I("Robot base plate or mobile stand", "Base plate", "Holds the cobot steady", "robot", null, null),
-        I("Area scanner (slows the cobot when people come close)", "Area scanner", "Collaborative safety without a fence", "safety", "scanner", "base"),
-        I("Risk assessment to ISO/TS 15066", "Risk assessment", "Proves forces stay below body-region limits", "safety", null, null),
+      ]
+    : [
+        I("Robot controller cabinet with teach pendant", "Robot controller", "Drives the six axes and runs the program", "robot", "controller", "outside"),
+        I("Robot base plate anchored to the floor", "Base plate", "Holds the robot rigid at full speed", "robot", null, null),
       ];
+  if (fenced)
+    return [
+      ...robot,
+      I("Safety fence with interlocked door", "Safety fence", "Keeps people out while the robot runs", "safety", null, null),
+      I("Safety PLC / safety relay and emergency stops", "Safety controller", "Stops the robot safely when a door opens or a button is pressed", "safety", null, null),
+    ];
+  if (cobot)
+    return [
+      ...robot,
+      I("Area scanner (slows the cobot when people come close)", "Area scanner", "Collaborative safety without a fence", "safety", "scanner", "base"),
+      I("Risk assessment to ISO/TS 15066", "Risk assessment", "Proves forces stay below body-region limits", "safety", null, null),
+    ];
+  return [
+    ...robot,
+    I("Safety laser scanners (stop the robot when a person enters)", "Area scanner", "Guards the open cell instead of a fence", "safety", "scanner", "base"),
+    I("Safety PLC with speed and separation monitoring", "Safety controller", "Slows and stops the robot as people come near", "safety", null, null),
+    I("Risk assessment to ISO 10218-2 for an unfenced industrial robot", "Risk assessment", "Proves the scanners stop the robot before a person reaches it", "safety", null, null),
+  ];
 }
 const UTILITIES = [I("Compressed-air service unit (filter, regulator, valve)", "Air supply", "Clean, steady air for the gripper, valves and cleaners", "utility", "airUnit", "outside")];
 
@@ -409,20 +427,23 @@ export function jobsOfTitle(title) {
   return String(title || "")
     .replace(/^Robot \d+:?\s*/, "")
     .split(" + ")
-    .map((s) => s.trim())
+    // A second robot on a job ("MIG/MAG Welding (2nd robot)") needs that job's equipment.
+    .map((s) => s.trim().replace(/\s*\(\d+(?:st|nd|rd|th) robot\)$/i, ""))
     .filter((s) => s && !/^robot cell simulator$/i.test(s) && !/^robot \d+$/i.test(s));
 }
 
 /**
  * The whole set-up of one robot cell: robot system, process equipment, safety and utilities, for its jobs.
  * @param {string[]} jobs the robot's jobs, in order
- * @param {{ fenced?: boolean, steps?: { action: string, station?: string, text?: string, label?: string }[] }} [opts]
+ * @param {{ fenced?: boolean, cobot?: boolean, steps?: { action: string, station?: string, text?: string, label?: string }[] }} [opts]
  */
 export function cellEquipment(jobs, opts = {}) {
   const fenced = opts.fenced !== false;
+  // Without a word on the robot, an open cell is a cobot cell and a fenced one an industrial robot.
+  const cobot = typeof opts.cobot === "boolean" ? opts.cobot : !fenced;
   const list = (jobs || []).filter(Boolean);
   if (!list.length) list.push(jobFromSteps(opts.steps));
-  const out = [...baseSet(fenced)];
+  const out = [...baseSet(fenced, cobot)];
   const seen = new Set(out.map((x) => x.name));
   const push = (x) => {
     if (x.fencedOnly && !fenced) return;

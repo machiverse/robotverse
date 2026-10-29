@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, BookOpen, Bot, Camera, CheckCircle2, FileText, Info, Maximize2, Minimize2, Minus, Pause, Play, Plus, Repeat, RotateCcw, Sparkles, Wrench } from "lucide-react";
+import { AlertTriangle, BookOpen, Bot, Camera, CheckCircle2, FileText, Info, Maximize2, Minimize2, Minus, Pause, Play, Plus, Repeat, RotateCcw, Shield, Sparkles, Trash2, Wrench, X } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
-import { analyzeDescription, matchTemplateIds, processesFromSkills } from "@/utils/processAnalyzer";
-import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Simulation, type SimQuality } from "./robotSim.js";
+import { analyzeDescription, matchTemplateIds, processesFromSkills, SKILL_LIBRARY } from "@/utils/processAnalyzer";
+import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Interference, type LineSpacing, type Simulation, type SimQuality } from "./robotSim.js";
+import { addJob, baseJob, isShare, removeTasks, shareJob, suggestJobs } from "./lineEdit";
 import { CINEMATIC_POST } from "./cinematicPost";
 import CellEquipmentList from "./CellEquipmentList";
 import RobotSystemSheet from "./RobotSystemSheet";
@@ -50,7 +51,7 @@ type SimState = {
   currentCycle: number;
   events: { t: number; msg: string }[];
   focus?: number;
-  cells?: { title: string; stepIndex: number; step: Step | null; cycles: number }[];
+  cells?: { title: string; stepIndex: number; step: Step | null; cycles: number; lastCycle?: number | null }[];
   product?: { label: string; kg: number; size: [number, number, number]; gripper: string } | null;
   tools?: string[];
   quality?: SimQuality;
@@ -125,6 +126,26 @@ interface Props {
   mediaAnalysis?: MediaAnalysis | null;
 }
 
+/** Safety fence: by robot type (industrial fenced, cobots open), round the whole line, round each robot, or none. */
+type FenceMode = "auto" | "line" | "each" | "off";
+const FENCE_MODES: [FenceMode, string, string][] = [
+  ["auto", "Auto", "Industrial robots behind a fence; cobots work open with area scanners."],
+  ["line", "Whole line", "One fence round the whole line, with interlocked doors."],
+  ["each", "Each robot", "A fence round each robot, with a walkway between them."],
+  ["off", "None", "No fence: industrial robots are guarded by safety laser scanners instead."],
+];
+const SPACINGS: [LineSpacing, string, string][] = [
+  ["compact", "Compact", "Cells 3.6 m apart: neighbouring robots share space, so their moves must be interlocked."],
+  ["clear", "Clear", "0.5 m free between every robot's reach: no robot can touch another robot's equipment."],
+  ["roomy", "Roomy", "A metre more between robots for maintenance and walkways."],
+];
+/** The work a robot does that another robot can share: its welding, machining or tool work, else its first job. */
+const mainTask = (r: LinePlan["robots"][number]) => r.tasks.find((t) => t.skill.tool || t.skill.sim === "weld" || t.skill.sim === "cnc") ?? r.tasks[0];
+const clashText = (h: Interference) =>
+  h.kind === "shared"
+    ? `Robots ${h.robot + 1} and ${h.other + 1} can reach the same ${h.depth} m of floor`
+    : `Robot ${h.robot + 1} can reach Robot ${h.other + 1}'s ${h.what.toLowerCase()} (${h.depth} m inside its reach)`;
+
 const Panel = ({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) => (
   <section className={cn("rounded-lg border border-border bg-card p-3", className)}>
     <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
@@ -192,6 +213,17 @@ export default function AutomationStudio3D({
   const [cellPicks, setCellPicks] = useState<Record<string, Choice>>({});
   // Robots the user asked for (null = let the planner decide from the solution option).
   const [robotCount, setRobotCount] = useState<number | null>(null);
+  // Robots the user added: a job shared with another robot ("MIG/MAG Welding (2nd robot)"), or a robot for a new job.
+  const [added, setAdded] = useState<string[]>([]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addJobName, setAddJobName] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
+  // Safety fence for the line, and the user's own choice per robot (by its first task).
+  const [fenceMode, setFenceMode] = useState<FenceMode>("auto");
+  const [fenceOwn, setFenceOwn] = useState<Record<string, boolean>>({});
+  // Space between robots, and where a robot can still reach another robot's equipment or space.
+  const [spacing, setSpacing] = useState<LineSpacing>("clear");
+  const [clearance, setClearance] = useState<Interference[]>([]);
   const [pickFor, setPickFor] = useState<number | null>(null);
   const [inputMode, setInputMode] = useState<"blocks" | "words">("blocks");
   const [ai, setAi] = useState<{ brief: string; solution: AiSolution | null; loading: boolean; error: string | null }>({
@@ -238,6 +270,11 @@ export default function AutomationStudio3D({
     () => stationTasks.filter((t, i): t is string => !!t && !!equipment?.choices[i]?.robot),
     [stationTasks, equipment],
   );
+  // Every robot the user added starts a cell of its own too.
+  const splits = useMemo(
+    () => [...splitBefore, ...added.filter((n) => lineInput?.some((t) => t.name === n))],
+    [splitBefore, added, lineInput],
+  );
   const cellOf = (p: LinePlan, task: string) => p.robots.findIndex((r) => r.tasks.some((t) => t.name === task));
   const pickKey = (r: LinePlan["robots"][number]) => `task:${r.tasks[0]?.name ?? ""}`;
   // What goes on each robot cell: the station choices, then the robot built in the configurator (wins).
@@ -281,7 +318,27 @@ export default function AutomationStudio3D({
     });
     setUnreachable(sim.checkReach() || []);
     setOverlaps(sim.layoutIssues());
+    setClearance(sim.interference());
   }, [perCell, plan]);
+
+  // Fences: the user's choice per robot, else the line's setting. Applied after the robots and equipment above.
+  const fenced = useMemo(
+    () => (plan ? plan.robots.map((r) => fenceOwn[pickKey(r)] ?? (fenceMode === "auto" ? !r.collaborative : fenceMode !== "off")) : []),
+    [plan, fenceMode, fenceOwn],
+  );
+  useEffect(() => {
+    const sim = simRef.current;
+    if (!sim || !plan) return;
+    sim.setCobots(plan.robots.map((r) => r.collaborative));
+    sim.setFencing(fenced, { separate: fenceMode === "each" });
+    recheck();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fenced, fenceMode]);
+  useEffect(() => {
+    simRef.current?.setSpacing(spacing);
+    recheck();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spacing]);
 
   // Per-cell picks are saved per brief too.
   const cellKey = "rv-studio-cells:" + (description ?? "").slice(0, 200);
@@ -383,7 +440,57 @@ export default function AutomationStudio3D({
     setLineInput(input);
     setRobotCount(null);
     setMotions({});
+    setAdded([]);
+    setFenceOwn({});
+    setAddOpen(false);
     runPlan(planLine(input, option, { motion }), planNotes);
+  }
+
+  /**
+   * One more robot: on robot `at`'s job (the robots share the work), or for another job after it. Palletizing
+   * and packing robots go to the end of the line.
+   */
+  function addRobot(job?: string, at = focus) {
+    if (!lineInput || !plan) return;
+    const r = plan.robots[at];
+    if (!r) return;
+    let res: { input: LineInput; added: string };
+    if (job) {
+      const card = processesFromSkills([job])[0];
+      if (!card) return setAddError(`No job called "${job}" in the skills library`);
+      res = addJob(lineInput, card.name, r.tasks[r.tasks.length - 1]?.name);
+    } else res = shareJob(lineInput, mainTask(r).name);
+    const nextAdded = [...added, res.added];
+    setLineInput(res.input);
+    setAdded(nextAdded);
+    setRobotCount(null);
+    setAddOpen(false);
+    setAddJobName("");
+    setAddError(null);
+    const p = planLine(res.input, strategy, { splitBefore: [...splitBefore, ...nextAdded], motion, motions });
+    runPlan(p, notes, Math.max(0, cellOf(p, res.added)));
+  }
+
+  /** Take a robot the user added off the line again. */
+  function removeRobot(i: number) {
+    if (!lineInput || !plan) return;
+    const mine = plan.robots[i].tasks.map((t) => t.name).filter((n) => added.includes(n));
+    if (!mine.length) return;
+    const input = removeTasks(lineInput, mine);
+    const nextAdded = added.filter((n) => !mine.includes(n));
+    setLineInput(input);
+    setAdded(nextAdded);
+    setRobotCount(null);
+    runPlan(planLine(input, strategy, { splitBefore: [...splitBefore, ...nextAdded], motion, motions }), notes, Math.max(0, i - 1));
+  }
+
+  /** Reach, floor space and free space between robots for the line as it stands now. */
+  function recheck() {
+    const sim = simRef.current;
+    if (!sim) return;
+    setUnreachable((plan ? sim.checkReach() : sim.checkReach(steps)) || []);
+    setOverlaps(sim.layoutIssues());
+    setClearance(sim.interference());
   }
 
   /** Put a robot on a track, a gantry, a mobile base… or back on a fixed base, and re-plan the line. */
@@ -393,19 +500,19 @@ export default function AutomationStudio3D({
     if (!key) return;
     const next = { ...motions, [key]: m };
     setMotions(next);
-    runPlan(planLine(lineInput, strategy, { splitBefore, robots: robotCount ?? undefined, motion, motions: next }), notes, i);
+    runPlan(planLine(lineInput, strategy, { splitBefore: splits, robots: robotCount ?? undefined, motion, motions: next }), notes, i);
   }
 
   function chooseOption(option: Strategy) {
     setStrategy(option);
     setRobotCount(null);
-    if (lineInput) runPlan(planLine(lineInput, option, { splitBefore, motion, motions }), notes);
+    if (lineInput) runPlan(planLine(lineInput, option, { splitBefore: splits, motion, motions }), notes);
   }
 
   function chooseRobotCount(n: number) {
     if (!lineInput) return;
     setRobotCount(n);
-    runPlan(planLine(lineInput, strategy, { splitBefore, robots: n, motion, motions }), notes);
+    runPlan(planLine(lineInput, strategy, { splitBefore: splits, robots: n, motion, motions }), notes);
   }
 
   // A robot chosen for a station that shares a cell with another robot: give it a cell of its own.
@@ -418,7 +525,7 @@ export default function AutomationStudio3D({
     });
     if (!clash) return;
     setRobotCount(null);
-    runPlan(planLine(lineInput, strategy, { splitBefore, motion, motions }), notes, focus);
+    runPlan(planLine(lineInput, strategy, { splitBefore: splits, motion, motions }), notes, focus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [splitBefore.join("|"), lineInput]);
 
@@ -430,12 +537,17 @@ export default function AutomationStudio3D({
     setSteps(p.robots[f]?.steps || []);
     setNotes(planNotes);
     simRef.current?.setPlan({ ...p.sim, brief: briefRef.current });
-    // Industrial robots work behind a fence; a cobot-only line does not need one.
-    simRef.current?.setFencing(p.robots.map((r) => !r.collaborative));
+    // Cobots in cobot paint; fences as the user set them (the fence effect applies later changes).
+    simRef.current?.setCobots(p.robots.map((r) => r.collaborative));
+    simRef.current?.setFencing(
+      p.robots.map((r) => fenceOwn[pickKey(r)] ?? (fenceMode === "auto" ? !r.collaborative : fenceMode !== "off")),
+      { separate: fenceMode === "each" },
+    );
     simRef.current?.setFocus(f);
     simRef.current?.play();
     setUnreachable(simRef.current?.checkReach() || []);
     setOverlaps(simRef.current?.layoutIssues() || []);
+    setClearance(simRef.current?.interference() || []);
   }
 
   function restart() {
@@ -482,6 +594,7 @@ export default function AutomationStudio3D({
     simRef.current?.play();
     setUnreachable(simRef.current?.checkReach(parsed) || []);
     setOverlaps(simRef.current?.layoutIssues() || []);
+    setClearance(simRef.current?.interference() || []);
   }
 
   // Photos / video analysed by AI: plan exactly the tasks it found and show the photo in 3D.
@@ -513,6 +626,7 @@ export default function AutomationStudio3D({
     restart();
     setUnreachable((plan ? simRef.current?.checkReach() : simRef.current?.checkReach(steps)) || []);
     setOverlaps(simRef.current?.layoutIssues() || []);
+    setClearance(simRef.current?.interference() || []);
   }
 
   const playing = state?.playing ?? true;
@@ -859,6 +973,57 @@ export default function AutomationStudio3D({
                   </button>
                 </div>
               )}
+              <div className="mb-2 space-y-1.5 rounded-md border border-border bg-background px-2 py-1.5 text-[11px]">
+                <div>
+                  <span className="mb-1 flex items-center gap-1 font-semibold">
+                    <Shield className="h-3.5 w-3.5 text-amber-500" /> Safety fence
+                  </span>
+                  <span className="grid grid-cols-4 gap-0.5 rounded-md border border-border p-0.5" role="group" aria-label="Safety fence">
+                    {FENCE_MODES.map(([k, label]) => (
+                      <button
+                        key={k}
+                        type="button"
+                        aria-pressed={fenceMode === k && !Object.keys(fenceOwn).length}
+                        onClick={() => {
+                          setFenceMode(k);
+                          setFenceOwn({});
+                        }}
+                        className={cn(
+                          "rounded px-1 py-0.5 leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                          fenceMode === k && !Object.keys(fenceOwn).length ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </span>
+                </div>
+                {plan.robots.length > 1 && (
+                  <div>
+                    <span className="mb-1 block font-semibold">Space between robots</span>
+                    <span className="grid grid-cols-3 gap-0.5 rounded-md border border-border p-0.5" role="group" aria-label="Space between robots">
+                      {SPACINGS.map(([k, label]) => (
+                        <button
+                          key={k}
+                          type="button"
+                          aria-pressed={spacing === k}
+                          onClick={() => setSpacing(k)}
+                          className={cn(
+                            "rounded px-1 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            spacing === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </span>
+                  </div>
+                )}
+                <p className="leading-snug text-muted-foreground">
+                  {Object.keys(fenceOwn).length ? "Your choice per robot (set on each robot below)." : FENCE_MODES.find(([k]) => k === fenceMode)?.[2]}
+                  {plan.robots.length > 1 ? ` ${SPACINGS.find(([k]) => k === spacing)?.[2]}` : ""}
+                </p>
+              </div>
               {budget && (
                 <button
                   onClick={() => setReportOpen(true)}
@@ -909,6 +1074,11 @@ export default function AutomationStudio3D({
                         {r.toolChanger && (
                           <Badge variant="outline" className="h-4 px-1 text-[9px]">
                             Tool changer
+                          </Badge>
+                        )}
+                        {r.tasks.some((t) => isShare(t.name)) && (
+                          <Badge variant="outline" className="h-4 border-sky-500/60 px-1 text-[9px] text-sky-600">
+                            Shares the job
                           </Badge>
                         )}
                         <span className="ml-auto whitespace-nowrap text-[10px] tabular-nums text-muted-foreground">
@@ -987,10 +1157,122 @@ export default function AutomationStudio3D({
                     <Button size="sm" variant={chosen?.robot ? "secondary" : "outline"} className="h-7 w-full text-xs" onClick={() => setPickFor(i)}>
                       <Bot className="mr-1.5 h-3.5 w-3.5" /> {chosen?.robot ? "Change robot, tool & accessories" : "Build robot: drag robot, tool & accessories"}
                     </Button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        aria-pressed={!!fenced[i]}
+                        onClick={() => setFenceOwn({ ...fenceOwn, [pickKey(r)]: !fenced[i] })}
+                        className={cn(
+                          "inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-md border px-2 text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                          fenced[i] ? "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400" : "border-border text-muted-foreground hover:border-primary/60",
+                        )}
+                        title={fenced[i] ? "Take the fence away from this robot" : "Put a safety fence round this robot"}
+                      >
+                        <Shield className="h-3.5 w-3.5" /> {fenced[i] ? "Fenced" : "No fence"}
+                      </button>
+                      {r.tasks.some((t) => added.includes(t.name)) && (
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive" onClick={() => removeRobot(i)}>
+                          <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
+                        </Button>
+                      )}
+                    </div>
+                    {!fenced[i] && !r.collaborative && (
+                      <p className="text-[11px] leading-snug text-amber-600">
+                        Industrial robot without a fence: safety laser scanners stop it when a person comes in (risk assessment to ISO 10218-2).
+                      </p>
+                    )}
                     </div>
                   );
                 })}
               </div>
+              {lineInput && (
+                <div className="mt-2">
+                  {!addOpen ? (
+                    <Button size="sm" variant="outline" className="h-8 w-full border-dashed text-xs" onClick={() => setAddOpen(true)}>
+                      <Plus className="mr-1.5 h-3.5 w-3.5" /> Add robot
+                    </Button>
+                  ) : (
+                    (() => {
+                      const r = plan.robots[focus];
+                      const job = r ? baseJob(mainTask(r).name) : "";
+                      const n = lineInput.filter((t) => baseJob(t.name) === job).length + 1;
+                      return (
+                        <div className="rounded-md border border-primary/40 bg-background p-2 text-xs">
+                          <div className="mb-1.5 flex items-center justify-between gap-2">
+                            <b>Add a robot to the line</b>
+                            <button
+                              type="button"
+                              onClick={() => setAddOpen(false)}
+                              aria-label="Close"
+                              className="rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          {job && (
+                            <button
+                              type="button"
+                              onClick={() => addRobot()}
+                              className="mb-2 w-full rounded-md border border-border p-2 text-left hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            >
+                              <b className="block">
+                                {n} robots on {job}
+                              </b>
+                              <span className="text-muted-foreground">
+                                {r?.title} shares its job: each robot does 1/{n} of the work, so the line makes about {n}× the parts per hour.
+                              </span>
+                            </button>
+                          )}
+                          <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Or a robot for another job</p>
+                          <div className="flex flex-wrap gap-1">
+                            {suggestJobs(lineInput).map((j) => (
+                              <button
+                                key={j}
+                                type="button"
+                                onClick={() => addRobot(j)}
+                                className="rounded-full border border-border px-2 py-0.5 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              >
+                                + {j}
+                              </button>
+                            ))}
+                          </div>
+                          <form
+                            className="mt-2 flex gap-1"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              if (addJobName.trim()) addRobot(addJobName.trim());
+                            }}
+                          >
+                            <input
+                              list="studio-add-jobs"
+                              value={addJobName}
+                              onChange={(e) => {
+                                setAddJobName(e.target.value);
+                                setAddError(null);
+                              }}
+                              placeholder="Any job, e.g. Spot Welding"
+                              aria-label="Job for the new robot"
+                              className="h-7 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            />
+                            <datalist id="studio-add-jobs">
+                              {SKILL_LIBRARY.map((x) => (
+                                <option key={x.id} value={x.template.name} />
+                              ))}
+                            </datalist>
+                            <Button type="submit" size="sm" className="h-7 px-2 text-xs" disabled={!addJobName.trim()}>
+                              Add
+                            </Button>
+                          </form>
+                          {addError && <p className="mt-1 text-[11px] text-destructive">{addError}</p>}
+                          <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+                            The new robot gets its own cell, tools and equipment; parts pass between robots on a transfer belt.
+                          </p>
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              )}
             </Panel>
           )}
 
@@ -1154,7 +1436,7 @@ export default function AutomationStudio3D({
               />
             </Panel>
           )}
-          <Panel title="Reach check">
+          <Panel title={plan && plan.robots.length > 1 ? "Line check" : "Reach check"}>
             <div
               className={cn(
                 "flex gap-2 rounded-md border px-2.5 py-2 text-xs",
@@ -1187,6 +1469,88 @@ export default function AutomationStudio3D({
                   : "Floor space: every station, cabinet and stand has its own floor."}
               </span>
             </div>
+            {plan && plan.robots.length > 1 && (
+              <div
+                className={cn(
+                  "mt-1.5 flex gap-2 rounded-md border px-2.5 py-2 text-xs",
+                  clearance.length ? "border-amber-500/50 text-amber-600" : "border-green-600/50 text-green-600",
+                )}
+              >
+                {clearance.length ? <AlertTriangle className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                <span className="min-w-0">
+                  {clearance.length ? (
+                    <>
+                      {clearance.slice(0, 3).map(clashText).join("; ")}
+                      {clearance.length > 3 ? ` and ${clearance.length - 3} more` : ""}.{" "}
+                      {spacing !== "roomy" ? (
+                        <button
+                          type="button"
+                          onClick={() => setSpacing(spacing === "compact" ? "clear" : "roomy")}
+                          className="font-semibold underline underline-offset-2 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          Give free space
+                        </button>
+                      ) : (
+                        "Choose a smaller robot, or put one on a track."
+                      )}
+                    </>
+                  ) : (
+                    `Free space: every robot moves clear of the other robots' reach and equipment${spacing === "compact" ? "" : " (0.5 m or more between them)"}.`
+                  )}
+                </span>
+              </div>
+            )}
+            {plan && (
+              (() => {
+                const open = plan.robots.map((r, i) => (!fenced[i] && !r.collaborative ? i + 1 : 0)).filter(Boolean);
+                return (
+                  <div
+                    className={cn(
+                      "mt-1.5 flex gap-2 rounded-md border px-2.5 py-2 text-xs",
+                      open.length ? "border-amber-500/50 text-amber-600" : "border-green-600/50 text-green-600",
+                    )}
+                  >
+                    {open.length ? <AlertTriangle className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                    <span>
+                      {open.length
+                        ? `Robot ${open.join(", ")} works without a fence: safety laser scanners must stop it before a person reaches it (risk assessment to ISO 10218-2).`
+                        : fenced.some(Boolean)
+                          ? `Safety: ${fenced.every(Boolean) ? "every robot is fenced" : "industrial robots fenced; cobots guarded by area scanners"}.`
+                          : "Safety: cobots guarded by area scanners and force limits (ISO/TS 15066)."}
+                    </span>
+                  </div>
+                );
+              })()
+            )}
+            {plan && plan.robots.length > 1 && (() => {
+              const times = (state?.cells ?? []).map((c) => c.lastCycle ?? null);
+              if (times.length !== plan.robots.length || times.some((t) => !t)) return null;
+              const ts = times as number[];
+              const max = Math.max(...ts), min = Math.min(...ts);
+              const slow = ts.indexOf(max);
+              const ok = max <= min * 1.35;
+              return (
+                <div className={cn("mt-1.5 flex gap-2 rounded-md border px-2.5 py-2 text-xs", ok ? "border-green-600/50 text-green-600" : "border-amber-500/50 text-amber-600")}>
+                  {ok ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertTriangle className="h-4 w-4 shrink-0" />}
+                  <span>
+                    {ok ? (
+                      `Balanced: every robot takes ${min.toFixed(1)}–${max.toFixed(1)} s per part.`
+                    ) : (
+                      <>
+                        Robot {slow + 1} is the slowest: {max.toFixed(1)} s per part (fastest {min.toFixed(1)} s).{" "}
+                        <button
+                          type="button"
+                          onClick={() => addRobot(undefined, slow)}
+                          className="font-semibold underline underline-offset-2 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          Add a robot to share its job
+                        </button>
+                      </>
+                    )}
+                  </span>
+                </div>
+              );
+            })()}
           </Panel>
           <Panel title={plan ? `Joints: ${plan.robots[focus]?.title ?? ""}` : "Joints"}>
             <p className="mb-2 text-[11px] text-muted-foreground">

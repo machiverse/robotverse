@@ -30,7 +30,7 @@ export interface CellStep { action: string; station?: string; text?: string; lab
 export function areaOf(job: string, kind?: ProcessKind): Area;
 export const JOB_ALSO: [RegExp, string[]][];
 export function jobsOfTitle(title: string | undefined | null): string[];
-export function cellEquipment(jobs: string[], opts?: { fenced?: boolean; steps?: CellStep[] }): CellItem[];
+export function cellEquipment(jobs: string[], opts?: { fenced?: boolean; cobot?: boolean; steps?: CellStep[] }): CellItem[];
 export function lineEquipment(): CellItem[];
 /** The product the user chose for an item, matched by name, if any. */
 export function chosenProduct(item: CellItem, names: string[] | undefined): string | null;

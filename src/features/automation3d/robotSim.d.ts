@@ -52,12 +52,29 @@ export interface SimPlan {
   product?: { key: string; variant?: string; coat?: string };
 }
 
+export type LineSpacing = "compact" | "clear" | "roomy";
+/** Robot `robot` (index) can reach `what` of robot `other`'s cell, `depth` metres inside its reach; or both share space. */
+export interface Interference {
+  kind: "reach" | "shared";
+  robot: number;
+  other: number;
+  what: string;
+  depth: number;
+}
+
 export interface Simulation {
   setSteps(steps: SimStep[]): void;
   setPlan(plan: SimPlan): void;
   setFocus(i: number): void;
   setReference(url: string | null, label?: string): void;
-  setFencing(on: boolean | boolean[]): void;
+  /** Fence the robot cells (one flag each); neighbours share an enclosure unless `separate`. */
+  setFencing(on: boolean | boolean[], opts?: { separate?: boolean }): void;
+  /** Which robots are cobots (paint, control box, scanner). Call before setFencing. */
+  setCobots(flags: boolean[]): void;
+  /** Space between robots: neighbours share space (compact), 0.5 m between reaches (clear), or a metre more (roomy). */
+  setSpacing(mode: LineSpacing): void;
+  /** Robots that can reach another robot's stations, equipment, base or working space. */
+  interference(): Interference[];
   play(): void;
   pause(): void;
   reset(): void;
