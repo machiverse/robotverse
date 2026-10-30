@@ -407,7 +407,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   controls.maxDistance = 45;
   // Cinematic view: a slow orbit round the line, until the user takes the camera.
   controls.autoRotateSpeed = 0.55;
-  controls.addEventListener("start", () => (controls.autoRotate = false));
+  controls.addEventListener("start", () => { controls.autoRotate = false; glide = null; invalidated = true; });
 
   let composer = null;
   let gtao = null;
@@ -588,8 +588,6 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   const pooledMaterials = new WeakSet(Object.values(M));
   const pooledGeometry = new WeakSet();
   const labels = new Set();
-  const ownedMaterials = new Set();
-  const own = (m) => { ownedMaterials.add(m); return m; };
   function protect(root, geometry = false) {
     root.traverse((o) => {
       for (const m of [].concat(o.material || [])) pooledMaterials.add(m);
@@ -610,7 +608,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     });
     geos.forEach((g) => g.dispose());
     texs.forEach((t) => t.dispose());
-    mats.forEach((m) => { m.dispose(); ownedMaterials.delete(m); });
+    mats.forEach((m) => m.dispose());
     root.removeFromParent();
   }
   /** Merge only rigid visible meshes; retain the hierarchy and all animated objects. */
@@ -4011,7 +4009,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   let pendingModels = [], pendingPlan = null, dirtyLine = false, dirtyEquipment = false, dirtyFence = false;
   let builder = null, buildingLine = false, disposed = false, invalidated = true, rebuilds = 0;
   let compileToken = 0, compiling = false;
-  function relayout() { dirtyLine = true; invalidated = true; }
+  function relayout() { dirtyLine = true; invalidated = true; onStatus?.("building"); delete container.dataset.sceneReady; }
   function placeEquipment() { dirtyEquipment = true; invalidated = true; }
   function placeFence() { dirtyFence = true; invalidated = true; }
   function fitShadow() {
@@ -4521,7 +4519,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
 
   let framedByHand = false, glide = null;
   function moveCamera(position,target) {
-    position.y=clamp(position.y,0.25,6.7); position.z=Math.max(position.z,-5); position.x=clamp(position.x,-28,28);
+    position.y=Math.max(position.y,0.25); position.z=Math.max(position.z,-5);
     if (!container.dataset.sceneReady) { camera.position.copy(position); controls.target.copy(target); controls.update(); return; }
     glide={start:performance.now(),from:camera.position.clone(),to:position.clone(),at:controls.target.clone(),target:target.clone()};
     invalidated=true;
@@ -4864,6 +4862,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     /** Frame a shot by hand: camera at `position`, looking at `target` (metres, world axes); `orbit` circles it slowly. */
     setCamera(position, target, orbit = false) {
       framedByHand = true;
+      glide=null; invalidated=true;
       controls.autoRotate = !!orbit;
       camera.position.set(position[0], position[1], position[2]);
       controls.target.set(target[0], target[1], target[2]);
@@ -4905,7 +4904,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       placeReference();
     },
     setFocus(i) {
-      focus = clamp(Number(i) || 0, 0, cells.length - 1);
+      focus = clamp(Number(i) || 0, 0, Math.max(0,(pendingPlan?.cells.length || cells.length)-1));
       emit(true);
     },
     setJoint(i, deg) {
