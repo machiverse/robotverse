@@ -1726,6 +1726,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   const addOn = (part, geo, color, pos, extra = {}) => {
     const key = `${color}:${JSON.stringify(extra)}`;
     if (!addOnMats.has(key)) addOnMats.set(key, new THREE.MeshStandardMaterial({ color, metalness: 0.3, roughness: 0.5, ...extra }));
+    pooledMaterials.add(addOnMats.get(key));
     const m = new THREE.Mesh(geo, addOnMats.get(key));
     m.position.copy(pos);
     m.castShadow = true;
@@ -2887,8 +2888,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
 
       // Model label under the robot's title, e.g. "FANUC M-20iD/25 · 25 kg · 1811 mm".
       let modelLabel = null;
-      if (model && model.label) {
-        modelLabel = makeLabel(model.label, "#93c5fd");
+      if ((model && model.label) || !title) {
+        modelLabel = makeLabel(model?.label || `Robot ${index+1}`, "#93c5fd");
+        modelLabel.userData.priority = title ? 2 : 4;
         if (cartesian) modelLabel.position.set(X + L / 2, GANTRY_H + 0.9, 0);
         else modelLabel.position.set(0, inverted ? -0.75 : 2.05 + (s - 1) * 0.4, inverted ? -0.2 : 0.2);
         root.add(modelLabel);
@@ -4014,6 +4016,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (disposed || buildingLine) return;
     buildingLine = true;
     try {
+      if (dirtyLine || dirtyEquipment || dirtyFence) invalidated = true;
       if (dirtyLine) {
         if (builder) { builder.return(); builder=null; }
         dirtyLine = dirtyEquipment = dirtyFence = false;
@@ -4041,6 +4044,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   /* Plan / line construction */
   function disposeLine() {
     clearEquipment();
+    clearFence();
+    clearOverlay();
     cells.forEach((c) => c.dispose());
     conveyors.forEach((c) => {
       c.clear();
@@ -4532,7 +4537,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       top: [new THREE.Vector3(cx + 0.01, 6.2 * k, 0.01), new THREE.Vector3(cx, 0, 0)],
       side: [new THREE.Vector3(cx + 0.1, 1.6 * k, 4.6 * k), new THREE.Vector3(cx, 0.8, 0)],
     };
-    if (cells.length > 1 || span > 0) {
+    if (cells.length > 1 || span > 0 || visibleAspect() < 1) {
       // Fit the whole line across the screen, whatever the stage's shape.
       const vfov = (camera.fov * Math.PI) / 180;
       const hfov = 2 * Math.atan(Math.tan(vfov / 2) * Math.max(visibleAspect(), 0.5));
@@ -4857,6 +4862,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
      * enclosure; `separate` gives every robot its own.
      */
     setFencing(on, opts = {}) {
+      onStatus?.("building"); delete container.dataset.sceneReady;
       fenceCells = Array.isArray(on) ? on.map(Boolean) : (pendingPlan?.cells || cells).map(() => !!on);
       fenceSeparate = !!opts.separate;
       // Industrial robots in yellow; cobots in white and blue (a fence alone does not make a robot industrial).
