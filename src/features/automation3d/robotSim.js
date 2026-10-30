@@ -1380,6 +1380,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     });
     return b;
   }
+  /** The solid parts of a group as boxes in its own frame (thin cables, conduits and hoses left out), for the clearance watch. */
+  function solidBoxes(root) {
+    root.updateWorldMatrix(true, true);
+    const inv = root.matrixWorld.clone().invert(), out = [], m = new THREE.Matrix4(), size = new THREE.Vector3();
+    root.traverse((o) => {
+      if (!o.isMesh || o.isSprite || !o.geometry || !o.visible || o.userData.zone || o.userData.dynamic) return;
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      const b = o.geometry.boundingBox.clone().applyMatrix4(m.multiplyMatrices(inv, o.matrixWorld));
+      if (b.isEmpty() || Math.min(...b.getSize(size).toArray()) < 0.035) return;
+      out.push(b);
+    });
+    return out;
+  }
   function clearEquipment() {
     obstaclesDirty = true;
     for (const g of [equipGroup, equipOutside]) {
@@ -1699,6 +1712,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       for (const child of g.children) if (child.isGroup) {
         child.updateWorldMatrix(true,true);
         child.userData.bakedBounds=meshBox(child).applyMatrix4(child.matrixWorld.clone().invert());
+        child.userData.solid=solidBoxes(child);
         ground(child);
       }
       g.traverse((o)=>{
@@ -4119,7 +4133,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         });
       },
     };
-    groups.forEach((g) => { if (g.isGroup && g !== zoneGroup && g !== mover) { ground(g); bakeStatic(g); } });
+    groups.forEach((g) => { if (g.isGroup && g !== zoneGroup && g !== mover) { g.userData.solid = solidBoxes(g); ground(g); bakeStatic(g); } });
     // Move mode: each station's group, the station keys it carries and the fixed point it turns round.
     const stationInfo = new Map();
     {
@@ -5172,16 +5186,20 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         for (const ch of g.children)
           if (ch.isGroup && ch.userData.what && !ch.userData.attached) {
             const b = meshBox(ch);
-            if (!b.isEmpty()) obstacles.push({ what: ch.userData.what, cell: ch.userData.cell, box: b });
+            if (!b.isEmpty()) obstacles.push({ what: ch.userData.what, cell: ch.userData.cell, box: b, parts: worldBoxes(ch) });
           }
     fenceSides.forEach((b) => obstacles.push({ what: "the safety fence", cell: -1, box: b }));
     cells.forEach((c, i) =>
       c.stationInfos().forEach((info) => {
         const b = meshBox(info.group);
-        if (!b.isEmpty()) obstacles.push({ what: info.name, cell: i, keys: info.keys, box: b });
+        if (!b.isEmpty()) obstacles.push({ what: info.name, cell: i, keys: info.keys, box: b, parts: worldBoxes(info.group) });
       })
     );
   }
+  const worldBoxes = (g) => {
+    g.updateWorldMatrix(true, false);
+    return (g.userData.solid || []).map((b) => b.clone().applyMatrix4(g.matrixWorld));
+  };
   const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3();
   function segBox(a, b, box) {
     let best = Infinity, k0 = 0;
@@ -5223,6 +5241,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       }
       const n = c.steps.length, st = c.steps[c.stepIdx], prev = n ? c.steps[(c.stepIdx - 1 + n) % n] : null;
       const skip = new Set([st && st.station, prev && prev.station].filter(Boolean));
+      // A step that works with a process tool starts and ends with a tool change at the stand.
+      const toolStep = (x) => x && (x.action === "weld" || x.action === "toolchange" || TOOL_ACTIONS[x.action]);
+      if (toolStep(st) || toolStep(prev)) skip.add("rack");
       const sc = c.armScale, near = new Set();
       let best = null;
       const consider = (d, what, l, a, b, t, box) => {
@@ -5240,7 +5261,15 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const a = pts[l], b = pts[l + 1], rad = l === 2 ? 0.06 : 0.09 * sc;
         for (const o of obstacles) {
           if (o.keys && o.cell === i && o.keys.some((k) => skip.has(k))) continue;
-          const [d, t] = segBox(a, b, o.box);
+          let [d, t] = segBox(a, b, o.box);
+          if (d - rad > 0.4) continue;
+          if (o.parts && o.parts.length) {
+            d = Infinity;
+            for (const pb of o.parts) {
+              const [dd, tt] = segBox(a, b, pb);
+              if (dd < d) [d, t] = [dd, tt];
+            }
+          }
           consider(d - rad, o.what, l, a, b, t, o.box);
         }
         arms.forEach((q, j) => {
