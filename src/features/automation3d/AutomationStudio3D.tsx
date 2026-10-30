@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { AlertTriangle, BookOpen, Bot, Camera, CheckCircle2, FileText, Info, Loader2, Maximize2, Minimize2, Minus, Pause, Play, Plus, Repeat, RotateCcw, Shield, Sparkles, Trash2, Wrench, X } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills, SKILL_LIBRARY } from "@/utils/processAnalyzer";
-import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Interference, type LineSpacing, type Simulation, type SimQuality } from "./robotSim.js";
+import { createSimulation, planSignature, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Interference, type LayoutEdit, type MotionClearance, type LineSpacing, type Simulation, type SimQuality } from "./robotSim.js";
 import { addJob, baseJob, isShare, removeTasks, shareJob, suggestJobs } from "./lineEdit";
 import { CINEMATIC_POST } from "./cinematicPost";
 import CellEquipmentList from "./CellEquipmentList";
@@ -55,7 +55,12 @@ type SimState = {
   product?: { label: string; kg: number; size: [number, number, number]; gripper: string } | null;
   tools?: string[];
   quality?: SimQuality;
+  clearance?: MotionClearance[];
 };
+
+/** "the torch cleaner", "Robot 2", "the safety fence". */
+const theThing = (what: string) => (/^(Robot \d|the )/.test(what) ? what : `the ${what.charAt(0).toLowerCase()}${what.slice(1)}`);
+const layoutStore = (brief: string | undefined) => `rv-studio-layout:${(brief ?? "").slice(0, 200)}`;
 
 /** "300 × 240 × 220 mm" (length × width × height). */
 const mmSize = ([w, h, d]: [number, number, number]) => `${Math.round(w * 1000)} × ${Math.round(d * 1000)} × ${Math.round(h * 1000)} mm`;
@@ -176,6 +181,8 @@ export default function AutomationStudio3D({
   const simRef = useRef<Simulation | null>(null);
   const [sceneStatus, setSceneStatus] = useState<"building" | "ready" | "lost">("building");
   const [labels, setLabels] = useState<"key" | "all" | "off">("key");
+  const [layout, setLayout] = useState({ edits: 0, moveMode: false, showPaths: false });
+  const layoutSig = useRef("");
   const [smoothNotice, setSmoothNotice] = useState(false);
   const [text, setText] = useState<string>(initialProcess || PRESETS["Machine tending"]);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -426,6 +433,15 @@ export default function AutomationStudio3D({
       onUpdate: (s: SimState) => setState(s),
       onStatus: (status) => { setSceneStatus(status); if (status === "ready") recheck(); },
       onPerformance: () => setSmoothNotice(true),
+      onLayout: (info) => {
+        setLayout({ edits: info.edits.length, moveMode: info.moveMode, showPaths: info.showPaths });
+        try {
+          if (layoutSig.current) localStorage.setItem(layoutStore(briefRef.current), JSON.stringify({ sig: layoutSig.current, edits: info.edits }));
+        } catch {
+          /* private mode */
+        }
+        recheck();
+      },
     });
     simRef.current = sim;
     if (reference) sim.setReference(reference, "Your reference: manual process today");
@@ -543,6 +559,7 @@ export default function AutomationStudio3D({
     setSteps(p.robots[f]?.steps || []);
     setNotes(planNotes);
     simRef.current?.setPlan({ ...p.sim, brief: briefRef.current });
+    restoreLayout(p);
     // Cobots in cobot paint; fences as the user set them (the fence effect applies later changes).
     simRef.current?.setCobots(p.robots.map((r) => r.collaborative));
     simRef.current?.setFencing(
@@ -552,6 +569,21 @@ export default function AutomationStudio3D({
     simRef.current?.setFocus(f);
     simRef.current?.play();
     recheck();
+  }
+
+  /** The user's moves saved for this brief and this line (same robots, jobs and stations). */
+  function restoreLayout(p: LinePlan) {
+    const sig = planSignature(p.sim);
+    if (sig === layoutSig.current) return;
+    layoutSig.current = sig;
+    let saved: { sig?: string; edits?: LayoutEdit[] } | null = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(layoutStore(briefRef.current)) || "null");
+    } catch {
+      saved = null;
+    }
+    if (saved && saved.sig === sig && Array.isArray(saved.edits) && saved.edits.length) simRef.current?.setLayoutEdits(saved.edits);
+    else setLayout((l) => ({ ...l, edits: 0 }));
   }
 
   function restart() {
@@ -1345,6 +1377,11 @@ export default function AutomationStudio3D({
           <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2">
             <div role="group" aria-label="Camera view" className="flex min-w-0 overflow-x-auto rounded-md border border-white/10 bg-[#0c121b]/80 p-0.5 backdrop-blur [scrollbar-width:none]">
               <Button variant="secondary" size="sm" className="shrink-0 text-xs" onClick={() => { const next = labels === "key" ? "all" : labels === "all" ? "off" : "key"; setLabels(next); simRef.current?.setLabels(next); }}>Labels: {labels === "key" ? "Key" : labels === "all" ? "All" : "Off"}</Button>
+              <Button variant={layout.moveMode ? "default" : "secondary"} size="sm" className="shrink-0 text-xs" aria-pressed={layout.moveMode} title="Move robots, stations and equipment (M)" onClick={() => simRef.current?.setMoveMode(!layout.moveMode)}>Move</Button>
+              <Button variant={layout.showPaths ? "default" : "secondary"} size="sm" className="shrink-0 text-xs" aria-pressed={layout.showPaths} onClick={() => simRef.current?.setShowPaths(!layout.showPaths)}>Show robot paths</Button>
+              {layout.edits > 0 && (
+                <Button variant="secondary" size="sm" className="shrink-0 text-xs" onClick={() => simRef.current?.resetLayout()}>Reset layout</Button>
+              )}
               {VIEWS.map(([k, l]) => (
                 <button
                   key={k}
@@ -1474,6 +1511,40 @@ export default function AutomationStudio3D({
                   : "Floor space: every station, cabinet and stand has its own floor."}
               </span>
             </div>
+            {(() => {
+              const list = (state?.clearance ?? []).filter((c) => c.min != null);
+              if (!list.length) return null;
+              const worst = list.reduce((a, b) => ((b.min as number) < (a.min as number) ? b : a));
+              const who = (i: number) => ((plan?.robots.length ?? 1) > 1 ? `Robot ${i + 1}` : "The robot");
+              const hit = (worst.min as number) < 0.03;
+              return (
+                <div
+                  className={cn(
+                    "mt-1.5 flex gap-2 rounded-md border px-2.5 py-2 text-xs",
+                    hit ? "border-destructive/50 text-destructive" : "border-green-600/50 text-green-600",
+                  )}
+                >
+                  {hit ? <AlertTriangle className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                  <span className="min-w-0">
+                    <b className="font-semibold">Motion clearance: </b>
+                    {hit ? (
+                      <>
+                        {`${who(worst.robot)}'s ${worst.link ?? "arm"} hits ${theThing(worst.against ?? "something")}${worst.step ? ` during '${worst.step}'` : ""}. `}
+                        <button
+                          type="button"
+                          onClick={() => simRef.current?.showClash(worst.robot)}
+                          className="font-semibold underline underline-offset-2 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          Show me
+                        </button>
+                      </>
+                    ) : (
+                      `Robots move clear of everything: closest ${(worst.min as number).toFixed(2)} m (${who(worst.robot)} to ${theThing(worst.against ?? "")}).`
+                    )}
+                  </span>
+                </div>
+              );
+            })()}
             {plan && plan.robots.length > 1 && (
               <div
                 className={cn(
