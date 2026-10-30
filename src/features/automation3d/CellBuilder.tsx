@@ -581,9 +581,15 @@ export default function CellBuilder() {
     data?.tools.forEach((x) => m.set(`${x.source}:${x.id}`, x));
     return m;
   }, [data]);
-  // Open a job from the engineer's playbook (#job=…) with a suggested robot and tool.
+  // Open a job from the engineer's playbook (#job=…) with a suggested robot and tool, or a ready cell (#starter=conveyor).
   useEffect(() => {
     if (!raw) return;
+    const starter = STARTERS.find((st) => st.id === window.location.hash.match(/starter=([\w-]+)/)?.[1]);
+    if (starter) {
+      applyStarter(starter.jobs, starter.cells);
+      window.history.replaceState(null, "", window.location.pathname);
+      return;
+    }
     // One job, or a whole line as job|job|job; names outside the builder's list map to their family's job.
     const wanted = decodeURIComponent(window.location.hash.match(/job=([^&]+)/)?.[1] ?? "");
     const jobs = wanted
