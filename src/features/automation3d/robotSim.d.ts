@@ -63,6 +63,10 @@ export interface Interference {
 }
 
 export interface Simulation {
+  stats(): { drawCalls: number; triangles: number; geometries: number; textures: number; fps: number; pixelRatio: number; quality: SimQuality; rebuilds: number };
+  setLabels(mode: "key" | "all" | "off"): void;
+  reload(): void;
+  setEquipmentAll(list: Parameters<Simulation["setEquipment"]>[1][]): void;
   setSteps(steps: SimStep[]): void;
   setPlan(plan: SimPlan): void;
   setFocus(i: number): void;
@@ -145,4 +149,6 @@ export function createSimulation(opts: {
   quality?: SimQuality;
   container: HTMLElement;
   onUpdate?: (s: SimUpdate) => void;
+  onStatus?: (status: "building" | "ready" | "lost") => void;
+  onPerformance?: (mode: "smooth") => void;
 }): Simulation;

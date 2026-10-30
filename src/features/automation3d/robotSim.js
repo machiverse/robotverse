@@ -6,6 +6,8 @@
  * Coordinates: metres, Y up, robot base at world origin.
  */
 
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+
 import { createWorkpieces, productFor } from "./workpieces.js";
 import { createToolKit, eoatLook, headFor, HEAD_FX, TOOL_LOOK_NAMES } from "./toolHeads.js";
 import { cellEquipment, chosenProduct, createEquipmentModels, jobsOfTitle, lineEquipment } from "./cellEquipment.js";
@@ -347,7 +349,7 @@ const BELT_TOP = 0.78;
  * Only the stations a cell's steps use are built, so the scene shows just
  * the machines the process needs.
  */
-export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, quality: wantQuality, container, onUpdate }) {
+export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, quality: wantQuality, container, onUpdate, onStatus, onPerformance }) {
   const LIGHT_K = Number(THREE.REVISION) >= 155 ? Math.PI : 1;
   // The product this line handles: its size drives grips, slots and stations.
   const PART = { ...PART0 };
@@ -366,7 +368,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   // Auto mode starts light so the first picture appears fast, then steps up to cinematic once frames prove smooth.
   let canUpgrade = qualityAuto && quality === "high";
   if (canUpgrade) quality = "standard";
-  const pixelRatio = () => Math.min(window.devicePixelRatio || 1, quality === "high" ? 1.5 : 1.75);
+  let resolution = 1;
+  const pixelRatio = () => Math.max(0.75, Math.min(window.devicePixelRatio || 1, quality === "high" ? 1.5 : 1.75) * resolution);
   renderer.setPixelRatio(pixelRatio());
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -378,7 +381,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   // Physically based look: sRGB output, filmic tone mapping, soft image-based lighting.
   if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.AgXToneMapping !== undefined ? THREE.AgXToneMapping : THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = THREE.AgXToneMapping !== undefined ? 1.15 : 1.0;
+  renderer.toneMappingExposure = THREE.AgXToneMapping !== undefined ? 1.02 : 1.0;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x2a2f35);
@@ -404,7 +407,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   controls.maxDistance = 45;
   // Cinematic view: a slow orbit round the line, until the user takes the camera.
   controls.autoRotateSpeed = 0.55;
-  controls.addEventListener("start", () => (controls.autoRotate = false));
+  controls.addEventListener("start", () => { controls.autoRotate = false; glide = null; invalidated = true; });
 
   let composer = null;
   let gtao = null;
@@ -477,8 +480,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   const sun = new THREE.DirectionalLight(0xfff6ec, 1.15 * LIGHT_K);
   sun.castShadow = true;
   sun.shadow.mapSize.set(quality === "high" ? 4096 : 2048, quality === "high" ? 4096 : 2048);
-  sun.shadow.bias = -0.0004;
-  sun.shadow.normalBias = 0.02;
+  sun.shadow.bias = -0.00008;
+  sun.shadow.normalBias = 0.003;
   sun.shadow.radius = 4;
   scene.add(sun, sun.target);
   const rim = new THREE.DirectionalLight(0xdfe8f2, 0.22 * LIGHT_K);
@@ -581,9 +584,91 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     card: new THREE.MeshStandardMaterial({ color: 0xc49a6c, metalness: 0, roughness: 0.9 }),
   };
 
+  // Asset factories own their pooled materials/geometry; transient groups own everything else.
+  const pooledMaterials = new WeakSet(Object.values(M));
+  const pooledGeometry = new WeakSet();
+  const labels = new Set();
+  function protect(root, geometry = false) {
+    root.traverse((o) => {
+      for (const m of [].concat(o.material || [])) pooledMaterials.add(m);
+      if (geometry && o.geometry) pooledGeometry.add(o.geometry);
+    });
+    return root;
+  }
+  function disposeGroup(root) {
+    if (!root) return;
+    const geos = new Set(), mats = new Set(), texs = new Set();
+    root.traverse((o) => {
+      labels.delete(o);
+      if (o.geometry && !pooledGeometry.has(o.geometry)) geos.add(o.geometry);
+      for (const m of [].concat(o.material || [])) if (!pooledMaterials.has(m)) {
+        mats.add(m);
+        for (const v of Object.values(m)) if (v && v.isTexture) texs.add(v);
+      }
+    });
+    geos.forEach((g) => g.dispose());
+    texs.forEach((t) => t.dispose());
+    mats.forEach((m) => m.dispose());
+    root.removeFromParent();
+  }
+  /** Merge only rigid visible meshes; retain the hierarchy and all animated objects. */
+  function bakeStatic(group) {
+    group.updateWorldMatrix(true, true);
+    const inverse = group.matrixWorld.clone().invert(), batches = new Map(), removed = [];
+    const visit = (o) => {
+      if (o !== group && (o.userData.dynamic || !o.visible || o.isSprite)) return;
+      if (o.isMesh && o.geometry && !o.userData.dynamic && !Array.isArray(o.material)) {
+        const key = `${o.material.uuid}:${o.castShadow}:${o.receiveShadow}`;
+        const list = batches.get(key) || [];
+        list.push(o); batches.set(key, list);
+      }
+      o.children.forEach(visit);
+    };
+    group.children.forEach(visit);
+    for (const meshes of batches.values()) {
+      if (meshes.length < 2) continue;
+      const copies = meshes.map((m) => {
+        const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+        for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
+        if (!g.attributes.normal) g.computeVertexNormals();
+        if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+        g.clearGroups(); g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse, m.matrixWorld));
+        return g;
+      });
+      const geometry = mergeGeometries(copies, false);
+      copies.forEach((g) => g.dispose());
+      if (!geometry) continue;
+      const merged = new THREE.Mesh(geometry, meshes[0].material);
+      merged.castShadow = meshes[0].castShadow; merged.receiveShadow = meshes[0].receiveShadow;
+      group.add(merged);
+      meshes.forEach((m) => { removed.push(m.geometry); m.removeFromParent(); });
+    }
+    new Set(removed).forEach((g) => { if (!pooledGeometry.has(g)) g.dispose(); });
+    return group;
+  }
+  const contactTexture = canvasTex(64, 64, (g, w, h) => {
+    const fade = g.createRadialGradient(w/2, h/2, 3, w/2, h/2, w/2);
+    fade.addColorStop(0, 'rgba(0,0,0,0.28)'); fade.addColorStop(0.6, 'rgba(0,0,0,0.12)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = fade; g.fillRect(0,0,w,h);
+  });
+  const contactMaterial = new THREE.MeshBasicMaterial({ map: contactTexture, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 });
+  pooledMaterials.add(contactMaterial);
+  function ground(group) {
+    const b = meshBox(group);
+    if (b.isEmpty()) return;
+    group.updateWorldMatrix(true, false);
+    const p = new THREE.Vector3((b.min.x+b.max.x)/2, 0.008, (b.min.z+b.max.z)/2);
+    const decal = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.25,b.max.x-b.min.x)*1.18, Math.max(0.25,b.max.z-b.min.z)*1.18), contactMaterial);
+    decal.rotation.x = -Math.PI/2;
+    // Decals are world-aligned even when their owning machine is rotated.
+    decal.position.copy(p); decal.updateMatrix();
+    decal.applyMatrix4(group.matrixWorld.clone().invert());
+    decal.userData.zone = true; group.add(decal);
+  }
+
   const box = (w, h, d, mat) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-    m.castShadow = true;
+    m.castShadow = Math.max(w, h, d) > 0.18 && Math.min(w,h,d) > 0.055;
     m.receiveShadow = true;
     return m;
   };
@@ -610,7 +695,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   };
   const cyl = (r, h, mat, seg = 32) => {
     const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), mat);
-    m.castShadow = true;
+    m.castShadow = r > 0.065 && h > 0.15;
     m.receiveShadow = true;
     return m;
   };
@@ -765,7 +850,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   const building = new THREE.Group();
   /** The roof (trusses, deck, light strips, lamps): out of the way when the camera looks down from above it. */
   const roofParts = [];
-  {
+  function buildHall() {
     const add = (geo, mat, { shadow = false } = {}) => {
       const m = new THREE.Mesh(geo, mat);
       m.receiveShadow = true;
@@ -945,8 +1030,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     paint(60, 1.2, 0x2f6b52, 0, 3.8);
     paint(60, 0.08, 0xf2b705, 0, 3.16, 0.5);
     paint(60, 0.08, 0xf2b705, 0, 4.44, 0.5);
-  }
+  roofParts.forEach((o) => { o.userData.dynamic = true; });
+  bakeStatic(building);
   scene.add(building);
+  }
 
   function makeLabel(text, color = "#e6ecf3") {
     const c = document.createElement("canvas");
@@ -982,12 +1069,40 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     s.layers.set(LABELS);
     s.userData.label = w / 80;
     s.userData.text = text;
+    s.userData.dynamic = true;
+    s.userData.priority = Object.values(STATION_NAMES).some((n) => text.startsWith(n)) ? 3 : 2;
+    labels.add(s);
     return s;
   }
 
   // Labels shrink with distance like real signs, but never below a readable size or into giant banners up close.
   const labelAt = new THREE.Vector3();
   const labelParent = new THREE.Vector3();
+  let labelMode = "key", lastLabels = 0, hoveredLabel = null;
+  const pointer = new THREE.Vector2(2,2), raycaster = new THREE.Raycaster();
+  function updateLabels(now) {
+    if (now-lastLabels < 200) return;
+    lastLabels = now;
+    scene.updateMatrixWorld(true); camera.updateMatrixWorld();
+    const boxes = [], w = container.clientWidth || 800, h = container.clientHeight || 500;
+    const active = cells.flatMap((c) => { const st = c.steps[c.stepIdx]; return st ? [STATION_NAMES[st.station.replace(/_2$/, '')]] : []; });
+    const sorted = [...labels].filter((o) => o.parent).sort((a,b) => b.userData.priority-a.userData.priority);
+    raycaster.setFromCamera(pointer,camera);
+    const hit = raycaster.intersectObjects(scene.children,true).find((x) => x.object.isMesh && !x.object.userData.zone);
+    hoveredLabel = null;
+    if (hit) { let g=hit.object; while(g && g!==scene) { const l=g.children.find((o)=>o.isSprite); if(l) { hoveredLabel=l; break; } g=g.parent; } }
+    for (const o of sorted) {
+      const key = o.userData.priority >= 4 || (o.userData.priority === 3 && active.some((n)=>n && o.userData.text.startsWith(n))) || o===hoveredLabel;
+      o.visible = labelMode !== 'off' && (labelMode === 'all' || key);
+      if (!o.visible) continue;
+      const p = new THREE.Vector3().setFromMatrixPosition(o.matrixWorld).project(camera);
+      if (p.z < -1 || p.z > 1) { o.visible=false; continue; }
+      const x=(p.x+1)*w/2,y=(1-p.y)*h/2, height=22, width=height*o.userData.label;
+      const b=[x-width/2,y-height/2,x+width/2,y+height/2];
+      if (boxes.some((a)=>a[0]<b[2] && a[2]>b[0] && a[1]<b[3] && a[3]>b[1])) o.visible=false;
+      else boxes.push(b);
+    }
+  }
   function sizeLabels() {
     const half = (container.clientHeight || 500) / 2;
     const f = camera.projectionMatrix.elements[5];
@@ -1014,6 +1129,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (!refGroup) return;
     scene.remove(refGroup);
     refGroup.traverse((o) => {
+      labels.delete(o);
       if (o.geometry) o.geometry.dispose();
       if (o.material && o.material !== M.dark && o.material !== M.frame) {
         if (o.material.map) o.material.map.dispose();
@@ -1132,19 +1248,6 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     return hits;
   }
   /** Lay the line out again (new spacing, bigger robots) and keep each robot the user chose. */
-  function relayout() {
-    if (!lastPlan) return;
-    const models = cells.map((c) => c.model);
-    buildLine(lastPlan, models.map((m) => (m && m.scale) || null));
-    cells.forEach((c, i) => {
-      if (models[i]) c.setModel(models[i]);
-      c.setPaint(industrialOf(i));
-    });
-    placeEquipment();
-    placeFence();
-    if (overlay !== "none") setOverlay(overlay);
-    reset();
-  }
   /** True when the robots now on the line need other gaps than they stand at. */
   function gapsChanged() {
     if (spacing === "compact" || cells.length < 2) return false;
@@ -1166,19 +1269,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   let fenceGroup = null;
   const fenceMesh = new THREE.MeshStandardMaterial({ color: 0xf2b705, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false });
   const laserPanel = new THREE.MeshStandardMaterial({ color: 0x1f3b2c, metalness: 0.2, roughness: 0.2, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
+  pooledMaterials.add(fenceMesh); pooledMaterials.add(laserPanel);
   function clearFence() {
     if (!fenceGroup) return;
     scene.remove(fenceGroup);
-    fenceGroup.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.isSprite) {
-        o.material.map.dispose();
-        o.material.dispose();
-      }
-    });
+    disposeGroup(fenceGroup);
     fenceGroup = null;
   }
-  function placeFence() {
+  function placeFenceNow() {
     clearFence();
     if (!fenceCells.some(Boolean)) return;
     // Enclose everything the cells and conveyors occupy on the floor.
@@ -1234,6 +1332,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       lbl.position.set((x0 + x1) / 2, H + 0.18, z1);
       g.add(lbl);
     }
+    g.traverse((o) => { o.castShadow = false; });
+    bakeStatic(g);
     scene.add(g);
     fenceGroup = g;
   }
@@ -1259,7 +1359,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   function meshBox(root) {
     const b = new THREE.Box3();
     const t = new THREE.Box3();
-    root.updateMatrixWorld(true);
+    root.updateWorldMatrix(true, true);
+    if (root.userData.bakedBounds) b.copy(root.userData.bakedBounds).applyMatrix4(root.matrixWorld);
     root.traverse((o) => {
       if (!o.isMesh || o.isSprite || !o.geometry || o.visible === false || o.userData.zone) return;
       if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
@@ -1272,21 +1373,13 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     for (const g of [equipGroup, equipOutside]) {
       if (!g) continue;
       scene.remove(g);
-      g.traverse((o) => {
-        if (o.isSprite) {
-          if (o.material.map) o.material.map.dispose();
-          o.material.dispose();
-        } else if (o.geometry) o.geometry.dispose();
-      });
+      disposeGroup(g);
     }
-    for (const [parent, o] of armEquipment) {
-      parent.remove(o);
-      o.traverse((m) => m.geometry && m.geometry.dispose());
-    }
+    for (const [parent, o] of armEquipment) disposeGroup(o);
     armEquipment = [];
     equipGroup = equipOutside = null;
   }
-  function placeEquipment() {
+  function placeEquipmentNow() {
     clearEquipment();
     laserCells = [];
     if (!cells.length) return;
@@ -1318,6 +1411,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     /** Build an item's model and stand it at (x, z) facing rotY; false when it is not drawn. */
     const stand = (item, x, z, rotY, parent, names, opts) => {
       const built = equipModels.buildModel(item.model, { ...item, ...opts });
+      if (built) protect(built.group);
       if (!built) return false;
       built.group.userData.what = item.label;
       built.group.userData.cell = cellNow;
@@ -1418,6 +1512,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
               if (along.some((r) => hits(r, 0.02))) continue;
               const r = footprint(x, z, 0.3, 0.3, 0);
               const b = equipModels.buildModel(item.model, item);
+              if (b) protect(b.group);
               b.group.position.set(x, 0, z);
               b.group.rotation.y = rot;
               equipGroup.add(b.group);
@@ -1456,6 +1551,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       const near = { base: [[0.62, 0.78, 0.94], [-135, -90, -160, 180, -45, 135, 160, 110]], reach: [[0.95, 1.1, 1.25, 1.4], [135, 160, 110, 180, -160, 45, 20, -20, -135, -45, 90, 70, -110]] };
       for (const item of items.filter((x) => (x.at === "base" || x.at === "reach") && x.model)) {
         const built = equipModels.buildModel(item.model, item);
+        if (built) protect(built.group);
         if (!built) continue;
         const [w, , d] = built.size;
         // The area scanner sits low in front of the base; the rest search a ring round the robot.
@@ -1473,7 +1569,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           if (spot) break;
         }
         if (!spot) {
-          built.group.traverse((o) => o.geometry && o.geometry.dispose());
+          disposeGroup(built.group);
           continue;
         }
         const [x, z, rot, fr] = spot;
@@ -1491,6 +1587,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       if (arm)
         for (const item of items.filter((x) => x.at === "arm" && x.model)) {
           const built = equipModels.buildModel(item.model, item);
+        if (built) protect(built.group);
           if (!built) continue;
           const sc = c.robot.dims ? c.robot.dims.L2 / 0.7 : 1;
           built.group.scale.setScalar(sc);
@@ -1508,6 +1605,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       const behind = [];
       for (const item of items.filter((x) => x.at === "outside" && x.model)) {
         const built = equipModels.buildModel(item.model, item);
+        if (built) protect(built.group);
         if (!built) continue;
         const [w, h, d] = built.size;
         if (cursor + w > xMax && cursor > X - 1.6) {
@@ -1551,6 +1649,20 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     for (const item of lineEquipment()) {
       const x = cellStart[0] - 1.35, z = 2.5;
       stand(item, x, z, 0, equipOutside, []);
+    }
+    for (const g of [equipGroup,equipOutside]) {
+      for (const child of g.children) if (child.isGroup) {
+        child.updateWorldMatrix(true,true);
+        child.userData.bakedBounds=meshBox(child).applyMatrix4(child.matrixWorld.clone().invert());
+        ground(child);
+      }
+      g.traverse((o)=>{
+        if (!o.isMesh || !o.geometry || o.userData.dynamic) return;
+        o.geometry.computeBoundingBox();
+        const size=o.geometry.boundingBox.getSize(new THREE.Vector3());
+        o.castShadow = !o.userData.zone && Math.max(size.x,size.y,size.z)>0.5 && Math.min(size.x,size.y,size.z)>0.12;
+      });
+      bakeStatic(g);
     }
     scene.add(equipGroup);
     scene.add(equipOutside);
@@ -1604,7 +1716,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   let lineTools = [];
   const parts = new Set();
   function spawnPart(pos) {
-    const m = kit.spawn();
+    const m = protect(kit.spawn(), true);
+    m.userData.dynamic = true;
     m.position.copy(pos);
     scene.add(m);
     parts.add(m);
@@ -1615,6 +1728,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   function removePart(m) {
     if (!m) return;
     m.parent && m.parent.remove(m);
+    m.traverse((o) => { if (o.userData.addOn) o.geometry.dispose(); });
     parts.delete(m);
   }
   // What a step adds to a product that has no look of its own for it (a bead, a screw, a label).
@@ -1622,9 +1736,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   const addOn = (part, geo, color, pos, extra = {}) => {
     const key = `${color}:${JSON.stringify(extra)}`;
     if (!addOnMats.has(key)) addOnMats.set(key, new THREE.MeshStandardMaterial({ color, metalness: 0.3, roughness: 0.5, ...extra }));
+    pooledMaterials.add(addOnMats.get(key));
     const m = new THREE.Mesh(geo, addOnMats.get(key));
     m.position.copy(pos);
     m.castShadow = true;
+    m.userData.addOn = true;
     part.add(m);
     return m;
   };
@@ -1662,6 +1778,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       new THREE.MeshStandardMaterial({ map: beltTex, roughness: 0.9 })
     );
     belt.position.set(cx, topY - 0.01, cz);
+    belt.userData.dynamic = true;
     belt.receiveShadow = true;
     g.add(belt);
     for (const dx of [-len / 2 + 0.1, len / 2 - 0.1]) {
@@ -1693,6 +1810,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const lbl = makeLabel(label);
     lbl.position.set(cx, topY + 0.45, cz);
     g.add(lbl);
+    bakeStatic(g);
     scene.add(g);
     const y = topY + PART.h / 2;
     return {
@@ -1745,7 +1863,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         this.items = [];
       },
       dispose() {
-        scene.remove(g);
+        disposeGroup(g);
       },
     };
   }
@@ -1776,6 +1894,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
    */
   function makeEoat(kind, look) {
     const t = toolKit.build(look || kind, { half: gripHalf(), span: [PART.w, PART.d], height: PART.h });
+    protect(t.group);
+    t.group.userData.dynamic = true;
     return { kind, look: t.look, group: t.group, fingers: t.fingers, fingerTool: t.fingerTool, open: t.open, beam: t.beam, spin: t.spin };
   }
   const PROCESS_TOOLS = ["torch", "spindle", "driver", "nozzle"];
@@ -1853,6 +1973,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         new THREE.BufferGeometry().setFromPoints(pts),
         new THREE.LineDashedMaterial({ color: 0xf2b705, dashSize: 0.12, gapSize: 0.08 })
       );
+      zone.userData.dynamic = true;
       zone.computeLineDistances();
       const g = new THREE.Group();
       g.add(zone);
@@ -1861,6 +1982,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       zoneLine = zone;
       if (title) {
         const lbl = makeLabel(title, "#fbbf24");
+        lbl.userData.priority = 4;
         lbl.position.set(X + L / 2, cartesian ? GANTRY_H + 0.55 : 2.45 + (inverted ? 0.6 : 0), 0.2);
         lbl.scale.multiplyScalar(1.15);
         g.add(lbl);
@@ -1881,6 +2003,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         return mesh;
       };
       mover = new THREE.Group();
+      mover.userData.dynamic = true;
       if (motionType === "track") {
         // The 7th axis: a steel base on levelling feet, two linear rails, a toothed rack the carriage's servo
         // motor drives through its gearbox and pinion, buffers at both ends, and the cable chain that carries
@@ -1896,6 +2019,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         put(box(len, 0.13, 0.17, M.frame), mx, 0.065, -0.5);
         put(box(len * 0.5, 0.06, 0.13, M.dark), x0 + len * 0.25, 0.1, -0.5);
         chainUpper = put(box(1, 0.06, 0.13, M.dark), X, 0.16, -0.5);
+        chainUpper.userData.dynamic = true;
         chainUpper.userData.fixedX = x0 + len * 0.5;
         put(cyl(0.05, 0.13, M.dark, 16), X, 0.13, -0.5, mover).rotation.x = Math.PI / 2;
         put(box(0.08, 0.1, 0.22, M.dark), X, 0.18, -0.38, mover);
@@ -2026,6 +2150,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         chuck.position.set(X - sgn * 1.0, 0.95 - PART.h / 2 - 0.03, cz);
         g.add(chuck);
         const door = new THREE.Group();
+        door.userData.dynamic = true;
         const doorPanel = rbox(0.025, 0.62, 0.68, M.machine, 0.008);
         const win = box(0.027, 0.4, 0.46, M.glass);
         win.castShadow = false;
@@ -2037,6 +2162,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         // Stack light: green (running), amber, red, on a short mast.
         put(cyl(0.012, 0.06, M.steel, 12), cx + sgn * 0.3, 1.63, cz - 0.38);
         const beacon = put(cyl(0.035, 0.07, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000, roughness: 0.3 }), 20), cx + sgn * 0.3, 1.695, cz - 0.38);
+        beacon.userData.dynamic = true;
         put(cyl(0.035, 0.07, new THREE.MeshStandardMaterial({ color: 0x9a6a08, roughness: 0.3 }), 20), cx + sgn * 0.3, 1.767, cz - 0.38);
         put(cyl(0.035, 0.07, new THREE.MeshStandardMaterial({ color: 0x8c2222, roughness: 0.3 }), 20), cx + sgn * 0.3, 1.839, cz - 0.38);
         put(cyl(0.037, 0.015, M.dark, 20), cx + sgn * 0.3, 1.882, cz - 0.38);
@@ -2106,6 +2232,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const holder = kit.info.output;
         if (holder === "crate" || holder === "tray") {
           const c = kit.container(holder, false);
+          protect(c.group, true);
+          if (holder === "crate") c.group.traverse((o)=>{ if(o.material?.color) o.material.color.setHex(0x3a4555); });
           c.group.position.set(cx, topY, cz);
           g.add(c.group);
           floorY = topY + 0.008;
@@ -2143,6 +2271,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         );
         cone.position.set(X + sgn * vx, 1.43, pz);
         g.add(cone);
+        cone.userData.dynamic = true;
         const lbl = makeLabel(NAMES.vision);
         lbl.position.set(px, 2.15, pz);
         g.add(lbl);
@@ -2176,10 +2305,12 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         lid.position.set(cx, standY + H + t / 2, cz);
         lid.visible = false;
         g.add(lid);
+        lid.userData.dynamic = true;
         const tape = box(W + 0.012, t * 1.2, 0.05, M.amber);
         tape.position.set(cx, standY + H + t, cz);
         tape.visible = false;
         g.add(tape);
+        tape.userData.dynamic = true;
         const lbl = makeLabel(NAMES.carton);
         lbl.position.set(cx - 0.3, standY + H + 0.12, cz + 0.2);
         g.add(lbl);
@@ -2227,9 +2358,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const ramY = 1.75;
         ram.position.set(0.05, ramY, 0);
         g.add(ram);
+        ram.userData.dynamic = true;
         const beacon = cyl(0.04, 0.12, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000 }));
         beacon.position.set(-0.3, 2.58, 0.36);
         g.add(beacon);
+        beacon.userData.dynamic = true;
         const lbl = makeLabel(NAMES.press);
         lbl.position.set(0, 2.8, 0);
         g.add(lbl);
@@ -2273,6 +2406,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const moving = box(0.62, 0.8, 0.1, M.steel);
         moving.position.set(0, 1.15, 0.25);
         g.add(moving);
+        moving.userData.dynamic = true;
         for (const dy of [-0.3, 0.3]) for (const dx of [-0.25, 0.25]) {
           const bar = cyl(0.025, 0.95, M.steel, 12);
           bar.rotation.x = Math.PI / 2;
@@ -2290,6 +2424,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const beacon = cyl(0.04, 0.12, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000 }));
         beacon.position.set(-0.3, 1.62, -0.25);
         g.add(beacon);
+        beacon.userData.dynamic = true;
         const lbl = makeLabel(NAMES.mould);
         lbl.position.set(0, 1.95, 0);
         g.add(lbl);
@@ -2326,9 +2461,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const hood = box(0.32, 0.22, 0.32, M.glass);
         hood.position.set(X + t.sp.x, 1.15, t.sp.z);
         t.group.add(hood);
+        hood.userData.dynamic = true;
         const lamp = cyl(0.035, 0.1, new THREE.MeshStandardMaterial({ color: 0x64748b, emissive: 0x000000 }));
         lamp.position.set(X + t.sp.x + 0.18, 1.18, t.sp.z - 0.12);
         t.group.add(lamp);
+        lamp.userData.dynamic = true;
         const st = {
           ...t,
           process: () =>
@@ -2362,6 +2499,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 1, 6), new THREE.MeshBasicMaterial({ color: 0xff3b30 }));
         beam.visible = false;
         t.group.add(beam);
+        beam.userData.dynamic = true;
         const st = {
           ...t,
           process: () =>
@@ -2397,7 +2535,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           g.add(wall);
         }
         for (let i = 0; i < 7; i++) {
-          const loose = kit.spawn();
+          const loose = protect(kit.spawn(), true);
+          loose.userData.dynamic = true;
           loose.position.set(bx + (Math.random() - 0.5) * 0.3, 0.27 + Math.random() * 0.06, bz + (Math.random() - 0.5) * 0.22);
           loose.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
           loose.scale.setScalar(Math.min(0.85, 0.28 / Math.max(PART.w, PART.d)));
@@ -2418,6 +2557,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         );
         cone.position.set(bx, 0.92, bz);
         g.add(cone);
+        cone.userData.dynamic = true;
         const lbl = makeLabel(NAMES.bin);
         lbl.position.set(bx, 1.7, bz);
         g.add(lbl);
@@ -2511,6 +2651,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75, roughness: 0.1 })
     );
     stream.visible = false;
+    stream.userData.dynamic = true;
     add(stream);
 
     /* Robot */
@@ -2526,7 +2667,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       root.rotation.x = inverted ? Math.PI : 0;
       const put = (geo, mat, parent, p, r) => {
         const m = new THREE.Mesh(geo, mat);
-        m.castShadow = true;
+        geo.computeBoundingBox();
+        const extent=geo.boundingBox.getSize(new THREE.Vector3());
+        m.castShadow = Math.max(extent.x,extent.y,extent.z)>0.12;
         m.receiveShadow = true;
         if (p) m.position.set(p[0], p[1], p[2]);
         if (r) m.rotation.set(r[0], r[1], r[2]);
@@ -2632,6 +2775,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       const flange = cyl(0.05, 0.02, trim);
       flange.rotation.z = Math.PI / 2;
       j6.add(flange);
+      [j1,j2,j3,j4,j5,j6].forEach((o)=> { o.userData.dynamic=true; });
+      [root,j1,j2,j3,j4,j5].forEach(bakeStatic);
       return { root, j6, joints: [j1, j2, j3, j4, j5, j6] };
     }
 
@@ -2754,13 +2899,16 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
 
       // Model label under the robot's title, e.g. "FANUC M-20iD/25 · 25 kg · 1811 mm".
       let modelLabel = null;
-      if (model && model.label) {
-        modelLabel = makeLabel(model.label, "#93c5fd");
+      if ((model && model.label) || !title) {
+        modelLabel = makeLabel(model?.label || `Robot ${index+1}`, "#93c5fd");
+        modelLabel.userData.priority = title ? 2 : 4;
         if (cartesian) modelLabel.position.set(X + L / 2, GANTRY_H + 0.9, 0);
         else modelLabel.position.set(0, inverted ? -0.75 : 2.05 + (s - 1) * 0.4, inverted ? -0.2 : 0.2);
         root.add(modelLabel);
       }
 
+      root.userData.dynamic = true;
+      if (!inverted && !cartesian && motionType === "fixed") ground(root);
       root.visible = !(buildMode && !(model && model.hasRobot));
       scene.add(root);
       const r = { root, joints, tip, fingers: [], fingerTool: false, fingerOpen: 0.075, dims, q: [0, 0, 0, 0, 0, 0], paint, trim, toolSets, heads, activeHead: null, activeLook: null, empty: false, lockLed, modelLabel, activeTool: 0, eoat: kinds[0], cartesian, gantry: arm.gantry || null, travel: 0, lift: 0 };
@@ -2825,15 +2973,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
 
     function disposeRobot() {
       if (!robot) return;
-      scene.remove(robot.root);
-      robot.root.traverse((o) => o.geometry && o.geometry.dispose());
-      robot.paint.dispose();
-      robot.trim.dispose();
-      if (robot.lockLed) robot.lockLed.material.dispose();
-      if (robot.modelLabel) {
-        robot.modelLabel.material.map.dispose();
-        robot.modelLabel.material.dispose();
-      }
+      disposeGroup(robot.root);
       robot = null;
     }
 
@@ -3859,24 +3999,71 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       dispose() {
         disposeRobot();
         groups.forEach((g) => {
-          scene.remove(g);
-          g.traverse((o) => o.geometry && o.geometry.dispose());
+          disposeGroup(g);
         });
       },
     };
+    groups.forEach((g) => { if (g.isGroup && g !== zoneGroup && g !== mover) { ground(g); bakeStatic(g); } });
     return cell;
+  }
+
+  let pendingModels = [], pendingPlan = null, dirtyLine = false, dirtyEquipment = false, dirtyFence = false;
+  let builder = null, buildingLine = false, disposed = false, invalidated = true, rebuilds = 0;
+  let compileToken = 0, compiling = false;
+  function relayout() { dirtyLine = true; invalidated = true; onStatus?.("building"); delete container.dataset.sceneReady; }
+  function placeEquipment() { dirtyEquipment = true; invalidated = true; }
+  function placeFence() { dirtyFence = true; invalidated = true; }
+  function fitShadow() {
+    scene.updateMatrixWorld(true);
+    const b=lineBounds(); if(b.isEmpty()) return;
+    const center=b.getCenter(new THREE.Vector3());
+    sun.target.position.copy(center); sun.position.copy(center).add(new THREE.Vector3(4,8,5));
+    sun.updateMatrixWorld(); sun.target.updateMatrixWorld(); sun.shadow.updateMatrices(sun);
+    const lightBox=b.clone().applyMatrix4(sun.shadow.camera.matrixWorldInverse);
+    Object.assign(sun.shadow.camera,{left:lightBox.min.x-0.5,right:lightBox.max.x+0.5,bottom:lightBox.min.y-0.5,top:lightBox.max.y+0.5,near:0.1,far:30});
+    sun.shadow.camera.updateProjectionMatrix();
+  }
+  function flushPending(sync = false) {
+    if (disposed || buildingLine) return;
+    buildingLine = true;
+    try {
+      if (dirtyLine || dirtyEquipment || dirtyFence) invalidated = true;
+      if (dirtyLine) {
+        if (builder) { builder.return(); builder=null; }
+        dirtyLine = dirtyEquipment = dirtyFence = false;
+        builder = buildLine(pendingPlan || lastPlan || {cells:[{steps:[]}]}, pendingModels.map((m)=>m?.scale));
+        rebuilds++; compileToken++; compiling=false;
+      }
+      if (builder) {
+        let result;
+        do { result = builder.next(); } while(sync && !result.done);
+        if (!result.done) return;
+        builder=null; reset();
+        dirtyEquipment=dirtyFence=false;
+        const token=++compileToken;
+        compiling=true;
+        Promise.resolve(renderer.compileAsync ? renderer.compileAsync(scene,camera) : renderer.compile(scene,camera)).catch(()=>{}).finally(()=>{
+          if (!disposed && token===compileToken) { compiling=false; invalidated=true; }
+        });
+      } else {
+        if(dirtyEquipment) { dirtyEquipment=false; placeEquipmentNow(); dirtyFence=true; }
+        if(dirtyFence) { dirtyFence=false; placeFenceNow(); fitShadow(); }
+      }
+    } finally { buildingLine=false; }
   }
 
   /* Plan / line construction */
   function disposeLine() {
     clearEquipment();
+    clearFence();
+    clearOverlay();
     cells.forEach((c) => c.dispose());
     conveyors.forEach((c) => {
       c.clear();
       c.dispose();
     });
     [...parts].forEach(removePart);
-    if (propsGroup) scene.remove(propsGroup);
+    if (propsGroup) disposeGroup(propsGroup);
     propsGroup = null;
     cells = [];
     conveyors = [];
@@ -3896,7 +4083,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     return out;
   }
 
-  function buildLine(plan, scales) {
+  function* buildLine(plan, scales) {
+    onStatus?.("building");
+    delete container.dataset.sceneReady;
+    if (!building.parent) { buildHall(); yield; }
     disposeLine();
     lastPlan = plan;
     const list = (plan && plan.cells && plan.cells.length ? plan.cells : [{ steps: [] }]).map((c) => ({
@@ -3946,6 +4136,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     {
       // Where the raw product comes from, with its name and weight on a sign.
       const sup = kit.container(kit.info.supply, true);
+      protect(sup.group, true);
+      if (kit.info.supply === "crate") sup.group.traverse((o)=>{ if(o.material?.color) o.material.color.setHex(0x3a4555); });
       const z = BELT_Z - (Math.max(0.4, PART.d + 0.08) / 2 + 0.14 + sup.size[2] / 2);
       sup.group.position.set(infeed.fromX, 0, z);
       infeed.group.add(sup.group);
@@ -3984,8 +4176,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       outfeed.sink = true;
       conveyors.push(outfeed);
     }
-    cells = list.map((c, i) =>
-      createCell(
+    cells = [];
+    for (let i=0; i<list.length; i++) {
+      const c=list[i];
+      const cell=createCell(
         i,
         cellStart[i],
         c.steps,
@@ -3996,18 +4190,20 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           out: transfers[i] || (i === last ? outfeed : null),
         },
         { stations: buildMode ? c.stations : [], startTool: c.startTool, motion: c.motion }
-      )
-    );
+      );
+      if (pendingModels[i]) cell.setModel(pendingModels[i]);
+      else cell.buildRobot(ROBOT_SIZES[sizeKey].scale);
+      cell.setPaint(industrialOf(i)); cell.fitZone();
+      cells.push(cell);
+      yield;
+    }
     ownInfeed.forEach((t, i) => t && (t.owner = cells[i]));
     // Hide the infeed when the first robot never picks from it (the builder shows it once placed).
     const usesInfeed = cells[0].steps.some((s) => s.station === "conveyor");
     infeed.group.visible = usesInfeed || (buildMode && list[0].stations.includes("conveyor"));
     infeed.autoSpawn = usesInfeed;
     infeed.owner = cells[0];
-    cells.forEach((c) => {
-      c.buildRobot(ROBOT_SIZES[sizeKey].scale);
-      c.fitZone();
-    });
+
     focus = Math.min(focus, cells.length - 1);
 
     const span = cellEnd[cells.length - 1];
@@ -4017,6 +4213,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       propsGroup = sc.group;
       // Behind the cabinets and power sources that stand behind the fence.
       propsGroup.position.set(span / 2, 0, -4.6);
+      protect(propsGroup, true);
       scene.add(propsGroup);
     }
     sun.position.set(span / 2 + 3.5, 6 + span * 0.3, 2.5);
@@ -4025,8 +4222,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: 4, bottom: -4, near: 0.5, far: 30 + span });
     sun.shadow.camera.updateProjectionMatrix();
     placeReference();
-    placeEquipment();
-    placeFence();
+    placeEquipmentNow();
+    yield;
+    placeFenceNow();
+    fitShadow();
     // Push the fog back so a long line stays clear.
     scene.fog.near = 9 + span * 1.2;
     scene.fog.far = 30 + span * 2;
@@ -4052,6 +4251,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (!overlayGroup) return;
     scene.remove(overlayGroup);
     overlayGroup.traverse((o) => {
+      labels.delete(o);
       if (o.geometry) o.geometry.dispose();
       if (o.material) {
         if (o.material.map) o.material.map.dispose();
@@ -4239,6 +4439,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (overlay === "layout") buildLayoutOverlay();
     else if (overlay === "flow") buildFlowOverlay();
     if (cells.length) setView(currentView);
+    invalidated=true;
   }
 
   function updateOverlay(dt) {
@@ -4318,10 +4519,16 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     return [p.clone().addScaledVector(away, d * 0.82).addScaledVector(side, d * 0.38).add(new THREE.Vector3(0, d * 0.62, 0)), p];
   }
 
-  let framedByHand = false;
+  let framedByHand = false, glide = null;
+  function moveCamera(position,target) {
+    position.y=Math.max(position.y,0.25); position.z=Math.max(position.z,-5);
+    if (!container.dataset.sceneReady) { camera.position.copy(position); controls.target.copy(target); controls.update(); return; }
+    glide={start:performance.now(),from:camera.position.clone(),to:position.clone(),at:controls.target.clone(),target:target.clone()};
+    invalidated=true;
+  }
   function setView(name) {
     // Signs would cover the product in a close-up, and break the picture in the cinematic shot.
-    scene.traverse((o) => o.isSprite && o !== hoverRing && (o.visible = name !== "product" && name !== "cinematic"));
+    lastLabels = 0; invalidated = true;
     // A shot framed with setCamera stays put when the stage resizes or the line rebuilds.
     if (framedByHand && name === currentView) return;
     framedByHand = false;
@@ -4330,21 +4537,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const lineEnd = cellEnd[cells.length - 1] || 0;
     if (name === "product" && cells.length) {
       const [pos, at] = productView();
-      camera.position.copy(pos);
-      controls.target.copy(at);
-      controls.update();
+      moveCamera(pos,at);
       return;
     }
     const span = lineEnd;
     const cx = span / 2;
     const k = 1 + span / 5;
     const VIEWS = {
-      iso: [new THREE.Vector3(cx + 3.7 * k, 2.95 * k, 3.9 * k), new THREE.Vector3(cx - 0.1, 0.65, 0.1)],
+      iso: [new THREE.Vector3(cx + 3.2 * k, 2.7 * k, 3.5 * k), new THREE.Vector3(cx - 0.1, 0.65, 0.1)],
       front: [new THREE.Vector3(cx + 4.6 * k, 1.5 * k, 0.05), new THREE.Vector3(cx, 0.8, 0.05)],
       top: [new THREE.Vector3(cx + 0.01, 6.2 * k, 0.01), new THREE.Vector3(cx, 0, 0)],
       side: [new THREE.Vector3(cx + 0.1, 1.6 * k, 4.6 * k), new THREE.Vector3(cx, 0.8, 0)],
     };
-    if (cells.length > 1 || span > 0) {
+    if (cells.length > 1 || span > 0 || visibleAspect() < 1) {
       // Fit the whole line across the screen, whatever the stage's shape.
       const vfov = (camera.fov * Math.PI) / 180;
       const hfov = 2 * Math.atan(Math.tan(vfov / 2) * Math.max(visibleAspect(), 0.5));
@@ -4353,7 +4558,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const d = new THREE.Vector3(dx, dy, dz).normalize().multiplyScalar(dist);
         return new THREE.Vector3(cx + d.x, 0.5 + d.y, -0.2 + d.z);
       };
-      VIEWS.iso = [at(0.28, 0.62, 1), new THREE.Vector3(cx, 0.5, -0.2)];
+      VIEWS.iso = [at(0.28, 0.72, 1), new THREE.Vector3(cx, 0.5, -0.2)];
       VIEWS.front = [at(0, 0.3, 1), new THREE.Vector3(cx, 0.7, -0.2)];
       VIEWS.side = [new THREE.Vector3(cx + span / 2 + 5, 2.2, 0.2), new THREE.Vector3(cx, 0.8, 0)];
       VIEWS.top = [at(0.001, 1, 0.001), new THREE.Vector3(cx, 0, -0.2)];
@@ -4375,15 +4580,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const vfov = (camera.fov * Math.PI) / 180;
         const hfov = 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect);
         const dist = (sphere.radius / Math.sin(Math.min(vfov, hfov) / 2)) * (name === "top" ? 0.8 : 0.72);
-        camera.position.copy(sphere.center).addScaledVector(dir, dist);
-        controls.target.copy(sphere.center);
-        controls.update();
+        moveCamera(sphere.center.clone().addScaledVector(dir,dist),sphere.center);
         return;
       }
     }
-    camera.position.copy(v[0]);
-    controls.target.copy(v[1]);
-    controls.update();
+    moveCamera(v[0],v[1]);
   }
 
   function reset() {
@@ -4398,16 +4599,13 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   function setRobotSize(key) {
     if (!ROBOT_SIZES[key]) return;
     sizeKey = key;
-    cells.forEach((c) => c.buildRobot(ROBOT_SIZES[key].scale));
-    if (gapsChanged()) return relayout();
-    placeEquipment();
-    placeFence();
-    reset();
+    relayout();
   }
 
   let lastEmit = 0;
   function emit(force) {
-    if (!onUpdate || !cells.length) return;
+    invalidated = true;
+    if (!onUpdate || !cells.length || builder || !cells[focus]?.robot) return;
     const now = performance.now();
     if (!force && now - lastEmit < 100) return;
     lastEmit = now;
@@ -4447,14 +4645,26 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   let raf = 0;
   let lastT = performance.now();
   function frame(now) {
+    if(disposed) return;
     raf = requestAnimationFrame(frame);
+    if(document.hidden || !onScreen || contextLost) { lastT=now; lastFrameAt=0; return; }
+    flushPending();
+    if(builder || compiling) { lastT=now; lastFrameAt=0; return; }
+    if(glide) {
+      const t=clamp((now-glide.start)/600,0,1), k=t*t*(3-2*t);
+      camera.position.lerpVectors(glide.from,glide.to,k); controls.target.lerpVectors(glide.at,glide.target,k);
+      if(t===1) glide=null;
+      invalidated=true;
+    }
+    const changed=controls.update();
+    if(!playing && !controls.autoRotate && !glide && !changed && !invalidated) { lastT=now; lastFrameAt=0; return; }
     // Clamp: a frame timestamp can precede the start time, which would run time backwards.
     let dt = clamp((now - lastT) / 1000, 0, 0.05);
     const realDt = dt;
     lastT = now;
     // A long line framed from high up: look in through the open roof, not at its deck.
     const roofOn = camera.position.y < 6;
-    if (roofParts[0].visible !== roofOn) roofParts.forEach((m) => (m.visible = roofOn));
+    if (roofParts[0] && roofParts[0].visible !== roofOn) roofParts.forEach((m) => (m.visible = roofOn));
     if (playing && cells.some((c) => c.steps.length)) {
       dt *= speed;
       simTime += dt;
@@ -4463,12 +4673,16 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       updateOverlay(dt);
     }
     controls.update(realDt);
+    updateLabels(now);
     draw(dt);
+    if(!container.dataset.sceneReady) { container.dataset.sceneReady="1"; onStatus?.("ready"); }
     watchFrameRate(now);
-    emit(false);
+    if(playing) emit(false);
+    invalidated=false;
   }
 
   function draw(dt) {
+    renderer.info.reset();
     sizeLabels();
     if (composer) {
       camera.layers.disable(LABELS);
@@ -4487,6 +4701,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     } else renderer.render(scene, camera);
   }
 
+  let fps=0, lowAt=0, expensiveAt=0, cheapAt=0, performanceNotified=false;
+  let onScreen=true, contextLost=false;
+  const io=typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver(([entry])=>{onScreen=entry.isIntersecting; invalidated=true; lastFrameAt=0;}) : null;
+  io?.observe(container);
+  const pointerMove=(e)=>{ const r=renderer.domElement.getBoundingClientRect(); pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); invalidated=true; lastLabels=0; };
+  const pointerLeave=()=>{pointer.set(2,2); invalidated=true; lastLabels=0;};
+  const lost=(e)=>{e.preventDefault();contextLost=true;onStatus?.('lost');};
+  const restored=()=>{contextLost=false;relayout();};
+  renderer.domElement.addEventListener('pointermove',pointerMove);
+  renderer.domElement.addEventListener('pointerleave',pointerLeave);
+  renderer.domElement.addEventListener('webglcontextlost',lost);
+  renderer.domElement.addEventListener('webglcontextrestored',restored);
+  renderer.info.autoReset=false;
   // Too slow for the cinematic pipeline (about 22 fps or less over two seconds): fall back to standard by itself.
   let slowFrames = 0;
   let frames = 0;
@@ -4494,7 +4721,20 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   function watchFrameRate(now) {
     const gap = lastFrameAt ? now - lastFrameAt : 16;
     lastFrameAt = now;
-    if (!qualityAuto || document.hidden || gap > 500) return;
+    fps = fps ? fps*0.9+(1000/gap)*0.1 : 1000/gap;
+    if(document.hidden) return;
+    if(gap>25) { cheapAt=0; expensiveAt ||= now; } else { expensiveAt=0; }
+    if(gap<14) { cheapAt ||= now; } else { cheapAt=0; }
+    let next=resolution;
+    if(expensiveAt && now-expensiveAt>1000) { next=Math.max(0.75/Math.min(window.devicePixelRatio||1,1.75),resolution-0.15); expensiveAt=now; }
+    if(cheapAt && now-cheapAt>3000) { next=Math.min(1,resolution+0.1); cheapAt=now; }
+    if(next!==resolution) { resolution=next; renderer.setPixelRatio(pixelRatio()); composer?.setPixelRatio(renderer.getPixelRatio()); resize(); }
+    if(fps<20) lowAt ||= now; else lowAt=0;
+    if(lowAt && now-lowAt>3000 && quality==='high') {
+      canUpgrade=false; setQuality('standard',true);
+      if(!performanceNotified) { performanceNotified=true; onPerformance?.('smooth'); }
+    }
+    if (!qualityAuto || gap > 500) return;
     frames++;
     if (gap > 45) slowFrames++;
     if (quality === "standard") {
@@ -4526,22 +4766,22 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(resize) : null;
   ro ? ro.observe(container) : window.addEventListener("resize", resize);
 
-  buildLine({ cells: [{ steps: [] }] });
+  pendingPlan = { cells: [{ steps: [] }] };
+  relayout();
   buildComposer();
   resize();
-  reset();
   raf = requestAnimationFrame(frame);
 
-  return {
+  const api = {
     setSteps(newSteps) {
-      buildLine({ cells: [{ steps: newSteps || [] }] });
-      reset();
+      pendingPlan = { cells: [{ steps: newSteps || [] }] }; pendingModels=[];
+      relayout();
       playing = true;
       emit(true);
     },
     setPlan(plan) {
-      buildLine(plan);
-      reset();
+      pendingPlan = plan; pendingModels=[];
+      relayout();
       playing = true;
       emit(true);
     },
@@ -4569,13 +4809,12 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
      */
     setEquipment(i, eq) {
       const c = cells[i];
-      if (!c) return;
       if (!eq || (!eq.robot && !eq.eoat && !(eq.accessories && eq.accessories.length))) {
-        c.setModel(null);
+        pendingModels[i] = null;
       } else {
         const r = eq.robot;
         const reachM = r ? (r.reachMm ? r.reachMm / 1000 : estimateReach(r.payloadKg)) : null;
-        c.setModel({
+        pendingModels[i] = {
           scale: reachM ? clamp(reachM / 1.45, 0.55, 1.7) : null,
           paint: r ? brandPaint(r.brand || r.name, r.collaborative) : null,
           label: r ? [r.name, r.payloadKg ? `${r.payloadKg} kg` : "", reachM ? `${Math.round(reachM * 1000)} mm` : ""].filter(Boolean).join(" · ") : eq.eoat ? eq.eoat.name : "",
@@ -4586,25 +4825,26 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           hasRobot: !!r,
           reachM: reachM,
           accessories: eq.accessories || [],
-        });
+        };
       }
       cellProducts[i] = (eq && eq.components) || [];
-      if (gapsChanged()) return relayout();
-      placeEquipment();
-      placeFence();
-      if (overlay !== "none") setOverlay(overlay);
-      reset();
+      relayout();
+    },
+    setEquipmentAll(list) {
+      list.forEach((eq,i)=>api.setEquipment(i,eq));
+      pendingModels.length=list.length;
+      cellProducts.length=list.length;
     },
     setView,
+    setLabels(mode) { labelMode=['key','all','off'].includes(mode)?mode:'key'; lastLabels=0; invalidated=true; },
+    stats() { flushPending(true); draw(0); return {drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,fps,pixelRatio:renderer.getPixelRatio(),quality,rebuilds}; },
+    reload() { if(contextLost) renderer.getContext().getExtension('WEBGL_lose_context')?.restoreContext(); else relayout(); },
     cellAt,
     setHover,
     /** Cell builder: show only chosen equipment (call before setPlan). */
     setBuildMode(on) {
       buildMode = !!on;
-      cells.forEach((c) => {
-        c.buildRobot(lastScaleAll());
-        c.fitZone();
-      });
+      relayout();
     },
     /** Pixels covered by floating panels on the left and right of the stage. */
     setInsets(left, right) {
@@ -4617,12 +4857,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     setOverlay,
     /** The picture as it is now, as a PNG data URL (for "Save image"). */
     snapshot() {
+      flushPending(true);
       draw(0);
       return renderer.domElement.toDataURL("image/png");
     },
     /** Frame a shot by hand: camera at `position`, looking at `target` (metres, world axes); `orbit` circles it slowly. */
     setCamera(position, target, orbit = false) {
       framedByHand = true;
+      glide=null; invalidated=true;
       controls.autoRotate = !!orbit;
       camera.position.set(position[0], position[1], position[2]);
       controls.target.set(target[0], target[1], target[2]);
@@ -4633,7 +4875,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
      * enclosure; `separate` gives every robot its own.
      */
     setFencing(on, opts = {}) {
-      fenceCells = Array.isArray(on) ? on.map(Boolean) : cells.map(() => !!on);
+      onStatus?.("building"); delete container.dataset.sceneReady;
+      fenceCells = Array.isArray(on) ? on.map(Boolean) : (pendingPlan?.cells || cells).map(() => !!on);
       fenceSeparate = !!opts.separate;
       // Industrial robots in yellow; cobots in white and blue (a fence alone does not make a robot industrial).
       cells.forEach((c, i) => c.setPaint(industrialOf(i)));
@@ -4652,10 +4895,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       const m = mode === "compact" || mode === "roomy" ? mode : "clear";
       if (m === spacing) return;
       spacing = m;
-      if (cells.length > 1) relayout();
+      if ((pendingPlan?.cells.length || cells.length) > 1) relayout();
     },
     /** Robots that can reach another robot's stations, equipment, base or working space (none in a clear line). */
-    interference,
+    interference() { flushPending(true); return interference(); },
     /** Show a photo of the user's manual process behind the line (null hides it). */
     setReference(url, label) {
       refUrl = url || null;
@@ -4663,7 +4906,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       placeReference();
     },
     setFocus(i) {
-      focus = clamp(Number(i) || 0, 0, cells.length - 1);
+      focus = clamp(Number(i) || 0, 0, Math.max(0,(pendingPlan?.cells.length || cells.length)-1));
       emit(true);
     },
     setJoint(i, deg) {
@@ -4685,14 +4928,20 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       emit(true);
     },
     /** Stations, conveyors, robot bases and equipment that stand on each other's floor (none in a good layout). */
-    layoutIssues,
+    layoutIssues() { flushPending(true); return layoutIssues(); },
     checkReach(stepsToCheck) {
+      flushPending(true);
       if (cells.length === 1) return cells[0].checkReach(stepsToCheck);
       const out = new Set();
       cells.forEach((c) => c.checkReach().forEach((u) => out.add(u)));
       return [...out];
     },
     dispose() {
+      disposed=true; compileToken++; builder?.return(); io?.disconnect();
+      renderer.domElement.removeEventListener('pointermove',pointerMove);
+      renderer.domElement.removeEventListener('pointerleave',pointerLeave);
+      renderer.domElement.removeEventListener('webglcontextlost',lost);
+      renderer.domElement.removeEventListener('webglcontextrestored',restored);
       cancelAnimationFrame(raf);
       ro ? ro.disconnect() : window.removeEventListener("resize", resize);
       refToken++;
@@ -4702,7 +4951,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       if (kit) kit.dispose();
       toolKit.dispose();
       equipModels.dispose();
-      laserPanel.dispose();
+      laserPanel.dispose(); fenceMesh.dispose(); contactMaterial.dispose();
       addOnMats.forEach((m) => m.dispose());
       hoverRing.geometry.dispose();
       hoverMat.dispose();
@@ -4714,9 +4963,13 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         if (o.geometry) o.geometry.dispose();
         if (o.material) o.material.dispose();
       });
+      disposeGroup(scene);
+      Object.values(M).forEach((m)=>m.dispose());
       disposeComposer();
       renderer.dispose();
       renderer.domElement.remove();
     },
   };
+  if (import.meta.env?.DEV) renderer.domElement.__robotSimulation = api;
+  return api;
 }

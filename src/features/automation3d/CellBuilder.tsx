@@ -139,6 +139,9 @@ const withStations = (c: Cell): Cell =>
 export default function CellBuilder() {
   const stageRef = useRef<HTMLDivElement>(null);
   const simRef = useRef<Simulation | null>(null);
+  const [sceneStatus, setSceneStatus] = useState<"building" | "ready" | "lost">("building");
+  const [labels, setLabels] = useState<"key" | "all" | "off">("key");
+  const [smoothNotice, setSmoothNotice] = useState(false);
   const [data, setData] = useState<{ robots: Match[]; tools: Match[] } | null>(null);
   const [tab, setTab] = useState<PaletteTab>("robots");
   const [q, setQ] = useState("");
@@ -223,6 +226,8 @@ export default function CellBuilder() {
     if (!stageRef.current) return;
     const s = createSimulation({
       THREE, OrbitControls, RoomEnvironment, post: CINEMATIC_POST, container: stageRef.current,
+      onStatus: setSceneStatus,
+      onPerformance: () => setSmoothNotice(true),
       onUpdate: (u: SimUpdate) => {
         if (tracker.current.update(u.simTime, u.cells, stepsRef.current)) setBreakdown([...tracker.current.last]);
         const now = performance.now();
@@ -337,16 +342,14 @@ export default function CellBuilder() {
       s.setFencing(cells.map((c) => !!c.fenced));
     }
     let changed = false;
-    cells.forEach((c, i) => {
+    const equipment = cells.map((c, i) => {
       const eq = c.choice;
       const key = [...SLOTS.map((sl) => (eq[sl.key] ? `${eq[sl.key]!.source}:${eq[sl.key]!.id}` : "")), ...(c.parts ?? []).map((m) => `${m.source}:${m.id}`)].join("|");
-      if (eqKeys.current[i] === key) return;
+      if (eqKeys.current[i] !== key) changed = true;
       eqKeys.current[i] = key;
-      changed = true;
       const any = eq.robot || eq.tool || eq.tool2 || eq.changer || eq.sensor || eq.camera;
       const tools = [eq.tool, eq.tool2].filter(Boolean).map((m) => ({ name: `${m!.name} ${m!.type ?? ""}` }));
-      s.setEquipment(
-        i,
+      return (
         any
           ? {
               robot: eq.robot ? { name: eq.robot.name, brand: eq.robot.brand, reachMm: eq.robot.reach, payloadKg: eq.robot.payload, collaborative: isCobot(eq.robot) } : undefined,
@@ -357,10 +360,11 @@ export default function CellBuilder() {
               // The power source, feeder, cleaner… the user chose: their names label the equipment in the cell.
               components: (c.parts ?? []).map((m) => m.name),
             }
-          : null,
+          : null
       );
     });
     if (!changed) return;
+    s.setEquipmentAll(equipment);
     // Equipment changes restart the line, so the cycle measurement starts again too.
     tracker.current.reset(cells.length);
     setBreakdown([]);
@@ -935,6 +939,10 @@ export default function CellBuilder() {
       {/* 3D stage */}
       <section ref={stageBoxRef} aria-label="3D robot cell" className="relative h-[58vh] min-h-[380px] overflow-hidden rounded-xl border border-border bg-slate-900 lg:absolute lg:inset-0 lg:h-auto">
         <div ref={stageRef} className="absolute inset-0" />
+        {sceneStatus !== "ready" && <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/90" role="status">
+          {sceneStatus === "lost" ? <Button variant="outline" onClick={() => simRef.current?.reload()}>3D view paused by the browser — tap to reload the view</Button> : <span className="flex items-center gap-2 text-foreground"><Loader2 className="h-5 w-5 animate-spin" />Building your line…</span>}
+        </div>}
+        {smoothNotice && <div role="status" className="absolute left-3 top-28 z-30 flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground">Switched to smooth mode for this device<Button variant="ghost" size="icon" aria-label="Dismiss smooth mode notice" onClick={() => setSmoothNotice(false)}><X className="h-3 w-3" /></Button></div>}
         <div
           onDragOver={(e) => {
             if (!drag) return;
@@ -1012,6 +1020,7 @@ export default function CellBuilder() {
               </option>
             ))}
           </select>
+          <Button variant="secondary" size="sm" onClick={() => { const next = labels === "key" ? "all" : labels === "all" ? "off" : "key"; setLabels(next); simRef.current?.setLabels(next); }}>Labels: {labels === "key" ? "Key" : labels === "all" ? "All" : "Off"}</Button>
           {(["iso", "cinematic", "front", "top", "product"] as const).map((v) => (
             <Button key={v} size="sm" variant="secondary" onClick={() => simRef.current?.setView(v)}>
               {v === "iso" ? "3D" : v === "product" ? "Close-up" : v[0].toUpperCase() + v.slice(1)}
