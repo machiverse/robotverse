@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, BookOpen, Bot, Camera, CheckCircle2, FileText, Info, Maximize2, Minimize2, Minus, Pause, Play, Plus, Repeat, RotateCcw, Shield, Sparkles, Trash2, Wrench, X } from "lucide-react";
+import { AlertTriangle, BookOpen, Bot, Camera, CheckCircle2, FileText, Info, Loader2, Maximize2, Minimize2, Minus, Pause, Play, Plus, Repeat, RotateCcw, Shield, Sparkles, Trash2, Wrench, X } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills, SKILL_LIBRARY } from "@/utils/processAnalyzer";
 import { createSimulation, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Interference, type LineSpacing, type Simulation, type SimQuality } from "./robotSim.js";
@@ -174,6 +174,9 @@ export default function AutomationStudio3D({
   const [fullscreen, setFullscreen] = useState(false);
   const canFullscreen = typeof document !== "undefined" && !!document.fullscreenEnabled;
   const simRef = useRef<Simulation | null>(null);
+  const [sceneStatus, setSceneStatus] = useState<"building" | "ready" | "lost">("building");
+  const [labels, setLabels] = useState<"key" | "all" | "off">("key");
+  const [smoothNotice, setSmoothNotice] = useState(false);
   const [text, setText] = useState<string>(initialProcess || PRESETS["Machine tending"]);
   const [steps, setSteps] = useState<Step[]>([]);
   const [notes, setNotes] = useState<string[]>([]);
@@ -301,10 +304,9 @@ export default function AutomationStudio3D({
   useEffect(() => {
     const sim = simRef.current;
     if (!sim || !plan) return;
-    plan.robots.forEach((r, i) => {
+    sim.setEquipmentAll(plan.robots.map((r, i) => {
       const eq = perCell.get(i);
-      sim.setEquipment(
-        i,
+      return (
         eq
           ? {
               robot: eq.robot
@@ -313,12 +315,10 @@ export default function AutomationStudio3D({
               eoat: eq.tool ? { name: `${eq.tool.name} ${eq.tool.type ?? ""}` } : undefined,
               accessories: [eq.changer && "changer", eq.sensor && "sensor", eq.camera && "camera"].filter(Boolean) as ("changer" | "sensor" | "camera")[],
             }
-          : null,
+          : null
       );
-    });
-    setUnreachable(sim.checkReach() || []);
-    setOverlaps(sim.layoutIssues());
-    setClearance(sim.interference());
+    }));
+    recheck();
   }, [perCell, plan]);
 
   // Fences: the user's choice per robot, else the line's setting. Applied after the robots and equipment above.
@@ -424,6 +424,8 @@ export default function AutomationStudio3D({
       post: CINEMATIC_POST,
       container: stageRef.current,
       onUpdate: (s: SimState) => setState(s),
+      onStatus: (status) => { setSceneStatus(status); if (status === "ready") recheck(); },
+      onPerformance: () => setSmoothNotice(true),
     });
     simRef.current = sim;
     if (reference) sim.setReference(reference, "Your reference: manual process today");
@@ -545,9 +547,7 @@ export default function AutomationStudio3D({
     );
     simRef.current?.setFocus(f);
     simRef.current?.play();
-    setUnreachable(simRef.current?.checkReach() || []);
-    setOverlaps(simRef.current?.layoutIssues() || []);
-    setClearance(simRef.current?.interference() || []);
+    recheck();
   }
 
   function restart() {
@@ -592,9 +592,7 @@ export default function AutomationStudio3D({
     setNotes(n);
     simRef.current?.setSteps(parsed);
     simRef.current?.play();
-    setUnreachable(simRef.current?.checkReach(parsed) || []);
-    setOverlaps(simRef.current?.layoutIssues() || []);
-    setClearance(simRef.current?.interference() || []);
+    recheck();
   }
 
   // Photos / video analysed by AI: plan exactly the tasks it found and show the photo in 3D.
@@ -1307,6 +1305,10 @@ export default function AutomationStudio3D({
         {/* Center: 3D stage */}
         <div ref={stageWrapRef} className="relative order-1 min-h-[60vh] bg-[#1a2433] lg:order-2 lg:min-h-0">
           <div ref={stageRef} className="absolute inset-0" />
+          {sceneStatus !== "ready" && <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/90" role="status">
+            {sceneStatus === "lost" ? <Button variant="outline" onClick={() => simRef.current?.reload()}>3D view paused by the browser — tap to reload the view</Button> : <span className="flex items-center gap-2 text-foreground"><Loader2 className="h-5 w-5 animate-spin" />Building your line…</span>}
+          </div>}
+          {smoothNotice && <div role="status" className="absolute left-3 top-28 z-20 flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground">Switched to smooth mode for this device<Button variant="ghost" size="icon" aria-label="Dismiss smooth mode notice" onClick={() => setSmoothNotice(false)}><X className="h-3 w-3" /></Button></div>}
           <div className="absolute left-3 top-3 max-w-[70%] min-w-[200px] rounded-md border border-white/10 bg-[#0c121b]/80 px-3 py-2 text-[#e6ecf3] backdrop-blur">
             <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">
               <span className={cn("h-1.5 w-1.5 rounded-full", state?.playing ? "bg-emerald-400" : "bg-white/40")} />
@@ -1340,6 +1342,7 @@ export default function AutomationStudio3D({
           )}
           <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2">
             <div role="group" aria-label="Camera view" className="flex min-w-0 overflow-x-auto rounded-md border border-white/10 bg-[#0c121b]/80 p-0.5 backdrop-blur [scrollbar-width:none]">
+              <Button variant="secondary" size="sm" className="shrink-0 text-xs" onClick={() => { const next = labels === "key" ? "all" : labels === "all" ? "off" : "key"; setLabels(next); simRef.current?.setLabels(next); }}>Labels: {labels === "key" ? "Key" : labels === "all" ? "All" : "Off"}</Button>
               {VIEWS.map(([k, l]) => (
                 <button
                   key={k}

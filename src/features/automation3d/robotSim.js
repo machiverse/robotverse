@@ -4167,7 +4167,6 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           out: transfers[i] || (i === last ? outfeed : null),
         },
         { stations: buildMode ? c.stations : [], startTool: c.startTool, motion: c.motion }
-      )
       );
       if (pendingModels[i]) cell.setModel(pendingModels[i]);
       else cell.buildRobot(ROBOT_SIZES[sizeKey].scale);
