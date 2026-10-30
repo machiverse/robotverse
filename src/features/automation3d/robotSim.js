@@ -2162,6 +2162,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         // Stack light: green (running), amber, red, on a short mast.
         put(cyl(0.012, 0.06, M.steel, 12), cx + sgn * 0.3, 1.63, cz - 0.38);
         const beacon = put(cyl(0.035, 0.07, new THREE.MeshStandardMaterial({ color: 0x3fb950, emissive: 0x000000, roughness: 0.3 }), 20), cx + sgn * 0.3, 1.695, cz - 0.38);
+        beacon.userData.dynamic = true;
         put(cyl(0.035, 0.07, new THREE.MeshStandardMaterial({ color: 0x9a6a08, roughness: 0.3 }), 20), cx + sgn * 0.3, 1.767, cz - 0.38);
         put(cyl(0.035, 0.07, new THREE.MeshStandardMaterial({ color: 0x8c2222, roughness: 0.3 }), 20), cx + sgn * 0.3, 1.839, cz - 0.38);
         put(cyl(0.037, 0.015, M.dark, 20), cx + sgn * 0.3, 1.882, cz - 0.38);
