@@ -625,10 +625,8 @@ export default function AutomationStudio3D({
   function changeSize(key: string) {
     setSize(key);
     simRef.current?.setRobotSize(key);
-    restart();
-    setUnreachable((plan ? simRef.current?.checkReach() : simRef.current?.checkReach(steps)) || []);
-    setOverlaps(simRef.current?.layoutIssues() || []);
-    setClearance(simRef.current?.interference() || []);
+    simRef.current?.play();
+    recheck();
   }
 
   const playing = state?.playing ?? true;

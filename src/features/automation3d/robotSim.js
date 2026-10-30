@@ -4438,6 +4438,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (overlay === "layout") buildLayoutOverlay();
     else if (overlay === "flow") buildFlowOverlay();
     if (cells.length) setView(currentView);
+    invalidated=true;
   }
 
   function updateOverlay(dt) {
