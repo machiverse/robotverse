@@ -697,7 +697,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   };
   const cyl = (r, h, mat, seg = 32) => {
     const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), mat);
-    m.castShadow = true;
+    m.castShadow = r > 0.065 && h > 0.15;
     m.receiveShadow = true;
     return m;
   };
@@ -1361,7 +1361,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   function meshBox(root) {
     const b = new THREE.Box3();
     const t = new THREE.Box3();
-    root.updateMatrixWorld(true);
+    root.updateWorldMatrix(true, true);
+    if (root.userData.bakedBounds) b.copy(root.userData.bakedBounds).applyMatrix4(root.matrixWorld);
     root.traverse((o) => {
       if (!o.isMesh || o.isSprite || !o.geometry || o.visible === false || o.userData.zone) return;
       if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
@@ -1652,7 +1653,18 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       stand(item, x, z, 0, equipOutside, []);
     }
     for (const g of [equipGroup,equipOutside]) {
-      for (const child of g.children) if (child.isGroup) { ground(child); bakeStatic(child); }
+      for (const child of g.children) if (child.isGroup) {
+        child.updateWorldMatrix(true,true);
+        child.userData.bakedBounds=meshBox(child).applyMatrix4(child.matrixWorld.clone().invert());
+        ground(child);
+      }
+      g.traverse((o)=>{
+        if (!o.isMesh || !o.geometry || o.userData.dynamic) return;
+        o.geometry.computeBoundingBox();
+        const size=o.geometry.boundingBox.getSize(new THREE.Vector3());
+        o.castShadow = !o.userData.zone && Math.max(size.x,size.y,size.z)>0.5 && Math.min(size.x,size.y,size.z)>0.12;
+      });
+      bakeStatic(g);
     }
     scene.add(equipGroup);
     scene.add(equipOutside);
