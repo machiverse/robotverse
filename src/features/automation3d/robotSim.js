@@ -349,7 +349,13 @@ const BELT_TOP = 0.78;
  * Only the stations a cell's steps use are built, so the scene shows just
  * the machines the process needs.
  */
-export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, quality: wantQuality, container, onUpdate, onStatus, onPerformance }) {
+/** A plan's identity for layout edits: the same robots, jobs, stations and motion. */
+export function planSignature(plan) {
+  const cs = (plan && plan.cells) || [];
+  return JSON.stringify(cs.map((c) => [c.title || "", (c.steps || []).map((s) => `${s.action}@${s.station}`), c.stations || [], c.motion ? c.motion.type : ""]));
+}
+
+export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, quality: wantQuality, container, onUpdate, onStatus, onPerformance, onLayout }) {
   const LIGHT_K = Number(THREE.REVISION) >= 155 ? Math.PI : 1;
   // The product this line handles: its size drives grips, slots and stations.
   const PART = { ...PART0 };
@@ -1194,9 +1200,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const c = cells[i];
     // A builder cell with no robot chosen yet has no envelope.
     if (!c || !c.robot || !c.robot.root.visible) return null;
-    const X = cellStart[i], L = cellEnd[i] - cellStart[i];
-    if (c.robot.cartesian) return { x0: X - GANTRY_X, x1: X + L + GANTRY_X, r: 0.3 };
-    return { x0: X, x1: X + L, r: envelopeOf(c.robot.dims.L2 / 0.7) };
+    const X = c.base ? c.base.x : cellStart[i], L = cellEnd[i] - cellStart[i], Z = c.base ? c.base.z : 0;
+    if (c.robot.cartesian) return { x0: X - GANTRY_X, x1: X + L + GANTRY_X, r: 0.3, z: 0 };
+    return { x0: X, x1: X + L, r: envelopeOf(c.robot.dims.L2 / 0.7), z: Z };
   }
   /**
    * Where robots get in each other's way: a robot that can reach another robot's stations, equipment or base,
@@ -1206,7 +1212,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const out = [];
     const rectGap = (e, r) => {
       const gx = Math.max(0, r[0] - e.x1, e.x0 - r[2]);
-      const gz = r[1] > 0 ? r[1] : r[3] < 0 ? -r[3] : 0;
+      const ez = e.z || 0;
+      const gz = r[1] > ez ? r[1] - ez : r[3] < ez ? ez - r[3] : 0;
       return Math.hypot(gx, gz);
     };
     const rect = (b) => [b.min.x, b.min.z, b.max.x, b.max.z];
@@ -1220,7 +1227,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
             if (!b.isEmpty()) things.push({ what: g.userData.what, r: rect(b) });
           }
       const ej = envs[j];
-      if (ej && !c.robot.cartesian) things.push({ what: "robot base", r: [ej.x0 - 0.3, -0.3, ej.x1 + 0.3, 0.3] });
+      if (ej && !c.robot.cartesian) things.push({ what: "robot base", r: [ej.x0 - 0.3, ej.z - 0.3, ej.x1 + 0.3, ej.z + 0.3] });
       envs.forEach((e, i) => {
         if (!e || i === j) return;
         let worst = null;
@@ -1270,7 +1277,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   const fenceMesh = new THREE.MeshStandardMaterial({ color: 0xf2b705, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false });
   const laserPanel = new THREE.MeshStandardMaterial({ color: 0x1f3b2c, metalness: 0.2, roughness: 0.2, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
   pooledMaterials.add(fenceMesh); pooledMaterials.add(laserPanel);
+  /** The fence panels as thin floor-standing boxes (clearance watch). */
+  let fenceSides = [];
   function clearFence() {
+    fenceSides = []; obstaclesDirty = true;
     if (!fenceGroup) return;
     scene.remove(fenceGroup);
     disposeGroup(fenceGroup);
@@ -1283,7 +1293,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const bounds = new THREE.Box3();
     const tmp = new THREE.Box3();
     for (const o of scene.children) {
-      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o === propsGroup || o === equipOutside || o.isLight || o === sun.target || !o.visible) continue;
+      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o === propsGroup || o === equipOutside || o.isLight || o === sun.target || !o.visible || o.userData.noBounds) continue;
       if (o.isSprite) continue;
       tmp.setFromObject(o);
       if (!tmp.isEmpty()) bounds.union(tmp);
@@ -1301,6 +1311,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     let panelMat = fenceMesh;
     const side = (ax, az, bx, bz) => {
       const len = Math.hypot(bx - ax, bz - az);
+      fenceSides.push(new THREE.Box3(new THREE.Vector3(Math.min(ax, bx) - 0.03, 0, Math.min(az, bz) - 0.03), new THREE.Vector3(Math.max(ax, bx) + 0.03, H, Math.max(az, bz) + 0.03)));
       const n = Math.max(1, Math.ceil(len / 1.4));
       for (let i = 0; i <= n; i++) post(ax + ((bx - ax) * i) / n, az + ((bz - az) * i) / n);
       const panel = new THREE.Mesh(new THREE.PlaneGeometry(len, H - 0.15), panelMat);
@@ -1370,6 +1381,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     return b;
   }
   function clearEquipment() {
+    obstaclesDirty = true;
     for (const g of [equipGroup, equipOutside]) {
       if (!g) continue;
       scene.remove(g);
@@ -1403,10 +1415,34 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     let labelN = 0;
     /** The cell whose equipment is being placed (for the free-space check). */
     let cellNow = -1;
-    const tag = (text, x, y, z, parent) => {
+    const tag = (text, x, y, z, parent, owner) => {
       const l = makeLabel(text.length > 38 ? `${text.slice(0, 36)}…` : text, "#bae6fd");
+      // Inside its item's group, so the sign travels with the item when the user moves it.
+      if (owner) {
+        l.position.set(0, y + 0.26 + (labelN++ % 3) * 0.2, 0);
+        owner.add(l);
+        return;
+      }
       l.position.set(x, y + 0.26 + (labelN++ % 3) * 0.2, z);
       parent.add(l);
+    };
+    /** A stable name per item (cell, label, nth of that label) for the user's layout edits. */
+    const seenKeys = new Map();
+    const keyFor = (cell, label) => {
+      const k = `${cell}:${label}`;
+      const n = seenKeys.get(k) || 0;
+      seenKeys.set(k, n + 1);
+      return n ? `${k}#${n}` : k;
+    };
+    /** Where the plan put the item, then the user's move on top of it. */
+    const editEquip = (g, key) => {
+      g.userData.key = key;
+      g.userData.home = { x: g.position.x, z: g.position.z, ry: g.rotation.y };
+      const e = edits.get(`equipment:${g.userData.cell}:${key}`);
+      if (!e) return;
+      g.position.x += e.dx || 0;
+      g.position.z += e.dz || 0;
+      g.rotation.y += ((e.rot || 0) * Math.PI) / 2;
     };
     /** Build an item's model and stand it at (x, z) facing rotY; false when it is not drawn. */
     const stand = (item, x, z, rotY, parent, names, opts) => {
@@ -1418,8 +1454,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       built.group.userData.attached = item.at === "work" || item.at === "pallet";
       built.group.position.set(x, 0, z);
       built.group.rotation.y = rotY;
+      if (!built.group.userData.attached) editEquip(built.group, keyFor(cellNow, item.label));
       parent.add(built.group);
-      tag(chosenProduct(item, names) || item.label, x, built.size[1], z, parent);
+      tag(chosenProduct(item, names) || item.label, x, built.size[1], z, parent, built.group);
       return built;
     };
     /** Facing a point: the model's front (+z) turned towards (tx, tz). */
@@ -1556,8 +1593,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const [w, , d] = built.size;
         // The area scanner sits low in front of the base; the rest search a ring round the robot.
         const [radii, angles] = item.model === "scanner" ? [[0.42, 0.5], [90, 60, 120]] : item.at === "base" && fixedBase ? near.base : near.reach;
-        let spot = null;
-        for (const r of radii) {
+        const eqKey = keyFor(i, item.label);
+        let spot = frozenSpots.get(eqKey) || null;
+        if (!spot) for (const r of radii) {
           for (const a of angles) {
             const x = X + Math.cos(a * DEG) * r, z = Math.sin(a * DEG) * r;
             const rot = facing(x, z, X, 0);
@@ -1572,14 +1610,17 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           disposeGroup(built.group);
           continue;
         }
+        // The first placement of this line is kept, so moving a station never makes other items jump.
+        frozenSpots.set(eqKey, spot);
         const [x, z, rot, fr] = spot;
         built.group.userData.what = item.label;
         built.group.userData.cell = i;
         built.group.position.set(x, 0, z);
         built.group.rotation.y = rot;
+        editEquip(built.group, eqKey);
         equipGroup.add(built.group);
         if (item.model !== "scanner") rects.push(fr);
-        tag(chosenProduct(item, names) || item.label, x, built.size[1], z, equipGroup);
+        tag(chosenProduct(item, names) || item.label, x, built.size[1], z, equipGroup, built.group);
       }
 
       // On the arm: the wire feeder on the upper arm's rear housing.
@@ -1613,10 +1654,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           cursor = X - 1.6;
           rowDepth = 0;
         }
-        const x = cursor + w / 2, z = rowFront - d / 2;
-        built.group.position.set(x, 0, z);
+        const x0 = cursor + w / 2, z0 = rowFront - d / 2;
+        built.group.position.set(x0, 0, z0);
+        built.group.userData.what = built.group.userData.what || item.label;
+        built.group.userData.cell = i;
+        editEquip(built.group, keyFor(i, item.label));
+        const x = built.group.position.x, z = built.group.position.z;
         equipOutside.add(built.group);
-        tag(chosenProduct(item, names) || item.label, x, h, z, equipOutside);
+        tag(chosenProduct(item, names) || item.label, x, h, z, equipOutside, built.group);
         behind.push({ model: item.model, x, z, w, h, d });
         cursor += w + 0.14;
         rowDepth = Math.max(rowDepth, d);
@@ -1631,7 +1676,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         : mt === "track" ? [X + L / 2, -0.6]
         : mt === "overhead" ? [X - 0.65, -0.95]
         : mt === "gantry" ? [X - GANTRY_X, -1.55]
-        : [X, -0.45];
+        : [c.base ? c.base.x : X, (c.base ? c.base.z : 0) - 0.45];
       if (feeds.length && entry) {
         const zT = -2.52;
         const xs = feeds.map((f) => f.x);
@@ -1662,7 +1707,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const size=o.geometry.boundingBox.getSize(new THREE.Vector3());
         o.castShadow = !o.userData.zone && Math.max(size.x,size.y,size.z)>0.5 && Math.min(size.x,size.y,size.z)>0.12;
       });
-      bakeStatic(g);
+      // Move mode: each item batched on its own so it can be picked up; otherwise one batch for all of them.
+      if (moveMode) for (const child of g.children) { if (child.isGroup) bakeStatic(child); }
+      else bakeStatic(g);
     }
     scene.add(equipGroup);
     scene.add(equipOutside);
@@ -1679,7 +1726,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     cells.forEach((c, i) => {
       for (const p of c.layoutParts()) parts.push({ what: cells.length > 1 ? `${p.what} (R${i + 1})` : p.what, r: rect(p.box), cell: i });
       const mt = c.motion ? c.motion.type : "fixed";
-      if (mt === "fixed" || mt === "lift") parts.push({ what: cells.length > 1 ? `Robot ${i + 1} base` : "Robot base", r: [cellStart[i] - 0.3, -0.3, cellStart[i] + 0.3, 0.3], cell: i, base: true });
+      if (mt === "fixed" || mt === "lift") parts.push({ what: cells.length > 1 ? `Robot ${i + 1} base` : "Robot base", r: [c.base.x - 0.3, c.base.z - 0.3, c.base.x + 0.3, c.base.z + 0.3], cell: i, base: true });
     });
     for (const cv of conveyors)
       if (cv.group.visible) {
@@ -1922,6 +1969,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (!buildMode && headLooks.length && steps.some((s) => s.action === "pick" || s.action === "place")) needed.add("rack");
     const startTool = extra.startTool || 0;
     const stations = {};
+    /** The user's move of the robot base (Move mode): X follows it, bz is the base's z. */
+    let bz = 0;
+    const baseX0 = X;
     let zoneGroup = null;
     let zoneLine = null;
 
@@ -2980,7 +3030,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     /** Put the robot's base where its track, cart, AMR or lift has carried it; the moving carriage follows. */
     function placeBase() {
       if (!robot || robot.cartesian) return;
-      robot.root.position.set(X + robot.travel, BASE_Y + robot.lift, 0);
+      robot.root.position.set(X + robot.travel, BASE_Y + robot.lift, bz);
       if (mover) mover.position.set(robot.travel, robot.lift, 0);
       if (chainUpper) {
         const a = chainUpper.userData.fixedX, b = X + robot.travel;
@@ -3026,7 +3076,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       const d = robot.dims;
       const bx = at ? at.x : X + robot.travel, by = at ? at.y : BASE_Y + robot.lift;
       const ly = inverted ? by - P.y : P.y - by;
-      const Wx = P.x - bx, Wy = ly + (inverted ? -d.dTool : d.dTool), Wz = inverted ? -P.z : P.z;
+      const Wx = P.x - bx, Wy = ly + (inverted ? -d.dTool : d.dTool), Wz = inverted ? -(P.z - bz) : P.z - bz;
       const q1 = Math.atan2(-Wz, Wx);
       let r = Math.hypot(Wx, Wz) - d.a1;
       let y = Wy - d.h1;
@@ -3845,7 +3895,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           const b = meshBox(g);
           if (!b.isEmpty()) out.push(b);
         }
-        if (!cartesian && !inverted) out.push(new THREE.Box3(new THREE.Vector3(X - 0.45, 0, -0.45), new THREE.Vector3(X + L + 0.45, 1, 0.45)));
+        if (!cartesian && !inverted) out.push(new THREE.Box3(new THREE.Vector3(X - 0.45, 0, bz - 0.45), new THREE.Vector3(X + L + 0.45, 1, bz + 0.45)));
         return out;
       },
       get robot() {
@@ -3996,6 +4046,72 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         }
         return [...out];
       },
+      /** Where the robot base stands now (x along the line, z across it). */
+      get base() {
+        return { x: X, z: bz };
+      },
+      /** Only a robot on a fixed base can be picked up and moved; a track, lift or gantry moves with its rails. */
+      get movable() {
+        return motionType === "fixed" && !cartesian;
+      },
+      setBase(dx, dz) {
+        if (motionType !== "fixed") return;
+        const ddx = baseX0 + (Number(dx) || 0) - X, ddz = (Number(dz) || 0) - bz;
+        if (!ddx && !ddz) return;
+        X += ddx;
+        bz += ddz;
+        HOME.x += ddx;
+        HOME.z += ddz;
+        if (zoneGroup) {
+          zoneGroup.position.x += ddx;
+          zoneGroup.position.z += ddz;
+        }
+        placeBase();
+      },
+      /** Shoulder, elbow, wrist and tool tip in world space (clearance watch); null without an arm. */
+      armPoints(out) {
+        if (!robot || robot.cartesian || !robot.root.visible) return null;
+        const j = robot.joints;
+        robot.root.updateWorldMatrix(true, true);
+        [j[1], j[2], j[4], robot.tip].forEach((o, k) => (out[k] || (out[k] = new THREE.Vector3())).setFromMatrixPosition(o.matrixWorld));
+        return out;
+      },
+      get armScale() {
+        return robot && robot.dims ? robot.dims.L2 / 0.7 : 1;
+      },
+      stationInfos() {
+        return [...new Set(stationInfo.values())];
+      },
+      /** Slide (and for tables and pallets turn) a station: its meshes, every target point and the parts on it. */
+      setStation(key, e) {
+        const info = stationInfo.get(key);
+        if (!info) return null;
+        const next = { dx: Number(e && e.dx) || 0, dz: Number(e && e.dz) || 0, rot: info.canRotate ? ((Math.round(Number(e && e.rot) || 0) % 4) + 4) % 4 : 0 };
+        const cur = info.state;
+        if (cur.dx === next.dx && cur.dz === next.dz && cur.rot === next.rot) return null;
+        const D = stationMatrix(next, info.pivot).multiply(stationMatrix(cur, info.pivot).invert());
+        info.group.applyMatrix4(D);
+        const seen = new Set();
+        const moveV = (v) => {
+          if (v && v.isVector3 && !seen.has(v)) {
+            seen.add(v);
+            v.applyMatrix4(D);
+          }
+        };
+        const moveO = (o) => o && o.isObject3D && o.parent === scene && parts.has(o) && o.position.applyMatrix4(D);
+        for (const k of info.keys) {
+          const st = stations[k];
+          if (!st) continue;
+          for (const [name, v] of Object.entries(st)) {
+            if (name === "nests" || name === "group") continue;
+            if (v && v.isVector3) moveV(v);
+            else if (Array.isArray(v)) v.forEach((x) => (x && x.isVector3 ? moveV(x) : moveO(x)));
+            else if (name === "part") moveO(v);
+          }
+        }
+        info.state = next;
+        return D;
+      },
       dispose() {
         disposeRobot();
         groups.forEach((g) => {
@@ -4004,6 +4120,51 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       },
     };
     groups.forEach((g) => { if (g.isGroup && g !== zoneGroup && g !== mover) { ground(g); bakeStatic(g); } });
+    // Move mode: each station's group, the station keys it carries and the fixed point it turns round.
+    const stationInfo = new Map();
+    {
+      const claimed = new Map();
+      for (const [k, st] of Object.entries(stations)) {
+        if (!st || isBelt(k) || k === "out" || k === "infeed") continue;
+        let g = st.group && groups.includes(st.group) ? st.group : null;
+        const p = st.center || st.point || (st.slots && st.slots[0]);
+        if (!g && p) {
+          let best = Infinity;
+          for (const cand of groups) {
+            if (cand === zoneGroup || cand === mover || cand.userData.skipLayout) continue;
+            const b = meshBox(cand);
+            if (b.isEmpty() || b.max.x - b.min.x > 3 || p.x < b.min.x - 0.12 || p.x > b.max.x + 0.12 || p.z < b.min.z - 0.12 || p.z > b.max.z + 0.12) continue;
+            const area = (b.max.x - b.min.x) * (b.max.z - b.min.z);
+            if (area < best) {
+              best = area;
+              g = cand;
+            }
+          }
+        }
+        if (!g) continue;
+        const had = claimed.get(g);
+        if (had) {
+          had.keys.push(k);
+          stationInfo.set(k, had);
+          continue;
+        }
+        const b = meshBox(g);
+        let name = "";
+        g.traverse((o) => !name && o.isSprite && o.userData.text && (name = String(o.userData.text).split(" · ")[0]));
+        const c0 = st.center ? st.center.clone() : b.getCenter(new THREE.Vector3());
+        const info = { key: k, keys: [k], group: g, name: name || STATION_NAMES[k.replace(/_2$/, "")] || "Station", pivot: new THREE.Vector3(c0.x, 0, c0.z), state: { dx: 0, dz: 0, rot: 0 }, canRotate: /^(table|pallet)/.test(k) };
+        claimed.set(g, info);
+        stationInfo.set(k, info);
+        // The tool stand's nests are worked out from its own frame: follow the stand when it moves.
+        if (typeof st.dock === "function") {
+          const dock0 = st.dock;
+          st.dock = (key) => {
+            g.updateMatrix();
+            return dock0(key).applyMatrix4(g.matrix);
+          };
+        }
+      }
+    }
     return cell;
   }
 
@@ -4084,6 +4245,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   }
 
   function* buildLine(plan, scales) {
+    frozenSpots = new Map();
     onStatus?.("building");
     delete container.dataset.sceneReady;
     if (!building.parent) { buildHall(); yield; }
@@ -4223,6 +4385,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     sun.shadow.camera.updateProjectionMatrix();
     placeReference();
     placeEquipmentNow();
+    // The user's moves of robots and stations, then the equipment again round where they now stand.
+    if (applyCellEdits()) placeEquipmentNow();
     yield;
     placeFenceNow();
     fitShadow();
@@ -4268,7 +4432,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const bounds = new THREE.Box3();
     const tmp = new THREE.Box3();
     for (const o of scene.children) {
-      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o === propsGroup || o === equipOutside || o.isLight || o === sun.target || !o.visible || o.isSprite) continue;
+      if (o === floor || o === grid || o === building || o === refGroup || o === overlayGroup || o === propsGroup || o === equipOutside || o.isLight || o === sun.target || !o.visible || o.isSprite || o.userData.noBounds) continue;
       tmp.setFromObject(o);
       if (!tmp.isEmpty()) bounds.union(tmp);
     }
@@ -4593,6 +4757,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     cells.forEach((c) => c.reset());
     simTime = 0;
     events = [];
+    resetClearance();
+    clearPaths();
+    obstaclesDirty = true;
     emit(true);
   }
 
@@ -4632,6 +4799,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       events: events.slice(),
       product: kit ? { key: kit.info.key, label: kit.info.label, kg: kit.info.kg, size: kit.info.size, gripper: TOOL_LOOK_NAMES[kit.info.look] || kit.info.look } : null,
       tools: lineTools,
+      clearance: motionClearance(),
+      moveMode,
+      showPaths,
+      layoutEdits: edits.size,
       cells: cells.map((c) => ({
         title: c.title,
         stepIndex: c.stepIdx,
@@ -4640,6 +4811,551 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         lastCycle: c.lastCycle,
       })),
     });
+  }
+
+  /* ------------------------------------------------------------------
+   * Move mode (the user's layout edits), the motion clearance watch and robot paths.
+   * Edits: { cell, kind: "robot" | "station" | "equipment", key, dx, dz, rot } on top of the planned layout.
+   * ------------------------------------------------------------------ */
+  let edits = new Map(), editsSig = "", undoStack = [], moveMode = false, showPaths = false;
+  /** Equipment spots found on this line's first placement (kept while the user moves things). */
+  let frozenSpots = new Map();
+  const ZERO = { dx: 0, dz: 0, rot: 0 };
+  const editId = (e) => `${e.kind}:${e.cell}:${e.key}`;
+  const editList = () => [...edits.values()].map((e) => ({ ...e }));
+  function stationMatrix(e, c) {
+    return new THREE.Matrix4()
+      .makeTranslation(c.x + (e.dx || 0), 0, c.z + (e.dz || 0))
+      .multiply(new THREE.Matrix4().makeRotationY(((e.rot || 0) * Math.PI) / 2))
+      .multiply(new THREE.Matrix4().makeTranslation(-c.x, 0, -c.z));
+  }
+  function notifyLayout() {
+    obstaclesDirty = true;
+    resetClearance();
+    invalidated = true;
+    onLayout?.({ edits: editList(), moveMode, showPaths });
+    emit(true);
+  }
+  /** Put every robot base and station where the edits say (back home when they have none). True when any moved. */
+  function applyCellEdits() {
+    let any = false;
+    cells.forEach((c, i) => {
+      const r = edits.get(`robot:${i}:robot`);
+      if (r) any = true;
+      c.setBase(r ? r.dx : 0, r ? r.dz : 0);
+      for (const info of c.stationInfos()) {
+        const e = edits.get(`station:${i}:${info.key}`);
+        if (e) any = true;
+        c.setStation(info.key, e || ZERO);
+      }
+    });
+    obstaclesDirty = true;
+    return any;
+  }
+  function pushUndo() {
+    undoStack.push(editList());
+    if (undoStack.length > 20) undoStack.shift();
+  }
+  function setEdits(list, record) {
+    if (record) pushUndo();
+    edits = new Map();
+    for (const e of list || []) {
+      if (!e || !["robot", "station", "equipment"].includes(e.kind) || !Number.isFinite(Number(e.cell)) || !e.key) continue;
+      const x = { cell: Number(e.cell), kind: e.kind, key: String(e.key), dx: +(Number(e.dx) || 0).toFixed(3), dz: +(Number(e.dz) || 0).toFixed(3), rot: ((Math.round(Number(e.rot) || 0) % 4) + 4) % 4 };
+      if (x.dx || x.dz || x.rot) edits.set(editId(x), x);
+    }
+    if (!builder && !dirtyLine && cells.length) {
+      applyCellEdits();
+      placeEquipment();
+      placeFence();
+    }
+    select(null);
+    notifyLayout();
+  }
+  function undoMove() {
+    if (!undoStack.length) return false;
+    setEdits(undoStack.pop(), false);
+    return true;
+  }
+  /** A new plan (other robots, jobs or stations) starts from its planned layout. */
+  function planChanged() {
+    const sig = planSignature(pendingPlan);
+    if (sig === editsSig) return;
+    editsSig = sig;
+    edits = new Map();
+    undoStack = [];
+    select(null);
+  }
+
+  /* What can be picked up: fixed robot bases, stations, and the equipment the plan placed. */
+  function movables() {
+    const out = [];
+    cells.forEach((c, i) => {
+      if (c.movable && c.robot && c.robot.root.visible) out.push({ kind: "robot", cell: i, key: "robot", obj: c.robot.root, name: cells.length > 1 ? `Robot ${i + 1}` : "Robot", rotate: false });
+      for (const info of c.stationInfos()) if (info.group.visible !== false) out.push({ kind: "station", cell: i, key: info.key, obj: info.group, name: info.name, rotate: info.canRotate });
+    });
+    for (const g of [equipGroup, equipOutside])
+      if (g) for (const ch of g.children) if (ch.isGroup && ch.userData.key) out.push({ kind: "equipment", cell: ch.userData.cell, key: ch.userData.key, obj: ch, name: ch.userData.what, rotate: true });
+    return out;
+  }
+  const ndc = new THREE.Vector2(), floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), pickRay = new THREE.Raycaster();
+  function rayAt(clientX, clientY) {
+    const r = renderer.domElement.getBoundingClientRect();
+    ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    pickRay.setFromCamera(ndc, camera);
+  }
+  function pickMovable(clientX, clientY) {
+    rayAt(clientX, clientY);
+    const list = movables(), byObj = new Map(list.map((t) => [t.obj, t]));
+    for (const h of pickRay.intersectObjects(list.map((t) => t.obj), true)) {
+      if (!h.object.isMesh || h.object.isSprite || h.object.userData.zone || !h.object.visible) continue;
+      let o = h.object;
+      while (o && !byObj.has(o)) o = o.parent;
+      if (o) return byObj.get(o);
+    }
+    return null;
+  }
+  function floorAt(clientX, clientY) {
+    rayAt(clientX, clientY);
+    return pickRay.ray.intersectPlane(floorPlane, new THREE.Vector3());
+  }
+  /** The same target after a rebuild (equipment is rebuilt after every drop). */
+  function resolve(t) {
+    if (!t) return null;
+    if (t.obj && t.obj.parent) return t;
+    return movables().find((x) => x.kind === t.kind && x.cell === t.cell && x.key === t.key) || null;
+  }
+
+  // The outline round the object under the pointer or being dragged: white, green when clear, red when it clashes.
+  const outline = new THREE.Box3Helper(new THREE.Box3(), 0xffffff);
+  outline.visible = false;
+  outline.userData.dynamic = outline.userData.noBounds = true;
+  scene.add(outline);
+  function outlineFor(t, color) {
+    if (!t || !t.obj) {
+      outline.visible = false;
+      invalidated = true;
+      return;
+    }
+    const b = meshBox(t.obj);
+    if (b.isEmpty()) return;
+    outline.box.copy(b).expandByScalar(0.03);
+    if (color != null) outline.material.color.setHex(color);
+    outline.visible = true;
+    invalidated = true;
+  }
+
+  // The floating card: the object's name, "Rotate 90°" and "Reset".
+  if (getComputedStyle(container).position === "static") container.style.position = "relative";
+  const card = document.createElement("div");
+  Object.assign(card.style, { position: "absolute", zIndex: "30", display: "none", background: "hsl(var(--card))", color: "hsl(var(--card-foreground))", border: "1px solid hsl(var(--border))", borderRadius: "6px", padding: "6px 8px", fontSize: "12px", lineHeight: "1.3", boxShadow: "0 2px 8px rgba(0,0,0,.18)", whiteSpace: "nowrap", transform: "translate(-50%, calc(-100% - 8px))", pointerEvents: "auto" });
+  card.dataset.moveCard = "1";
+  const cardName = document.createElement("div");
+  cardName.style.fontWeight = "600";
+  cardName.style.marginBottom = "4px";
+  const cardBtns = document.createElement("div");
+  cardBtns.style.display = "flex";
+  cardBtns.style.gap = "4px";
+  const cardButton = (text, fn) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = text;
+    Object.assign(b.style, { border: "1px solid hsl(var(--border))", borderRadius: "4px", padding: "2px 6px", background: "hsl(var(--secondary))", color: "hsl(var(--secondary-foreground))", fontSize: "11px", cursor: "pointer" });
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      fn();
+    });
+    cardBtns.appendChild(b);
+    return b;
+  };
+  const rotateBtn = cardButton("Rotate 90°", () => {
+    const t = resolve(selected);
+    if (!t) return;
+    const e0 = edits.get(editId(t)) || ZERO;
+    const next = { dx: e0.dx, dz: e0.dz, rot: ((e0.rot || 0) + 1) % 4 };
+    applyTarget(t, next);
+    commit(t, next);
+  });
+  cardButton("Reset", () => {
+    const t = resolve(selected);
+    if (!t) return;
+    applyTarget(t, ZERO);
+    commit(t, ZERO);
+  });
+  card.append(cardName, cardBtns);
+  card.addEventListener("pointerdown", (e) => e.stopPropagation());
+  container.appendChild(card);
+  let selected = null;
+  function select(t) {
+    selected = t;
+    if (!t) {
+      card.style.display = "none";
+      if (!drag) outlineFor(null);
+      return;
+    }
+    cardName.textContent = t.name;
+    rotateBtn.style.display = t.rotate ? "" : "none";
+    card.style.display = "block";
+    outlineFor(t, 0x38bdf8);
+  }
+  function updateCard() {
+    if (!selected || !moveMode) return;
+    const t = resolve(selected);
+    if (!t) return select(null);
+    selected = t;
+    const b = meshBox(t.obj);
+    if (b.isEmpty()) return;
+    if (!drag) outline.box.copy(b).expandByScalar(0.03);
+    const p = new THREE.Vector3((b.min.x + b.max.x) / 2, b.max.y, (b.min.z + b.max.z) / 2).project(camera);
+    const w = container.clientWidth || 800, h = container.clientHeight || 500;
+    card.style.left = `${clamp(((p.x + 1) / 2) * w, 70, w - 70)}px`;
+    card.style.top = `${clamp(((1 - p.y) / 2) * h, 60, h - 10)}px`;
+  }
+
+  /** Live move of one target (no rebuild): robot base, station (with what is fitted to it) or equipment item. */
+  function applyTarget(t, e) {
+    if (t.kind === "robot") cells[t.cell]?.setBase(e.dx, e.dz);
+    else if (t.kind === "station") {
+      const D = cells[t.cell]?.setStation(t.key, e);
+      if (D && t.attached) t.attached.forEach((g) => g.parent && g.applyMatrix4(D));
+    } else if (t.obj.userData.home) {
+      const h = t.obj.userData.home;
+      t.obj.position.x = h.x + (e.dx || 0);
+      t.obj.position.z = h.z + (e.dz || 0);
+      t.obj.rotation.y = h.ry + ((e.rot || 0) * Math.PI) / 2;
+    }
+    obstaclesDirty = true;
+    invalidated = true;
+  }
+  /** Hoods, screens and curtains fitted round a station travel with it while it is dragged. */
+  function attachedTo(t) {
+    if (!equipGroup) return [];
+    const sb = meshBox(t.obj).expandByScalar(0.4);
+    return equipGroup.children.filter((ch) => ch.isGroup && !ch.userData.key && meshBox(ch).intersectsBox(sb));
+  }
+  /** Store a finished move, then rebuild what depends on it once (equipment, ducts, fence) and re-check. */
+  function commit(t, e) {
+    pushUndo();
+    const x = { cell: t.cell, kind: t.kind, key: t.key, dx: +(e.dx || 0).toFixed(3), dz: +(e.dz || 0).toFixed(3), rot: e.rot || 0 };
+    if (x.dx || x.dz || x.rot) edits.set(editId(x), x);
+    else edits.delete(editId(x));
+    placeEquipment();
+    placeFence();
+    notifyLayout();
+  }
+  const reachCount = () => cells.reduce((n, c) => n + c.checkReach().length, 0);
+  let drag = null, hoverT = null, lastHover = 0, lastDragCheck = 0;
+  const orbitButtons = { ...controls.mouseButtons }, orbitTouches = { ...controls.touches };
+  function setMoveMode(on) {
+    on = !!on;
+    if (on === moveMode) return;
+    if (drag) cancelDrag();
+    moveMode = on;
+    controls.mouseButtons.LEFT = on ? -1 : orbitButtons.LEFT;
+    controls.touches.ONE = on ? -1 : orbitTouches.ONE;
+    renderer.domElement.style.cursor = "";
+    renderer.domElement.style.touchAction = on ? "none" : "";
+    select(null);
+    hoverT = null;
+    // Each item batched on its own while things can be picked up; one batch again for normal viewing.
+    placeEquipment();
+    invalidated = true;
+    onLayout?.({ edits: editList(), moveMode, showPaths });
+    emit(true);
+  }
+  function cancelDrag() {
+    if (!drag) return;
+    applyTarget(drag.t, drag.start);
+    drag = null;
+    controls.enabled = true;
+    outlineFor(selected, 0x38bdf8);
+  }
+  const onMoveDown = (e) => {
+    if (!moveMode || (e.pointerType === "mouse" && e.button !== 0) || builder) return;
+    const t = pickMovable(e.clientX, e.clientY);
+    if (!t) return select(null);
+    const p = floorAt(e.clientX, e.clientY);
+    if (!p) return;
+    e.preventDefault();
+    const e0 = edits.get(editId(t)) || ZERO;
+    if (t.kind === "station") t.attached = attachedTo(t);
+    drag = { t, grab: p, start: { dx: e0.dx, dz: e0.dz, rot: e0.rot || 0 }, cur: { dx: e0.dx, dz: e0.dz, rot: e0.rot || 0 }, moved: false, base: { issues: layoutIssues().length, reach: reachCount() } };
+    controls.enabled = false;
+    try { renderer.domElement.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+    select(t);
+  };
+  const onMoveMove = (e) => {
+    if (!moveMode) return;
+    if (!drag) {
+      const now = performance.now();
+      if (now - lastHover < 60) return;
+      lastHover = now;
+      const t = pickMovable(e.clientX, e.clientY);
+      renderer.domElement.style.cursor = t ? "grab" : "";
+      if ((t && t.obj) !== (hoverT && hoverT.obj)) {
+        hoverT = t;
+        if (!selected) outlineFor(t, 0xffffff);
+      }
+      return;
+    }
+    const p = floorAt(e.clientX, e.clientY);
+    if (!p) return;
+    const snap = (v) => +(Math.round(clamp(v, -8, 8) / 0.05) * 0.05).toFixed(2);
+    const next = { dx: snap(drag.start.dx + p.x - drag.grab.x), dz: snap(drag.start.dz + p.z - drag.grab.z), rot: drag.cur.rot };
+    renderer.domElement.style.cursor = "grabbing";
+    if (next.dx === drag.cur.dx && next.dz === drag.cur.dz) return;
+    drag.cur = next;
+    drag.moved = true;
+    applyTarget(drag.t, next);
+    const now = performance.now();
+    if (now - lastDragCheck > 150 || drag.bad == null) {
+      lastDragCheck = now;
+      drag.bad = layoutIssues().length > drag.base.issues || reachCount() > drag.base.reach;
+    }
+    outlineFor(drag.t, drag.bad ? 0xef4444 : 0x22c55e);
+  };
+  const onMoveUp = (e) => {
+    if (!drag) return;
+    const d = drag;
+    drag = null;
+    controls.enabled = true;
+    try { renderer.domElement.releasePointerCapture(e.pointerId); } catch { /* released */ }
+    if (!d.moved) return outlineFor(d.t, 0x38bdf8);
+    commit(d.t, d.cur);
+    outlineFor(resolve(d.t), 0x38bdf8);
+  };
+  const onKey = (e) => {
+    if (!container.isConnected || !onScreen || disposed) return;
+    const el = e.target;
+    if (el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName || "") || el.isContentEditable)) return;
+    if (e.key === "Escape") {
+      if (drag) cancelDrag();
+      else if (selected) select(null);
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === "z") {
+      if (undoStack.length) {
+        e.preventDefault();
+        undoMove();
+      }
+      return;
+    }
+    if (!e.ctrlKey && !e.metaKey && !e.altKey && String(e.key).toLowerCase() === "m") setMoveMode(!moveMode);
+  };
+  renderer.domElement.addEventListener("pointerdown", onMoveDown);
+  renderer.domElement.addEventListener("pointermove", onMoveMove);
+  renderer.domElement.addEventListener("pointerup", onMoveUp);
+  renderer.domElement.addEventListener("pointercancel", onMoveUp);
+  window.addEventListener("keydown", onKey);
+  function unbindMove() {
+    renderer.domElement.removeEventListener("pointerdown", onMoveDown);
+    renderer.domElement.removeEventListener("pointermove", onMoveMove);
+    renderer.domElement.removeEventListener("pointerup", onMoveUp);
+    renderer.domElement.removeEventListener("pointercancel", onMoveUp);
+    window.removeEventListener("keydown", onKey);
+    card.remove();
+  }
+
+  /* Motion clearance: each arm as capsules (shoulder → elbow → wrist → tool tip), measured about 12 times a second
+     against equipment, fence panels, other arms and stations, except the stations the robot is meant to reach into. */
+  let obstaclesDirty = true, obstacles = [], lastWatch = 0, clearance = [];
+  const LINK_NAMES = ["upper arm", "forearm", "tool"];
+  const robotName = (i) => (cells.length > 1 ? `Robot ${i + 1}` : "The robot");
+  function resetClearance() {
+    clearance = cells.map(() => ({ cur: null, last: null, cycle: -1, collisions: 0, contacts: new Set() }));
+  }
+  function buildObstacles() {
+    obstaclesDirty = false;
+    obstacles = [];
+    for (const g of [equipGroup, equipOutside])
+      if (g)
+        for (const ch of g.children)
+          if (ch.isGroup && ch.userData.what && !ch.userData.attached) {
+            const b = meshBox(ch);
+            if (!b.isEmpty()) obstacles.push({ what: ch.userData.what, cell: ch.userData.cell, box: b });
+          }
+    fenceSides.forEach((b) => obstacles.push({ what: "the safety fence", cell: -1, box: b }));
+    cells.forEach((c, i) =>
+      c.stationInfos().forEach((info) => {
+        const b = meshBox(info.group);
+        if (!b.isEmpty()) obstacles.push({ what: info.name, cell: i, keys: info.keys, box: b });
+      })
+    );
+  }
+  const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3();
+  function segBox(a, b, box) {
+    let best = Infinity, k0 = 0;
+    for (let k = 0; k <= 8; k++) {
+      const d = box.distanceToPoint(tmpA.lerpVectors(a, b, k / 8));
+      if (d < best) { best = d; k0 = k; }
+    }
+    return [best, k0 / 8];
+  }
+  function segSeg(a, b, c, d) {
+    let best = Infinity, k0 = 0;
+    for (let k = 0; k <= 8; k++) {
+      tmpA.lerpVectors(a, b, k / 8);
+      for (let m = 0; m <= 8; m++) {
+        const dd = tmpA.distanceTo(tmpB.lerpVectors(c, d, m / 8));
+        if (dd < best) { best = dd; k0 = k; }
+      }
+    }
+    return [best, k0 / 8];
+  }
+  const armBuf = [];
+  function watchClearance(now) {
+    if (now - lastWatch < 83 || !cells.length) return;
+    lastWatch = now;
+    if (obstaclesDirty) buildObstacles();
+    if (clearance.length !== cells.length) resetClearance();
+    const arms = cells.map((c, i) => {
+      const pts = c.armPoints(armBuf[i] || (armBuf[i] = []));
+      return pts ? pts.map((p) => p.clone()) : null;
+    });
+    cells.forEach((c, i) => {
+      const pts = arms[i];
+      if (!pts || !c.started()) return;
+      const rec = clearance[i];
+      if (rec.cycle !== c.cycles) {
+        if (rec.cycle >= 0 && rec.cur) rec.last = rec.cur;
+        rec.cur = null;
+        rec.cycle = c.cycles;
+      }
+      const n = c.steps.length, st = c.steps[c.stepIdx], prev = n ? c.steps[(c.stepIdx - 1 + n) % n] : null;
+      const skip = new Set([st && st.station, prev && prev.station].filter(Boolean));
+      const sc = c.armScale, near = new Set();
+      let best = null;
+      const consider = (d, what, l, a, b, t, box) => {
+        const key = `${l}|${what}`;
+        if (d < 0.06) near.add(key);
+        if (!best || d < best.min) best = { min: d, against: what, link: LINK_NAMES[l], at: new THREE.Vector3().lerpVectors(a, b, t), step: st ? st.label : null };
+        if (d < 0.03 && !rec.contacts.has(key)) {
+          rec.contacts.add(key);
+          rec.collisions++;
+          log(`${robotName(i)}'s ${LINK_NAMES[l]} hits ${what}`);
+          flash(a, b, l === 2 ? 0.06 : 0.09 * sc, box);
+        }
+      };
+      for (let l = 0; l < 3; l++) {
+        const a = pts[l], b = pts[l + 1], rad = l === 2 ? 0.06 : 0.09 * sc;
+        for (const o of obstacles) {
+          if (o.keys && o.cell === i && o.keys.some((k) => skip.has(k))) continue;
+          const [d, t] = segBox(a, b, o.box);
+          consider(d - rad, o.what, l, a, b, t, o.box);
+        }
+        arms.forEach((q, j) => {
+          if (j === i || !q) return;
+          for (let m = 0; m < 3; m++) {
+            const [d, t] = segSeg(a, b, q[m], q[m + 1]);
+            consider(d - rad - (m === 2 ? 0.06 : 0.09 * cells[j].armScale), `Robot ${j + 1}`, l, a, b, t, null);
+          }
+        });
+      }
+      for (const k of [...rec.contacts]) if (!near.has(k)) rec.contacts.delete(k);
+      if (best && (!rec.cur || best.min < rec.cur.min)) rec.cur = best;
+    });
+  }
+  function motionClearance() {
+    return cells.map((c, i) => {
+      const r = clearance[i];
+      const b = r ? [r.cur, r.last].filter(Boolean).sort((x, y) => x.min - y.min)[0] : null;
+      return {
+        robot: i,
+        min: b ? +Math.max(0, b.min).toFixed(3) : null,
+        against: b ? b.against : null,
+        link: b ? b.link : null,
+        step: b ? b.step : null,
+        at: b ? [+b.at.x.toFixed(3), +b.at.y.toFixed(3), +b.at.z.toFixed(3)] : null,
+        collisions: r ? r.collisions : 0,
+      };
+    });
+  }
+  // The red flash on the arm link and the object it hit (about a second).
+  const flashGroup = new THREE.Group();
+  flashGroup.userData.dynamic = flashGroup.userData.noBounds = true;
+  scene.add(flashGroup);
+  const flashMat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.6, depthWrite: false });
+  pooledMaterials.add(flashMat);
+  let flashes = [];
+  function flash(a, b, rad, box) {
+    const v = new THREE.Vector3().subVectors(b, a), len = Math.max(v.length(), 0.01);
+    const link = new THREE.Mesh(new THREE.CylinderGeometry(rad * 1.15, rad * 1.15, len, 10), flashMat);
+    link.position.copy(a).addScaledVector(v, 0.5);
+    link.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.normalize());
+    flashGroup.add(link);
+    const items = [link];
+    if (box) {
+      const h = new THREE.Box3Helper(box.clone().expandByScalar(0.02), 0xef4444);
+      flashGroup.add(h);
+      items.push(h);
+    }
+    flashes.push({ start: performance.now(), items });
+  }
+  function updateFlashes(now) {
+    if (!flashes.length) return false;
+    flashMat.opacity = 0.35 + 0.35 * Math.sin(now / 80);
+    flashes = flashes.filter((f) => {
+      if (now - f.start < 1000) return true;
+      f.items.forEach((o) => { o.geometry.dispose(); if (o.material !== flashMat) o.material.dispose(); o.removeFromParent(); });
+      return false;
+    });
+    return true;
+  }
+
+  /* Robot paths: each tool tip's path over its last cycle as a thin line (focused robot brighter). */
+  const PATH_MAX = 4000;
+  const pathGroup = new THREE.Group();
+  pathGroup.visible = false;
+  pathGroup.userData.dynamic = pathGroup.userData.noBounds = true;
+  scene.add(pathGroup);
+  let paths = [], lastPathDraw = 0;
+  function clearPaths() {
+    paths.forEach((p) => { p.line.geometry.dispose(); p.line.material.dispose(); p.line.removeFromParent(); });
+    paths = [];
+  }
+  function recordPaths(now) {
+    if (paths.length !== cells.length) {
+      clearPaths();
+      paths = cells.map(() => {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(PATH_MAX * 3), 3));
+        geo.setDrawRange(0, 0);
+        const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.9, depthWrite: false }));
+        line.frustumCulled = false;
+        line.userData.dynamic = true;
+        pathGroup.add(line);
+        return { line, cur: [], last: null, cycle: -1 };
+      });
+    }
+    cells.forEach((c, i) => {
+      const p = paths[i], r = c.robot;
+      if (!r || !r.tip || !c.started() || !r.root.visible) return;
+      if (p.cycle !== c.cycles) {
+        if (p.cycle >= 0) p.last = p.cur;
+        p.cur = [];
+        p.cycle = c.cycles;
+      }
+      r.tip.updateWorldMatrix(true, false);
+      const v = new THREE.Vector3().setFromMatrixPosition(r.tip.matrixWorld);
+      const lv = p.cur[p.cur.length - 1];
+      if ((!lv || lv.distanceToSquared(v) > 0.0004) && p.cur.length < PATH_MAX) p.cur.push(v);
+    });
+    if (showPaths && now - lastPathDraw > 250) {
+      lastPathDraw = now;
+      drawPaths();
+    }
+  }
+  function drawPaths() {
+    paths.forEach((p, i) => {
+      const pts = p.last && p.last.length > 1 ? p.last : p.cur;
+      const attr = p.line.geometry.attributes.position;
+      pts.forEach((v, k) => attr.setXYZ(k, v.x, v.y, v.z));
+      attr.needsUpdate = true;
+      p.line.geometry.setDrawRange(0, pts.length);
+      p.line.material.color.setHex(i === focus ? 0x0ea5e9 : 0x64748b);
+      p.line.material.opacity = i === focus ? 0.95 : 0.5;
+    });
+    invalidated = true;
   }
 
   let raf = 0;
@@ -4671,7 +5387,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       conveyors.forEach((c) => c.update(dt));
       cells.forEach((c) => c.update(dt));
       updateOverlay(dt);
+      watchClearance(now);
+      recordPaths(now);
     }
+    if (updateFlashes(now)) invalidated = true;
     controls.update(realDt);
     updateLabels(now);
     draw(dt);
@@ -4699,6 +5418,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       camera.layers.enable(0);
       scene.background = bg;
     } else renderer.render(scene, camera);
+    updateCard();
   }
 
   let fps=0, lowAt=0, expensiveAt=0, cheapAt=0, performanceNotified=false;
@@ -4775,12 +5495,14 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   const api = {
     setSteps(newSteps) {
       pendingPlan = { cells: [{ steps: newSteps || [] }] }; pendingModels=[];
+      planChanged();
       relayout();
       playing = true;
       emit(true);
     },
     setPlan(plan) {
       pendingPlan = plan; pendingModels=[];
+      planChanged();
       relayout();
       playing = true;
       emit(true);
@@ -4841,6 +5563,26 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     reload() { if(contextLost) renderer.getContext().getExtension('WEBGL_lose_context')?.restoreContext(); else relayout(); },
     cellAt,
     setHover,
+    motionClearance() { return motionClearance(); },
+    /** Pause and frame the camera on robot i's closest approach (the "Show me" of the clearance check). */
+    showClash(i) {
+      const m = motionClearance()[Number(i) || 0];
+      if (!m || !m.at) return;
+      playing = false;
+      const at = new THREE.Vector3(m.at[0], m.at[1], m.at[2]);
+      framedByHand = true;
+      controls.autoRotate = false;
+      moveCamera(at.clone().add(new THREE.Vector3(1.3, 1.0, 1.7)), at);
+      emit(true);
+    },
+    setShowPaths(on) { showPaths = !!on; pathGroup.visible = showPaths; lastPathDraw = 0; drawPaths(true); invalidated = true; onLayout?.({ edits: editList(), moveMode, showPaths }); emit(true); },
+    get showPaths() { return showPaths; },
+    setMoveMode(on) { setMoveMode(on); },
+    get moveMode() { return moveMode; },
+    getLayoutEdits() { return editList(); },
+    setLayoutEdits(list) { setEdits(list, false); },
+    undoMove() { return undoMove(); },
+    resetLayout() { if (edits.size) setEdits([], true); },
     /** Cell builder: show only chosen equipment (call before setPlan). */
     setBuildMode(on) {
       buildMode = !!on;
@@ -4938,6 +5680,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     },
     dispose() {
       disposed=true; compileToken++; builder?.return(); io?.disconnect();
+      unbindMove();
+      clearPaths();
       renderer.domElement.removeEventListener('pointermove',pointerMove);
       renderer.domElement.removeEventListener('pointerleave',pointerLeave);
       renderer.domElement.removeEventListener('webglcontextlost',lost);
