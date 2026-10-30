@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { processesFromSkills } from "@/utils/processAnalyzer";
-import { createSimulation, eoatKind, STATION_NAMES, type Simulation, type SimUpdate } from "./robotSim.js";
+import { createSimulation, eoatKind, STATION_NAMES, type LayoutEdit, type Simulation, type SimUpdate } from "./robotSim.js";
 import { CINEMATIC_POST } from "./cinematicPost";
 import { planLine, type LinePlan } from "./robotKnowledge";
 import { Thumb, type Choice } from "./EquipmentPicker";
@@ -67,6 +67,8 @@ interface Cell {
   motion?: MotionChoice;
   /** Equipment repeated at the far end of the robot's travel (a second machine, a second pallet…). */
   far?: StationKey[];
+  /** Where the user moved this cell's robot, stations and equipment in the 3D view (Move mode). */
+  layout?: Omit<LayoutEdit, "cell">[];
 }
 
 /** What stands at the far end of a travelling robot: the user's choice, else its machine or its pallet. */
@@ -141,6 +143,7 @@ export default function CellBuilder() {
   const simRef = useRef<Simulation | null>(null);
   const [sceneStatus, setSceneStatus] = useState<"building" | "ready" | "lost">("building");
   const [labels, setLabels] = useState<"key" | "all" | "off">("key");
+  const [layout, setLayout] = useState({ edits: 0, moveMode: false, showPaths: false });
   const [smoothNotice, setSmoothNotice] = useState(false);
   const [data, setData] = useState<{ robots: Match[]; tools: Match[] } | null>(null);
   const [tab, setTab] = useState<PaletteTab>("robots");
@@ -228,6 +231,20 @@ export default function CellBuilder() {
       THREE, OrbitControls, RoomEnvironment, post: CINEMATIC_POST, container: stageRef.current,
       onStatus: setSceneStatus,
       onPerformance: () => setSmoothNotice(true),
+      onLayout: (info) => {
+        setLayout({ edits: info.edits.length, moveMode: info.moveMode, showPaths: info.showPaths });
+        // Kept with the saved cells: each cell holds its own moves.
+        setCells((prev) => {
+          let changed = false;
+          const next = prev.map((c, i) => {
+            const mine = info.edits.filter((e) => e.cell === i).map(({ cell: _cell, ...rest }) => rest);
+            if (JSON.stringify(mine) === JSON.stringify(c.layout ?? [])) return c;
+            changed = true;
+            return { ...c, layout: mine };
+          });
+          return changed ? next : prev;
+        });
+      },
       onUpdate: (u: SimUpdate) => {
         if (tracker.current.update(u.simTime, u.cells, stepsRef.current)) setBreakdown([...tracker.current.last]);
         const now = performance.now();
@@ -321,6 +338,7 @@ export default function CellBuilder() {
       return;
     }
     s.setPlan(simPlan);
+    s.setLayoutEdits(cells.flatMap((c, i) => (c.layout ?? []).map((e) => ({ ...e, cell: i }))));
     stepsRef.current = simPlan.cells.map((c) => c.steps.map((st) => ({ label: st.label, action: st.action })));
     tracker.current.reset(simPlan.cells.length);
     setBreakdown([]);
@@ -1021,6 +1039,11 @@ export default function CellBuilder() {
             ))}
           </select>
           <Button variant="secondary" size="sm" onClick={() => { const next = labels === "key" ? "all" : labels === "all" ? "off" : "key"; setLabels(next); simRef.current?.setLabels(next); }}>Labels: {labels === "key" ? "Key" : labels === "all" ? "All" : "Off"}</Button>
+          <Button size="sm" variant={layout.moveMode ? "default" : "secondary"} aria-pressed={layout.moveMode} title="Move robots, stations and equipment (M)" onClick={() => simRef.current?.setMoveMode(!layout.moveMode)}>Move</Button>
+          <Button size="sm" variant={layout.showPaths ? "default" : "secondary"} aria-pressed={layout.showPaths} onClick={() => simRef.current?.setShowPaths(!layout.showPaths)}>Show robot paths</Button>
+          {layout.edits > 0 && (
+            <Button size="sm" variant="secondary" onClick={() => simRef.current?.resetLayout()}>Reset layout</Button>
+          )}
           {(["iso", "cinematic", "front", "top", "product"] as const).map((v) => (
             <Button key={v} size="sm" variant="secondary" onClick={() => simRef.current?.setView(v)}>
               {v === "iso" ? "3D" : v === "product" ? "Close-up" : v[0].toUpperCase() + v.slice(1)}
