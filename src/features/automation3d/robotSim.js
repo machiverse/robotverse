@@ -311,6 +311,8 @@ export function eoatKind(text) {
 }
 const APPROACH = 0.22;
 const CELL_SPACING = 3.6;
+/** Equipment a robot puts its part or tool into on purpose: blow-off, torch cleaner, tip dresser, feeders, baths. */
+const ROBOT_USES = new Set(["airBlow", "torchCleaner", "tipDresser", "abrasiveStation", "toolRack", "screwFeeder", "partFeeder", "sterilizer", "quenchTank", "rejectBin", "positioner", "labelPrinter"]);
 /** Default travel per motion system in the 3D cell (m; a lift column's is vertical). See robotMotion.ts. */
 const MOTION_LEN = { fixed: 0, track: 4, overhead: 4, gantry: 3.5, amr: 4, lift: 1.2, rgv: 5 };
 /** An inverted robot hangs this high from the overhead track, and is at least this big to reach the floor stations. */
@@ -1463,6 +1465,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       if (built) protect(built.group);
       if (!built) return false;
       built.group.userData.what = item.label;
+      built.group.userData.model = item.model;
       built.group.userData.cell = cellNow;
       built.group.userData.attached = item.at === "work" || item.at === "pallet";
       built.group.position.set(x, 0, z);
@@ -1599,6 +1602,27 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       const inCell = (r) => r[0] >= X - 1.7 && r[2] <= X + L + 1.7 && r[1] >= -1.95 && r[3] <= 1.6;
       const DEG = Math.PI / 180;
       const near = { base: [[0.62, 0.78, 0.94], [-135, -90, -160, 180, -45, 135, 160, 110]], reach: [[0.95, 1.1, 1.25, 1.4], [135, 160, 110, 180, -160, 45, 20, -20, -135, -45, 90, 70, -110]] };
+      // Where the arm swings: from each station to the next (the short way round, as the base axis turns), with a
+      // margin. Equipment beside the base stays out of those arcs.
+      const dirOf = (k) => {
+        const st = c.stations[k];
+        const p = st && (st.point || st.center || (st.slots && st.slots[0]) || st.endPoint || st.startPoint);
+        return p ? Math.atan2(p.z, p.x - X) / DEG : null;
+      };
+      // A robot with a tool stand goes there to change tools before welding or tool work, and before picking again.
+      const rackDir = c.stations.rack ? dirOf("rack") : null;
+      const seq = (c.steps || [])
+        .flatMap((s) => [rackDir !== null && (s.action === "weld" || TOOL_ACTIONS[s.action] || s.action === "pick") ? rackDir : null, dirOf(s.station)])
+        .filter((a) => a !== null);
+      const turn = (from, to) => ((((to - from) % 360) + 540) % 360) - 180;
+      const inPath = (x) =>
+        seq.some((a, k) => {
+          const d = turn(a, seq[(k + 1) % seq.length]);
+          const t = turn(a, x);
+          return d >= 0 ? t >= -25 && t <= d + 25 : t <= 25 && t >= d - 25;
+        });
+      /** Floor items with no place clear of the arm inside the cell: they stand behind the fence instead. */
+      const sentOutside = [];
       for (const item of items.filter((x) => (x.at === "base" || x.at === "reach") && x.model)) {
         const built = equipModels.buildModel(item.model, item);
         if (built) protect(built.group);
@@ -1608,8 +1632,26 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const [radii, angles] = item.model === "scanner" ? [[0.42, 0.5], [90, 60, 120]] : item.at === "base" && fixedBase ? near.base : near.reach;
         const eqKey = keyFor(i, item.label);
         let spot = frozenSpots.get(eqKey) || null;
-        if (!spot) for (const r of radii) {
-          for (const a of angles) {
+        if (spot === "outside") {
+          disposeGroup(built.group);
+          sentOutside.push(item);
+          continue;
+        }
+        // Where to look, in turn: its own ring clear of the arm's swings, the wider ring clear of them, then (for
+        // a robot that swings all round) behind the fence like a real drum on a long conduit; the scanner anywhere.
+        // Devices the robot works with stay in reach even across its swings.
+        const passes =
+          item.model === "scanner"
+            ? [[radii, angles, false]]
+            : [
+                [radii, angles, true],
+                ...(radii !== near.reach[0] ? [[near.reach[0], near.reach[1], true]] : []),
+                ...(ROBOT_USES.has(item.model) ? [[radii, angles, false]] : []),
+              ];
+        for (const [rs, as, clearOfArm] of passes)
+        if (!spot) for (const r of rs) {
+          for (const a of as) {
+            if (clearOfArm && inPath(a)) continue;
             const x = X + Math.cos(a * DEG) * r, z = Math.sin(a * DEG) * r;
             const rot = facing(x, z, X, 0);
             const fr = footprint(x, z, w, d, rot);
@@ -1621,12 +1663,17 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         }
         if (!spot) {
           disposeGroup(built.group);
+          if (item.model !== "scanner") {
+            frozenSpots.set(eqKey, "outside");
+            sentOutside.push(item);
+          }
           continue;
         }
         // The first placement of this line is kept, so moving a station never makes other items jump.
         frozenSpots.set(eqKey, spot);
         const [x, z, rot, fr] = spot;
         built.group.userData.what = item.label;
+        built.group.userData.model = item.model;
         built.group.userData.cell = i;
         built.group.position.set(x, 0, z);
         built.group.rotation.y = rot;
@@ -1657,7 +1704,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       let rowDepth = 0;
       const xMax = X + L + 1.65;
       const behind = [];
-      for (const item of items.filter((x) => x.at === "outside" && x.model)) {
+      for (const item of [...items.filter((x) => x.at === "outside" && x.model), ...sentOutside]) {
         const built = equipModels.buildModel(item.model, item);
         if (built) protect(built.group);
         if (!built) continue;
@@ -1670,6 +1717,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const x0 = cursor + w / 2, z0 = rowFront - d / 2;
         built.group.position.set(x0, 0, z0);
         built.group.userData.what = built.group.userData.what || item.label;
+        built.group.userData.model = item.model;
         built.group.userData.cell = i;
         editEquip(built.group, keyFor(i, item.label));
         const x = built.group.position.x, z = built.group.position.z;
@@ -5186,7 +5234,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         for (const ch of g.children)
           if (ch.isGroup && ch.userData.what && !ch.userData.attached) {
             const b = meshBox(ch);
-            if (!b.isEmpty()) obstacles.push({ what: ch.userData.what, cell: ch.userData.cell, box: b, parts: worldBoxes(ch) });
+            if (!b.isEmpty()) obstacles.push({ what: ch.userData.what, cell: ch.userData.cell, model: ch.userData.model, box: b, parts: worldBoxes(ch) });
           }
     fenceSides.forEach((b) => obstacles.push({ what: "the safety fence", cell: -1, box: b }));
     cells.forEach((c, i) =>
@@ -5244,6 +5292,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       // A step that works with a process tool starts and ends with a tool change at the stand.
       const toolStep = (x) => x && (x.action === "weld" || x.action === "toolchange" || TOOL_ACTIONS[x.action]);
       if (toolStep(st) || toolStep(prev)) skip.add("rack");
+      // The robot's own tool stand: it docks there at the start of any step (the gripper goes back before a pick).
+      if (c.stations.rack) skip.add("rack");
       const sc = c.armScale, near = new Set();
       let best = null;
       const consider = (d, what, l, a, b, t, box) => {
@@ -5261,6 +5311,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         const a = pts[l], b = pts[l + 1], rad = l === 2 ? 0.06 : 0.09 * sc;
         for (const o of obstacles) {
           if (o.keys && o.cell === i && o.keys.some((k) => skip.has(k))) continue;
+          // Devices this robot works with by design (it holds the part or tool in them); other robots must keep clear.
+          if (o.cell === i && ROBOT_USES.has(o.model)) continue;
           let [d, t] = segBox(a, b, o.box);
           if (d - rad > 0.4) continue;
           if (o.parts && o.parts.length) {

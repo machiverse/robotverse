@@ -1512,8 +1512,19 @@ export default function AutomationStudio3D({
               </span>
             </div>
             {(() => {
-              const list = (state?.clearance ?? []).filter((c) => c.min != null);
-              if (!list.length) return null;
+              const all = state?.clearance ?? [];
+              const list = all.filter((c) => c.min != null);
+              // Watched, and nothing came within 0.4 m of any arm: say so.
+              if (!list.length)
+                return all.length && (state?.cells ?? [{ cycles: state?.cycles ?? 0 }]).every((c) => c.cycles > 0) ? (
+                  <div className="mt-1.5 flex gap-2 rounded-md border border-green-600/50 px-2.5 py-2 text-xs text-green-600">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    <span>
+                      <b className="font-semibold">Motion clearance: </b>
+                      robots move clear of everything; nothing comes within 0.4 m of an arm.
+                    </span>
+                  </div>
+                ) : null;
               const worst = list.reduce((a, b) => ((b.min as number) < (a.min as number) ? b : a));
               const who = (i: number) => ((plan?.robots.length ?? 1) > 1 ? `Robot ${i + 1}` : "The robot");
               const hit = (worst.min as number) < 0.03;

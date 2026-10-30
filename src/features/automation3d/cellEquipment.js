@@ -950,7 +950,9 @@ export function createEquipmentModels(THREE) {
     /* Reject bin under a short chute. */
     rejectBin() {
       const g = new THREE.Group();
-      B(g, 0.42, 0.42, 0.42, C.red);
+      // A steel bin with a safety-yellow rim, as reject and sprue bins are in a plant (not a red toy box).
+      B(g, 0.42, 0.4, 0.42, C.grey);
+      B(g, 0.44, 0.04, 0.44, C.amber, 0, 0.38);
       B(g, 0.36, 0.02, 0.36, C.dark, 0, 0.42);
       const ch = B(g, 0.3, 0.02, 0.5, C.steel, 0, 0.62, 0.1);
       ch.rotation.x = 0.45;
