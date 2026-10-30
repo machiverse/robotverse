@@ -25,7 +25,36 @@ export interface SimUpdate {
   motion?: SimMotionState;
   /** Picture quality in use (it drops to "standard" by itself when the frame rate cannot keep up). */
   quality?: SimQuality;
+  /** Closest approach of each robot's arm over its current and last cycle. */
+  clearance?: MotionClearance[];
+  moveMode?: boolean;
+  showPaths?: boolean;
+  /** Number of layout edits (moved robots, stations, equipment). */
+  layoutEdits?: number;
 }
+
+export interface MotionClearance {
+  robot: number;
+  /** Shortest distance (m) between the arm and anything it must not touch; null before the robot has moved. */
+  min: number | null;
+  against: string | null;
+  link: string | null;
+  step: string | null;
+  at: [number, number, number] | null;
+  collisions: number;
+}
+
+export interface LayoutEdit {
+  cell: number;
+  kind: "robot" | "station" | "equipment";
+  key: string;
+  dx: number;
+  dz: number;
+  /** Quarter turns (equipment, tables and pallets). */
+  rot: number;
+}
+
+export function planSignature(plan: SimPlan | { cells: { title?: string; steps?: { action: string; station: string }[]; stations?: string[]; motion?: { type: string } | null }[] }): string;
 
 export type SimQuality = "high" | "standard";
 export type SimMotionType = "fixed" | "track" | "overhead" | "gantry" | "amr" | "lift" | "rgv";
@@ -65,6 +94,16 @@ export interface Interference {
 export interface Simulation {
   stats(): { drawCalls: number; triangles: number; geometries: number; textures: number; fps: number; pixelRatio: number; quality: SimQuality; rebuilds: number };
   setLabels(mode: "key" | "all" | "off"): void;
+  motionClearance(): MotionClearance[];
+  showClash(robot: number): void;
+  setShowPaths(on: boolean): void;
+  readonly showPaths: boolean;
+  setMoveMode(on: boolean): void;
+  readonly moveMode: boolean;
+  getLayoutEdits(): LayoutEdit[];
+  setLayoutEdits(edits: LayoutEdit[]): void;
+  undoMove(): boolean;
+  resetLayout(): void;
   reload(): void;
   setEquipmentAll(list: Parameters<Simulation["setEquipment"]>[1][]): void;
   setSteps(steps: SimStep[]): void;
@@ -151,4 +190,6 @@ export function createSimulation(opts: {
   onUpdate?: (s: SimUpdate) => void;
   onStatus?: (status: "building" | "ready" | "lost") => void;
   onPerformance?: (mode: "smooth") => void;
+  /** Layout edits, Move mode or robot paths changed. */
+  onLayout?: (info: { edits: LayoutEdit[]; moveMode: boolean; showPaths: boolean }) => void;
 }): Simulation;
