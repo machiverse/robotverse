@@ -50,4 +50,4 @@
 - [x] Coalesce rebuilding and batch equipment in both screens; yield construction and warm shaders.
 - [x] Add stats, adaptive resolution, offscreen/paused rendering, recovery states, and label controls.
 - [x] Add contact decals, restrained materials and gliding camera views.
-- [ ] Run memory/draw-call/lifecycle regressions and final phone/tablet checks.
+- [x] Run memory/draw-call/lifecycle regressions and final phone/tablet checks: standard one/four benchmarks are 217/591 draw calls with stable geometry/texture counts after 15 rebuilds; size change rebuilds once, context recovery works, and a populated Builder renders.
