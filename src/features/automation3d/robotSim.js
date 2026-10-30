@@ -1131,6 +1131,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (!refGroup) return;
     scene.remove(refGroup);
     refGroup.traverse((o) => {
+      labels.delete(o);
       if (o.geometry) o.geometry.dispose();
       if (o.material && o.material !== M.dark && o.material !== M.frame) {
         if (o.material.map) o.material.map.dispose();
@@ -2220,6 +2221,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         if (holder === "crate" || holder === "tray") {
           const c = kit.container(holder, false);
           protect(c.group, true);
+          if (holder === "crate") c.group.traverse((o)=>{ if(o.material?.color) o.material.color.setHex(0x3a4555); });
           c.group.position.set(cx, topY, cz);
           g.add(c.group);
           floorY = topY + 0.008;
@@ -2653,7 +2655,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       root.rotation.x = inverted ? Math.PI : 0;
       const put = (geo, mat, parent, p, r) => {
         const m = new THREE.Mesh(geo, mat);
-        m.castShadow = true;
+        geo.computeBoundingBox();
+        const extent=geo.boundingBox.getSize(new THREE.Vector3());
+        m.castShadow = Math.max(extent.x,extent.y,extent.z)>0.12;
         m.receiveShadow = true;
         if (p) m.position.set(p[0], p[1], p[2]);
         if (r) m.rotation.set(r[0], r[1], r[2]);
@@ -2890,6 +2894,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         root.add(modelLabel);
       }
 
+      root.userData.dynamic = true;
+      if (!inverted && !cartesian && motionType === "fixed") ground(root);
       root.visible = !(buildMode && !(model && model.hasRobot));
       scene.add(root);
       const r = { root, joints, tip, fingers: [], fingerTool: false, fingerOpen: 0.075, dims, q: [0, 0, 0, 0, 0, 0], paint, trim, toolSets, heads, activeHead: null, activeLook: null, empty: false, lockLed, modelLabel, activeTool: 0, eoat: kinds[0], cartesian, gantry: arm.gantry || null, travel: 0, lift: 0 };
@@ -4115,6 +4121,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       // Where the raw product comes from, with its name and weight on a sign.
       const sup = kit.container(kit.info.supply, true);
       protect(sup.group, true);
+      if (kit.info.supply === "crate") sup.group.traverse((o)=>{ if(o.material?.color) o.material.color.setHex(0x3a4555); });
       const z = BELT_Z - (Math.max(0.4, PART.d + 0.08) / 2 + 0.14 + sup.size[2] / 2);
       sup.group.position.set(infeed.fromX, 0, z);
       infeed.group.add(sup.group);
@@ -4228,6 +4235,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (!overlayGroup) return;
     scene.remove(overlayGroup);
     overlayGroup.traverse((o) => {
+      labels.delete(o);
       if (o.geometry) o.geometry.dispose();
       if (o.material) {
         if (o.material.map) o.material.map.dispose();
@@ -4580,7 +4588,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   let lastEmit = 0;
   function emit(force) {
     invalidated = true;
-    if (!onUpdate || !cells.length || builder) return;
+    if (!onUpdate || !cells.length || builder || !cells[focus]?.robot) return;
     const now = performance.now();
     if (!force && now - lastEmit < 100) return;
     lastEmit = now;
@@ -4639,7 +4647,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     lastT = now;
     // A long line framed from high up: look in through the open roof, not at its deck.
     const roofOn = camera.position.y < 6;
-    if (roofParts[0].visible !== roofOn) roofParts.forEach((m) => (m.visible = roofOn));
+    if (roofParts[0] && roofParts[0].visible !== roofOn) roofParts.forEach((m) => (m.visible = roofOn));
     if (playing && cells.some((c) => c.steps.length)) {
       dt *= speed;
       simTime += dt;
@@ -4943,5 +4951,6 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       renderer.domElement.remove();
     },
   };
+  if (import.meta.env?.DEV) renderer.domElement.__robotSimulation = api;
   return api;
 }

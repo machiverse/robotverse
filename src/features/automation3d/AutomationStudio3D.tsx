@@ -489,10 +489,14 @@ export default function AutomationStudio3D({
   /** Reach, floor space and free space between robots for the line as it stands now. */
   function recheck() {
     const sim = simRef.current;
-    if (!sim) return;
-    setUnreachable((plan ? sim.checkReach() : sim.checkReach(steps)) || []);
+    if (!sim || !stageRef.current?.dataset.sceneReady) return;
+    // React effects finish before querying; dirty work is built in yielding frame steps.
+    queueMicrotask(() => {
+      if (!stageRef.current?.dataset.sceneReady) return;
+      setUnreachable(sim.checkReach() || []);
     setOverlaps(sim.layoutIssues());
     setClearance(sim.interference());
+    });
   }
 
   /** Put a robot on a track, a gantry, a mobile base… or back on a fixed base, and re-plan the line. */
