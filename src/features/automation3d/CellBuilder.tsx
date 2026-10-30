@@ -32,6 +32,8 @@ import RobotBaseControl, { type MotionChoice } from "./RobotBaseControl";
 import { isComponent } from "./jobGear";
 import { jobKit, type JobKit } from "./jobKit";
 import { providerPlan, understandJob } from "./jobUnderstanding";
+import { AutomationIO, ConveyorAutomationDialog } from "./ConveyorAutomationPanel";
+import { defaultSetup, planConveyorAutomation, type ConveyorSetup } from "./conveyorAutomation";
 
 /* ------------------------------------------------------------------ data */
 
@@ -69,6 +71,8 @@ interface Cell {
   far?: StationKey[];
   /** Where the user moved this cell's robot, stations and equipment in the 3D view (Move mode). */
   layout?: Omit<LayoutEdit, "cell">[];
+  /** Conveyor pick and place (first cell): the belt, the product, the feed and how the robot picks. */
+  automation?: ConveyorSetup;
 }
 
 /** What stands at the far end of a travelling robot: the user's choice, else its machine or its pallet. */
@@ -167,7 +171,8 @@ export default function CellBuilder() {
   const stageBoxRef = useRef<HTMLElement>(null);
   const [overStage, setOverStage] = useState(false);
   const [playing, setPlaying] = useState(true);
-  const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle" | "product" | "quality"> | null>(null);
+  const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle" | "product" | "quality" | "automation"> | null>(null);
+  const [autoOpen, setAutoOpen] = useState(false);
   const lastEmit = useRef(0);
   const cellCount = useRef(0);
   const [reportOpen, setReportOpen] = useState(false);
@@ -250,7 +255,7 @@ export default function CellBuilder() {
         const now = performance.now();
         if (now - lastEmit.current < 250) return;
         lastEmit.current = now;
-        setSim({ cells: u.cells, currentCycle: u.currentCycle, product: u.product, quality: u.quality });
+        setSim({ cells: u.cells, currentCycle: u.currentCycle, product: u.product, quality: u.quality, automation: u.automation });
       },
     });
     simRef.current = s;
@@ -387,6 +392,34 @@ export default function CellBuilder() {
     tracker.current.reset(cells.length);
     setBreakdown([]);
   }, [cells, plan]);
+  // The first cell's conveyor automation: belt, product, feed and pick mode (no change, no rebuild).
+  const autoKey = JSON.stringify([cells[0]?.automation ?? null, cells.length]);
+  useEffect(() => {
+    const a = cells[0]?.automation;
+    simRef.current?.setAutomation(a ? planConveyorAutomation({ setup: a, robots: cells.length }).sim : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoKey]);
+  // Where the first robot puts what it picks from the infeed conveyor.
+  const autoDest = useMemo(() => {
+    const st = programs[0]?.steps ?? [];
+    const k = st.findIndex((x) => x.action === "pick" && x.station === "conveyor");
+    return (k >= 0 ? st.slice(k + 1).find((x) => x.action === "place")?.station : undefined) ?? null;
+  }, [programs]);
+  const startAutomation = (setup: ConveyorSetup, dest: string) => {
+    const DEST = ["pallet", "carton", "out", "table"];
+    update(0, (x) => ({
+      ...x,
+      job: x.job || "Loading & Unloading",
+      automation: setup,
+      // The belt the robot picks from, and the one place it puts the parts.
+      stations: [...new Set([...(x.stations ?? []).filter((k) => !DEST.includes(k) || k === dest || (k === "table" && dest !== "table")), "conveyor", dest])] as StationKey[],
+    }));
+    setAutoOpen(false);
+    simRef.current?.play();
+    setPlaying(true);
+    // On a phone the cell cards are below the stage: bring the running cell into view (it only runs on screen).
+    stageBoxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   // Desktop: panels float over the stage, so frame the line in the free middle.
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
@@ -449,7 +482,8 @@ export default function CellBuilder() {
       const swapping = !!spec?.swap && !!swap.tool2 && !!swap.changer;
       if (swapping) choice = { ...choice, tool2: swap.tool2, changer: swap.changer };
       const stations = spec && (swapping || !spec.swap) ? spec.stations : stationsFor(job, [toolKindOf(choice.tool), toolKindOf(choice.tool2)], !!choice.changer);
-      return { id: newId(), job, choice, fenced: !isCobot(choice.robot), stations };
+      const automation = i === 0 && spec?.conveyor ? { ...defaultSetup(spec.conveyor.product), mode: spec.conveyor.mode } : undefined;
+      return { id: newId(), job, choice, fenced: !isCobot(choice.robot), stations, ...(automation ? { automation } : {}) };
     });
     quietFit.current = true;
     setCells(next);
@@ -835,6 +869,28 @@ export default function CellBuilder() {
   const budget = useMemo(() => (plan ? budgetFor(plan, cells.map((c) => c.choice)) : null), [plan, cells]);
   const operators = roiIn.operators || cells.length;
   const payback = budget ? roi(budget.bom.total, operators, roiIn.shifts, roiIn.wage) : null;
+  /** The first cell's conveyor automation for the report: its settings in one line, the sequence and the I/O. */
+  const automationReport = () => {
+    const a = cells[0]?.automation;
+    const c = cells[0];
+    if (!a || !c) return null;
+    const plan = planConveyorAutomation({
+      setup: a,
+      robot: c.choice.robot ? { name: c.choice.robot.name, brand: c.choice.robot.brand, payloadKg: c.choice.robot.payload, reachMm: c.choice.robot.reach } : null,
+      tool: c.choice.tool ? { name: c.choice.tool.name, type: c.choice.tool.type } : null,
+      destination: autoDest,
+      robots: cells.length,
+    });
+    const [l, h, w] = a.product.size ?? [0, 0, 0];
+    const setup = [
+      a.mode === "track" ? "Conveyor tracking" : "Stop and pick",
+      `belt ${a.conveyor.length} m × ${Math.round(a.conveyor.width * 1000)} mm at ${Math.round(a.conveyor.height * 1000)} mm, ${a.conveyor.speed} m/s`,
+      `product ${Math.round(l * 1000)} × ${Math.round(w * 1000)} × ${Math.round(h * 1000)} mm${a.product.kg ? `, ${a.product.kg} kg` : ""}`,
+      a.feed.rate > 0 ? `${a.feed.rate} parts a minute` : "parts whenever the gap allows",
+      `${Math.round(a.feed.gap * 1000)} mm gap`,
+    ].join(" · ");
+    return { setup, plan };
+  };
   const printReport = () => {
     const w = window.open("", "_blank");
     if (!w) return;
@@ -845,6 +901,7 @@ export default function CellBuilder() {
           parts: (c.parts ?? []).map((m) => m.name), also: kits[i].also, software: kits[i].software,
         })),
         bottleneck, perHour, budget, roi: payback, inputs: { operators, shifts: roiIn.shifts, wage: roiIn.wage },
+        automation: automationReport(),
       }),
     );
     w.document.close();
@@ -1089,6 +1146,17 @@ export default function CellBuilder() {
               </div>
               <p className="mt-3 text-[11px] text-muted-foreground">Ready cells come with a matching robot and tool from the marketplace or Directory — change anything after.</p>
             </div>
+          </div>
+        )}
+        {sim?.automation && !drag && (
+          <div className={cn("pointer-events-none absolute inset-x-2 bottom-2 z-20 flex justify-center", wide && showLib && "lg:left-[324px]", wide && showLine && "lg:right-[334px]")}>
+            <AutomationIO
+              state={sim.automation}
+              playing={playing}
+              onPause={() => (simRef.current?.pause(), setPlaying(false))}
+              onPlay={() => (simRef.current?.play(), setPlaying(true))}
+              onStep={() => simRef.current?.stepEvent()}
+            />
           </div>
         )}
       </section>
@@ -1535,6 +1603,19 @@ export default function CellBuilder() {
                   >
                     <ShieldCheck className="h-3 w-3" /> {c.fenced === undefined ? "Choose safety" : c.fenced ? "Fenced cell" : "Open (cobot)"}
                   </button>
+                  {i === 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => (e.stopPropagation(), setSelected(0), setAutoOpen(true))}
+                      title="Set up the conveyor, product, feed and photo-eye, then run the pick and place"
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-primary transition-colors duration-150 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                        c.automation ? "border-primary" : "border-dashed border-primary/60",
+                      )}
+                    >
+                      <Workflow className="h-3 w-3" /> {c.automation ? "Conveyor automation" : "Set up conveyor automation"}
+                    </button>
+                  )}
                   <StateBadge state={states[i]} />
                   {cycles[i] && <span className="ml-auto tabular-nums text-muted-foreground">{cycles[i]!.toFixed(1)} s · {cellSim?.cycles ?? 0} parts</span>}
                 </div>
@@ -1761,6 +1842,17 @@ export default function CellBuilder() {
       </aside>
     </div>
 
+      <ConveyorAutomationDialog
+        open={autoOpen}
+        onOpenChange={setAutoOpen}
+        setup={cells[0]?.automation}
+        productKey={sim?.product?.key}
+        robot={cells[0]?.choice.robot}
+        tool={cells[0]?.choice.tool}
+        destination={autoDest}
+        robots={cells.length}
+        onStart={startAutomation}
+      />
       <Dialog open={fitOpen} onOpenChange={setFitOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

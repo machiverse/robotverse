@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import { AlertTriangle, BookOpen, Bot, Camera, CheckCircle2, FileText, Info, Loader2, Maximize2, Minimize2, Minus, Pause, Play, Plus, Repeat, RotateCcw, Shield, Sparkles, Trash2, Wrench, X } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills, SKILL_LIBRARY } from "@/utils/processAnalyzer";
-import { createSimulation, planSignature, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type Interference, type LayoutEdit, type MotionClearance, type LineSpacing, type Simulation, type SimQuality } from "./robotSim.js";
+import { createSimulation, planSignature, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type AutomationState, type Interference, type LayoutEdit, type MotionClearance, type LineSpacing, type Simulation, type SimQuality } from "./robotSim.js";
+import { AutomationIO } from "./ConveyorAutomationPanel";
 import { addJob, baseJob, isShare, removeTasks, shareJob, suggestJobs } from "./lineEdit";
 import { CINEMATIC_POST } from "./cinematicPost";
 import CellEquipmentList from "./CellEquipmentList";
@@ -56,6 +57,8 @@ type SimState = {
   tools?: string[];
   quality?: SimQuality;
   clearance?: MotionClearance[];
+  /** The first robot's conveyor pick: PLC state, signals, parts and counts. */
+  automation?: AutomationState | null;
 };
 
 /** "the torch cleaner", "Robot 2", "the safety fence". */
@@ -1407,6 +1410,15 @@ export default function AutomationStudio3D({
 
         {/* Right: metrics */}
         <aside className="order-3 space-y-3 overflow-auto border-border bg-muted/20 p-3 lg:border-l">
+          {state?.automation && (
+            <AutomationIO
+              state={state.automation}
+              playing={!!state.playing}
+              onPause={() => simRef.current?.pause()}
+              onPlay={() => simRef.current?.play()}
+              onStep={() => simRef.current?.stepEvent()}
+            />
+          )}
           <Panel title="Cycle performance">
             <div className="grid grid-cols-2 gap-2">
               {[

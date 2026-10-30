@@ -7,6 +7,7 @@
  */
 
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { bottleneck, createBeltLogic } from "./conveyorLogic.js";
 
 import { createWorkpieces, productFor } from "./workpieces.js";
 import { createToolKit, eoatLook, headFor, HEAD_FX, TOOL_LOOK_NAMES } from "./toolHeads.js";
@@ -1861,13 +1862,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     });
   }
 
-  /* Conveyors: an infeed that spawns raw parts, or a transfer between two cells */
-  function makeConveyor(fromX, toX, label, autoSpawn) {
+  /*
+   * Conveyors: an infeed fed by a feeder, a transfer between two cells, or an outfeed. What the belt does — feeder,
+   * photo-eye, braking, the PLC handshake with the robot, tracking — is conveyorLogic.js on a fixed clock; this draws
+   * the belt and puts every part where the logic says it is, so parts ride the belt and never jump.
+   *   opts: { width, height, logic } — belt width and top height (m), and the belt's settings (speed, gap, feed rate…).
+   */
+  function makeConveyor(fromX, toX, label, autoSpawn, opts = {}) {
     const g = new THREE.Group();
     const dir = Math.sign(toX - fromX) || -1;
     const x0 = Math.min(fromX, toX) - 0.13;
     const x1 = Math.max(fromX, toX) + 0.13;
-    const len = x1 - x0, wid = Math.max(0.4, PART.d + 0.08), cx = (x0 + x1) / 2, cz = BELT_Z, topY = BELT_TOP;
+    const wid = opts.width ? Math.max(opts.width, PART.d + 0.02) : Math.max(0.4, PART.d + 0.08);
+    const len = x1 - x0, cx = (x0 + x1) / 2, cz = BELT_Z, topY = opts.height || BELT_TOP;
     const bed = box(len, 0.08, wid + 0.06, M.frame);
     bed.position.set(cx, topY - 0.05, cz);
     g.add(bed);
@@ -1922,6 +1929,15 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     bakeStatic(g);
     scene.add(g);
     const y = topY + PART.h / 2;
+    /** World x of a place on the belt (s metres from where parts are put on). */
+    const at = (s) => fromX + dir * s;
+    const logic = createBeltLogic({ length: Math.abs(toX - fromX), partLength: PART.w, overrun: 0.13, speed: BELT_SPEED, ...(opts.logic || {}) });
+    /** The mesh of each part on the belt, by its id in the logic. */
+    const meshes = new Map();
+    const falling = [];
+    const inBin = [];
+    let beam = null, led = null, bin = null, extra = null;
+    const beamOff = new THREE.Color(0x22c55e), beamOn = new THREE.Color(0xef4444);
     return {
       group: g,
       fromX,
@@ -1930,46 +1946,178 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       beltTex,
       autoSpawn,
       owner: null,
-      items: [],
+      sink: false,
+      tracking: false,
+      logic,
+      topY,
+      width: wid,
       point: new THREE.Vector3(toX, y, cz),
       startPoint: new THREE.Vector3(fromX, y, cz),
+      /** World position of a place on the belt, at the part's height. */
+      at: (s) => new THREE.Vector3(at(s), y, cz),
+      /** Belt velocity in the world (m/s along x). */
+      get vx() {
+        return dir * logic.velocity;
+      },
+      /**
+       * Once the line knows what the belt is for: a feeder or a robot upstream puts parts on it, a robot picks them
+       * at its end (stop and pick), follows them (o.track, with o.window in metres along the belt) or it carries
+       * them out (sink).
+       */
+      finish(o = {}) {
+        const mode = this.sink ? "flow" : o.track ? "track" : "index";
+        const length = Math.abs(toX - fromX);
+        const win = o.window ? [...o.window].sort((a, b) => a - b) : undefined;
+        logic.configure({ length, partLength: PART.w, overrun: 0.13, mode, source: this.autoSpawn ? "feeder" : "upstream", ...(win ? { window: win } : {}) });
+        this.tracking = mode === "track";
+        const cfg = logic.config;
+        if (mode === "index") this.point.set(at(cfg.pickAt), y, cz);
+        else if (mode === "track") this.point.set(at((cfg.window[0] + cfg.window[1]) / 2), y, cz);
+        extra = new THREE.Group();
+        const put = (m, px, py, pz) => (m.position.set(px, py, pz), extra.add(m), m);
+        if (this.autoSpawn && mode !== "flow") {
+          // The feeder: parts come out of a hooded infeed with a strip curtain, not out of thin air.
+          const hx = at(-0.13) + dir * 0.2;
+          const H = Math.max(0.22, PART.h + 0.1);
+          put(box(0.4, 0.02, wid + 0.08, M.frame), hx, topY + H, cz);
+          for (const side of [-1, 1]) put(box(0.4, H, 0.02, M.frame), hx, topY + H / 2, cz + side * (wid / 2 + 0.04));
+          for (let i = 0; i < 6; i++) put(box(0.012, H - 0.03, (wid + 0.04) / 6 - 0.006, M.dark), hx + dir * 0.2, topY + H / 2 + 0.01, cz - wid / 2 - 0.02 + ((i + 0.5) * (wid + 0.04)) / 6);
+          const fl = makeLabel("Feeder");
+          fl.position.set(hx, topY + H + 0.3, cz);
+          extra.add(fl);
+        }
+        if (mode === "flow") {
+          // Parts leave the line through a hood at the end of the outfeed.
+          const H = Math.max(0.22, PART.h + 0.1);
+          const hx = at(length + 0.13) - dir * 0.2;
+          put(box(0.4, 0.02, wid + 0.08, M.frame), hx, topY + H, cz);
+          for (const side of [-1, 1]) put(box(0.4, H, 0.02, M.frame), hx, topY + H / 2, cz + side * (wid / 2 + 0.04));
+          put(box(0.012, H - 0.03, wid + 0.04, M.dark), hx - dir * 0.2, topY + H / 2 + 0.01, cz);
+        } else {
+          // Photo-eye PE1 across the belt: sensor on a post one side, reflector the other, the beam between them.
+          const bx = at(mode === "track" ? cfg.detectAt : cfg.peAt);
+          const by = topY + clamp(PART.h * 0.4, 0.015, 0.06);
+          const zs = cz - wid / 2 - 0.05, zr = cz + wid / 2 + 0.05;
+          put(box(0.03, by + 0.03, 0.03, M.frame), bx, (by + 0.03) / 2, zs - 0.02);
+          put(box(0.045, 0.06, 0.04, M.dark), bx, by, zs);
+          put(box(0.03, by + 0.03, 0.03, M.frame), bx, (by + 0.03) / 2, zr + 0.02);
+          put(box(0.04, 0.05, 0.012, new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.3, metalness: 0.1 })), bx, by, zr);
+          led = put(box(0.012, 0.012, 0.006, new THREE.MeshStandardMaterial({ color: 0x14532d, emissive: 0x16a34a, emissiveIntensity: 0.6 })), bx + dir * 0.012, by + 0.022, zs + 0.021);
+          led.userData.dynamic = true;
+          beam = put(new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, zr - zs, 6), new THREE.MeshBasicMaterial({ color: beamOff, transparent: true, opacity: 0.55, depthWrite: false })), bx, by, cz);
+          beam.rotation.x = Math.PI / 2;
+          beam.userData.dynamic = true;
+          beam.castShadow = false;
+          const pl = makeLabel(mode === "track" ? "Photo-eye PE1 · sync switch" : "Photo-eye PE1");
+          pl.position.set(bx, by + 0.4, zs);
+          extra.add(pl);
+        }
+        if (mode === "track") {
+          // Encoder on the drive end, the tracking window marked on the belt, and the reject bin past its end.
+          const ex = at(-0.13) + dir * 0.08;
+          put(cyl(0.035, 0.03, M.steel, 16), ex, topY - 0.07, cz + wid / 2 + 0.05).rotation.x = Math.PI / 2;
+          put(box(0.05, 0.05, 0.05, M.dark), ex, topY - 0.07, cz + wid / 2 + 0.09);
+          for (const [s, color] of [[cfg.window[0], 0x22c55e], [cfg.window[1], 0xef4444]]) {
+            const mark = put(box(0.012, 0.004, wid, new THREE.MeshBasicMaterial({ color })), at(s), topY + 0.002, cz);
+            mark.castShadow = false;
+          }
+          const bw = Math.max(0.36, PART.w + 0.14), bd = wid + 0.12, bh = Math.max(0.3, topY - 0.32);
+          const bxc = at(length + 0.13) + dir * (bw / 2 + 0.04);
+          bin = { x: bxc, w: bw, d: bd, floor: 0.06, h: bh };
+          const grey = new THREE.MeshStandardMaterial({ color: 0x4b5563, metalness: 0.3, roughness: 0.6 });
+          put(box(bw, 0.04, bd, grey), bxc, 0.04, cz);
+          for (const side of [-1, 1]) {
+            put(box(bw, bh, 0.02, grey), bxc, bh / 2, cz + side * (bd / 2));
+            put(box(0.02, bh, bd, grey), bxc + side * (bw / 2), bh / 2, cz);
+          }
+          put(box(bw + 0.02, 0.03, bd + 0.02, M.amber), bxc, bh, cz).castShadow = false;
+          const rl = makeLabel("Reject bin · missed parts");
+          rl.position.set(bxc, bh + 0.35, cz);
+          extra.add(rl);
+        }
+        g.add(extra);
+        bakeStatic(extra);
+      },
+      /** Stop and pick: the part at rest at the pick position once the PLC says PART_READY. */
+      readyPart() {
+        const p = logic.partReady();
+        return p ? { id: p.id, mesh: meshes.get(p.id) } : null;
+      },
       ready() {
-        const it = this.items[0];
-        return !!it && Math.abs(it.mesh.position.x - toX) < 1e-3;
+        return !!logic.partReady();
+      },
+      /** The robot's grip is confirmed: the part comes off the belt (null if the PLC does not allow it). */
+      takePart(id) {
+        if (!logic.take(id)) return null;
+        const m = meshes.get(id);
+        meshes.delete(id);
+        return m || null;
       },
       take() {
-        return this.items.shift();
+        const p = logic.partReady();
+        return p ? { mesh: this.takePart(p.id) } : null;
       },
+      meshOf: (id) => meshes.get(id) || null,
       canAccept() {
-        return !this.items.some((it) => Math.abs(it.mesh.position.x - fromX) < 0.2);
+        return logic.canAccept();
       },
       push(mesh) {
-        this.items.push({ mesh });
+        meshes.set(logic.push(), mesh);
       },
       update(dt) {
-        beltTex.offset.x += dt * BELT_SPEED * 0.5;
-        if (this.autoSpawn && !this.items.length && this.owner && this.owner.started()) {
-          this.push(spawnPart(this.startPoint.clone()));
+        // The feeder runs once the robot it feeds has started (a cell without a robot does not flood its belt).
+        logic.setFeeder(!!(this.autoSpawn && this.owner && this.owner.started()));
+        logic.step(dt);
+        // The belt surface moves exactly as fast as the parts on it.
+        beltTex.offset.x -= (dt * logic.velocity * dir * beltTex.repeat.x) / len;
+        for (const p of logic.parts) {
+          let m = meshes.get(p.id);
+          if (!m) {
+            m = spawnPart(this.startPoint);
+            meshes.set(p.id, m);
+          }
+          m.position.set(at(p.s), y, cz);
         }
-        // An outfeed carries finished parts out of the cell.
-        if (this.sink && this.items.length && Math.abs(this.items[0].mesh.position.x - toX) < 1e-3) {
-          const it = this.items[0];
-          it.t = (it.t || 0) + dt;
-          if (it.t > 0.6) {
-            this.items.shift();
-            removePart(it.mesh);
+        for (const o of logic.drain()) {
+          const m = meshes.get(o.id);
+          meshes.delete(o.id);
+          if (!m) continue;
+          if (o.how === "bin" && bin) falling.push({ m, vx: dir * logic.config.speed, vy: 0 });
+          else removePart(m);
+        }
+        // Missed parts fall off the end roller into the reject bin and stay there (the newest dozen are shown).
+        for (let i = falling.length - 1; i >= 0; i--) {
+          const f = falling[i];
+          f.vy -= 9.81 * dt;
+          f.m.position.x += f.vx * dt;
+          f.m.position.y += f.vy * dt;
+          const k = inBin.length % 6;
+          const restY = bin.floor + PART.h / 2 + Math.floor(inBin.length / 6) * PART.h;
+          const cxBin = bin.x + ((k % 3) - 1) * Math.min(PART.w * 0.6, bin.w / 3);
+          f.m.position.x = dir > 0 ? Math.min(f.m.position.x, cxBin) : Math.max(f.m.position.x, cxBin);
+          if (f.m.position.y <= restY) {
+            f.m.position.set(cxBin, restY, cz + (k < 3 ? -1 : 1) * Math.min(PART.d * 0.55, bin.d / 4));
+            f.m.rotation.y = ((inBin.length * 37) % 50) * 0.02 - 0.5;
+            inBin.push(f.m);
+            falling.splice(i, 1);
+            if (inBin.length > 12) removePart(inBin.shift());
           }
         }
-        this.items.forEach((it, i) => {
-          const target = toX - dir * i * (PART.w + 0.06);
-          const x = it.mesh.position.x;
-          const next = x + dir * BELT_SPEED * dt;
-          it.mesh.position.x = dir > 0 ? Math.min(next, target) : Math.max(next, target);
-        });
+        if (beam) {
+          const on = logic.io.PE1;
+          beam.material.color.copy(on ? beamOn : beamOff);
+          beam.material.opacity = on ? 0.9 : 0.45;
+          led.material.emissive.setHex(on ? 0xf59e0b : 0x16a34a);
+        }
       },
       clear() {
-        this.items.forEach((it) => removePart(it.mesh));
-        this.items = [];
+        meshes.forEach((m) => removePart(m));
+        meshes.clear();
+        falling.forEach((f) => removePart(f.m));
+        falling.length = 0;
+        inBin.forEach(removePart);
+        inBin.length = 0;
+        logic.reset();
       },
       dispose() {
         disposeGroup(g);
@@ -1989,6 +2137,23 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
   let playing = true;
   let speed = 1;
   let simTime = 0;
+  /** Conveyor automation of the first robot's infeed (setAutomation), or null for the standard belt. */
+  let automation = null, automationSig = "null";
+  /**
+   * The simulation clock runs in fixed steps, so a line runs the same at any frame rate: belts, sensors, the PLC and
+   * the robots all advance together, and pause, step and reset are exact.
+   */
+  const STEP = 1 / 120;
+  let simAcc = 0;
+  function advance(dt) {
+    simAcc += dt;
+    while (simAcc >= STEP - 1e-9) {
+      simAcc -= STEP;
+      simTime += STEP;
+      conveyors.forEach((c) => c.update(STEP));
+      cells.forEach((c) => c.update(STEP));
+    }
+  }
   let events = [];
   let focus = 0;
 
@@ -2357,7 +2522,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         g.add(lbl);
         add(g);
         const slots = gridSlots(cx, cz, floorY, area[0], area[1], layers);
-        stations.pallet = { slots, parts: [], point: slots[0], center: V(sgn * 1.0, 0, cz) };
+        stations.pallet = { slots, parts: [], point: slots[0], center: V(sgn * 1.0, 0, cz), group: g };
       }
 
       if (needed.has("vision")) {
@@ -3190,6 +3355,19 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     let lastCycle = null;
     let held = null;
     const unreachable = new Set();
+    /** The robot's own signals (gripper command and grip sensor), what it is doing now, and parts placed. */
+    const rio = { GRIP_CMD: false, GRIP_OK: false };
+    let phaseText = "";
+    let placed = 0;
+    /** A segment that says what the robot is doing while it runs. */
+    const phase = (text, sg) => {
+      const init = sg.init;
+      sg.init = () => {
+        phaseText = text;
+        init.call(sg);
+      };
+      return sg;
+    };
 
     /** Seconds to ride `m` metres on this cell's track, cart or AMR (accelerate, cruise, brake). */
     const rideTime = (m) => {
@@ -3281,6 +3459,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       return {
         init() {
           from = robot.fingers.length ? robot.fingers[1].position.z : 0;
+          rio.GRIP_CMD = !open;
         },
         update(dt) {
           t += dt;
@@ -3318,6 +3497,15 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     }
 
     const waitUntil = (cond) => ({ init() {}, update: () => cond() });
+    /** Wait for a signal from a belt's PLC; the time counts as the robot waiting for parts. */
+    const waitFor = (cond, belt) => ({
+      init() {},
+      update(dt) {
+        if (cond()) return true;
+        belt.logic.waiting(true, dt);
+        return false;
+      },
+    });
 
     function doorMove(open, key = "cnc") {
       const c = stations[key];
@@ -3417,8 +3605,10 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
 
     function attach(part) {
       if (!part) return;
+      // Object3D.attach keeps the part where it is: it is fixed to the tool from here on, it does not jump.
       robot.tip.attach(part);
       held = part;
+      rio.GRIP_OK = true;
     }
 
     function release(targetPos) {
@@ -3428,7 +3618,200 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       p.position.copy(targetPos);
       p.rotation.set(0, 0, 0);
       held = null;
+      rio.GRIP_OK = false;
+      placed++;
       return p;
+    }
+
+    /**
+     * The grip sensor (vacuum switch or jaw position): the robot lifts only once it confirms the part is in the
+     * gripper. Without it, the gripper opens, the robot backs off and tries the pick again.
+     */
+    function gripCheck(getPart, belt, s) {
+      let t = 0;
+      return {
+        init() {},
+        update(dt) {
+          t += dt;
+          if (t < 0.12) return false;
+          const p = getPart();
+          const m = p && p.mesh;
+          if (m && grab(m.position).distanceTo(tipWorld()) < 0.012) {
+            const mesh = belt.takePart(p.id);
+            if (mesh) {
+              attach(mesh);
+              return true;
+            }
+          }
+          belt.logic.gripFault(`No grip confirmation on part ${p ? p.id : "?"} — gripper opens, robot retries`);
+          log("Grip not confirmed (GRIP_OK off) — retrying the pick");
+          queue = [gripper(true), linearMove(() => above(tipWorld()), s, 0.3), ...buildSegments(steps[stepIdx])];
+          return true;
+        },
+      };
+    }
+
+    /**
+     * Conveyor tracking: wait at the start of the tracking window, match the belt's speed on the next part the robot
+     * can still catch, go down on the moving part, grip, confirm and lift while still following the belt. A part
+     * that leaves the window before the grip is confirmed is let go: it runs on into the reject bin.
+     */
+    function trackPick(belt, s) {
+      const lg = belt.logic;
+      const VMAX = 0.9;
+      const lift = new THREE.Vector3();
+      let state = "wait", id = null, t = 0, tcp = null, off = APPROACH, from = 0;
+      const waitPose = () => above(grab(belt.at(lg.config.window[0])));
+      const target = () => {
+        const m = belt.meshOf(id);
+        return m ? grab(m.position).add(lift.set(0, off, 0)) : null;
+      };
+      /** Close in on a moving target: follow the belt, and correct the gap at up to VMAX. */
+      const pursue = (P, dt, vmax = VMAX) => {
+        if (!P) return;
+        const d = P.clone().sub(tcp);
+        const max = (vmax + Math.abs(belt.vx)) * dt;
+        if (d.length() > max) d.setLength(max);
+        tcp.add(d);
+      };
+      const catchable = (p) => {
+        const P = grab(belt.at(p.s)).add(lift.set(0, APPROACH, 0));
+        const need = p.s + lg.velocity * (P.distanceTo(tcp) / VMAX + 1.0);
+        return need <= lg.config.window[1];
+      };
+      const letGo = () => {
+        if (rio.GRIP_CMD) {
+          setFingers(true);
+          rio.GRIP_CMD = false;
+        }
+        lg.abandon(id);
+        log(`Part ${id} left the tracking window before the grip — missed`);
+        id = null;
+        state = "back";
+        t = 0;
+        phaseText = "Back to the start of the tracking window";
+      };
+      return {
+        init() {
+          tcp = tipWorld();
+          state = "wait";
+          phaseText = "Waiting for a part in the tracking window";
+        },
+        update(dt) {
+          t += dt;
+          if (state === "wait") {
+            const p = lg.parts.find((x) => !x.claimed && !x.missed && x.queuedAt !== null && x.s >= lg.config.window[0] && catchable(x));
+            if (!p) {
+              lg.waiting(true, dt);
+              return false;
+            }
+            id = p.id;
+            lg.claim(id);
+            off = APPROACH;
+            state = "sync";
+            t = 0;
+            phaseText = `Matching the belt speed on part ${id}`;
+          }
+          if ((state === "sync" || state === "down" || state === "close" || state === "confirm") && !lg.trackable(id)) letGo();
+          if (state === "sync") {
+            const P = target();
+            pursue(P, dt);
+            if (P && tcp.distanceTo(P) < 0.002) {
+              state = "down";
+              t = 0;
+              phaseText = `Moving down on moving part ${id}`;
+            }
+          } else if (state === "down") {
+            off = APPROACH * (1 - smooth(clamp(t / 0.45, 0, 1)));
+            const P = target();
+            pursue(P, dt);
+            if (t >= 0.45 && P && tcp.distanceTo(P) < 0.002) {
+              state = "close";
+              t = 0;
+              rio.GRIP_CMD = true;
+              from = robot.fingers.length ? robot.fingers[1].position.z : 0;
+              phaseText = "Closing the gripper on the moving part";
+            }
+          } else if (state === "close") {
+            pursue(target(), dt);
+            if (robot.fingers.length) {
+              const z = from + (fingerZ(false) - from) * smooth(clamp(t / 0.3, 0, 1));
+              robot.fingers[0].position.z = -z;
+              robot.fingers[1].position.z = z;
+            }
+            if (t >= 0.3) {
+              state = "confirm";
+              t = 0;
+              phaseText = "Waiting for grip confirmation";
+            }
+          } else if (state === "confirm") {
+            const P = target();
+            pursue(P, dt);
+            if (t >= 0.1) {
+              const m = P && tcp.distanceTo(P) < 0.012 ? belt.takePart(id) : null;
+              if (m) {
+                attach(m);
+                state = "lift";
+                t = 0;
+                from = tcp.y;
+                phaseText = "Lifting off the belt while following it";
+              } else {
+                lg.gripFault(`No grip confirmation on part ${id}`);
+                letGo();
+              }
+            }
+          } else if (state === "lift") {
+            // Keep pace with the belt while lifting, so the part is not dragged across it.
+            tcp.x += belt.vx * dt;
+            tcp.y = from + APPROACH * smooth(clamp(t / 0.35, 0, 1));
+          } else if (state === "back") {
+            const W = waitPose();
+            pursue(W, dt, 0.8);
+            if (tcp.distanceTo(W) < 0.003) {
+              state = "wait";
+              phaseText = "Waiting for a part in the tracking window";
+            }
+          }
+          const sol = solveIK(tcp);
+          if (!sol.reachable) unreachable.add(s);
+          applyJoints(sol.q);
+          return state === "lift" && t >= 0.35;
+        },
+      };
+    }
+
+    /**
+     * A full pallet rolls out of the cell with its load to the pick-up place behind the guard, where it waits for the
+     * forklift (the previous one is gone by then); the empty pallet is in place once the full one has left.
+     */
+    function swapPallet(pal) {
+      if (pal.staged) {
+        pal.staged.parts.forEach(removePart);
+        pal.staged.load.removeFromParent();
+        pal.staged = null;
+      }
+      const load = pal.group.clone();
+      const signs = [];
+      load.traverse((o) => o.isSprite && signs.push(o));
+      signs.forEach((o) => o.removeFromParent());
+      scene.add(load);
+      for (const p of pal.parts) load.attach(p);
+      pal.swap = { load, parts: pal.parts, t: 0, z0: load.position.z };
+      pal.parts = [];
+      pal.group.visible = false;
+    }
+    function updateSwaps(dt) {
+      for (const st of Object.values(stations)) {
+        const sw = st && st.swap;
+        if (!sw) continue;
+        sw.t += dt;
+        sw.load.position.z = sw.z0 + smooth(clamp(sw.t / 1.6, 0, 1)) * 2.4;
+        if (sw.t >= 1.6) {
+          st.group.visible = true;
+          st.staged = { load: sw.load, parts: sw.parts };
+          st.swap = null;
+        }
+      }
     }
 
     function stationPoint(st) {
@@ -3438,6 +3821,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     }
 
     const isBelt = (s) => s === "conveyor" || s === "in";
+    /** A station's name inside a sentence ("pallet", "CNC machine"). */
+    const placeName = (k) => {
+      const n = STATION_NAMES[String(k || "").replace(/_\d+$/, "")] || "station";
+      return /^[A-Z]{2}/.test(n) ? n : n[0].toLowerCase() + n.slice(1);
+    };
     /** The kind of a station key: "cnc_2" (the far end of a track) is a CNC machine. */
     const kindOf = (k) => String(k || "").replace(/_\d+$/, "");
 
@@ -3458,16 +3846,22 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           if (stations.rack && robot.activeLook) changeTool(out, `tool:${robot.activeTool}`);
           if (isBelt(s)) {
             const belt = stations[s];
-            out.push(jointMove(() => above(grab(belt.point)), s));
-            out.push(waitUntil(() => belt.ready()));
-            out.push(linearMove(() => grab(belt.point), s, 0.3));
-            out.push(
-              gripper(false, () => {
-                const it = belt.take();
-                if (it) attach(it.mesh);
-              })
-            );
-            out.push(linearMove(() => above(grab(belt.point)), s, 0.35));
+            if (belt.tracking) {
+              out.push(phase("Moving to the start of the tracking window", jointMove(() => above(grab(belt.at(belt.logic.config.window[0]))), s)));
+              out.push(trackPick(belt, s));
+            } else {
+              // Stop and pick: wait above the pick position for PART_READY, go down (the belt is now interlocked),
+              // grip, lift only on GRIP_OK, and report clear (PICK_DONE) so the PLC restarts the belt.
+              let part = null;
+              out.push(phase("Moving above the pick position", jointMove(() => above(grab(belt.point)), s)));
+              out.push(phase("Waiting for PART_READY", waitFor(() => (part = belt.readyPart()), belt)));
+              out.push(phase("Moving down onto the part", dwell(0, () => belt.logic.robotInZone(true))));
+              out.push(phase("Moving down onto the part", linearMove(() => grab(part && part.mesh ? part.mesh.position : belt.point), s, 0.3)));
+              out.push(phase("Closing the gripper (GRIP_CMD)", gripper(false)));
+              out.push(phase("Waiting for grip confirmation (GRIP_OK)", gripCheck(() => part, belt, s)));
+              out.push(phase("Lifting clear of the belt", linearMove(() => above(grab(belt.point)), s, 0.35)));
+              out.push(phase("Clear of the belt (PICK_DONE)", dwell(0, () => belt.logic.robotInZone(false))));
+            }
           } else {
             const P = stationPoint(s);
             const isCnc = kindOf(s) === "cnc";
@@ -3492,8 +3886,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         case "place": {
           if (s === "out") {
             const belt = stations.out;
-            out.push(jointMove(() => above(grab(belt.startPoint)), s));
-            out.push(waitUntil(() => belt.canAccept()));
+            out.push(phase("Carrying the part to the outfeed", jointMove(() => above(grab(belt.startPoint)), s)));
+            out.push(phase("Waiting for room on the outfeed", waitUntil(() => belt.canAccept())));
             out.push(linearMove(() => grab(belt.startPoint), s, 0.3));
             out.push(
               gripper(true, () => {
@@ -3507,11 +3901,12 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           let P;
           const getP = () => (P = P || stationPoint(kindOf(s) === "vision" ? s.replace("vision", "table") : s).clone());
           const isCnc = kindOf(s) === "cnc";
+          if (kindOf(s) === "pallet") out.push(phase("Waiting for an empty pallet", waitUntil(() => !(stations[s] && stations[s].swap))));
           if (isCnc) out.push(doorMove(true, s));
-          out.push(jointMove(() => above(grab(getP())), s));
-          out.push(linearMove(() => grab(getP()), s, 0.3));
+          out.push(phase(`Carrying the part to the ${placeName(s)}`, jointMove(() => above(grab(getP())), s)));
+          out.push(phase(`Placing on the ${placeName(s)}`, linearMove(() => grab(getP()), s, 0.3)));
           out.push(
-            gripper(true, () => {
+            phase("Releasing the part (GRIP_CMD off)", gripper(true, () => {
               const part = release(getP());
               if (!part) {
                 log(`Nothing to place for "${step.label}"`);
@@ -3521,9 +3916,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
                 const pal = stations[s];
                 pal.parts.push(part);
                 if (pal.parts.length >= pal.slots.length) {
-                  log("Pallet full, swapped for an empty one");
-                  pal.parts.forEach(removePart);
-                  pal.parts = [];
+                  log("Pallet full — it rolls out with its load, an empty pallet takes its place");
+                  swapPallet(pal);
                 }
               } else if (kindOf(s) === "carton") {
                 const ct = stations[s];
@@ -3540,9 +3934,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
                 if (stations[s].part) removePart(stations[s].part);
                 stations[s].part = part;
               }
-            })
+            }))
           );
-          out.push(linearMove(() => above(grab(getP())), s, 0.35));
+          out.push(phase("Lifting clear", linearMove(() => above(grab(getP())), s, 0.35)));
           if (isCnc) out.push(doorMove(false, s));
           break;
         }
@@ -3896,11 +4290,24 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         lastCycle = simTime - cycleStart;
         cycleStart = simTime;
       }
+      phaseText = steps[stepIdx].label || "";
       queue = buildSegments(steps[stepIdx]);
     }
 
     function clearParts() {
       held = null;
+      rio.GRIP_CMD = false;
+      rio.GRIP_OK = false;
+      for (const st of Object.values(stations)) {
+        for (const w of [st && st.swap, st && st.staged]) {
+          if (!w) continue;
+          w.parts.forEach(removePart);
+          w.load.removeFromParent();
+        }
+        if (st && st.group && (st.swap || st.staged)) st.group.visible = true;
+        if (st && "swap" in st) st.swap = null;
+        if (st && "staged" in st) st.staged = null;
+      }
       for (const [k, st] of Object.entries(stations)) {
         if (!st || isBelt(k) || k === "out") continue;
         if ("part" in st) st.part = null;
@@ -3979,6 +4386,34 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       get holding() {
         return !!held;
       },
+      /**
+       * The stretch of a belt this robot can pick from, as its inverse kinematics says: part centres [from, to] in
+       * metres along the belt, the approach above the part included. For a tracking window; null if none.
+       */
+      reachOnBelt(belt) {
+        if (!robot) return null;
+        const length = Math.abs(belt.toX - belt.fromX);
+        let best = null, run = null;
+        for (let k = 0; k <= Math.round(length / 0.02); k++) {
+          const sk = k * 0.02;
+          const P = grab(belt.at(sk));
+          if (solveIK(P).reachable && solveIK(above(P)).reachable) {
+            run = run ? [run[0], sk] : [sk, sk];
+            if (!best || run[1] - run[0] > best[1] - best[0]) best = run.slice();
+          } else run = null;
+        }
+        return best;
+      },
+      /** What the robot is doing now, its gripper signals and the parts it has placed. */
+      get phase() {
+        return phaseText;
+      },
+      get io() {
+        return rio;
+      },
+      get placed() {
+        return placed;
+      },
       unreachable,
       setPaint(industrial) {
         paintIndustrial = industrial;
@@ -4029,6 +4464,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         cycleStart = 0;
         cycles = 0;
         lastCycle = null;
+        placed = 0;
+        phaseText = "";
         unreachable.clear();
         robot.travel = 0;
         robot.lift = 0;
@@ -4040,6 +4477,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         updateSparks(dt);
         // Build mode: a cell runs only once the user has put a robot on it.
         if (buildMode && !(model && model.hasRobot)) return;
+        updateSwaps(dt);
         for (const ct of Object.values(stations)) {
           if (!ct || !ct.lid || !(ct.closeT > 0)) continue;
           ct.closeT -= dt;
@@ -4175,6 +4613,8 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         return D;
       },
       dispose() {
+        // Full pallets on their way out share the station's meshes: take them away before the station is disposed.
+        clearParts();
         disposeRobot();
         groups.forEach((g) => {
           disposeGroup(g);
@@ -4338,12 +4778,29 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     // The real product: named in the brief, else by the line's jobs ("Robot 1: Fruit & Vegetable Picking + Palletizing").
     const jobs = list.flatMap((c) => String(c.title || "").replace(/^Robot \d+:?\s*/, "").split(" + ")).filter(Boolean);
     const words = list.flatMap((c) => c.steps.map((s) => s.text || s.label));
-    const pick = plan && plan.product && plan.product.key ? plan.product : productFor((plan && plan.brief) || (jobs.length ? "" : words.join(". ")), jobs.length ? jobs : words);
+    const auto = automation;
+    const pick = auto && auto.product && auto.product.key ? { key: auto.product.key } : plan && plan.product && plan.product.key ? plan.product : productFor((plan && plan.brief) || (jobs.length ? "" : words.join(". ")), jobs.length ? jobs : words);
     const stages = lineStages(list);
     const old = kit;
     kit = createWorkpieces(THREE, pick, { stages: [...stages] });
     if (old) old.dispose();
     [PART.w, PART.h, PART.d] = kit.info.size;
+    // Conveyor automation: the user's own size and weight for the product (the same piece, made to that size).
+    if (auto && auto.product && Array.isArray(auto.product.size) && auto.product.key === kit.info.key) {
+      const [w, h, d] = auto.product.size.map(Number);
+      if (w > 0 && h > 0 && d > 0 && (w !== PART.w || h !== PART.h || d !== PART.d)) {
+        const k = [w / PART.w, h / PART.h, d / PART.d];
+        const spawn0 = kit.spawn;
+        kit.spawn = () => {
+          const m = spawn0();
+          m.scale.set(k[0], k[1], k[2]);
+          return m;
+        };
+        kit.info = { ...kit.info, size: [w, h, d], half: kit.info.half ? kit.info.half * k[2] : undefined };
+        [PART.w, PART.h, PART.d] = [w, h, d];
+      }
+      if (auto.product.kg > 0) kit.info = { ...kit.info, kg: Number(auto.product.kg) };
+    }
     // Every tool the line uses: the gripper for the product, and the process tools its steps need.
     const tools = new Set([TOOL_LOOK_NAMES[kit.info.look] || kit.info.look]);
     for (const c of list)
@@ -4355,14 +4812,29 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     // The cell builder always uses the line layout, so one cell looks the same as the first of several.
     mode = buildMode || list.length > 1 || cellEnd[0] > 0 ? "line" : "single";
     const layout = LAYOUT[mode];
-    const infeed = makeConveyor(layout.infeed[0], layout.infeed[1], STATION_NAMES.conveyor, true);
+    let [inFrom, inTo] = layout.infeed;
+    let track = false;
+    const inOpts = {};
+    if (auto && auto.infeed) {
+      const X0 = cellStart[0];
+      const useful = clamp((Number(auto.infeed.length) || 2) - 0.26, 0.5, 12);
+      // Parts flow towards the robot: from its left, or from its right when the user puts the belt there (one robot).
+      const sgn = auto.infeed.side === "right" && list.length === 1 ? -1 : 1;
+      track = !!(auto.belt && auto.belt.mode === "track");
+      // Stop and pick: the belt ends just before the robot. Tracking: it runs past the robot, which follows parts
+      // through the stretch of belt it can reach (its tracking window).
+      inTo = X0 + sgn * (track ? 0.95 : -0.75);
+      inFrom = inTo - sgn * useful;
+      Object.assign(inOpts, { width: Number(auto.infeed.width) || undefined, height: Number(auto.infeed.height) || undefined, logic: { ...(auto.belt || {}), mode: undefined } });
+    }
+    const infeed = makeConveyor(inFrom, inTo, STATION_NAMES.conveyor, true, inOpts);
     conveyors.push(infeed);
     {
       // Where the raw product comes from, with its name and weight on a sign.
       const sup = kit.container(kit.info.supply, true);
       protect(sup.group, true);
       if (kit.info.supply === "crate") sup.group.traverse((o)=>{ if(o.material?.color) o.material.color.setHex(0x3a4555); });
-      const z = BELT_Z - (Math.max(0.4, PART.d + 0.08) / 2 + 0.14 + sup.size[2] / 2);
+      const z = BELT_Z - (infeed.width / 2 + 0.14 + sup.size[2] / 2);
       sup.group.position.set(infeed.fromX, 0, z);
       infeed.group.add(sup.group);
       const kg = kit.info.kg >= 1 ? `${+kit.info.kg.toFixed(1)} kg` : `${Math.round(kit.info.kg * 1000)} g`;
@@ -4427,6 +4899,17 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     infeed.group.visible = usesInfeed || (buildMode && list[0].stations.includes("conveyor"));
     infeed.autoSpawn = usesInfeed;
     infeed.owner = cells[0];
+    for (const c of conveyors) {
+      if (c !== infeed || !track) c.finish();
+      else {
+        // The tracking window: the stretch of belt the first robot really reaches, after the photo-eye and short of
+        // the end roller (a little margin each end).
+        const reach = cells[0].reachOnBelt(infeed);
+        const length = Math.abs(infeed.toX - infeed.fromX);
+        const win = reach ? [Math.max(reach[0] + 0.03, PART.w + 0.3), Math.min(reach[1] - 0.03, length - 0.05)] : null;
+        c.finish({ track: true, window: win && win[1] > win[0] + 0.1 ? win : undefined });
+      }
+    }
 
     focus = Math.min(focus, cells.length - 1);
 
@@ -4818,6 +5301,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     [...parts].forEach(removePart);
     cells.forEach((c) => c.reset());
     simTime = 0;
+    simAcc = 0;
     events = [];
     resetClearance();
     clearPaths();
@@ -4829,6 +5313,21 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (!ROBOT_SIZES[key]) return;
     sizeKey = key;
     relayout();
+  }
+
+  /** The first robot's conveyor pick, for the I/O view: PLC state, signals, parts on the belt, counters, the robot. */
+  function automationState() {
+    const c = cells[0];
+    const belt = c && c.stations && c.stations.conveyor;
+    if (!belt || !belt.logic || !belt.group.visible || !c.steps.some((s) => s.station === "conveyor")) return null;
+    const snap = belt.logic.snapshot();
+    return {
+      ...snap,
+      io: { ...snap.io, GRIP_CMD: c.io.GRIP_CMD, GRIP_OK: c.io.GRIP_OK },
+      robot: { phase: c.phase, holding: c.holding, placed: c.placed, cycles: c.cycles, lastCycle: c.lastCycle },
+      product: kit ? { label: kit.info.label, size: kit.info.size, kg: kit.info.kg } : null,
+      bottleneck: bottleneck(snap),
+    };
   }
 
   let lastEmit = 0;
@@ -4865,6 +5364,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       moveMode,
       showPaths,
       layoutEdits: edits.size,
+      automation: automationState(),
       cells: cells.map((c) => ({
         title: c.title,
         stepIndex: c.stepIdx,
@@ -5464,9 +5964,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     if (roofParts[0] && roofParts[0].visible !== roofOn) roofParts.forEach((m) => (m.visible = roofOn));
     if (playing && cells.some((c) => c.steps.length)) {
       dt *= speed;
-      simTime += dt;
-      conveyors.forEach((c) => c.update(dt));
-      cells.forEach((c) => c.update(dt));
+      advance(dt);
       updateOverlay(dt);
       watchClearance(now);
       recordPaths(now);
@@ -5586,6 +6084,27 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       planChanged();
       relayout();
       playing = true;
+      emit(true);
+    },
+    /**
+     * Conveyor pick and place for the first robot's infeed (conveyorAutomation.ts planConveyorAutomation().sim):
+     * belt length, width, height and side, belt speed, feed rate and gap, stop and pick or tracking, and the product.
+     * null goes back to the standard belt. One rebuild, on the next frame.
+     */
+    setAutomation(cfg) {
+      const sig = JSON.stringify(cfg || null);
+      if (sig === automationSig) return;
+      automationSig = sig;
+      automation = cfg ? JSON.parse(sig) : null;
+      relayout();
+    },
+    /** While paused: run on to the next event (a sensor, the PLC or the robot changes state), at most `max` seconds. */
+    stepEvent(max = 10) {
+      if (!cells.length || builder) return;
+      const sig = () => cells.map((c) => `${c.stepIdx}:${c.phase}`).join("|") + conveyors.map((c) => (c.logic.events[0] ? c.logic.events[0].t : 0)).join(",");
+      const s0 = sig();
+      for (let t = 0; t < max && sig() === s0; t += STEP) advance(STEP);
+      invalidated = true;
       emit(true);
     },
     play() {

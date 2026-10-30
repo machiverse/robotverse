@@ -1,4 +1,19 @@
 // Types for the framework-free simulation engine in robotSim.js.
+import type { BeltOptions, BeltSnapshot } from "./conveyorLogic.js";
+
+/** Conveyor pick and place for the first robot's infeed (conveyorAutomation.ts planConveyorAutomation().sim). */
+export interface SimAutomation {
+  /** Belt length end to end, width and top height (m); the side of the robot it comes from. */
+  infeed: { length: number; width: number; height: number; side: "left" | "right" };
+  belt: BeltOptions;
+  product: { key: string; size?: [number, number, number]; kg?: number };
+}
+/** The infeed's PLC, sensors and parts, and what the first robot is doing, as the I/O view shows them. */
+export interface AutomationState extends BeltSnapshot {
+  robot: { phase: string; holding: boolean; placed: number; cycles: number; lastCycle: number | null };
+  product: { label: string; size: [number, number, number]; kg: number } | null;
+  bottleneck: { by: "robot" | "feed" | "balanced"; text: string } | null;
+}
 export type SimStep = { action: string; station: string; label: string; auto?: boolean; text?: string; /** Tool to change to (0 = arm tool, 1 = tool-stand tool). */ tool?: number };
 
 export interface SimUpdate {
@@ -31,6 +46,8 @@ export interface SimUpdate {
   showPaths?: boolean;
   /** Number of layout edits (moved robots, stations, equipment). */
   layoutEdits?: number;
+  /** The first robot's conveyor pick: PLC state, signals, parts and counters (null when it does not pick from a belt). */
+  automation?: AutomationState | null;
 }
 
 export interface MotionClearance {
@@ -92,6 +109,10 @@ export interface Interference {
 }
 
 export interface Simulation {
+  /** Conveyor pick and place for the first robot's infeed; null for the standard belt. One rebuild. */
+  setAutomation(cfg: SimAutomation | null): void;
+  /** While paused: run on to the next event (a sensor, the PLC or a robot changes state), at most `max` seconds. */
+  stepEvent(max?: number): void;
   stats(): { drawCalls: number; triangles: number; geometries: number; textures: number; fps: number; pixelRatio: number; quality: SimQuality; rebuilds: number };
   setLabels(mode: "key" | "all" | "off"): void;
   motionClearance(): MotionClearance[];
