@@ -5580,6 +5580,17 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     setMoveMode(on) { setMoveMode(on); },
     get moveMode() { return moveMode; },
     getLayoutEdits() { return editList(); },
+    /** Everything Move mode can pick up, with where it is on screen (client pixels), for checks and tests. */
+    layoutTargets() {
+      flushPending(true);
+      scene.updateMatrixWorld(true);
+      const r = renderer.domElement.getBoundingClientRect();
+      return movables().map((t) => {
+        const b = meshBox(t.obj), c = b.getCenter(new THREE.Vector3());
+        const p = new THREE.Vector3(c.x, b.isEmpty() ? 0 : b.max.y * 0.6, c.z).project(camera);
+        return { kind: t.kind, cell: t.cell, key: t.key, name: t.name, screen: [r.left + ((p.x + 1) / 2) * r.width, r.top + ((1 - p.y) / 2) * r.height], at: [c.x, c.z] };
+      });
+    },
     setLayoutEdits(list) { setEdits(list, false); },
     undoMove() { return undoMove(); },
     resetLayout() { if (edits.size) setEdits([], true); },

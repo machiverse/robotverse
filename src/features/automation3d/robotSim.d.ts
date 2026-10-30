@@ -101,6 +101,7 @@ export interface Simulation {
   setMoveMode(on: boolean): void;
   readonly moveMode: boolean;
   getLayoutEdits(): LayoutEdit[];
+  layoutTargets(): { kind: LayoutEdit["kind"]; cell: number; key: string; name: string; screen: [number, number]; at: [number, number] }[];
   setLayoutEdits(edits: LayoutEdit[]): void;
   undoMove(): boolean;
   resetLayout(): void;
