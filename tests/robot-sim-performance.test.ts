@@ -1,5 +1,15 @@
 import { strict as assert } from "node:assert";
 
+// Needs a browser: Python Playwright and the app's preview server (SIM_PREVIEW_URL, default localhost:8080).
+// Without them (a plain test run, CI) it reports itself skipped instead of failing.
+const base = process.env.SIM_PREVIEW_URL ?? "http://localhost:8080";
+const hasPlaywright = Bun.spawnSync(["python3", "-c", "import playwright"], { stdout: "pipe", stderr: "pipe" }).exitCode === 0;
+const previewUp = await fetch(base).then(() => true, () => false);
+if (!hasPlaywright || !previewUp) {
+  console.log(`robot-sim-performance: skipped (needs Python Playwright and the preview at ${base})`);
+  process.exit(0);
+}
+
 // Integration regression: real WebGL allocation counters, not scene/markup snapshots.
 // Requires the existing local preview and the sandbox's bundled Python Playwright.
 const script = String.raw`
@@ -11,7 +21,7 @@ async def main():
         page = await browser.new_page(viewport={"width":1280,"height":1800})
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
-        await page.goto("http://localhost:8080/automation-studio/3d?process=Pick%20from%20conveyor%0AWeld%20at%20weld%0APlace%20on%20pallet")
+        await page.goto("${base}/automation-studio/3d?process=Pick%20from%20conveyor%0AWeld%20at%20weld%0APlace%20on%20pallet")
         await page.wait_for_selector('[data-scene-ready="1"]', timeout=120000)
         result = await page.evaluate("""async () => {
             const s = document.querySelector('canvas').__robotSimulation;
