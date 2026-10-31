@@ -179,10 +179,10 @@ function Stage() {
 function FactoryWork() {
   // Count each family's jobs in the studio once; filter chips to jobs that still exist so a rename never dead-links.
   const cards = useMemo(() => {
-    const names = new Set(SKILL_LIBRARY.map((s) => s.template?.name ?? s.name));
+    const names = new Set(SKILL_LIBRARY.map((s) => s.template.name));
     return FACTORY_WORK.map((f) => ({
       ...f,
-      count: SKILL_LIBRARY.filter((s) => f.kinds.includes(processKind({ name: s.template?.name ?? s.name }))).length,
+      count: SKILL_LIBRARY.filter((s) => f.kinds.includes(processKind({ name: s.template.name }))).length,
       jobs: f.jobs.filter((j) => names.has(j)),
     }));
   }, []);
