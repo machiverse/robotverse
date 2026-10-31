@@ -1,11 +1,13 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { BevelBox, ConsoleButton, ConsoleLink } from "@/components/console/ConsoleUI";
 import { PixelArrow } from "@/components/hero/HeroConsole";
 import { BLOCKS } from "@/features/automation3d/ProcessBuilder";
+import { processKind, type ProcessKind } from "@/features/automation3d/processProfiles";
 import { Eyebrow, KitButton, Readouts } from "@/features/automation3d/StudioKit";
+import { SKILL_LIBRARY } from "@/utils/processAnalyzer";
 import { cn } from "@/lib/utils";
 
 /* The pictures on this page are stills from the studio's own 3D simulator (public/automation-studio). */
