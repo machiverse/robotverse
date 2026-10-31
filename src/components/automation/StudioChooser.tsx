@@ -364,6 +364,8 @@ export default function StudioChooser() {
           </ul>
         </section>
 
+        <FactoryWork />
+
         <nav aria-label="More in the studio" className="mt-14 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:gap-10">
           <ConsoleLink to="/automation-studio/3d">Type your steps into the 3D simulator</ConsoleLink>
           <ConsoleLink to="/automation-studio/playbook">How an automation engineer thinks</ConsoleLink>
