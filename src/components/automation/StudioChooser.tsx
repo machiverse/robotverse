@@ -85,6 +85,40 @@ const FACTS = [
 const simHref = (job: string, motion?: string) =>
   `/automation-studio/3d?line=${encodeURIComponent(job)}${motion ? `&motion=${motion}` : ""}`;
 
+/** The four big families of factory robot work, each with a sourced fact and jobs that open live in 3D. */
+const FACTORY_WORK: { title: string; fact: string; kinds: ProcessKind[]; jobs: string[] }[] = [
+  {
+    title: "Handling & machine tending",
+    fact: "About half of all new industrial robots: 280,000 of the 541,000 installed worldwide in 2023.",
+    kinds: ["handling", "palletizing", "transport", "machining"],
+    jobs: ["CNC Machining", "Loading & Unloading", "Palletizing", "Bin Picking"],
+  },
+  {
+    title: "Welding",
+    fact: "The second biggest job: 92,000 welding robots installed in 2023.",
+    kinds: ["welding"],
+    jobs: ["MIG/MAG Welding", "Spot Welding", "Laser Welding", "TIG Welding"],
+  },
+  {
+    title: "Assembly",
+    fact: "About one robot in ten fits, screws or rivets parts together.",
+    kinds: ["assembly"],
+    jobs: ["Assembly", "Screw Driving", "Riveting Assembly"],
+  },
+  {
+    title: "Painting & dispensing",
+    fact: "Paint, sealant and glue laid on the same path every time.",
+    kinds: ["coating", "sealing", "filling"],
+    jobs: ["Painting & Coating", "Adhesive & Sealant Dispensing", "Sealing"],
+  },
+];
+
+const SOURCES = [
+  { label: "IFR World Robotics 2025 — India", href: "https://ifr.org/downloads/press_docs/2025-09-25-IFR_press_release_India_in_English.pdf" },
+  { label: "IFR World Robotics 2024 (via ASME)", href: "https://magazine.asme.org/issues/may-2025/infographic-humans-share-the-factory-floor-with-4-million-robots" },
+  { label: "Interact Analysis via Design News", href: "https://www.designnews.com/industry/an-army-of-new-robots-swarm-supplier-news" },
+];
+
 /* ---------------------------------------------------------------- stage */
 
 /** The hero: a still of a real line from the simulator, which turns into the running simulator in place. */
