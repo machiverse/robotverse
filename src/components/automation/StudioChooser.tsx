@@ -175,6 +175,69 @@ function Stage() {
   );
 }
 
+/** Section 004: what robots actually do in factories, with sourced numbers and live job links. */
+function FactoryWork() {
+  // Count each family's jobs in the studio once; filter chips to jobs that still exist so a rename never dead-links.
+  const cards = useMemo(() => {
+    const names = new Set(SKILL_LIBRARY.map((s) => s.template?.name ?? s.name));
+    return FACTORY_WORK.map((f) => ({
+      ...f,
+      count: SKILL_LIBRARY.filter((s) => f.kinds.includes(processKind({ name: s.template?.name ?? s.name }))).length,
+      jobs: f.jobs.filter((j) => names.has(j)),
+    }));
+  }, []);
+  return (
+    <section className="mt-16 sm:mt-20" aria-labelledby="factory-work">
+      <Eyebrow index="004" label="What robots do in factories" />
+      <h2 id="factory-work" className="mt-6 text-balance text-2xl font-semibold uppercase leading-tight tracking-[-0.01em] md:text-[32px]">
+        Four jobs cover most of the world's robots
+      </h2>
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map((c) => (
+          <BevelBox key={c.title} cut={10} innerClassName="flex h-full flex-col p-5">
+            <h3 className="text-[15px] font-semibold uppercase tracking-[-0.005em]">{c.title}</h3>
+            <p className="mt-2 text-[13px] leading-snug text-muted-foreground">{c.fact}</p>
+            <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              {c.count} jobs in the studio
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {c.jobs.map((job) => (
+                <Link
+                  key={job}
+                  to={simHref(job)}
+                  className="rounded-[3px] border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {job}
+                </Link>
+              ))}
+            </div>
+          </BevelBox>
+        ))}
+      </div>
+      <p className="mt-6 max-w-[70ch] text-sm leading-relaxed text-muted-foreground">
+        India installed 9,120 industrial robots in 2024 (up 7%), sixth in the world; car makers and their parts suppliers took 45% of them.
+      </p>
+      <p className="mt-3 max-w-[70ch] text-sm leading-relaxed text-muted-foreground">
+        See a conveyor feed a robot the way a line PLC runs it — photo-eye, part-ready handshake, grip check, live signals:{" "}
+        <Link to="/automation-studio/build#starter=conveyor" className="font-medium text-primary underline-offset-4 hover:underline">
+          Open the conveyor pick &amp; place →
+        </Link>
+      </p>
+      <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+        Sources:{" "}
+        {SOURCES.map((s, i) => (
+          <span key={s.href}>
+            {i > 0 && " · "}
+            <a href={s.href} target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-4 hover:underline">
+              {s.label}
+            </a>
+          </span>
+        ))}
+      </p>
+    </section>
+  );
+}
+
 /* ---------------------------------------------------------------- page */
 
 /** Automation Studio entry: build a cell yourself, or describe the job and let us design it. */
