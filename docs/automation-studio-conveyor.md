@@ -160,6 +160,55 @@ No videos were watched; this is from the documents and articles listed under Sou
     - Pause, Step and Resume.
   - The setup is saved with the cell.
 
+### Automation skills: from a description to a running cell
+
+In the Cell Builder, "Describe your automation" (on the empty stage, and at the top of the Job tab) reads the user's own words and designs the cell. `proposeAutomation()` in `conveyorAutomation.ts` does it with rules only: nothing is invented, and every value says where it came from.
+
+- **The application** comes from the first `AUTOMATION_SKILLS` entry whose words appear. Specific ones come first:
+  - injection moulding tending;
+  - CNC tending;
+  - press tending;
+  - welding;
+  - assembly;
+  - depalletizing;
+  - vision sorting;
+  - palletizing;
+  - case packing;
+  - plain pick and place.
+- **Each skill carries:**
+  - the robot's job, as a studio job name;
+  - its machine, and where parts come from and go by default;
+  - the product's path from arrival to output;
+  - the machine's own handshake:
+    - Euromap 67 MOULD_OPEN / EJECTOR_FWD / ROBOT_CLEAR;
+    - CNC MACHINE_READY / CHUCK_CLAMP / CHUCK_CLAMPED / CYCLE_START;
+    - press PRESS_TOP / STROKE;
+    - pallet and carton sensors;
+  - the integrator's rules, for example an automatic door and robot interface kit on the CNC, single-stroke press mode, and interlocked pallet layers.
+- **What it reads:**
+  - the source, machine and destination ("puts them on a conveyor" is where parts go; "parts on the conveyor" is where they come from);
+  - one or two robots;
+  - the robot maker;
+  - a cobot wish;
+  - the product, its size (L × W × H) and weight;
+  - the rate;
+  - belt speed, length, width, height and gap;
+  - tracking words;
+  - inspection and a stated reject rate.
+- **Existing knowledge reused:** weight, rate and size come from `extractFacts()` (the planner's reader), the product from `productFor()`, and the gripper, vision and robot-type advice from the studio's `GRIPPER_RULES`, `VISION_RULES` and `ROBOT_TYPE_RULES`.
+- **Rules it applies:**
+  - payload = part + a typical gripper of the chosen family, with a 25% margin;
+  - conveyor tracking for words like "moving belt", or for light parts above 40 a minute;
+  - a warning above 20 a minute that one articulated arm will not keep up.
+- **How each value is marked:**
+  - "your words", "rule" or "assumed";
+  - what is missing becomes a question with the value used meanwhile;
+  - assumptions that change the design must be ticked before "Build and simulate" unlocks: an assumed weight, the rate, an assumed destination, an assumed reject rate, conveyor tracking.
+- **Build:**
+  - suggests a robot per cell for the job and payload, of the maker asked for;
+  - places the equipment and sets the conveyor automation;
+  - runs the simulation.
+
 ## 4. Tested
 
 - `tests/conveyor-logic.test.ts` checks, frame by frame:
@@ -172,7 +221,16 @@ No videos were watched; this is from the documents and articles listed under Sou
   - tracking never stops the belt, and missed parts reach the bin;
   - a transfer belt and an outfeed work;
   - the same belt stepped in 1/60 s frames and in 0.1 s frames ends in exactly the same state.
-- `tests/conveyor-automation.test.ts` covers:
+- `tests/conveyor-automation.test.ts` also turns real descriptions into cells and checks what is said, assumed and to be confirmed:
+  - the brief's own example: 5 kg parts and a FANUC robot loading a CNC machine → conveyor → CNC → pallet with a dual gripper, and the destination to confirm;
+  - ABB carton palletizing at 10 a minute;
+  - pralines from a moving belt → tracking, and the "several robots or delta" rule;
+  - camera sorting with a stated reject rate in three phrasings;
+  - moulding machine → conveyor, with no infeed;
+  - two robots with a transfer belt;
+  - a press with blank sizes;
+  - a vague brief → defaults, all marked assumed.
+- `tests/conveyor-automation.test.ts` also covers:
   - the seven stages and the handshake signals;
   - the vacuum-switch grip sensor;
   - braking distance;
@@ -203,7 +261,7 @@ These master-brief items are not built yet:
   - sorting into more than two destinations (by size or colour).
 - Sealed cartons still swap at once.
 - The demos use the default belt settings for the second robot's transfer belt.
-- Linking the AI planner to the conveyor setup.
+- The landing page's AI planner (describe the job → a line in the Studio 3D page) does not yet use the automation skills; the Cell Builder does.
 
 ## Sources
 

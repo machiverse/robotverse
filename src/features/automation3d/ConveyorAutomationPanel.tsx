@@ -7,19 +7,19 @@
  * AutomationIO: the PLC's and the robot's signals live, with counts, the measured cycle and what sets the pace.
  * The signals are simulated: this is a planning tool, not a machine program or a certified safety design.
  */
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, Info, Pause, Play, SkipForward, XCircle } from "lucide-react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { AlertTriangle, ChevronDown, ChevronUp, Info, Pause, Play, SkipForward, Sparkles, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { CONVEYOR_PRODUCTS, defaultSetup, planConveyorAutomation, type AutomationPlan, type ConveyorSetup } from "./conveyorAutomation";
+import { CONVEYOR_PRODUCTS, defaultSetup, planConveyorAutomation, proposeAutomation, type AutomationPlan, type AutomationProposal, type ConveyorSetup } from "./conveyorAutomation";
 import { signalsFor } from "./conveyorLogic.js";
 import { productInfo } from "./workpieces.js";
 import type { AutomationState } from "./robotSim.js";
 import type { Match } from "./equipmentScore";
 
 /** Where a conveyor pick can put the part, as cell stations. */
-export const AUTOMATION_DESTINATIONS = [
+const AUTOMATION_DESTINATIONS = [
   { key: "pallet", label: "Pallet" },
   { key: "carton", label: "Packing carton" },
   { key: "out", label: "Outfeed conveyor" },
@@ -201,7 +201,8 @@ export function ConveyorAutomationDialog(props: {
         robots,
       }),
     );
-  const products = useMemo(() => CONVEYOR_PRODUCTS.map((k) => ({ key: k, label: productInfo({ key: k }).label })), []);
+  // The belt products, and the cell's own product when it was set from a description (sheet blanks, pralines…).
+  const products = useMemo(() => [...new Set([...CONVEYOR_PRODUCTS, draft.product.key])].map((k) => ({ key: k, label: productInfo({ key: k }).label })), [draft.product.key]);
 
   return (
     <Dialog open={open} onOpenChange={props.onOpenChange}>
@@ -438,3 +439,172 @@ export function AutomationIO(props: { state: AutomationState; playing: boolean; 
     </section>
   );
 }
+
+/* ----------------------------------------------------- describe it in your words */
+
+/** Descriptions to start from. */
+const AUTOMATION_EXAMPLES = [
+  "I have a conveyor carrying 5 kg metal parts. I want a FANUC robot to pick each part and place it inside a CNC machine.",
+  "Cartons of 12 kg come on a conveyor at 10 per minute; an ABB robot should stack them on pallets.",
+  "A camera checks aluminium castings on the conveyor and rejects the bad ones, about 5%; good ones go on a pallet.",
+  "The robot unloads an injection moulding machine and puts the parts on a conveyor.",
+];
+
+/** A box where the user describes the automation; "Understand" hands the words on. */
+export function AutomationBriefBox(props: { onUnderstand: (text: string) => void; disabled?: boolean; compact?: boolean }) {
+  const [text, setText] = useState("");
+  const id = useId();
+  const ok = text.trim().length >= 8;
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="block px-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+        Describe your automation
+      </label>
+      <textarea
+        id={id}
+        data-automation-brief
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={props.compact ? 2 : 3}
+        placeholder="What arrives, what the robot does with it, where it goes — e.g. a conveyor brings 5 kg castings, a FANUC robot loads them into a CNC machine"
+        className="w-full resize-y rounded-md border border-border bg-background px-2 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:text-sm"
+      />
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+        <Button size="sm" className="h-8 text-xs" disabled={!ok || props.disabled} onClick={() => props.onUnderstand(text.trim())} title={props.disabled ? "Loading the robot catalogue…" : undefined}>
+          <Sparkles className="mr-1 h-3.5 w-3.5" /> Understand and design
+        </Button>
+        <span className="text-muted-foreground">Try:</span>
+        {AUTOMATION_EXAMPLES.slice(0, props.compact ? 2 : 4).map((x) => (
+          <button key={x} type="button" onClick={() => setText(x)} className="max-w-full truncate text-left text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title={x}>
+            “{x.length > 46 ? `${x.slice(0, 44)}…` : x}”
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const HOW: Record<AutomationProposal["facts"][number]["how"], { label: string; cls: string }> = {
+  said: { label: "your words", cls: "border-emerald-500/50 text-emerald-700 dark:text-emerald-400" },
+  rule: { label: "rule", cls: "border-border text-muted-foreground" },
+  assumed: { label: "assumed", cls: "border-amber-500/60 text-amber-700 dark:text-amber-400" },
+};
+
+/**
+ * What the studio understood from the words, and the cell it will build: every value says where it came from;
+ * assumptions that change the design must be confirmed before building.
+ */
+export function AutomationProposalDialog(props: { text: string | null; onOpenChange: (open: boolean) => void; onBuild: (p: AutomationProposal) => void; ready: boolean }) {
+  const p = useMemo(() => (props.text ? proposeAutomation(props.text) : null), [props.text]);
+  const [ok, setOk] = useState<boolean[]>([]);
+  useEffect(() => setOk(p ? p.confirm.map(() => false) : []), [p]);
+  const all = ok.every(Boolean);
+  return (
+    <Dialog open={!!props.text} onOpenChange={props.onOpenChange}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{p ? p.skill.name : "Your automation"}</DialogTitle>
+          <DialogDescription>
+            Recognised from {p?.skill.why ?? "your words"}. Designed by the studio's rules from your words — every value says where it came from. A planning tool:
+            the signals are simulated, not a machine program.
+          </DialogDescription>
+        </DialogHeader>
+        {p && (
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-4">
+              <section>
+                <p className={eyebrow}>What I understood</p>
+                <dl className="mt-2 divide-y divide-border text-xs">
+                  {p.facts.map((f) => (
+                    <div key={f.label} className="grid grid-cols-[7.5rem_1fr_auto] items-baseline gap-2 py-1.5">
+                      <dt className="text-muted-foreground">{f.label}</dt>
+                      <dd className="min-w-0">{f.value}</dd>
+                      <span className={cn("rounded border px-1 font-mono text-[9px] uppercase tracking-[0.1em]", HOW[f.how].cls)}>{HOW[f.how].label}</span>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+              <section>
+                <p className={eyebrow}>The cell{p.cells.length > 1 ? "s" : ""} to build</p>
+                <ul className="mt-2 space-y-1 text-xs">
+                  {p.cells.map((c, i) => (
+                    <li key={i}>
+                      <b className="font-medium">Robot {i + 1}:</b> {c.job}
+                      {c.brand ? ` · ${c.brand}` : ""} · {c.stations.map((k) => AUTOMATION_STATIONS[k] ?? k).join(" → ")}
+                    </li>
+                  ))}
+                  <li className="text-muted-foreground">Robot sized for {p.needKg} kg (part + gripper) with a 25% margin; picked from the marketplace, else the Directory.</li>
+                </ul>
+              </section>
+              {p.missing.length > 0 && (
+                <section>
+                  <p className={eyebrow}>Questions for you</p>
+                  <ul className="mt-2 space-y-1 text-xs">
+                    {p.missing.map((m) => (
+                      <li key={m.question}>
+                        {m.question} <span className="text-muted-foreground">Using: {m.using}.</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
+            <div className="min-w-0 space-y-4 md:border-l md:border-border md:pl-5">
+              <section>
+                <p className={eyebrow}>The process</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-snug">
+                  {p.flow.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ol>
+              </section>
+              {p.signals.length > 0 && (
+                <section>
+                  <p className={eyebrow}>Machine handshake</p>
+                  <ul className="mt-2 space-y-1 text-xs">
+                    {p.signals.map((x) => (
+                      <li key={x.tag}>
+                        <span className="font-mono text-[11px]">{x.tag}</span> <span className="text-muted-foreground">{x.from} → {x.to}:</span> {x.text}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              <section>
+                <p className={eyebrow}>Engineering rules</p>
+                <ul className="mt-2 space-y-1.5 text-xs leading-snug">
+                  {p.rules.map((r) => (
+                    <li key={r.rule}>
+                      <b className="font-medium">{r.rule}.</b> <span className="text-muted-foreground">{r.why}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+          </div>
+        )}
+        {p && p.confirm.length > 0 && (
+          <fieldset className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+            <legend className="px-1 text-xs font-medium">Confirm before building</legend>
+            {p.confirm.map((c, i) => (
+              <label key={c} className="flex items-start gap-2 py-0.5 text-xs">
+                <input type="checkbox" className="mt-0.5 h-3.5 w-3.5 accent-primary" checked={!!ok[i]} onChange={(e) => setOk((v) => v.map((x, k) => (k === i ? e.target.checked : x)))} />
+                <span>{c}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="outline" onClick={() => props.onOpenChange(false)}>
+            Change the description
+          </Button>
+          <Button disabled={!p || !all || !props.ready} onClick={() => p && props.onBuild(p)} title={!props.ready ? "Loading the robot catalogue…" : !all ? "Confirm the assumptions first" : undefined}>
+            <Play className="mr-1 h-3.5 w-3.5" /> Build and simulate
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const AUTOMATION_STATIONS: Record<string, string> = { conveyor: "infeed conveyor", out: "outfeed conveyor", pallet: "pallet", carton: "carton", table: "work table", cnc: "CNC machine", press: "press", mould: "moulding machine", weld: "welding table", bin: "parts bin" };

@@ -32,8 +32,8 @@ import RobotBaseControl, { type MotionChoice } from "./RobotBaseControl";
 import { isComponent } from "./jobGear";
 import { jobKit, type JobKit } from "./jobKit";
 import { providerPlan, understandJob } from "./jobUnderstanding";
-import { AutomationIO, ConveyorAutomationDialog } from "./ConveyorAutomationPanel";
-import { defaultSetup, planConveyorAutomation, type ConveyorSetup } from "./conveyorAutomation";
+import { AutomationBriefBox, AutomationIO, AutomationProposalDialog, ConveyorAutomationDialog } from "./ConveyorAutomationPanel";
+import { defaultSetup, planConveyorAutomation, type AutomationProposal, type ConveyorSetup } from "./conveyorAutomation";
 
 /* ------------------------------------------------------------------ data */
 
@@ -173,6 +173,8 @@ export default function CellBuilder() {
   const [playing, setPlaying] = useState(true);
   const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle" | "product" | "quality" | "automation"> | null>(null);
   const [autoOpen, setAutoOpen] = useState(false);
+  /** The user's description of the automation, while its proposal is open. */
+  const [brief, setBrief] = useState<string | null>(null);
   const lastEmit = useRef(0);
   const cellCount = useRef(0);
   const [reportOpen, setReportOpen] = useState(false);
@@ -488,6 +490,20 @@ export default function CellBuilder() {
     quietFit.current = true;
     setCells(next);
     setSelected(0);
+  };
+  const buildFromProposal = (p: AutomationProposal) => {
+    if (!raw) return;
+    const next: Cell[] = p.cells.map((c, i) => {
+      const choice: Choice = suggest(c.job, p.needKg, raw, !!c.cobot, c.brand);
+      return { id: newId(), job: c.job, choice, fenced: !c.cobot && !isCobot(choice.robot), stations: c.stations, ...(i === 0 && p.setup ? { automation: p.setup } : {}) };
+    });
+    quietFit.current = true;
+    setCells(next);
+    setSelected(0);
+    setBrief(null);
+    simRef.current?.play();
+    setPlaying(true);
+    stageBoxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const suggestFor = (i: number) => {
     if (!raw || !cells[i]) return;
@@ -1131,10 +1147,11 @@ export default function CellBuilder() {
           </Button>
         </div>
         {!cells.length && !drag && (
-          <div className="absolute inset-0 flex items-center justify-center overflow-y-auto px-3 pb-3 pt-14">
-            <div className="w-full max-w-md rounded-xl bg-background/95 p-3 shadow-lg sm:p-5">
-              <p className="flex items-center gap-2 font-semibold">
-                <Bot className="h-5 w-5 text-primary" /> Drag a robot here — or start from a ready cell
+          <div className="absolute inset-0 flex justify-center overflow-y-auto px-3 pb-3 pt-14">
+            <div className="my-auto w-full max-w-md rounded-xl bg-background/95 p-3 shadow-lg sm:p-5">
+              <AutomationBriefBox compact disabled={!raw} onUnderstand={setBrief} />
+              <p className="mt-4 flex items-center gap-2 font-semibold">
+                <Bot className="h-5 w-5 text-primary" /> Or drag a robot here — or start from a ready cell
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {STARTERS.map((st) => (
@@ -1307,6 +1324,10 @@ export default function CellBuilder() {
             </div>
           ) : tab === "cell" ? (
             <div className="space-y-3 p-2">
+              <div className="rounded-lg border border-primary/40 bg-primary/5 p-2">
+                <AutomationBriefBox compact disabled={!raw} onUnderstand={setBrief} />
+                <p className="mt-1 px-1 text-[10px] text-muted-foreground">Designs the robots, gripper, conveyor, sensors and logic — replaces the current line.</p>
+              </div>
               <div className="rounded-lg border border-primary/40 bg-primary/5 p-2">
                 <label htmlFor="own-job" className="mb-1 block px-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
                   Your own job
@@ -1848,6 +1869,7 @@ export default function CellBuilder() {
       </aside>
     </div>
 
+      <AutomationProposalDialog text={brief} onOpenChange={(open) => !open && setBrief(null)} onBuild={buildFromProposal} ready={!!raw} />
       <ConveyorAutomationDialog
         open={autoOpen}
         onOpenChange={setAutoOpen}

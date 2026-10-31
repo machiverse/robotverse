@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { CONVEYOR_PRODUCTS, defaultSetup, planConveyorAutomation } from "../src/features/automation3d/conveyorAutomation";
+import { AUTOMATION_SKILLS, CONVEYOR_PRODUCTS, defaultSetup, planConveyorAutomation, proposeAutomation } from "../src/features/automation3d/conveyorAutomation";
+import { SKILL_LIBRARY } from "../src/utils/processAnalyzer";
 import { PRODUCT_KEYS, productInfo } from "../src/features/automation3d/workpieces.js";
 
 // Every product offered for the belt is a real product of the 3D studio.
@@ -73,6 +74,84 @@ const vacuum = { name: "Schmalz FXCB vacuum gripper", type: "Vacuum Gripper" };
   assert.equal(plan.sim.belt.rejectRate, 0.15);
   const none = planConveyorAutomation({ setup: carton, robot, tool: vacuum, destination: "pallet" });
   assert.ok(!none.io.some((s) => s.tag.startsWith("VISION")) && none.sim.belt.rejectRate === 0);
+}
+
+// The automation skills: every robot job they plan is a real job of the studio.
+const jobs = new Set(SKILL_LIBRARY.map((x) => x.template.name));
+for (const sk of AUTOMATION_SKILLS) assert.ok(jobs.has(sk.job), `${sk.id}: ${sk.job} is a studio job`);
+
+// From the user's words to the automation: what was said, what a rule chose, what is assumed and must be confirmed.
+const how = (p: ReturnType<typeof proposeAutomation>, label: string) => p.facts.find((f) => f.label === label);
+{
+  // The master brief's own example.
+  const p = proposeAutomation("I have a conveyor carrying 5 kg metal parts. I want a FANUC robot to pick each part and place it inside a CNC machine.");
+  assert.equal(p.skill.id, "cnc");
+  assert.deepEqual(p.cells, [{ job: "CNC Machining", stations: ["conveyor", "cnc", "pallet"], brand: "Fanuc", cobot: false }]);
+  assert.equal(p.setup!.product.kg, 5);
+  assert.equal(how(p, "Weight")!.how, "said");
+  assert.equal(how(p, "Robot maker")!.value, "FANUC");
+  assert.equal(how(p, "Parts go to")!.how, "assumed", "the brief does not say where finished parts go");
+  assert.ok(p.missing.some((m) => /finished parts go/.test(m.question)));
+  assert.ok(p.confirm.some((c) => /pallet/.test(c)), "the assumed destination must be confirmed");
+  assert.equal(p.gripper.family, "dual", "machine tending swaps parts with a dual gripper");
+  assert.ok(p.needKg >= 8, "part and gripper");
+  assert.ok(p.signals.some((x) => x.tag === "MACHINE_READY") && p.signals.some((x) => x.tag === "CYCLE_START"), "the CNC handshake");
+  assert.ok(p.rules.some((r) => /automatic door/.test(r.rule)));
+  assert.equal(p.setup!.mode, "index");
+  const plan = planConveyorAutomation({ setup: p.setup!, robot: { name: "FANUC M-20iD/25", brand: "FANUC", payloadKg: 25 }, tool: { name: "SCHUNK dual gripper" }, destination: p.destination });
+  assert.ok(plan.ok, JSON.stringify(plan.issues));
+}
+{
+  const p = proposeAutomation("Cartons of 12 kg come on a conveyor at 10 cases per minute; an ABB robot should stack them on pallets.");
+  assert.equal(p.skill.id, "palletizing");
+  assert.equal(p.cells[0].brand, "ABB");
+  assert.equal(p.setup!.feed.rate, 10);
+  assert.equal(p.setup!.product.key, "carton");
+  assert.equal(p.gripper.family, "vacuum");
+  assert.equal(p.confirm.length, 0, "everything that matters was said");
+}
+{
+  const p = proposeAutomation("Pick 120 chocolate pralines per minute from a moving belt and pack them into trays.");
+  assert.equal(p.setup!.mode, "track", "a moving belt is conveyor tracking");
+  assert.ok(p.confirm.some((c) => /tracking option/.test(c)));
+  assert.ok(p.rules.some((r) => /several robots|delta/.test(r.rule)), "120 a minute is more than one arm picks");
+}
+{
+  const p = proposeAutomation("A camera should inspect aluminium castings on the conveyor and reject the bad ones, about 3% defects; good ones go on a pallet.");
+  assert.equal(p.skill.id, "sorting");
+  assert.equal(p.setup!.rejectRate, 0.03);
+  assert.equal(p.destination, "pallet");
+  assert.equal(how(p, "Inspection")!.how, "said");
+  for (const [words, rate] of [["rejects the bad ones, about 5%", 0.05], ["8% are rejected by the camera", 0.08], ["a reject rate of 2%", 0.02]] as const) {
+    const q = proposeAutomation(`A camera checks castings on the conveyor and ${words}; good ones go on a pallet.`);
+    assert.equal(q.setup!.rejectRate, rate, words);
+    assert.ok(!q.confirm.some((c) => /fail inspection/.test(c)), "a rate the user gave is not an assumption");
+  }
+}
+{
+  // Putting parts on a conveyor is where they go, not where they come from.
+  const p = proposeAutomation("The robot unloads an injection moulding machine and puts the parts on a conveyor.");
+  assert.equal(p.skill.id, "moulding");
+  assert.deepEqual(p.cells[0].stations, ["mould", "out"]);
+  assert.equal(p.setup, null, "the robot does not pick from a conveyor");
+  assert.ok(p.signals.some((x) => x.tag === "MOULD_OPEN"));
+}
+{
+  const p = proposeAutomation("Two robots: the first picks boxes from the conveyor and passes them to the second, which palletizes them.");
+  assert.deepEqual(p.cells.map((c) => [c.job, c.stations]), [["Loading & Unloading", ["conveyor", "out"]], ["Palletizing", ["pallet"]]]);
+}
+{
+  const p = proposeAutomation("Load steel blanks 500 x 350 x 3 mm from a conveyor into a stamping press, 6 per minute");
+  assert.equal(p.skill.id, "press");
+  assert.deepEqual(p.setup!.product.size.map((v) => Math.round(v * 1000)), [500, 3, 350], "length × width × height read as written");
+  assert.equal(p.setup!.feed.rate, 6);
+}
+{
+  // Nothing is invented: a vague brief gets defaults, each marked assumed, and questions.
+  const p = proposeAutomation("move parts");
+  assert.equal(p.skill.id, "pick-place");
+  assert.ok(p.facts.filter((f) => f.how === "assumed").length >= 4);
+  assert.ok(p.missing.length >= 4 && p.confirm.length >= 2);
 }
 
 console.log("conveyor automation ok");
