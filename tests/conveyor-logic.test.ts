@@ -167,4 +167,57 @@ assert.ok(beltConfig({ speed: 0.3 }).peAt < beltConfig({ speed: 0.3 }).pickAt, "
   assert.deepEqual(belt.drain(), [{ id: 1, how: "exit" }]);
 }
 
+// Inspection: the camera fails some parts; the PLC never indexes them, the robot never gets them, and they run off
+// the end into the reject bin. The verdicts are the same on every run.
+{
+  const make = () => createBeltLogic({ length: 1.8, partLength: 0.12, speed: 0.3, gap: 0.1, mode: "index", rejectRate: 0.25 });
+  const belt = make();
+  assert.ok(belt.config.inspect && belt.config.inspectAt < belt.config.peAt, "the camera looks before the pick sensor");
+  const robot = indexRobot(belt);
+  const rejects = new Set<number>();
+  const L = belt.config.partLength;
+  for (let t = 0; t < 180; t += 1 / 60) {
+    belt.step(1 / 60);
+    robot.update(belt.time, 1 / 60);
+    belt.parts.filter((p) => p.reject).forEach((p) => rejects.add(p.id));
+    const ready = belt.partReady();
+    assert.ok(!ready || !ready.reject, "PART_READY is never given for a rejected part");
+    const c = belt.counters;
+    assert.equal(c.fed, belt.parts.length + c.picked + c.binned + c.exited, "every part accounted for");
+    for (let i = 1; i < belt.parts.length; i++) assert.ok(belt.parts[i - 1].s - belt.parts[i].s >= L - 1e-9);
+  }
+  const c = belt.counters;
+  assert.ok(c.rejected >= 5 && c.rejected === rejects.size, `the camera failed some parts: ${c.rejected}`);
+  assert.ok(robot.taken.every((id) => !rejects.has(id)), "the robot never picks a rejected part");
+  const onBelt = belt.parts.filter((p) => p.reject).length;
+  assert.equal(c.binned, c.rejected - onBelt, "every rejected part ends in the reject bin");
+  assert.ok(robot.taken.length >= 25, `good parts keep coming: ${robot.taken.length}`);
+  assert.ok(belt.events.some((e) => /NG/.test(e.msg)));
+  // The same parts fail on every run.
+  const again = make();
+  const seen = new Set<number>();
+  for (let t = 0; t < 60; t += 0.1) {
+    again.step(0.1);
+    again.parts.filter((p) => p.reject).forEach((p) => seen.add(p.id));
+  }
+  for (const id of seen) assert.ok(rejects.has(id), `part ${id} fails both times`);
+}
+
+// Tracking with inspection: rejected parts are not claimed and not counted as missed.
+{
+  const belt = createBeltLogic({ length: 2.6, partLength: 0.12, speed: 0.25, mode: "track", window: [1.3, 2.4], feedRate: 12, rejectRate: 0.3 });
+  for (let t = 0; t < 120; t += 1 / 60) {
+    belt.step(1 / 60);
+    const p = belt.inWindow();
+    if (p) {
+      assert.ok(!p.reject);
+      assert.ok(belt.take(p.id));
+    }
+    for (const x of belt.parts) if (x.reject) assert.equal(belt.claim(x.id), false, "a rejected part cannot be claimed");
+  }
+  const c = belt.counters;
+  assert.ok(c.rejected > 0 && c.missed === 0, `rejects are not misses: ${JSON.stringify(c)}`);
+  assert.ok(c.binned >= c.rejected - 3);
+}
+
 console.log("conveyor logic ok");

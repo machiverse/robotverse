@@ -135,10 +135,21 @@ No videos were watched; this is from the documents and articles listed under Sou
     - `stepEvent()` to step to the next event while paused;
     - `automation` in the update with the PLC state, I/O, parts, counters and the pace-setter.
   - **Tracking window:** worked out from the robot's own IK reach, approach included.
+- **Vision sorting** (`rejectRate`):
+  - a camera upstream of the pick checks every part (VISION_OK / VISION_NG);
+  - the PLC keeps each verdict with its part, never indexes or tracks a failed one, and lets it run past the robot into the reject bin;
+  - failed parts carry a red tag in 3D;
+  - which parts fail is the same on every run (a golden-ratio sequence at the set rate), and the rate is labelled as a simulated assumption.
 - **Cell Builder:**
-  - a "Conveyor pick & place" ready cell;
+  - five demo ready cells, each opened by a link (`/automation-studio/build#starter=<id>`):
+    - `conveyor`: conveyor pick & place;
+    - `fanuc-cnc`: FANUC CNC tending;
+    - `abb-pallet`: ABB carton palletizing;
+    - `sort`: vision sorting & reject;
+    - `two-robot`: two robots with a transfer belt;
+  - robot suggestions prefer the named maker (marketplace first, then the Directory);
   - a "Conveyor automation" dialog on the first cell, with:
-    - **settings:** pick mode; conveyor length, width, height, speed and side; product, size and weight; feed rate and gap; where the part goes;
+    - **settings:** pick mode; conveyor length, width, height, speed and side; product, size and weight; vision inspection with its reject share; feed rate and gap; where the part goes;
     - **"Generate automation":** the checks, the sequence and the I/O list;
     - **"Start simulation".**
   - A live I/O panel on the stage with:
@@ -189,9 +200,9 @@ These master-brief items are not built yet:
 - Sensors, light curtains and E-stops as separate library items.
 - Conveyor coverage:
   - automation settings for the conveyors of the second and later robots;
-  - sorting and reject by sensor.
+  - sorting into more than two destinations (by size or colour).
 - Sealed cartons still swap at once.
-- Demos for CNC tending, palletizing and two-robot transfer with the new controls.
+- The demos use the default belt settings for the second robot's transfer belt.
 - Linking the AI planner to the conveyor setup.
 
 ## Sources

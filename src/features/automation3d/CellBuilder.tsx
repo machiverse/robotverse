@@ -476,13 +476,13 @@ export default function CellBuilder() {
     const needs = needsFor(jobs);
     const next: Cell[] = jobs.map((job, i) => {
       const spec = specs?.[i];
-      let choice: Choice = raw ? suggest(job, needs[i] ?? 10, raw) : {};
+      let choice: Choice = raw ? suggest(job, needs[i] ?? 10, raw, false, spec?.brand) : {};
       // Robots that load their own parts carry a gripper on the tool stand and a tool changer, both for that robot.
       const swap = raw && spec?.swap ? suggestSwap(raw, choice.robot) : {};
       const swapping = !!spec?.swap && !!swap.tool2 && !!swap.changer;
       if (swapping) choice = { ...choice, tool2: swap.tool2, changer: swap.changer };
       const stations = spec && (swapping || !spec.swap) ? spec.stations : stationsFor(job, [toolKindOf(choice.tool), toolKindOf(choice.tool2)], !!choice.changer);
-      const automation = i === 0 && spec?.conveyor ? { ...defaultSetup(spec.conveyor.product), mode: spec.conveyor.mode } : undefined;
+      const automation = i === 0 && spec?.conveyor ? { ...defaultSetup(spec.conveyor.product), mode: spec.conveyor.mode, rejectRate: spec.conveyor.rejectRate ?? 0 } : undefined;
       return { id: newId(), job, choice, fenced: !isCobot(choice.robot), stations, ...(automation ? { automation } : {}) };
     });
     quietFit.current = true;

@@ -61,4 +61,18 @@ const vacuum = { name: "Schmalz FXCB vacuum gripper", type: "Vacuum Gripper" };
   assert.ok(plan.issues.some((i) => /carries at most/.test(i.text)));
 }
 
+// Vision inspection: an Inspect stage before the pick sensor, the camera's two signals, the simulated reject share.
+{
+  const plan = planConveyorAutomation({ setup: { ...carton, rejectRate: 0.15 }, robot, tool: vacuum, destination: "pallet" });
+  assert.ok(plan.ok);
+  assert.deepEqual(plan.sequence.map((s) => s.stage), ["Feed", "Convey", "Inspect", "Sense", "Pick", "Transfer", "Place", "Repeat"]);
+  assert.deepEqual(plan.sequence.map((s) => s.n), [1, 2, 3, 4, 5, 6, 7, 8]);
+  const tags = plan.io.map((s) => s.tag);
+  assert.ok(tags.indexOf("VISION_OK") > tags.indexOf("PE1") && tags.includes("VISION_NG"));
+  assert.ok(plan.issues.some((i) => i.level === "info" && /15%/.test(i.text) && /assumption/.test(i.text)));
+  assert.equal(plan.sim.belt.rejectRate, 0.15);
+  const none = planConveyorAutomation({ setup: carton, robot, tool: vacuum, destination: "pallet" });
+  assert.ok(!none.io.some((s) => s.tag.startsWith("VISION")) && none.sim.belt.rejectRate === 0);
+}
+
 console.log("conveyor automation ok");

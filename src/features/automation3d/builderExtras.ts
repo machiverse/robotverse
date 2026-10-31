@@ -20,11 +20,17 @@ export interface StarterCell {
   stations: StationKey[];
   /** Gripper on the tool stand + tool changer: the robot loads parts itself, then changes to the process tool. */
   swap?: boolean;
-  /** Conveyor automation on the first cell: the product on the belt and how the robot picks it. */
-  conveyor?: { product: string; mode: "index" | "track" };
+  /** Conveyor automation on the first cell: the product on the belt, how the robot picks it, the camera's reject share. */
+  conveyor?: { product: string; mode: "index" | "track"; rejectRate?: number };
+  /** Robot maker to suggest for this cell (as the Directory spells it: "Fanuc", "ABB"…). */
+  brand?: string;
 }
 export const STARTERS: { id: string; name: string; what: string; jobs: string[]; cells: StarterCell[] }[] = [
   { id: "conveyor", name: "Conveyor pick & place", what: "Photo-eye stops each casting, the robot picks it and stacks it on a pallet", jobs: ["Loading & Unloading"], cells: [{ stations: ["conveyor", "pallet"], conveyor: { product: "casting", mode: "index" } }] },
+  { id: "fanuc-cnc", name: "FANUC CNC tending", what: "Blanks stop at the photo-eye; a FANUC robot loads the CNC machine, unloads it and stacks the parts", jobs: ["CNC Machining"], cells: [{ stations: ["conveyor", "cnc", "pallet"], brand: "Fanuc", conveyor: { product: "block", mode: "index" } }] },
+  { id: "abb-pallet", name: "ABB carton palletizing", what: "Cartons stop at the photo-eye; an ABB robot stacks them on the pallet", jobs: ["Palletizing"], cells: [{ stations: ["conveyor", "pallet"], brand: "ABB", conveyor: { product: "carton", mode: "index" } }] },
+  { id: "sort", name: "Vision sorting & reject", what: "A camera checks every casting: failed ones run into the reject bin, good ones are picked", jobs: ["Loading & Unloading"], cells: [{ stations: ["conveyor", "pallet"], conveyor: { product: "casting", mode: "index", rejectRate: 0.2 } }] },
+  { id: "two-robot", name: "Two robots, transfer belt", what: "Robot 1 picks from the infeed and passes each carton on a transfer belt; robot 2 stacks them", jobs: ["Loading & Unloading", "Palletizing"], cells: [{ stations: ["conveyor", "out"], conveyor: { product: "carton", mode: "index" } }, { stations: ["pallet"] }] },
   { id: "weld", name: "Welding cell", what: "Gripper loads the fixture, tool changer swaps to the MIG torch", jobs: ["MIG/MAG Welding"], cells: [{ stations: ["conveyor", "weld", "pallet", "rack"], swap: true }] },
   { id: "weld-pal", name: "Weld & palletize", what: "Weld, pass on the outfeed, stack on the pallet", jobs: ["MIG/MAG Welding", "Palletizing"], cells: [{ stations: ["conveyor", "weld", "out", "rack"], swap: true }, { stations: ["pallet"] }] },
   { id: "cnc", name: "CNC machine tending", what: "Load and unload a CNC machine", jobs: ["CNC Machining"], cells: [{ stations: ["conveyor", "cnc", "pallet"] }] },
@@ -54,14 +60,18 @@ const armOf = (m?: Match) => (m ? `${m.brand} ${m.name}${isCobotMatch(m) ? " col
  * The robot is chosen for the job (a spot-welding robot for spot welding, a palletizer for stacking),
  * then the tool for the job and for that robot (the family the job's program uses, sized for the part).
  */
-export function suggest(job: string, needKg: number, raw: Raw, cobot = false): Choice {
+export function suggest(job: string, needKg: number, raw: Raw, cobot = false, brand?: string): Choice {
   const kind = processKind({ name: job });
   // The 3D cell's stations sit about 1.4 m from the robot, so suggested arms must reach that far.
   // Light jobs get a 25% payload margin for acceleration and inertia; heavy jobs (100 kg and up) are
   // already sized as a robot class with the gripper or gun included.
   const payload = needKg >= 100 ? Math.ceil(needKg) : Math.ceil(needKg * 1.25);
   const need: StationNeed = { kind, job, payload, reach: CELL_REACH_MM, cobot: cobot || !!gearFor(job, kind).robot.cobot, robotType: null };
-  const robot = matchMarketRobots(need, raw.mr, 1)[0] ?? matchOemRobots(need, raw.dr, 1)[0];
+  // A maker asked for (a demo cell): its best listed robot, else its best robot in the Directory.
+  const maker = brand ? new RegExp(`^${brand.replace(/[^\w ]/g, "")}\\b`, "i") : null;
+  const robot =
+    (maker && (matchMarketRobots(need, raw.mr, 30).find((m) => maker.test(m.brand)) ?? matchOemRobots(need, raw.dr.filter((r) => maker.test(r.b)), 1)[0])) ||
+    (matchMarketRobots(need, raw.mr, 1)[0] ?? matchOemRobots(need, raw.dr, 1)[0]);
   const onArm = { ...need, arm: armOf(robot), cobot: need.cobot || isCobotMatch(robot) };
   // The job already chose the tool family and head (gearFor); its name is not a hint on top.
   const tool = matchMarketTools(onArm, raw.mt, "", 1)[0] ?? matchOemTools(onArm, raw.dt, "", 1)[0];

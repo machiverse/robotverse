@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { CONVEYOR_PRODUCTS, defaultSetup, planConveyorAutomation, type AutomationPlan, type ConveyorSetup } from "./conveyorAutomation";
-import { MODE_SIGNALS } from "./conveyorLogic.js";
+import { signalsFor } from "./conveyorLogic.js";
 import { productInfo } from "./workpieces.js";
 import type { AutomationState } from "./robotSim.js";
 import type { Match } from "./equipmentScore";
@@ -271,6 +271,23 @@ export function ConveyorAutomationDialog(props: {
               </div>
             </section>
             <section className="space-y-2">
+              <p className={eyebrow}>Inspection</p>
+              <Segmented
+                label="Vision inspection"
+                value={(draft.rejectRate ?? 0) > 0 ? "camera" : "none"}
+                onChange={(v) => edit((d) => ({ ...d, rejectRate: v === "camera" ? d.rejectRate || 0.15 : 0 }))}
+                options={[
+                  { key: "none", label: "No inspection", hint: "Every part goes to the robot." },
+                  { key: "camera", label: "Camera sorts parts", hint: "Failed parts run past the robot into a reject bin." },
+                ]}
+              />
+              {(draft.rejectRate ?? 0) > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Num label="Parts that fail" unit="% · simulated" value={Math.round((draft.rejectRate ?? 0) * 100)} min={1} max={90} step={1} onChange={(v) => edit((d) => ({ ...d, rejectRate: v / 100 }))} />
+                </div>
+              )}
+            </section>
+            <section className="space-y-2">
               <p className={eyebrow}>Feed and destination</p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <Num label="Feed" unit="parts/min · 0 = nonstop" value={draft.feed.rate} min={0} max={300} step={1} onChange={(v) => edit((d) => ({ ...d, feed: { ...d.feed, rate: v } }))} />
@@ -343,7 +360,7 @@ export function AutomationIO(props: { state: AutomationState; playing: boolean; 
   const { state: a, playing } = props;
   // Open on a wide screen; on a phone just the header, so the cell stays in view.
   const [open, setOpen] = useState(() => typeof window === "undefined" || window.matchMedia("(min-width: 640px)").matches);
-  const tags = MODE_SIGNALS[a.mode].filter((t) => t !== "ENC") as (keyof AutomationState["io"])[];
+  const tags = signalsFor(a.mode, a.inspect).filter((t) => t !== "ENC") as (keyof AutomationState["io"])[];
   const perHour = a.robot.lastCycle ? Math.floor(3600 / a.robot.lastCycle) : null;
   const lead = a.parts[0];
   return (
@@ -393,6 +410,12 @@ export function AutomationIO(props: { state: AutomationState; playing: boolean; 
             {lead && a.mode === "index" && <> · lead part {Math.max(0, Math.round((a.pickAt - lead.s) * 1000))} mm from pick</>} · fed {a.counters.fed} · picked{" "}
             {a.counters.picked} · placed {a.robot.placed}
             {a.mode === "track" && <> · missed {a.counters.missed}</>}
+            {a.inspect && (
+              <>
+                {" "}
+                · inspected {a.counters.inspected} · rejected {a.counters.rejected} · in the bin {a.counters.binned}
+              </>
+            )}
             {a.counters.gripFaults > 0 && <> · grip faults {a.counters.gripFaults}</>}
             {a.robot.lastCycle ? (
               <>

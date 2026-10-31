@@ -1936,7 +1936,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     const meshes = new Map();
     const falling = [];
     const inBin = [];
-    let beam = null, led = null, bin = null, extra = null;
+    let beam = null, led = null, bin = null, extra = null, ring = null;
     const beamOff = new THREE.Color(0x22c55e), beamOn = new THREE.Color(0xef4444);
     return {
       group: g,
@@ -2012,8 +2012,24 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           pl.position.set(bx, by + 0.4, zs);
           extra.add(pl);
         }
+        if (cfg.inspect) {
+          // Vision camera on a post over the belt, its ring light flashing green or red with each verdict.
+          const vx = at(cfg.inspectAt);
+          const ch = topY + Math.max(0.42, PART.h + 0.3);
+          const zp = cz - wid / 2 - 0.09;
+          put(box(0.04, ch + 0.04, 0.04, M.frame), vx, (ch + 0.04) / 2, zp);
+          put(box(0.03, 0.03, cz - zp + 0.04, M.frame), vx, ch + 0.02, (zp + cz) / 2);
+          put(box(0.07, 0.09, 0.07, M.dark), vx, ch - 0.035, cz);
+          put(cyl(0.022, 0.03, M.steel, 16), vx, ch - 0.095, cz);
+          ring = put(cyl(0.045, 0.012, new THREE.MeshStandardMaterial({ color: 0x1f2937, emissive: 0xffffff, emissiveIntensity: 0.15, roughness: 0.4 }), 24), vx, ch - 0.115, cz);
+          ring.userData.dynamic = true;
+          ring.castShadow = false;
+          const cl = makeLabel("Vision camera · inspection");
+          cl.position.set(vx, ch + 0.32, cz);
+          extra.add(cl);
+        }
         if (mode === "track") {
-          // Encoder on the drive end, the tracking window marked on the belt, and the reject bin past its end.
+          // Encoder on the drive end and the tracking window marked on the belt.
           const ex = at(-0.13) + dir * 0.08;
           put(cyl(0.035, 0.03, M.steel, 16), ex, topY - 0.07, cz + wid / 2 + 0.05).rotation.x = Math.PI / 2;
           put(box(0.05, 0.05, 0.05, M.dark), ex, topY - 0.07, cz + wid / 2 + 0.09);
@@ -2021,6 +2037,9 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
             const mark = put(box(0.012, 0.004, wid, new THREE.MeshBasicMaterial({ color })), at(s), topY + 0.002, cz);
             mark.castShadow = false;
           }
+        }
+        if (mode === "track" || cfg.inspect) {
+          // The reject bin past the end roller: missed parts (tracking) and failed parts (inspection) drop into it.
           const bw = Math.max(0.36, PART.w + 0.14), bd = wid + 0.12, bh = Math.max(0.3, topY - 0.32);
           const bxc = at(length + 0.13) + dir * (bw / 2 + 0.04);
           bin = { x: bxc, w: bw, d: bd, floor: 0.06, h: bh };
@@ -2031,7 +2050,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
             put(box(0.02, bh, bd, grey), bxc + side * (bw / 2), bh / 2, cz);
           }
           put(box(bw + 0.02, 0.03, bd + 0.02, M.amber), bxc, bh, cz).castShadow = false;
-          const rl = makeLabel("Reject bin · missed parts");
+          const rl = makeLabel(cfg.inspect ? "Reject bin · failed parts" : "Reject bin · missed parts");
           rl.position.set(bxc, bh + 0.35, cz);
           extra.add(rl);
         }
@@ -2077,6 +2096,12 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
             meshes.set(p.id, m);
           }
           m.position.set(at(p.s), y, cz);
+          // A failed part carries a red tag so it can be followed into the reject bin.
+          if (p.reject && !m.userData.ngTag) {
+            m.userData.ngTag = true;
+            const r = Math.min(PART.w, PART.d) * 0.22;
+            addOn(m, new THREE.CylinderGeometry(r, r, 0.006, 20), 0xdc2626, new THREE.Vector3(0, PART.h / 2 / (m.scale.y || 1) + 0.004, 0), { emissive: 0x7f1d1d });
+          }
         }
         for (const o of logic.drain()) {
           const m = meshes.get(o.id);
@@ -2102,6 +2127,11 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
             falling.splice(i, 1);
             if (inBin.length > 12) removePart(inBin.shift());
           }
+        }
+        if (ring) {
+          const ok = logic.io.VISION_OK, ng = logic.io.VISION_NG;
+          ring.material.emissive.setHex(ng ? 0xef4444 : ok ? 0x22c55e : 0xffffff);
+          ring.material.emissiveIntensity = ok || ng ? 1.4 : 0.15;
         }
         if (beam) {
           const on = logic.io.PE1;
@@ -3700,7 +3730,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
         update(dt) {
           t += dt;
           if (state === "wait") {
-            const p = lg.parts.find((x) => !x.claimed && !x.missed && x.queuedAt !== null && x.s >= lg.config.window[0] && catchable(x));
+            const p = lg.parts.find((x) => !x.claimed && !x.missed && !x.reject && x.queuedAt !== null && x.s >= lg.config.window[0] && catchable(x));
             if (!p) {
               lg.waiting(true, dt);
               return false;

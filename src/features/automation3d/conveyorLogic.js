@@ -11,10 +11,22 @@
  *     its tracking window and grips it on the move. A part that passes the window unpicked runs off the end of the
  *     belt into the reject bin.
  *   - "flow": an outfeed that carries parts off the end of the line.
+ * Inspection (rejectRate > 0): a vision camera upstream of the robot checks every part. The PLC keeps each verdict
+ * with the part (a shift register): a failed part (VISION_NG) is never indexed or tracked, it runs past the robot
+ * off the end of the belt into the reject bin; good parts are picked as usual.
  * Positions are distances along the belt in metres: s = 0 is where the feeder (or the robot upstream) puts a part,
  * s = length is the pick end, the end roller is `overrun` further on. Part positions are their centres. No 3D here,
  * so the logic is tested on its own (tests/conveyor-logic.test.ts) and robotSim.js draws what it says.
  */
+
+/**
+ * A part's inspection result, the same on every run: a number in [0, 1) from its id (golden-ratio sequence), so the
+ * failed parts are spread evenly and come at the set rate.
+ */
+const verdict = (id) => {
+  const x = id * 0.6180339887 + 0.1;
+  return x - Math.floor(x);
+};
 
 /** Fixed clock step (s): the same parts, edges and stops whatever the frame rate. */
 export const TICK = 1 / 240;
@@ -39,6 +51,8 @@ export const SIGNALS = [
   { tag: "GRIP_CMD", from: "Robot", to: "Gripper", device: "Gripper valve / vacuum generator", text: "Close the gripper / vacuum on" },
   { tag: "GRIP_OK", from: "Gripper", to: "Robot", device: "Vacuum switch / finger position sensor", text: "Part held" },
   { tag: "ENC", from: "Conveyor", to: "Robot", device: "Encoder on the belt drive", text: "Belt travel for conveyor tracking" },
+  { tag: "VISION_OK", from: "Camera", to: "PLC", device: "Vision camera over the belt", text: "Part passed inspection" },
+  { tag: "VISION_NG", from: "Camera", to: "PLC", device: "Vision camera over the belt", text: "Part failed inspection: it runs on into the reject bin" },
 ];
 /** The signals each pick mode uses. */
 export const MODE_SIGNALS = {
@@ -46,6 +60,13 @@ export const MODE_SIGNALS = {
   track: ["FEED", "CONV_RUN", "CONV_RUNNING", "PE1", "ENC", "GRIP_CMD", "GRIP_OK"],
   flow: ["CONV_RUN", "CONV_RUNNING"],
 };
+/** The signals of a pick mode, with the camera's verdicts when parts are inspected. */
+export function signalsFor(mode, inspect) {
+  const list = MODE_SIGNALS[mode] || MODE_SIGNALS.index;
+  if (!inspect) return list;
+  const k = list.indexOf("PE1");
+  return [...list.slice(0, k + 1), "VISION_OK", "VISION_NG", ...list.slice(k + 1)];
+}
 
 /** A complete, safe configuration from the user's (or the planner's) settings. */
 export function beltConfig(o = {}) {
@@ -66,9 +87,13 @@ export function beltConfig(o = {}) {
   const w0 = clamp(num(w[0], Math.max(partLength / 2 + 0.1, length * 0.45)), 0, length + overrun);
   const w1 = clamp(num(w[1], length - 0.02), w0, length + overrun);
   const detectAt = clamp(num(o.detectAt, Math.min(w0 - 0.05, partLength + 0.2)), partLength + 0.01, Math.max(partLength + 0.01, w0));
+  // Inspection: the camera looks at each part (its centre) upstream of the pick sensor or of the tracking window.
+  const rejectRate = mode === "flow" ? 0 : clamp(num(o.rejectRate, 0), 0, 0.9);
+  const before = mode === "track" ? Math.min(w0, detectAt - partLength / 2) : peAt - partLength / 2;
+  const inspectAt = clamp(num(o.inspectAt, before - 0.3), Math.min(partLength / 2 + 0.05, before), Math.max(partLength / 2 + 0.05, before - 0.02));
   return {
     length, partLength, speed, accel, decel, overrun, mode, source, pickAt, peAt,
-    window: [w0, w1], detectAt,
+    window: [w0, w1], detectAt, rejectRate, inspect: rejectRate > 0, inspectAt,
     gap: clamp(num(o.gap, 0.12), 0.01, 5),
     feedRate: clamp(num(o.feedRate, 0), 0, 600),
     restartDelay: clamp(num(o.restartDelay, 0.25), 0, 5),
@@ -113,9 +138,9 @@ export function createBeltLogic(options = {}) {
     feederOn = true;
     pulses = {};
     firstPick = null;
-    io = { FEED: false, CONV_RUN: false, CONV_RUNNING: false, PE1: false, PART_READY: false, ROBOT_IN_ZONE: false, PICK_DONE: false, GRIP_CMD: false, GRIP_OK: false };
+    io = { FEED: false, CONV_RUN: false, CONV_RUNNING: false, PE1: false, VISION_OK: false, VISION_NG: false, PART_READY: false, ROBOT_IN_ZONE: false, PICK_DONE: false, GRIP_CMD: false, GRIP_OK: false };
     since = Object.fromEntries(Object.keys(io).map((k) => [k, 0]));
-    counters = { fed: 0, picked: 0, missed: 0, binned: 0, exited: 0, gripFaults: 0 };
+    counters = { fed: 0, picked: 0, missed: 0, binned: 0, exited: 0, gripFaults: 0, inspected: 0, rejected: 0 };
     timers = { running: 0, stopped: 0, partWaiting: 0, robotWaiting: 0, feederBlocked: 0 };
   }
   reset();
@@ -141,7 +166,7 @@ export function createBeltLogic(options = {}) {
   const entryClear = (gap) => parts.every((p) => p.s >= cfg.partLength + gap);
 
   function addPart() {
-    const p = { id: nextId++, s: 0, prev: 0, at: t, claimed: false, missed: false, queuedAt: null };
+    const p = { id: nextId++, s: 0, prev: 0, at: t, claimed: false, missed: false, queuedAt: null, inspected: false, reject: false };
     parts.push(p);
     return p;
   }
@@ -204,16 +229,30 @@ export function createBeltLogic(options = {}) {
       const p = parts[i];
       p.prev = p.s;
       let s = p.s + ds;
-      if (cfg.mode === "index") s = Math.min(s, endStop);
+      if (cfg.mode === "index" && !p.reject) s = Math.min(s, endStop);
       if (i > 0) s = Math.min(s, parts[i - 1].s - L - MIN_GAP);
       p.s = Math.max(p.prev, s);
     }
 
-    // The discharge end: a part runs off the end roller into the reject bin (tracking) or out of the line (outfeed).
-    if (cfg.mode !== "index") {
+    // The camera: each part is checked once as it passes, and the PLC keeps the verdict with the part.
+    if (cfg.inspect)
+      for (const p of parts)
+        if (!p.inspected && p.prev < cfg.inspectAt && p.s >= cfg.inspectAt) {
+          p.inspected = true;
+          p.reject = verdict(p.id) < cfg.rejectRate;
+          counters.inspected++;
+          if (p.reject) {
+            counters.rejected++;
+            pulse("VISION_NG");
+            event(`Camera: part ${p.id} NG — the PLC lets it run past the robot into the reject bin`);
+          } else pulse("VISION_OK");
+        }
+
+    // The discharge end: a part runs off the end roller into the reject bin (tracking, rejects) or out of the line.
+    if (cfg.mode !== "index" || cfg.inspect) {
       while (parts.length && parts[0].s >= cfg.length + cfg.overrun) {
         const p = parts.shift();
-        if (cfg.mode === "track") {
+        if (cfg.mode !== "flow") {
           counters.binned++;
           outbox.push({ id: p.id, how: "bin" });
         } else {
@@ -236,15 +275,16 @@ export function createBeltLogic(options = {}) {
         }
       // A part past the window's downstream boundary can no longer be picked.
       for (const p of parts)
-        if (!p.missed && p.s > cfg.window[1]) {
+        if (!p.missed && !p.reject && p.s > cfg.window[1]) {
           p.missed = true;
           counters.missed++;
           event(`Part ${p.id} passed the tracking window — missed, it runs into the reject bin`);
         }
     } else if (cfg.mode === "index") {
       // Stop and pick: a part at the beam while the belt runs is the next one to index.
-      if (plc === "RUN" && indexed === null && covering.length) {
-        const p = covering[0];
+      const next = covering.find((x) => !x.reject);
+      if (plc === "RUN" && indexed === null && next) {
+        const p = next;
         indexed = p.id;
         taken = false;
         setPlc("BRAKE");
@@ -313,7 +353,7 @@ export function createBeltLogic(options = {}) {
     },
     inWindow() {
       if (cfg.mode !== "track") return null;
-      return parts.find((p) => !p.claimed && !p.missed && p.queuedAt !== null && p.s >= cfg.window[0] && p.s <= cfg.window[1]) || null;
+      return parts.find((p) => !p.claimed && !p.missed && !p.reject && p.queuedAt !== null && p.s >= cfg.window[0] && p.s <= cfg.window[1]) || null;
     },
     /** Track: is the part still on the belt and inside the window? */
     trackable(id) {
@@ -322,7 +362,7 @@ export function createBeltLogic(options = {}) {
     },
     claim(id) {
       const p = byId(id);
-      if (!p || p.claimed || p.missed) return false;
+      if (!p || p.claimed || p.missed || p.reject) return false;
       p.claimed = true;
       event(`Robot tracks part ${id}`);
       return true;
@@ -391,11 +431,13 @@ export function createBeltLogic(options = {}) {
         encoder: Math.round(enc * cfg.pulsesPerMetre),
         pickAt: cfg.pickAt,
         beam: cfg.mode === "track" ? cfg.detectAt : cfg.peAt,
+        inspect: cfg.inspect,
+        inspectAt: cfg.inspectAt,
         window: cfg.window,
         length: cfg.length,
         io: { ...io },
         since: { ...since },
-        parts: parts.map((p) => ({ id: p.id, s: p.s, claimed: p.claimed, missed: p.missed })),
+        parts: parts.map((p) => ({ id: p.id, s: p.s, claimed: p.claimed, missed: p.missed, reject: p.reject })),
         counters: { ...counters, onBelt: parts.length },
         timers: { ...timers, measured: firstPick === null ? 0 : t - firstPick },
         events: events.slice(0, 12),

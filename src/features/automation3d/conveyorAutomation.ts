@@ -8,7 +8,7 @@
  * Research and sources: docs/automation-studio-conveyor.md.
  */
 
-import { beltConfig, MODE_SIGNALS, SIGNALS, stopDistance, type BeltOptions } from "./conveyorLogic.js";
+import { beltConfig, SIGNALS, signalsFor, stopDistance, type BeltOptions } from "./conveyorLogic.js";
 import { eoatKind } from "./robotSim.js";
 import { productInfo } from "./workpieces.js";
 import { brandOf } from "./robotSystem";
@@ -43,6 +43,8 @@ export interface ConveyorSetup {
     gap: number;
   };
   mode: PickMode;
+  /** Vision inspection: the share of parts the camera fails (simulated), 0 = no camera. Failed parts go to the reject bin. */
+  rejectRate?: number;
 }
 
 export interface AutomationInput {
@@ -63,7 +65,7 @@ export interface AutomationIssue {
 }
 export interface AutomationStep {
   n: number;
-  stage: "Feed" | "Convey" | "Sense" | "Pick" | "Transfer" | "Place" | "Repeat";
+  stage: "Feed" | "Convey" | "Inspect" | "Sense" | "Pick" | "Transfer" | "Place" | "Repeat";
   title: string;
   detail: string;
   signals: string[];
@@ -212,31 +214,38 @@ export function planConveyorAutomation(input: AutomationInput): AutomationPlan {
 
   const sensor = GRIP_SENSOR[grip ?? info.grip] ?? "grip sensor";
   const braking = stopDistance(speed, decel);
-  const sequence: AutomationStep[] = [
+  const rejectRate = Math.max(0, Math.min(0.9, setup.rejectRate ?? 0));
+  if (rejectRate > 0)
+    issues.push({ level: "info", text: `A camera checks every part; about ${Math.round(rejectRate * 100)}% fail in this simulation (an assumption, not a measurement) and run past the robot into the reject bin.` });
+  const steps: Omit<AutomationStep, "n">[] = [
     {
-      n: 1, stage: "Feed", title: "Feeder releases a part",
+      stage: "Feed", title: "Feeder releases a part",
       detail: rate > 0 ? `One part every ${round(60 / rate, 1)} s, only when the belt entry is clear by ${mm(gap)}.` : `A part whenever the belt entry is clear by ${mm(gap)}.`,
       signals: ["FEED"],
     },
     {
-      n: 2, stage: "Convey", title: "Belt carries it to the robot",
+      stage: "Convey", title: "Belt carries it to the robot",
       detail: mode === "index"
         ? `CONV_RUN on: the belt runs at ${speed} m/s (starts at ${accel} m/s², brakes at ${decel} m/s²).`
         : `The belt runs at ${speed} m/s and never stops; the encoder reports belt travel to the robot.`,
       signals: mode === "index" ? ["CONV_RUN", "CONV_RUNNING"] : ["CONV_RUN", "ENC"],
     },
+    ...(rejectRate > 0
+      ? [{ stage: "Inspect" as const, title: "Camera checks every part", detail: "The vision camera passes or fails each part as it goes by (VISION_OK / VISION_NG). The PLC keeps the verdict with the part: a failed part is never offered to the robot and runs off the end of the belt into the reject bin.", signals: ["VISION_OK", "VISION_NG"] }]
+      : []),
     mode === "index"
-      ? { n: 3, stage: "Sense", title: "Photo-eye stops it at the pick position", detail: `PE1 sees the part ${mm(braking + 0.03)} before the pick position; the PLC drops CONV_RUN and the part comes to rest where the robot picks, then PART_READY goes on.`, signals: ["PE1", "CONV_RUN", "PART_READY"] }
-      : { n: 3, stage: "Sense", title: "Photo-eye registers it for tracking", detail: "PE1 is the sync switch: each part is queued with the encoder count when it breaks the beam, so the robot knows where it is all along the belt.", signals: ["PE1", "ENC"] },
+      ? { stage: "Sense", title: "Photo-eye stops it at the pick position", detail: `PE1 sees the part ${mm(braking + 0.03)} before the pick position; the PLC drops CONV_RUN and the part comes to rest where the robot picks, then PART_READY goes on.`, signals: ["PE1", "CONV_RUN", "PART_READY"] }
+      : { stage: "Sense", title: "Photo-eye registers it for tracking", detail: "PE1 is the sync switch: each part is queued with the encoder count when it breaks the beam, so the robot knows where it is all along the belt.", signals: ["PE1", "ENC"] },
     mode === "index"
-      ? { n: 4, stage: "Pick", title: "Robot picks the part", detail: `The robot waits above the pick position. On PART_READY it moves down (ROBOT_IN_ZONE on: the belt may not move), closes the ${gripName} (GRIP_CMD) and lifts only once the ${sensor} confirms the grip (GRIP_OK). Clear of the belt it sends PICK_DONE and the PLC restarts the conveyor.`, signals: ["ROBOT_IN_ZONE", "GRIP_CMD", "GRIP_OK", "PICK_DONE"] }
-      : { n: 4, stage: "Pick", title: "Robot follows and picks the part", detail: `The robot waits at the start of its tracking window. When a part enters it, the robot matches the belt speed, moves down onto the moving part, closes the ${gripName} (GRIP_CMD), waits for the ${sensor} (GRIP_OK) and lifts while still following the belt. A part that leaves the window unpicked runs into the reject bin.`, signals: ["ENC", "GRIP_CMD", "GRIP_OK"] },
-    { n: 5, stage: "Transfer", title: `Carries it to the ${destName}`, detail: "The part is fixed to the tool: it moves with the gripper and never floats. GRIP_OK is watched on the way; a lost part stops the robot.", signals: ["GRIP_OK"] },
-    { n: 6, stage: "Place", title: `Places it on the ${destName}`, detail: "Straight down onto the place position, GRIP_CMD off, the part is released where it sits, then the robot lifts clear.", signals: ["GRIP_CMD", "GRIP_OK"] },
-    { n: 7, stage: "Repeat", title: "Back for the next part", detail: mode === "index" ? "Returns above the pick position and waits for the next PART_READY." : "Returns to the start of the tracking window for the next part.", signals: [] },
+      ? { stage: "Pick", title: "Robot picks the part", detail: `The robot waits above the pick position. On PART_READY it moves down (ROBOT_IN_ZONE on: the belt may not move), closes the ${gripName} (GRIP_CMD) and lifts only once the ${sensor} confirms the grip (GRIP_OK). Clear of the belt it sends PICK_DONE and the PLC restarts the conveyor.`, signals: ["ROBOT_IN_ZONE", "GRIP_CMD", "GRIP_OK", "PICK_DONE"] }
+      : { stage: "Pick", title: "Robot follows and picks the part", detail: `The robot waits at the start of its tracking window. When a part enters it, the robot matches the belt speed, moves down onto the moving part, closes the ${gripName} (GRIP_CMD), waits for the ${sensor} (GRIP_OK) and lifts while still following the belt. A part that leaves the window unpicked runs into the reject bin.`, signals: ["ENC", "GRIP_CMD", "GRIP_OK"] },
+    { stage: "Transfer", title: `Carries it to the ${destName}`, detail: "The part is fixed to the tool: it moves with the gripper and never floats. GRIP_OK is watched on the way; a lost part stops the robot.", signals: ["GRIP_OK"] },
+    { stage: "Place", title: `Places it on the ${destName}`, detail: "Straight down onto the place position, GRIP_CMD off, the part is released where it sits, then the robot lifts clear.", signals: ["GRIP_CMD", "GRIP_OK"] },
+    { stage: "Repeat", title: "Back for the next part", detail: mode === "index" ? "Returns above the pick position and waits for the next PART_READY." : "Returns to the start of the tracking window for the next part.", signals: [] },
   ];
+  const sequence: AutomationStep[] = steps.map((x, i) => ({ ...x, n: i + 1 }));
 
-  const io = MODE_SIGNALS[mode].map((tag) => {
+  const io = signalsFor(mode, rejectRate > 0).map((tag) => {
     const s = SIGNALS.find((x) => x.tag === tag)!;
     if (tag === "GRIP_OK") return { ...s, device: sensor[0].toUpperCase() + sensor.slice(1) };
     if (tag === "PE1") return { ...s, device: mode === "index" ? "Photo-eye at the pick position (retro-reflective, polarised for shiny parts)" : "Photo-eye upstream of the robot, the sync switch for tracking" };
@@ -253,7 +262,7 @@ export function planConveyorAutomation(input: AutomationInput): AutomationPlan {
     estimate: { pitch: round(pitch, 3), beltMaxPerMin: round(beltMaxPerMin, 1), indexSeconds, brakingMm: Math.round(braking * 1000), feedInterval: rate > 0 ? round(60 / rate, 2) : null },
     sim: {
       infeed: { length: round(cv.length, 3), width: round(Math.max(cv.width, pd + 0.02), 3), height: round(clampN(cv.height, 0.4, 1.3), 3), side: (input.robots ?? 1) > 1 ? "left" : cv.side },
-      belt: { speed: belt.speed, accel, decel, mode, gap: belt.gap, feedRate: belt.feedRate, restartDelay },
+      belt: { speed: belt.speed, accel, decel, mode, gap: belt.gap, feedRate: belt.feedRate, restartDelay, rejectRate },
       product: { key: info.key, size, kg },
     },
   };
