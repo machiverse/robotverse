@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { AUTOMATION_SKILLS, CONVEYOR_PRODUCTS, defaultSetup, planConveyorAutomation, proposeAutomation } from "../src/features/automation3d/conveyorAutomation";
+import { AUTOMATION_SKILLS, briefQuestion, CONVEYOR_PRODUCTS, defaultSetup, describedIn, describeLink, planConveyorAutomation, proposeAutomation, STATION_WORDS } from "../src/features/automation3d/conveyorAutomation";
 import { SKILL_LIBRARY } from "../src/utils/processAnalyzer";
 import { PRODUCT_KEYS, productInfo } from "../src/features/automation3d/workpieces.js";
 
@@ -152,6 +152,58 @@ const how = (p: ReturnType<typeof proposeAutomation>, label: string) => p.facts.
   assert.equal(p.skill.id, "pick-place");
   assert.ok(p.facts.filter((f) => f.how === "assumed").length >= 4);
   assert.ok(p.missing.length >= 4 && p.confirm.length >= 2);
+}
+
+// The AI planner hands the user's words to the Builder in a link; they come back the same, and nothing else opens.
+{
+  const words = "Cartons of 12 kg come on a conveyor at 10 cases per minute; an ABB robot should stack them on pallets & wrap them = done?";
+  const link = describeLink(words);
+  assert.ok(link.startsWith("/automation-studio/build#describe="));
+  assert.ok(!/[ &=?]/.test(link.slice(link.indexOf("=") + 1)), "the words are encoded");
+  assert.equal(describedIn(link.slice(link.indexOf("#"))), words);
+  assert.equal(describedIn(`#describe=${encodeURIComponent("  pick  \n parts  ")}`), "pick parts", "spaces tidied");
+  assert.equal(describedIn(`#describe=${encodeURIComponent("move")}`), null, "too short to design from");
+  assert.equal(describedIn("#job=Palletizing"), null);
+  assert.equal(describedIn("#starter=conveyor"), null);
+  assert.equal(describedIn("#describe=%E0%A4%A"), null, "a broken link opens nothing");
+  assert.equal(describedIn(describeLink("x".repeat(5000)).replace(/^[^#]*/, ""))!.length, 1200, "long descriptions are cut to a link's size");
+}
+
+// The AI planner's own examples: understood as the right application, every station named, and the conveyor
+// automation the 3D line's infeed runs is a real studio product on a belt that fits it.
+for (const [brief, id, kg] of [
+  ["Weld 12 kg steel brackets with MIG, 2 shifts, 400 parts a day", "weld", 12],
+  ["Load and unload a CNC lathe with 5 kg shafts", "cnc", 5],
+  ["Palletize 25 kg cartons coming on a conveyor", "palletizing", 25],
+] as const) {
+  const p = proposeAutomation(brief);
+  assert.equal(p.skill.id, id, brief);
+  assert.equal(p.facts.find((f) => f.label === "Weight")!.how, "said", brief);
+  for (const c of p.cells) for (const k of c.stations) assert.ok(STATION_WORDS[k], `${k} has words`);
+  assert.ok(p.setup, `${brief}: parts come on the infeed conveyor`);
+  assert.equal(p.setup!.product.kg, kg);
+  const sim = planConveyorAutomation({ setup: p.setup!, destination: p.destination, robots: p.cells.length }).sim;
+  assert.ok(PRODUCT_KEYS.includes(sim.product.key), `${sim.product.key} is a studio product`);
+  assert.ok(sim.infeed.length >= 1 && sim.infeed.width >= sim.product.size[2], "the belt fits the product");
+  assert.ok(sim.belt.mode === "index" || sim.belt.mode === "track");
+}
+// A question added to the brief and answered is read as the answer, never as the examples it offers.
+{
+  const brief = "Cartons of 12 kg come on a conveyor; a robot should stack them on pallets.";
+  const p = proposeAutomation(brief);
+  const maker = p.missing.find((m) => /maker/.test(m.question))!.question;
+  assert.match(maker, /FANUC/, "the question offers makers as examples");
+  assert.equal(proposeAutomation(`${brief} ${briefQuestion(maker)} Answer: ABB`).cells[0].brand, "ABB");
+  for (const m of p.missing) {
+    const q = proposeAutomation(`${brief} ${briefQuestion(m.question)} Answer: `);
+    assert.equal(q.skill.id, p.skill.id, `${m.question} does not change the application`);
+    assert.equal(q.cells[0].brand, undefined, `${m.question} names no maker`);
+    assert.equal(q.setup!.product.kg, 12);
+  }
+}
+// Every application the skills know names its stations in words.
+for (const sk of AUTOMATION_SKILLS) {
+  for (const k of [sk.machine, sk.destination, sk.source === "machine" ? undefined : sk.source === "conveyor" ? "conveyor" : sk.source]) if (k) assert.ok(STATION_WORDS[k as keyof typeof STATION_WORDS], `${sk.id}: ${k}`);
 }
 
 console.log("conveyor automation ok");

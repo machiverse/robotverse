@@ -209,6 +209,30 @@ In the Cell Builder, "Describe your automation" (on the empty stage, and at the 
   - places the equipment and sets the conveyor automation;
   - runs the simulation.
 
+### The AI planner uses the automation skills
+
+The AI planner reached from the Automation Studio landing page ("Describe my job", `/automation-studio?mode=ai`) now reads the same brief with the automation skills.
+
+- **Guests (free quick plan):** under the plan, an "Automation design · from your words" card (`AutomationDesign.tsx`) shows:
+  - the application recognised and the words it came from;
+  - each robot's job, maker and equipment;
+  - the payload, gripper and how the robot picks;
+  - the process step by step;
+  - the handshake signals;
+  - what was understood, marked "your words", "rule" or "assumed";
+  - the engineering rules;
+  - the open questions. A question is added to the brief, ready to answer.
+- **Signed-in plan, step 3:** the same card follows the AI solution.
+- **Signed-in plan, step 4:**
+  - The 3D line's infeed runs the conveyor automation designed from the brief: the belt and product sizes, stop and pick or tracking, the PLC handshake and the grip check.
+  - The live I/O panel shows it.
+  - On a line of several robots a tracking belt becomes stop and pick, because a tracking belt runs on past its robot.
+- **"Simulate it in 3D":**
+  - opens the Cell Builder with the words (`#describe=…`, read by `describedIn()`);
+  - the Builder shows what it understood, asks for the assumptions to be confirmed, then builds the cell with real robots and runs it.
+  - No sign-in is needed.
+- **Nothing changed in the backend or the database:** the skills run in the browser. The AI solution request is unchanged.
+
 ## 4. Tested
 
 - `tests/conveyor-logic.test.ts` checks, frame by frame:
@@ -244,6 +268,19 @@ In the Cell Builder, "Describe your automation" (on the empty stage, and at the 
   - No invariant broken, and no errors in the console.
 - Cell Builder in Chromium at 1440 × 900 and 390 × 844:
   - ready cell → dialog → Generate → Start → live I/O panel, for both stop and pick and tracking.
+- AI planner in Chromium:
+  - **Guest quick plan:**
+    - CNC brief at 1440 × 900: the card shows CNC machine tending with a FANUC cell and the CNC handshake. A question goes into the brief. "Simulate it in 3D" opened the Builder's dialog, and after the two assumptions were confirmed it built a FANUC M-20iD/12L with a dual gripper and a live I/O panel.
+    - ABB palletizing brief at 390 × 844: it built an ABB IRB 260 with an area vacuum gripper.
+    - Moulding brief: only the Euromap 67 handshake, and no belt.
+  - **Signed-in steps 3 and 4,** with a local stand-in session and every backend request blocked:
+    - the card in step 3;
+    - the step-4 line's infeed running the designed belt, for both stop and pick (12 kg cartons at 0.30 m/s) and tracking;
+    - fast-forwarded through 80 simulated seconds of tracking, the robot picked and placed 11 pralines; the studio reported that one robot cannot keep up with 120 a minute;
+    - the same rebuild count as before the change, and no console errors.
+  - `tests/conveyor-automation.test.ts` also checks:
+    - the `#describe=` link round trip, including broken, short and long links;
+    - the planner's own three example briefs.
 
 ## 5. Still to do
 
@@ -261,7 +298,7 @@ These master-brief items are not built yet:
   - sorting into more than two destinations (by size or colour).
 - Sealed cartons still swap at once.
 - The demos use the default belt settings for the second robot's transfer belt.
-- The landing page's AI planner (describe the job → a line in the Studio 3D page) does not yet use the automation skills; the Cell Builder does.
+- The AI solution engineer (the backend AI request) does not receive the automation skills' design. The skills run beside it in the browser. Feeding them into the AI request would need a backend change.
 
 ## Sources
 

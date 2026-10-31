@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { AlertTriangle, BookOpen, Bot, Camera, CheckCircle2, FileText, Info, Loader2, Maximize2, Minimize2, Minus, Pause, Play, Plus, Repeat, RotateCcw, Shield, Sparkles, Trash2, Wrench, X } from "lucide-react";
 import type { ProcessCard } from "@/data/automationStudioIndustries";
 import { analyzeDescription, matchTemplateIds, processesFromSkills, SKILL_LIBRARY } from "@/utils/processAnalyzer";
-import { createSimulation, planSignature, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type AutomationState, type Interference, type LayoutEdit, type MotionClearance, type LineSpacing, type Simulation, type SimQuality } from "./robotSim.js";
+import { createSimulation, planSignature, parseProcess, PRESETS, ROBOT_SIZES, STATION_NAMES, type AutomationState, type Interference, type LayoutEdit, type MotionClearance, type LineSpacing, type SimAutomation, type Simulation, type SimQuality } from "./robotSim.js";
 import { AutomationIO } from "./ConveyorAutomationPanel";
 import { addJob, baseJob, isShare, removeTasks, shareJob, suggestJobs } from "./lineEdit";
 import { CINEMATIC_POST } from "./cinematicPost";
@@ -132,6 +132,8 @@ interface Props {
   referenceImage?: string;
   /** AI reading of the user's photos / video */
   mediaAnalysis?: MediaAnalysis | null;
+  /** Conveyor automation the automation skills designed from the user's words (planConveyorAutomation().sim): the line's infeed runs it. */
+  automation?: SimAutomation | null;
 }
 
 /** Safety fence: by robot type (industrial fenced, cobots open), round the whole line, round each robot, or none. */
@@ -174,6 +176,7 @@ export default function AutomationStudio3D({
   description: initialDescription,
   referenceImage,
   mediaAnalysis,
+  automation = null,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const stageWrapRef = useRef<HTMLDivElement>(null);
@@ -455,6 +458,16 @@ export default function AutomationStudio3D({
     return () => sim.dispose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The conveyor automation designed from the user's words, on the first robot's infeed. A tracking belt runs on past
+  // its robot, so on a line of several robots the belt stops each part instead. One rebuild, coalesced by the sim.
+  const severalRobots = (plan?.robots.length ?? 1) > 1;
+  const automationKey = JSON.stringify([automation, severalRobots]);
+  useEffect(() => {
+    const a = automation && severalRobots && automation.belt.mode === "track" ? { ...automation, belt: { ...automation.belt, mode: "index" as const } } : automation;
+    simRef.current?.setAutomation(a);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [automationKey]);
 
   function runLine(input: LineInput, planNotes: string[] = [], option: Strategy = strategy) {
     if (input.some((p) => p.name === CONCRETE_PRINTING)) return openSpecial();

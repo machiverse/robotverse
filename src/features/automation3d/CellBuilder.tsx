@@ -33,7 +33,7 @@ import { isComponent } from "./jobGear";
 import { jobKit, type JobKit } from "./jobKit";
 import { providerPlan, understandJob } from "./jobUnderstanding";
 import { AutomationBriefBox, AutomationIO, AutomationProposalDialog, ConveyorAutomationDialog } from "./ConveyorAutomationPanel";
-import { defaultSetup, planConveyorAutomation, type AutomationProposal, type ConveyorSetup } from "./conveyorAutomation";
+import { defaultSetup, describedIn, planConveyorAutomation, type AutomationProposal, type ConveyorSetup } from "./conveyorAutomation";
 
 /* ------------------------------------------------------------------ data */
 
@@ -618,6 +618,13 @@ export default function CellBuilder() {
     window.history.replaceState(null, "", window.location.pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raw]);
+  // A description from the AI planner (#describe=…): open what the studio understood, ready to confirm, build and simulate.
+  useEffect(() => {
+    if (!/describe=/.test(window.location.hash)) return;
+    const text = describedIn(window.location.hash);
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    if (text) setBrief(text);
+  }, []);
   // Open a shared line (#line=…) once the catalogue is loaded.
   useEffect(() => {
     if (!data) return;

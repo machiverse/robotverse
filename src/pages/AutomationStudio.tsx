@@ -53,6 +53,8 @@ import EquipmentPicker from "@/features/automation3d/EquipmentPicker";
 import { proposalHtml, proposalSummary } from "@/features/automation3d/studioProposal";
 import LeadDialog from "@/components/leads/LeadDialog";
 import QuickPlan from "@/features/automation3d/QuickPlan";
+import AutomationDesign from "@/features/automation3d/AutomationDesign";
+import { planConveyorAutomation, proposeAutomation } from "@/features/automation3d/conveyorAutomation";
 import { BevelBox, ConsoleButton, ConsoleLink } from "@/components/console/ConsoleUI";
 import { Eyebrow, KitButton, Readouts } from "@/features/automation3d/StudioKit";
 
@@ -213,6 +215,22 @@ function AutomationStudioAI() {
     }
     return analyzeDescription(description, industry);
   }, [description, industry, media, aiCurrent?.solution]);
+  // The automation skills read the same brief: the conveyor automation they design runs on the 3D line's infeed.
+  const autoSim = useMemo(() => {
+    if (description.trim().length < 8) return null;
+    const p = proposeAutomation(description);
+    return p.setup ? planConveyorAutomation({ setup: p.setup, destination: p.destination, robots: p.cells.length }).sim : null;
+  }, [description]);
+  // A question from the plan: add it to the brief and go back to step 1 for the user to answer.
+  const askInBrief = (q: string) => {
+    setDescription((d) => `${d.trim()} ${q} Answer: `);
+    setStep(1);
+    window.setTimeout(() => {
+      const el = document.getElementById("as-description") as HTMLTextAreaElement | null;
+      el?.focus();
+      el?.setSelectionRange(el.value.length, el.value.length);
+    }, 50);
+  };
   const inventory = buildInventory({ ...blueprint, processes });
   const roiCards = ROI_CARDS.map((c) => ({ ...c, value: blueprint.roi[c.field] }));
   // The end of the study: talk to an engineer, ask for a quote, or print the proposal.
@@ -668,17 +686,10 @@ function AutomationStudioAI() {
                         setVisualTab("robot");
                         setStep(4);
                       }}
-                      onAsk={(q) => {
-                        setDescription((d) => `${d.trim()} ${q} Answer: `);
-                        setStep(1);
-                        window.setTimeout(() => {
-                          const el = document.getElementById("as-description") as HTMLTextAreaElement | null;
-                          el?.focus();
-                          el?.setSelectionRange(el.value.length, el.value.length);
-                        }, 50);
-                      }}
+                      onAsk={askInBrief}
                     />
                   )}
+                  {description.trim().length >= 8 && <AutomationDesign text={description} onAsk={askInBrief} />}
                   {(sol?.stations.length ?? 0) > 0 && <EquipmentPicker key={description.trim()} stations={sol!.stations} briefKey={description.trim()} />}
 
                   {/* Each station today and with a robot. */}
@@ -807,7 +818,10 @@ function AutomationStudioAI() {
                       return (
                         <>
                           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-                            <p className="text-sm text-muted-foreground">Watch the whole line, or choose one station to see it on its own.</p>
+                            <p className="max-w-[75ch] text-sm text-muted-foreground">
+                              Watch the whole line, or choose one station to see it on its own.
+                              {autoSim && " The infeed runs the conveyor automation designed from your words: sensors, PLC handshake and grip check are live in the I/O panel."}
+                            </p>
                             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                               <ConsoleLink to={full ? lineHref : simLink(text, current.name)}>Full screen</ConsoleLink>
                               <ConsoleButton to={`/automation-studio/build#job=${encodeURIComponent(processes.slice(0, 6).map((p) => p.name).join("|"))}`}>
@@ -858,6 +872,7 @@ function AutomationStudioAI() {
                                 description={description.trim() || undefined}
                                 referenceImage={media?.frame}
                                 mediaAnalysis={media && description === media.text ? media.result : null}
+                                automation={autoSim}
                                 title="Your automated line"
                                 subtitle={`${processes.length} tasks from your description · robots, tools and multitasking planned from the robot skills knowledge base`}
                               />
@@ -953,6 +968,7 @@ function AutomationStudioAI() {
                             description={description.trim() || undefined}
                             referenceImage={media?.frame}
                             mediaAnalysis={media && description === media.text ? media.result : null}
+                            automation={autoSim}
                             overlay={overlay}
                             initialView={view}
                             title={title}

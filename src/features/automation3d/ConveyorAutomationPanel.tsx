@@ -12,7 +12,7 @@ import { AlertTriangle, ChevronDown, ChevronUp, Info, Pause, Play, SkipForward, 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { CONVEYOR_PRODUCTS, defaultSetup, planConveyorAutomation, proposeAutomation, type AutomationPlan, type AutomationProposal, type ConveyorSetup } from "./conveyorAutomation";
+import { CONVEYOR_PRODUCTS, defaultSetup, FACT_SOURCE, planConveyorAutomation, proposeAutomation, STATION_WORDS, type AutomationPlan, type AutomationProposal, type ConveyorSetup } from "./conveyorAutomation";
 import { signalsFor } from "./conveyorLogic.js";
 import { productInfo } from "./workpieces.js";
 import type { AutomationState } from "./robotSim.js";
@@ -485,9 +485,9 @@ export function AutomationBriefBox(props: { onUnderstand: (text: string) => void
 }
 
 const HOW: Record<AutomationProposal["facts"][number]["how"], { label: string; cls: string }> = {
-  said: { label: "your words", cls: "border-emerald-500/50 text-emerald-700 dark:text-emerald-400" },
-  rule: { label: "rule", cls: "border-border text-muted-foreground" },
-  assumed: { label: "assumed", cls: "border-amber-500/60 text-amber-700 dark:text-amber-400" },
+  said: { label: FACT_SOURCE.said, cls: "border-emerald-500/50 text-emerald-700 dark:text-emerald-400" },
+  rule: { label: FACT_SOURCE.rule, cls: "border-border text-muted-foreground" },
+  assumed: { label: FACT_SOURCE.assumed, cls: "border-amber-500/60 text-amber-700 dark:text-amber-400" },
 };
 
 /**
@@ -530,7 +530,7 @@ export function AutomationProposalDialog(props: { text: string | null; onOpenCha
                   {p.cells.map((c, i) => (
                     <li key={i}>
                       <b className="font-medium">Robot {i + 1}:</b> {c.job}
-                      {c.brand ? ` · ${c.brand}` : ""} · {c.stations.map((k) => AUTOMATION_STATIONS[k] ?? k).join(" → ")}
+                      {c.brand ? ` · ${c.brand}` : ""} · {c.stations.map((k) => STATION_WORDS[k] ?? k).join(" → ")}
                     </li>
                   ))}
                   <li className="text-muted-foreground">Robot sized for {p.needKg} kg (part + gripper) with a 25% margin; picked from the marketplace, else the Directory.</li>
@@ -607,4 +607,3 @@ export function AutomationProposalDialog(props: { text: string | null; onOpenCha
   );
 }
 
-const AUTOMATION_STATIONS: Record<string, string> = { conveyor: "infeed conveyor", out: "outfeed conveyor", pallet: "pallet", carton: "carton", table: "work table", cnc: "CNC machine", press: "press", mould: "moulding machine", weld: "welding table", bin: "parts bin" };

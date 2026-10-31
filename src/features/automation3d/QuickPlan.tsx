@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { BevelBox } from "@/components/console/ConsoleUI";
@@ -6,6 +6,7 @@ import LeadDialog from "@/components/leads/LeadDialog";
 import { pushEvent } from "@/lib/analytics";
 import { inr, type AiSolution } from "./aiSolution";
 import { engineSolution } from "./solutionEngine";
+import AutomationDesign from "./AutomationDesign";
 import { Eyebrow, KitButton, Readouts } from "./StudioKit";
 
 const EXAMPLES = [
@@ -22,14 +23,29 @@ const EXAMPLES = [
 export default function QuickPlan({ onSignIn }: { onSignIn: () => void }) {
   const [brief, setBrief] = useState("");
   const [plan, setPlan] = useState<AiSolution | null>(null);
+  // The words the plan was made from: the automation skills read the same words.
+  const [ran, setRan] = useState("");
   const [talk, setTalk] = useState(false);
+  const box = useRef<HTMLTextAreaElement>(null);
 
   const run = (text = brief) => {
     if (text.trim().length < 8) return;
     setBrief(text);
     const solution = engineSolution(text);
     setPlan(solution);
+    setRan(text.trim());
     pushEvent("studio_quick_plan", { stations: solution.stations.length });
+  };
+  // A question the automation skills could not answer from the words: add it to the brief for the user to answer.
+  const ask = (q: string) => {
+    setBrief((b) => `${b.trim()} ${q} Answer: `);
+    window.setTimeout(() => {
+      const el = box.current;
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.focus({ preventScroll: true });
+      el.setSelectionRange(el.value.length, el.value.length);
+    }, 50);
   };
 
   const out = plan?.provider?.feasibility.filter((x) => x.status !== "ok").slice(0, 3) ?? [];
@@ -43,6 +59,7 @@ export default function QuickPlan({ onSignIn }: { onSignIn: () => void }) {
       <p className="mt-1 text-sm text-muted-foreground">The part, its weight, the steps and how many a day.</p>
       <Textarea
         id="quick-plan-brief"
+        ref={box}
         rows={3}
         value={brief}
         onChange={(e) => setBrief(e.target.value)}
@@ -134,6 +151,7 @@ export default function QuickPlan({ onSignIn }: { onSignIn: () => void }) {
               )}
             </div>
           )}
+          {ran && <AutomationDesign text={ran} onAsk={ask} className="mt-6 border-t border-border pt-5" />}
           <p className="mt-4 text-xs text-muted-foreground">A first plan from RobotVerse's built-in engine — an engineer checks it before any quote.</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <KitButton onClick={onSignIn}>Sign in for the full plan and 3D line</KitButton>

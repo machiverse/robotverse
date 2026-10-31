@@ -129,7 +129,7 @@ const TRACKING: Record<string, string> = {
 
 const round = (v: number, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
 const mm = (m: number) => `${Math.round(m * 1000)} mm`;
-const kgText = (kg: number) => (kg >= 1 ? `${round(kg, 1)} kg` : `${Math.round(kg * 1000)} g`);
+export const kgText = (kg: number) => (kg >= 1 ? `${round(kg, 1)} kg` : `${Math.round(kg * 1000)} g`);
 const clampN = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 /** Seconds to move a belt `d` metres from rest to rest. */
@@ -698,3 +698,27 @@ export function proposeAutomation(text: string): AutomationProposal {
 
 /** Where a part can go, in words. */
 export const AUTOMATION_PLACES: Partial<Record<StationKey, string>> = { pallet: "Pallet", carton: "Packing carton", out: "Outfeed conveyor", table: "Work table" };
+/** A cell's equipment, in words. */
+export const STATION_WORDS: Partial<Record<StationKey, string>> = { conveyor: "infeed conveyor", out: "outfeed conveyor", pallet: "pallet", carton: "carton", table: "work table", cnc: "CNC machine", press: "press", mould: "moulding machine", weld: "welding table", bin: "parts bin" };
+/** Where each understood value came from, in words. */
+export const FACT_SOURCE: Record<AutomationProposal["facts"][number]["how"], string> = { said: "your words", rule: "rule", assumed: "assumed" };
+
+/** A question to add to the user's brief for them to answer: without the examples in brackets, which would read as said ("(FANUC, ABB…)" as the maker). */
+export const briefQuestion = (question: string) => question.replace(/\s*\([^)]*\)/g, "");
+
+/** Longest description a Builder link carries. */
+const DESCRIBE_MAX = 1200;
+const tidy = (text: string) => text.replace(/\s+/g, " ").trim().slice(0, DESCRIBE_MAX);
+/** The Builder link that opens a description in "what I understood", ready to confirm, build and simulate. */
+export const describeLink = (text: string) => `/automation-studio/build#describe=${encodeURIComponent(tidy(text))}`;
+/** The description a Builder link carries (#describe=…), or null. */
+export function describedIn(hash: string): string | null {
+  const m = hash.match(/(?:^#?|[#&])describe=([^&]*)/);
+  if (!m) return null;
+  try {
+    const text = tidy(decodeURIComponent(m[1]));
+    return text.length >= 8 ? text : null;
+  } catch {
+    return null;
+  }
+}
