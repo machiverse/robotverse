@@ -55,10 +55,10 @@ const SHOWCASE = [
     image: "/automation-studio/job-weld.webp",
   },
   {
-    job: "Fruit & Vegetable Picking",
-    title: "Fruit picking",
-    line: "A gentle gripper places apples into a field crate on a pallet.",
-    image: "/automation-studio/job-fruit.webp",
+    job: "Injection Moulding Tending",
+    title: "Machine tending",
+    line: "The robot loads the moulding machine from the conveyor, takes the moulded part out and packs it in a crate.",
+    image: "/automation-studio/job-tend.webp",
   },
   {
     job: "Palletizing",
