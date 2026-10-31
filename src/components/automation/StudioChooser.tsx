@@ -1,11 +1,13 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { BevelBox, ConsoleButton, ConsoleLink } from "@/components/console/ConsoleUI";
 import { PixelArrow } from "@/components/hero/HeroConsole";
 import { BLOCKS } from "@/features/automation3d/ProcessBuilder";
+import { processKind, type ProcessKind } from "@/features/automation3d/processProfiles";
 import { Eyebrow, KitButton, Readouts } from "@/features/automation3d/StudioKit";
+import { SKILL_LIBRARY } from "@/utils/processAnalyzer";
 import { cn } from "@/lib/utils";
 
 /* The pictures on this page are stills from the studio's own 3D simulator (public/automation-studio). */
@@ -53,10 +55,10 @@ const SHOWCASE = [
     image: "/automation-studio/job-weld.webp",
   },
   {
-    job: "Fruit & Vegetable Picking",
-    title: "Fruit picking",
-    line: "A gentle gripper places apples into a field crate on a pallet.",
-    image: "/automation-studio/job-fruit.webp",
+    job: "Injection Moulding Tending",
+    title: "Machine tending",
+    line: "The robot loads the moulding machine from the conveyor, takes the moulded part out and packs it in a crate.",
+    image: "/automation-studio/job-tend.webp",
   },
   {
     job: "Palletizing",
@@ -82,6 +84,40 @@ const FACTS = [
 
 const simHref = (job: string, motion?: string) =>
   `/automation-studio/3d?line=${encodeURIComponent(job)}${motion ? `&motion=${motion}` : ""}`;
+
+/** The four big families of factory robot work, each with a sourced fact and jobs that open live in 3D. */
+const FACTORY_WORK: { title: string; fact: string; kinds: ProcessKind[]; jobs: string[] }[] = [
+  {
+    title: "Handling & machine tending",
+    fact: "About half of all new industrial robots: 280,000 of the 541,000 installed worldwide in 2023.",
+    kinds: ["handling", "palletizing", "transport", "machining"],
+    jobs: ["CNC Machining", "Loading & Unloading", "Palletizing", "Bin Picking"],
+  },
+  {
+    title: "Welding",
+    fact: "The second biggest job: 92,000 welding robots installed in 2023.",
+    kinds: ["welding"],
+    jobs: ["MIG/MAG Welding", "Spot Welding", "Laser Welding", "TIG Welding"],
+  },
+  {
+    title: "Assembly",
+    fact: "About one robot in ten fits, screws or rivets parts together.",
+    kinds: ["assembly"],
+    jobs: ["Assembly", "Screw Driving", "Riveting Assembly"],
+  },
+  {
+    title: "Painting & dispensing",
+    fact: "Paint, sealant and glue laid on the same path every time.",
+    kinds: ["coating", "sealing", "filling"],
+    jobs: ["Painting & Coating", "Adhesive & Sealant Dispensing", "Sealing"],
+  },
+];
+
+const SOURCES = [
+  { label: "IFR World Robotics 2025 — India", href: "https://ifr.org/downloads/press_docs/2025-09-25-IFR_press_release_India_in_English.pdf" },
+  { label: "IFR World Robotics 2024 (via ASME)", href: "https://magazine.asme.org/issues/may-2025/infographic-humans-share-the-factory-floor-with-4-million-robots" },
+  { label: "Interact Analysis via Design News", href: "https://www.designnews.com/industry/an-army-of-new-robots-swarm-supplier-news" },
+];
 
 /* ---------------------------------------------------------------- stage */
 
@@ -136,6 +172,69 @@ function Stage() {
       </BevelBox>
       <figcaption className="mt-3 text-sm leading-snug text-muted-foreground sm:sr-only">{caption}</figcaption>
     </figure>
+  );
+}
+
+/** Section 004: what robots actually do in factories, with sourced numbers and live job links. */
+function FactoryWork() {
+  // Count each family's jobs in the studio once; filter chips to jobs that still exist so a rename never dead-links.
+  const cards = useMemo(() => {
+    const names = new Set(SKILL_LIBRARY.map((s) => s.template.name));
+    return FACTORY_WORK.map((f) => ({
+      ...f,
+      count: SKILL_LIBRARY.filter((s) => f.kinds.includes(processKind({ name: s.template.name }))).length,
+      jobs: f.jobs.filter((j) => names.has(j)),
+    }));
+  }, []);
+  return (
+    <section className="mt-16 sm:mt-20" aria-labelledby="factory-work">
+      <Eyebrow index="004" label="What robots do in factories" />
+      <h2 id="factory-work" className="mt-6 text-balance text-2xl font-semibold uppercase leading-tight tracking-[-0.01em] md:text-[32px]">
+        Four jobs cover most of the world's robots
+      </h2>
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map((c) => (
+          <BevelBox key={c.title} cut={10} innerClassName="flex h-full flex-col p-5">
+            <h3 className="text-[15px] font-semibold uppercase tracking-[-0.005em]">{c.title}</h3>
+            <p className="mt-2 text-[13px] leading-snug text-muted-foreground">{c.fact}</p>
+            <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              {c.count} jobs in the studio
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {c.jobs.map((job) => (
+                <Link
+                  key={job}
+                  to={simHref(job)}
+                  className="rounded-[3px] border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {job}
+                </Link>
+              ))}
+            </div>
+          </BevelBox>
+        ))}
+      </div>
+      <p className="mt-6 max-w-[70ch] text-sm leading-relaxed text-muted-foreground">
+        India installed 9,120 industrial robots in 2024 (up 7%), sixth in the world; car makers and their parts suppliers took 45% of them.
+      </p>
+      <p className="mt-3 max-w-[70ch] text-sm leading-relaxed text-muted-foreground">
+        See a conveyor feed a robot the way a line PLC runs it — photo-eye, part-ready handshake, grip check, live signals:{" "}
+        <Link to="/automation-studio/build#starter=conveyor" className="font-medium text-primary underline-offset-4 hover:underline">
+          Open the conveyor pick &amp; place →
+        </Link>
+      </p>
+      <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+        Sources:{" "}
+        {SOURCES.map((s, i) => (
+          <span key={s.href}>
+            {i > 0 && " · "}
+            <a href={s.href} target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-4 hover:underline">
+              {s.label}
+            </a>
+          </span>
+        ))}
+      </p>
+    </section>
   );
 }
 
@@ -264,6 +363,8 @@ export default function StudioChooser() {
             ))}
           </ul>
         </section>
+
+        <FactoryWork />
 
         <nav aria-label="More in the studio" className="mt-14 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:gap-10">
           <ConsoleLink to="/automation-studio/3d">Type your steps into the 3D simulator</ConsoleLink>
