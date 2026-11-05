@@ -35,6 +35,8 @@ import { imageFunctionUrl, storedImageUrl } from "@/components/directory/directo
 import type { AiStation } from "./aiSolution";
 import { requestSolution, solutionProcesses, type AiSolution } from "./aiSolution";
 import { engineSolution } from "./solutionEngine";
+import { groundSceneProcesses, sceneProcessesFromSolution, sceneProcessesFromMedia, MACHINERY_REFERENCE } from "./machineScene";
+import type { SceneOperation } from "./machineSceneTypes";
 
 // Construction 3D concrete printing is a whole system (printer, material plant, PLC, HMI),
 // not a robot station, so it opens its own simulator.
@@ -125,7 +127,7 @@ interface Props {
   /** Hide the process editor (used when the steps come from an analysis) */
   showEditor?: boolean;
   /** Analysed process line: simulated as a multi-robot line instead of one cell */
-  processes?: Pick<ProcessCard, "name" | "eoat" | "robot">[] | Pick<ProcessCard, "name">[];
+  processes?: (Pick<ProcessCard, "name"> & Partial<Pick<ProcessCard, "eoat" | "robot">> & { scene?: SceneOperation })[];
   /** The user's own words, quoted in the solution report */
   description?: string;
   /** Photo (or video frame) of the manual work, shown in the 3D scene and the report */
@@ -254,7 +256,7 @@ export default function AutomationStudio3D({
         setAi((cur) => (cur.brief === brief ? { brief, solution, loading: false, error: null } : cur));
         // The keywords found nothing: build the line the AI engineer designed instead of the generic cell.
         if (genericLine.current) {
-          const procs = solutionProcesses(solution);
+          const procs = sceneProcessesFromSolution(solution, brief);
           if (procs.length) {
             genericLine.current = false;
             runLine(procs);
@@ -471,6 +473,11 @@ export default function AutomationStudio3D({
 
   function runLine(input: LineInput, planNotes: string[] = [], option: Strategy = strategy) {
     if (input.some((p) => p.name === CONCRETE_PRINTING)) return openSpecial();
+    if (briefRef.current) input = input.map((p) => {
+      if (p.scene) return p;
+      const card = processesFromSkills([p.name])[0];
+      return card ? { ...p, scene: groundSceneProcesses([{ ...card, ...p }], briefRef.current ?? "")[0]?.scene } : p;
+    });
     setLineInput(input);
     setRobotCount(null);
     setMotions({});
@@ -654,7 +661,7 @@ export default function AutomationStudio3D({
     const words = r.description || r.summary;
     if (words) setText(words);
     setBrief(words || undefined);
-    const procs = processesFromSkills(r.tasks);
+    const procs = sceneProcessesFromMedia(r);
     if (procs.length) runLine(procs);
     else build(words || "pick and place");
   }
@@ -1202,6 +1209,20 @@ export default function AutomationStudio3D({
                       )}
                     </button>
                     <RobotBaseControl value={r.motion} onChange={(m) => chooseMotion(i, m)} />
+                    {r.tasks.some((t) => t.scene?.machine) && (
+                      <div className="space-y-1 border-l-2 border-border pl-2 text-[11px]">
+                        {r.tasks.filter((t) => t.scene?.machine).map((t, n) => (
+                          <div key={t.scene?.id ?? n}>
+                            <p className="font-medium text-foreground">{t.scene?.machine?.label}</p>
+                            <p className="text-muted-foreground">{t.scene?.what || t.name}</p>
+                            {t.scene?.tooling && <p className="text-muted-foreground">Tool: {t.scene.tooling}</p>}
+                            <details className="text-muted-foreground"><summary className="cursor-pointer">Process evidence</summary>{t.scene?.machine?.evidence}</details>
+                          </div>
+                        ))}
+                        <p className="text-muted-foreground">Concept geometry · machine dimensions and access need confirmation.</p>
+                        <a href={MACHINERY_REFERENCE} target="_blank" rel="noopener noreferrer" className="text-primary underline">Machinery reference</a>
+                      </div>
+                    )}
                     <Button size="sm" variant={chosen?.robot ? "secondary" : "outline"} className="h-7 w-full text-xs" onClick={() => setPickFor(i)}>
                       <Bot className="mr-1.5 h-3.5 w-3.5" /> {chosen?.robot ? "Change robot, tool & accessories" : "Build robot: drag robot, tool & accessories"}
                     </Button>
@@ -1732,7 +1753,7 @@ export default function AutomationStudio3D({
             onRetry={() => description && runAi(description)}
             onBuild={() => {
               const sol = (ai.brief === description && ai.solution) || engine;
-              if (sol) runLine(solutionProcesses(sol));
+              if (sol) runLine(sceneProcessesFromSolution(sol, description ?? ""));
               setSolutionOpen(false);
             }}
             onAsk={

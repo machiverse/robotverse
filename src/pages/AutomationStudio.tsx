@@ -48,6 +48,7 @@ import { processToText, PRESETS } from "@/features/automation3d/robotSim.js";
 import AiSolutionPanel from "@/features/automation3d/AiSolutionPanel";
 import { requestSolution, solutionProcesses, type AiSolution } from "@/features/automation3d/aiSolution";
 import { engineSolution } from "@/features/automation3d/solutionEngine";
+import { sceneProcessesFromSolution, sceneProcessesFromMedia } from "@/features/automation3d/machineScene";
 import BriefAssistant from "@/features/automation3d/BriefAssistant";
 import EquipmentPicker from "@/features/automation3d/EquipmentPicker";
 import { proposalHtml, proposalSummary } from "@/features/automation3d/studioProposal";
@@ -206,15 +207,16 @@ function AutomationStudioAI() {
   const engine = useMemo(() => (description.trim().length >= 8 ? engineSolution(description, industry) : null), [description, industry]);
   const processes = useMemo(() => {
     if (aiCurrent?.solution) {
-      const fromAi = solutionProcesses(aiCurrent.solution);
+      const fromAi = sceneProcessesFromSolution(aiCurrent.solution, description);
       if (fromAi.length) return fromAi;
     }
     if (media && description === media.text) {
-      const fromMedia = processesFromSkills(media.result.tasks);
+      const fromMedia = sceneProcessesFromMedia(media.result, description);
       if (fromMedia.length) return fromMedia;
     }
+    if (engine) return sceneProcessesFromSolution(engine, description);
     return analyzeDescription(description, industry);
-  }, [description, industry, media, aiCurrent?.solution]);
+  }, [description, industry, media, aiCurrent?.solution, engine]);
   // The automation skills read the same brief: the conveyor automation they design runs on the 3D line's infeed.
   const autoSim = useMemo(() => {
     if (description.trim().length < 8) return null;
