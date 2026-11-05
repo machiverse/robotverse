@@ -9,7 +9,7 @@ export function createSceneMachine({ THREE, box, cyl, materials: M, makeLabel, b
   const w = wide ? 1.65 : 1.0, d = 0.85;
   put(box(w, 0.16, d, M.dark), 0, 0.08, 0);
   for (const dx of [-w * 0.4, w * 0.4]) for (const dz of [-0.32, 0.32]) put(cyl(0.035, 0.06, M.steel, 12), dx, 0.03, dz);
-  const point = new THREE.Vector3(x + 0.38, 0.82 + partHeight / 2, z);
+  const point = new THREE.Vector3(x + (binding.side === "right" ? -0.38 : 0.38), 0.82 + partHeight / 2, z);
   let moving;
   if (family === "press" || family === "thermoform") {
     for (const dz of [-0.34, 0.34]) put(box(0.22, 1.55, 0.14, M.machine), -0.2, 0.93, dz);

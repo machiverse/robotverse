@@ -2949,7 +2949,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       if (!/^machine_\d+$/.test(binding.key)) return;
       const sx = X + (i % 2 ? 1.35 : -1.35);
       const sz = i < 2 ? 0.05 : 1.45 + Math.floor((i - 2) / 2) * 1.25;
-      const model = createSceneMachine({ THREE, box, cyl, materials: M, makeLabel, binding, x: sx, z: sz, partHeight: PART.h });
+      const model = createSceneMachine({ THREE, box, cyl, materials: M, makeLabel, binding: { ...binding, side: i % 2 ? "right" : "left" }, x: sx, z: sz, partHeight: PART.h });
       add(model.group);
       const st = { group: model.group, point: model.point, part: null, name: binding.label,
         process: () => dwell(2.4, () => {}, () => { model.reset(); if (st.part) kit.reveal(st.part, "process"); }, (k) => model.animate(k)),

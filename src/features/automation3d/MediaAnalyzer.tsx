@@ -39,7 +39,9 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
       const frames = await framesFromFiles(list);
       if (!frames.length) throw new Error("No photo or video frame could be read.");
       setBusy("AI is studying the manual work…");
-      const r = await analyzeMedia(frames, note);
+      const findings = await analyzeMedia(frames, note);
+      // Retain the user's machine identity in the local scene; no service contract changes.
+      const r = note.trim() ? { ...findings, description: `${findings.description || findings.summary}. ${note.trim()}` } : findings;
       if (!r.tasks.length && !r.description) throw new Error("No automatable task was found. Try a clearer photo of the work.");
       setResult(r);
       onResult(r, frames);

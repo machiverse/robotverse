@@ -255,7 +255,7 @@ export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"
     }
     // High throughput: palletizing / packing gets its own robot once the current one does value-adding work.
     const ownOutput = strategy === "throughput" && task.skill.sim === "output" && cur.some(isWork);
-    if (ownOutput || (isWork(task) && cur.filter(isWork).length >= MAX_WORK_PER_ROBOT)) {
+    if (ownOutput || (isWork(task) && cur.filter(isWork).length >= MAX_WORK_PER_ROBOT) || (task.scene?.machine && cur.filter((t) => t.scene?.machine).length >= 2)) {
       cur = [task];
       groups.push(cur);
       continue;

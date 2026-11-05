@@ -20,6 +20,8 @@ assert.equal(plan.sim.cells.flatMap((c) => c.machines ?? []).length, 2);
 assert.equal(plan.robots[0].steps.filter((s) => s.action === "process").length, 2);
 assert.equal(new Set(plan.robots[0].steps.filter((s) => s.action === "process").map((s) => s.station)).size, 2);
 assert.ok(plan.robots[0].minPayload >= 18);
+const threeMachines = planLine([...cards, { ...cards[0], scene: cards[0].scene ? { ...cards[0].scene, id: "operation-3" } : undefined }]);
+assert.equal(threeMachines.robots.length, 2, "Three explicit machines split before a third station becomes unreachable");
 const paint = groundSceneProcesses(processesFromSkills(["Spray Painting"]), "Paint frames next to a CNC lathe");
 assert.equal(paint[0]?.scene?.machine, undefined, "Incidental machines do not replace robot process tools");
 const media = sceneProcessesFromMedia({ summary: "Operator loads a CNC lathe", description: "Load shafts and unload finished shafts", tasks: ["CNC Machine Tending"], manual_steps: ["Load CNC lathe"], workpiece: null, observations: [], confidence: "medium" });
