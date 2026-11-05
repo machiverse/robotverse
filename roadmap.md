@@ -23,6 +23,11 @@
 
 # Automation Studio analysis upgrade
 
+## Machinery-grounded workflow request
+- [ ] Audit the supplied machinery portal and the upload-to-scene mismatch; propose a machine-grounded workflow.
+- [ ] Implement evidence-linked machine identification, station-specific 3D representations, and process-matched robot actions after scope approval.
+- [ ] Verify uploaded photo/video examples produce relevant scenes, with explicit uncertainty for missing machine details.
+
 - [x] Remove the top Automation Studio banner and its page mounts.
 - [x] Add Automation Studio to desktop header actions and mobile Quick Actions.
 - [x] Add cycle, safety, and integration detail to every industry process.
