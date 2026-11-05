@@ -1,5 +1,6 @@
 // Types for the framework-free simulation engine in robotSim.js.
 import type { BeltOptions, BeltSnapshot } from "./conveyorLogic.js";
+import type { MachineBinding } from "./machineSceneTypes";
 
 /** Conveyor pick and place for the first robot's infeed (conveyorAutomation.ts planConveyorAutomation().sim). */
 export interface SimAutomation {
@@ -91,7 +92,7 @@ export interface SimMotionState {
 export interface SimPlan {
   /** stations: equipment to show even when no step uses it (cell builder); startTool: tool in use when a cycle starts. */
   /** motion: how the robot moves between places; stations at the far end of its travel have keys ending in "_2". */
-  cells: { title?: string; steps: SimStep[]; stations?: string[]; startTool?: number; motion?: SimMotion | null }[];
+  cells: { title?: string; steps: SimStep[]; stations?: string[]; startTool?: number; motion?: SimMotion | null; machines?: MachineBinding[] }[];
   /** The user's own words: a product they name (mangoes, cement bags) is the one the robots handle. */
   brief?: string;
   /** The product, when already known (see workpieces.js productFor). */

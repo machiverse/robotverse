@@ -7,6 +7,7 @@
  */
 
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { createSceneMachine } from "./machineModels.js";
 import { bottleneck, createBeltLogic } from "./conveyorLogic.js";
 
 import { createWorkpieces, productFor } from "./workpieces.js";
@@ -2941,6 +2942,21 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
     Object.assign(stations, buildStations(X, 1, homeTypes, 0));
     if (L > 0 && farTypes.size) for (const [k, v] of Object.entries(buildStations(X + L, -1, farTypes, 1))) stations[`${k}_2`] = v;
 
+    // Evidence-linked machine instances, independent of legacy skill stations.
+    // Tracked by the same cell lifecycle, baking, movement and cleanup paths.
+    const bindings = Array.isArray(extra.machines) ? extra.machines : [];
+    bindings.forEach((binding, i) => {
+      if (!/^machine_\d+$/.test(binding.key)) return;
+      const sx = X + (i % 2 ? 1.35 : -1.35);
+      const sz = i < 2 ? 0.05 : 1.45 + Math.floor((i - 2) / 2) * 1.25;
+      const model = createSceneMachine({ THREE, box, cyl, materials: M, makeLabel, binding: { ...binding, side: i % 2 ? "right" : "left" }, x: sx, z: sz, partHeight: PART.h });
+      add(model.group);
+      const st = { group: model.group, point: model.point, part: null, name: binding.label,
+        process: () => dwell(2.4, () => {}, () => { model.reset(); if (st.part) kit.reveal(st.part, "process"); }, (k) => model.animate(k)),
+      };
+      stations[binding.key] = st;
+    });
+
     // Effects: sparks (welding, grinding, spraying) and a liquid stream (filling)
     const sparkCount = 60;
     const sparkGeo = new THREE.BufferGeometry();
@@ -4789,6 +4805,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
       stations: c.stations || [],
       startTool: c.startTool || 0,
       motion: c.motion || null,
+      machines: c.machines || [],
     }));
     // Each robot's place on the line: a robot that travels takes its track's length of floor more.
     cellStart = [];
@@ -4915,7 +4932,7 @@ export function createSimulation({ THREE, OrbitControls, RoomEnvironment, post, 
           in: transfers[i - 1] || null,
           out: transfers[i] || (i === last ? outfeed : null),
         },
-        { stations: buildMode ? c.stations : [], startTool: c.startTool, motion: c.motion }
+        { stations: buildMode ? c.stations : [], startTool: c.startTool, motion: c.motion, machines: c.machines }
       );
       if (pendingModels[i]) cell.setModel(pendingModels[i]);
       else cell.buildRobot(ROBOT_SIZES[sizeKey].scale);

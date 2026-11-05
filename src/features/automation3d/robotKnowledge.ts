@@ -14,6 +14,7 @@ import { machineFor } from "./cellProgram";
 import { PROCESS_HEAD, processKind, type ProcessKind } from "./processProfiles";
 import { MOTION_SYSTEMS, motionForJob, type MotionType } from "./robotMotion";
 import { stepLabel, type SimPlan, type SimStep } from "./robotSim";
+import type { SceneOperation } from "./machineSceneTypes";
 
 export interface RobotSkill {
   /** End-of-arm tool family, or null when the gripper does the work. */
@@ -90,6 +91,7 @@ export interface PlannedTask {
   eoat?: string[];
   /** Payload this task needs, in kg. */
   payload: number;
+  scene?: SceneOperation;
 }
 
 /** Tasks whose parts are heavy: size the robot from the analysed template, not the skill minimum. */
@@ -156,6 +158,13 @@ function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean, motion:
   let output: PlannedTask | undefined;
 
   for (const t of tasks) {
+    if (t.scene?.machine) {
+      offTable();
+      const key = `machine_${tasks.indexOf(t) + 1}`;
+      const label = t.scene.machine.label;
+      steps.push(step("place", key, `Load ${label}`), step("process", key, t.scene.what || t.name), step("pick", key, `Unload ${label}`));
+      continue;
+    }
     switch (t.skill.sim) {
       case "handling":
         break;
@@ -212,7 +221,7 @@ function buildSteps(tasks: PlannedTask[], first: boolean, last: boolean, motion:
  * on a tool changer. Handling, inspection and palletizing join the robot
  * that already holds the part.
  */
-type TaskInput = Pick<ProcessCard, "name"> & Partial<Pick<ProcessCard, "eoat" | "robot">>;
+type TaskInput = Pick<ProcessCard, "name"> & Partial<Pick<ProcessCard, "eoat" | "robot">> & { scene?: SceneOperation };
 
 export interface PlanOptions {
   /** Task names that must start a new robot (the user chose a separate robot for that station). */
@@ -237,7 +246,7 @@ export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"
     const skill = SKILLS[kind];
     const own = kg(p.robot?.payload);
     const payload = HEAVY.test(p.name) ? Math.max(skill.minPayload, own) : LIGHT.test(p.name) && own > 0 ? Math.min(skill.minPayload, own) : skill.minPayload;
-    const task: PlannedTask = { name: p.name, kind, skill, eoat: p.eoat, payload };
+    const task: PlannedTask = { name: p.name, kind, skill, eoat: p.eoat, payload: p.scene?.payloadKg != null && p.scene.payloadKg > 0 ? Math.max(payload, p.scene.payloadKg) : payload, scene: p.scene };
     if (!cur || forced.has(p.name.toLowerCase())) {
       cur = [task];
       groups.push(cur);
@@ -246,7 +255,7 @@ export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"
     }
     // High throughput: palletizing / packing gets its own robot once the current one does value-adding work.
     const ownOutput = strategy === "throughput" && task.skill.sim === "output" && cur.some(isWork);
-    if (ownOutput || (isWork(task) && cur.filter(isWork).length >= MAX_WORK_PER_ROBOT)) {
+    if (ownOutput || (isWork(task) && cur.filter(isWork).length >= MAX_WORK_PER_ROBOT) || (task.scene?.machine && cur.filter((t) => t.scene?.machine).length >= 2)) {
       cur = [task];
       groups.push(cur);
       continue;
@@ -334,7 +343,9 @@ export function planLine(processes: TaskInput[], strategy: Strategy = "balanced"
   return {
     robots,
     strategy,
-    sim: { cells: robots.map((r) => ({ title: `${r.title}: ${r.tasks.map((t) => t.name).join(" + ")}`, steps: r.steps, motion: r.motion })) },
+    sim: { cells: robots.map((r) => ({ title: `${r.title}: ${r.tasks.map((t) => t.name).join(" + ")}`, steps: r.steps, motion: r.motion,
+      machines: r.tasks.flatMap((t, i) => t.scene?.machine ? [{ ...t.scene.machine, key: `machine_${i + 1}`, operation: t.scene.id }] : []),
+    })) },
   };
 }
 
