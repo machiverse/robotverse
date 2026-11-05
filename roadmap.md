@@ -24,9 +24,10 @@
 # Automation Studio analysis upgrade
 
 ## Machinery-grounded workflow request
-- [ ] Audit the supplied machinery portal and the upload-to-scene mismatch; propose a machine-grounded workflow.
-- [ ] Implement evidence-linked machine identification, station-specific 3D representations, and process-matched robot actions after scope approval.
-- [ ] Verify uploaded photo/video examples produce relevant scenes, with explicit uncertainty for missing machine details.
+- [x] Audit the supplied portal: three plants, 265 model records; procedural reference geometry, not photo reconstruction. Identify the lost station data in the studio.
+- [x] Add front-end station/evidence preservation, repeated operations, machine-family geometry and matching load/process/unload actions; leave all Supabase resources unchanged.
+- [x] Verify written lathe and injection workflows, complete injection cycle, phone fit, empty reach/layout warnings and stable memory after eight rebuilds; all existing tests pass.
+- [ ] Verify real uploaded photo/video findings against the owner's known process — needs representative user media; existing analysis remains unchanged, so exact machine recognition/reconstruction is not supplied.
 
 - [x] Remove the top Automation Studio banner and its page mounts.
 - [x] Add Automation Studio to desktop header actions and mobile Quick Actions.
