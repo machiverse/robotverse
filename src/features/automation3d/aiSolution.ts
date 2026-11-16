@@ -38,7 +38,7 @@ export interface AiSolution {
   understanding: string;
   feasibility: "high" | "medium" | "low";
   automation_level: "full" | "semi" | "assist";
-  workpiece: { name: string; material: string; size: string; weight_kg: number | null } | null;
+  workpiece: { name: string; material: string; size: string; weight_kg: number | null; output?: string; finish?: string } | null;
   throughput: { target: string; takt_s: number | null };
   tasks: string[];
   stations: AiStation[];

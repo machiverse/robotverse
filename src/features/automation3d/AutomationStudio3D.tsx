@@ -35,6 +35,7 @@ import { imageFunctionUrl, storedImageUrl } from "@/components/directory/directo
 import type { AiStation } from "./aiSolution";
 import { requestSolution, solutionProcesses, type AiSolution } from "./aiSolution";
 import { engineSolution } from "./solutionEngine";
+import { sceneBrief } from "./productEvidence";
 import { groundSceneProcesses, sceneProcessesFromSolution, sceneProcessesFromMedia, MACHINERY_REFERENCE } from "./machineScene";
 import type { SceneOperation } from "./machineSceneTypes";
 
@@ -212,6 +213,8 @@ export default function AutomationStudio3D({
   // The user's own words, for the 3D line's real product (mangoes, cement bags…). A ref as well, because a line is
   // planned in the same handler that sets the brief.
   const briefRef = useRef<string | undefined>(initialDescription);
+  // Raw material / finished output extracted by the AI engineer, read by the 3D scene's product.
+  const productRef = useRef<AiSolution["workpiece"]>(null);
   const setBrief = (d: string | undefined) => {
     briefRef.current = d;
     setDescription(d);
@@ -254,6 +257,13 @@ export default function AutomationStudio3D({
     requestSolution(brief).then(
       (solution) => {
         setAi((cur) => (cur.brief === brief ? { brief, solution, loading: false, error: null } : cur));
+        if (briefRef.current === brief && solution.workpiece) productRef.current = solution.workpiece;
+        // A line already on screen picks up the real product and finished output.
+        if (briefRef.current === brief && solution.workpiece && !genericLine.current)
+          setPlan((cur) => {
+            if (cur) simRef.current?.setPlan({ ...cur.sim, brief: sceneBrief(brief, solution.workpiece) });
+            return cur;
+          });
         // The keywords found nothing: build the line the AI engineer designed instead of the generic cell.
         if (genericLine.current) {
           const procs = sceneProcessesFromSolution(solution, brief);
@@ -581,7 +591,7 @@ export default function AutomationStudio3D({
     setAllTemplates(false);
     setSteps(p.robots[f]?.steps || []);
     setNotes(planNotes);
-    simRef.current?.setPlan({ ...p.sim, brief: briefRef.current });
+    simRef.current?.setPlan({ ...p.sim, brief: sceneBrief(briefRef.current, productRef.current) });
     restoreLayout(p);
     // Cobots in cobot paint; fences as the user set them (the fence effect applies later changes).
     simRef.current?.setCobots(p.robots.map((r) => r.collaborative));
@@ -611,7 +621,7 @@ export default function AutomationStudio3D({
 
   function restart() {
     if (plan) {
-      simRef.current?.setPlan({ ...plan.sim, brief: briefRef.current });
+      simRef.current?.setPlan({ ...plan.sim, brief: sceneBrief(briefRef.current, productRef.current) });
       simRef.current?.setFocus(focus);
     } else simRef.current?.setSteps(steps);
     simRef.current?.play();

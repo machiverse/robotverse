@@ -15,7 +15,7 @@ export interface MediaAnalysis {
   stations?: AiStation[];
   provider?: string;
   summary: string;
-  workpiece: { name?: string; material?: string; size?: string; weight_kg?: number | null } | null;
+  workpiece: { name?: string; material?: string; size?: string; weight_kg?: number | null; output?: string; finish?: string } | null;
   manual_steps: string[];
   tasks: string[];
   description: string;

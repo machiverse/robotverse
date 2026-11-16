@@ -46,7 +46,7 @@ Return JSON:
   "understanding": "2-3 sentences: what the user needs, in plain words",
   "feasibility": "high" | "medium" | "low",
   "automation_level": "full" | "semi" | "assist",
-  "workpiece": { "name": "", "material": "", "size": "", "weight_kg": number or null },
+  "workpiece": { "name": "", "material": "", "size": "", "weight_kg": number or null, "output": "finished product leaving the process, or unknown", "finish": "surface/finish state of the output (machined, welded, painted, polished, packed…) or unknown" },
   "throughput": { "target": "e.g. 120 parts/hour or unknown", "takt_s": number or null },
   "tasks": ["SKILLS names in flow order, for the 3D line (1-10)"],
   "stations": [
@@ -130,7 +130,7 @@ serve(async (req) => {
       feasibility: pick(r.feasibility, ["high", "medium", "low"], "medium"),
       automation_level: pick(r.automation_level, ["full", "semi", "assist"], "semi"),
       workpiece: r.workpiece
-        ? { name: str(r.workpiece.name, 120), material: str(r.workpiece.material, 120), size: str(r.workpiece.size, 120), weight_kg: num(r.workpiece.weight_kg) }
+        ? { name: str(r.workpiece.name, 120), material: str(r.workpiece.material, 120), size: str(r.workpiece.size, 120), weight_kg: num(r.workpiece.weight_kg), output: str(r.workpiece.output, 160), finish: str(r.workpiece.finish, 120) }
         : null,
       throughput: { target: str(r.throughput?.target, 120), takt_s: num(r.throughput?.takt_s) },
       tasks,

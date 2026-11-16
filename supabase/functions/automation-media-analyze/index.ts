@@ -32,7 +32,7 @@ ${note ? `User note: ${note}\n` : ""}
 Return JSON:
 {
   "summary": "one sentence: what manual work is shown",
-  "workpiece": { "name": "part or product", "material": "material or unknown", "size": "approx size or unknown", "weight_kg": number or null },
+  "workpiece": { "name": "part or product", "material": "material or unknown", "size": "approx size or unknown", "weight_kg": number or null, "output": "finished product leaving the process, or unknown", "finish": "surface/finish state of the output (machined, welded, painted, polished, packed…) or unknown" },
   "manual_steps": ["what the worker does, step by step (max 8)"],
   "tasks": ["exact SKILLS names in flow order (1-8)"],
   "description": "2-3 sentences describing the process in plain words, naming each task, e.g. 'Operators load parts from the conveyor into a welding fixture, MIG weld the joints and stack finished parts on pallets.'",
@@ -79,7 +79,7 @@ serve(async (req) => {
     return json({
       provider: "anthropic", model: "claude-sonnet-4-6", stations,
       summary: String(result.summary || ""),
-      workpiece: result.workpiece ? { name: text(result.workpiece.name, 120), material: text(result.workpiece.material, 120), size: text(result.workpiece.size, 120), weight_kg: num(result.workpiece.weight_kg) } : null,
+      workpiece: result.workpiece ? { name: text(result.workpiece.name, 120), material: text(result.workpiece.material, 120), size: text(result.workpiece.size, 120), weight_kg: num(result.workpiece.weight_kg), output: text(result.workpiece.output, 160), finish: text(result.workpiece.finish, 120) } : null,
       manual_steps: Array.isArray(result.manual_steps) ? result.manual_steps.slice(0, 8).map(String) : [],
       tasks,
       description: String(result.description || ""),

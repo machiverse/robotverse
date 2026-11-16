@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { sceneBrief } from "./productEvidence";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +42,9 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
       setBusy("Claude is analysing the process…");
       const findings = await analyzeMedia(frames, note);
       // Retain the user's machine identity in the local scene; no service contract changes.
-      const r = note.trim() ? { ...findings, description: `${findings.description || findings.summary}. ${note.trim()}` } : findings;
+      const withNote = note.trim() ? { ...findings, description: `${findings.description || findings.summary}. ${note.trim()}` } : findings;
+      // The extracted raw material and finished output travel with the description into the 3D scene.
+      const r = { ...withNote, description: sceneBrief(withNote.description || withNote.summary, withNote.workpiece) ?? "" };
       if (!r.tasks.length && !r.description) throw new Error("No automatable task was found. Try a clearer photo of the work.");
       setResult(r);
       onResult(r, frames);
@@ -144,6 +147,11 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
               Part: {result.workpiece.name}
               {result.workpiece.material && result.workpiece.material !== "unknown" ? ` · ${result.workpiece.material}` : ""}
               {result.workpiece.weight_kg ? ` · ~${result.workpiece.weight_kg} kg` : ""}
+            </p>
+          )}
+          {(result.workpiece?.output || result.workpiece?.finish) && (
+            <p className="text-muted-foreground">
+              Finished output: {[result.workpiece.finish, result.workpiece.output].filter(Boolean).join(" · ")}
             </p>
           )}
           {result.manual_steps.length > 0 && (
