@@ -38,7 +38,7 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
       setBusy(list.some((f) => f.type.startsWith("video/")) ? "Reading video frames…" : "Preparing photos…");
       const frames = await framesFromFiles(list);
       if (!frames.length) throw new Error("No photo or video frame could be read.");
-      setBusy("AI is studying the manual work…");
+      setBusy("Claude is analysing the process…");
       const findings = await analyzeMedia(frames, note);
       // Retain the user's machine identity in the local scene; no service contract changes.
       const r = note.trim() ? { ...findings, description: `${findings.description || findings.summary}. ${note.trim()}` } : findings;
@@ -133,7 +133,7 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
       {result && (
         <div className="space-y-1.5 rounded-md border border-primary/30 bg-primary/5 p-2.5 text-[11px]">
           <p className="flex items-center justify-between gap-2 font-semibold text-foreground">
-            AI found in your media
+            {result.provider === "anthropic" ? "Claude process analysis" : "AI found in your media"}
             <Badge variant="outline" className="h-4 px-1 text-[9px] font-normal">
               {result.confidence} confidence
             </Badge>
@@ -162,6 +162,14 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
               {result.tasks.join(" → ")}
             </p>
           )}
+          {result.stations?.map((station, i) => (
+            <div key={`${station.name}-${i}`} className="border-t border-border pt-2">
+              <p className="font-semibold">{i + 1}. {station.name}</p>
+              <p>{station.what}</p>
+              {station.tooling && <p className="text-muted-foreground">Tool: {station.tooling}</p>}
+              {station.notes && <p className="text-muted-foreground">{station.notes}</p>}
+            </div>
+          ))}
           {result.observations.length > 0 && (
             <p className="text-muted-foreground">Seen: {result.observations.join("; ")}</p>
           )}

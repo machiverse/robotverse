@@ -4,3 +4,4 @@
 - Simulator mutations are coalesced by the frame stepper; screens use setEquipmentAll and wait for readiness before queries so user actions do not trigger synchronous rebuild cascades.
 - In development, each simulator canvas exposes __robotSimulation for browser performance checks; stats() flushes pending work and reports complete frame counters and rebuild count.
 - Automation analysis scenes use the additive station-preserving machineScene adapter; legacy skill exports remain unchanged, and optional machine instances share simulator baking/cleanup so evidence and repeated operations survive without altering default jobs.
+- Studio media and solution analysis use the shared server-only Claude adapter with verified user sessions; keep secrets out of the client and retain ordered evidence-bearing stations so the report and scene describe the same process.

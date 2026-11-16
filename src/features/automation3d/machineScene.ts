@@ -54,7 +54,7 @@ export function sceneProcessesFromSolution(solution: AiSolution, brief: string):
   return solution.stations.flatMap((st, i) => {
     const p = processesFromSkills([st.skill || st.name])[0];
     if (!p) return [];
-    const local = `${st.name}. ${st.what}`;
+    const local = `${st.name}. ${st.what}. ${st.equipment}. ${st.notes}`;
     const machine = machineForProcess(p, local, brief, "analysis");
     return [{ ...p, index: String(i + 1).padStart(2, "0"), short: st.name || p.short,
       automated: st.what ? [st.what, ...p.automated.slice(1)] : p.automated,
@@ -68,6 +68,11 @@ export function sceneProcessesFromSolution(solution: AiSolution, brief: string):
 
 export function sceneProcessesFromMedia(media: MediaAnalysis, note = ""): SceneProcess[] {
   const brief = [note, media.summary, media.description, ...media.manual_steps].filter(Boolean).join(". ");
+  if (media.stations?.length) {
+    // Reuse the station adapter rather than flattening repeated machines into generic tasks.
+    const ordered = sceneProcessesFromSolution({ stations: media.stations, tasks: media.tasks } as AiSolution, brief);
+    if (ordered.length) return ordered;
+  }
   return groundSceneProcesses(media.tasks.flatMap((name) => processesFromSkills([name])), brief).map((p) => ({
     ...p, scene: p.scene ? { ...p.scene, machine: p.scene.machine ? { ...p.scene.machine, origin: "analysis" } : undefined } : undefined,
   }));

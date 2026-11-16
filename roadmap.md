@@ -23,6 +23,11 @@
 
 # Automation Studio analysis upgrade
 
+## Claude process analysis
+- [x] Connect the saved Anthropic key to authenticated description and media analysis without table, storage, Directory or simulator changes; both services deployed.
+- [x] Preserve media machine evidence and ordered stations in the report-to-scene handoff; all existing tests and three Claude adapter tests pass.
+- [ ] Verify a real signed-in Claude response and uploaded-media Studio flow — blocked by external authentication without a preview session; deployed endpoint correctly rejects signed-out access (401), public page renders without errors, latest build passes. Provider key/account validity remains unverified.
+
 ## Machinery-grounded workflow request
 - [x] Audit the supplied portal: three plants, 265 model records; procedural reference geometry, not photo reconstruction. Identify the lost station data in the studio.
 - [x] Add front-end station/evidence preservation, repeated operations, machine-family geometry and matching load/process/unload actions; leave all Supabase resources unchanged.

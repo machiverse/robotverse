@@ -198,11 +198,12 @@ function AutomationStudioAI() {
     const text = brief.trim();
     if (text.length < 8) return Promise.resolve();
     setAi({ brief: text, solution: null, loading: true, error: null });
-    return requestSolution(text, ind).then(
+    const evidence = media && media.text === text ? JSON.stringify(media.result) : undefined;
+    return requestSolution(text, ind, evidence).then(
       (solution) => setAi((cur) => (cur.brief === text ? { brief: text, solution, loading: false, error: null } : cur)),
       (e: Error) => setAi((cur) => (cur.brief === text ? { brief: text, solution: null, loading: false, error: e.message } : cur)),
     );
-  }, []);
+  }, [media]);
   // Built-in solution engine: instant, offline answer for the same brief.
   const engine = useMemo(() => (description.trim().length >= 8 ? engineSolution(description, industry) : null), [description, industry]);
   const processes = useMemo(() => {
