@@ -41,3 +41,53 @@ Deno.test("Unsupported image formats are rejected", () => {
     check(error instanceof StudioError && error.status === 400, "Expected image validation");
   }
 });
+
+Deno.test("Organization keys send the configured Anthropic workspace header", async () => {
+  const originalFetch = globalThis.fetch;
+  const existingKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const existingWorkspace = Deno.env.get("ANTHROPIC_WORKSPACE_ID");
+  Deno.env.set("ANTHROPIC_API_KEY", "test-only-not-a-real-credential");
+  Deno.env.set("ANTHROPIC_WORKSPACE_ID", "  wrk_test_studio  ");
+  globalThis.fetch = async (_input, init) => {
+    const headers = new Headers(init?.headers);
+    check(headers.get("anthropic-workspace-id") === "wrk_test_studio", "Missing workspace header");
+    return Response.json({ content: [{ type: "text", text: '{"ok":true}' }] });
+  };
+  try {
+    const result = await askStudioClaude("Engineer", "Analyse job");
+    check(result.ok === true, "Analysis did not complete");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (existingKey === undefined) Deno.env.delete("ANTHROPIC_API_KEY"); else Deno.env.set("ANTHROPIC_API_KEY", existingKey);
+    if (existingWorkspace === undefined) Deno.env.delete("ANTHROPIC_WORKSPACE_ID"); else Deno.env.set("ANTHROPIC_WORKSPACE_ID", existingWorkspace);
+  }
+});
+
+Deno.test("Missing workspace is actionable and never exposes provider messages", async () => {
+  const originalFetch = globalThis.fetch;
+  const existingKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const existingWorkspace = Deno.env.get("ANTHROPIC_WORKSPACE_ID");
+  Deno.env.set("ANTHROPIC_API_KEY", "test-only-not-a-real-credential");
+  Deno.env.delete("ANTHROPIC_WORKSPACE_ID");
+  let calls = 0;
+  globalThis.fetch = async (_input, init) => {
+    calls++;
+    check(!new Headers(init?.headers).has("anthropic-workspace-id"), "Invented workspace");
+    return Response.json({ error: { message: "This API key is not scoped to a workspace; include the anthropic-workspace-id header. private-provider-detail" } }, { status: 400 });
+  };
+  try {
+    let caught = false;
+    try { await askStudioClaude("Engineer", "Analyse job"); }
+    catch (error) {
+      caught = true;
+      check(error instanceof StudioError && error.status === 503, "Wrong configuration status");
+      check(error instanceof Error && error.message.includes("ANTHROPIC_WORKSPACE_ID"), "Missing corrective action");
+      check(error instanceof Error && !error.message.includes("private-provider-detail"), "Provider detail exposed");
+    }
+    check(caught && calls === 1, "Rejection retried or not raised");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (existingKey === undefined) Deno.env.delete("ANTHROPIC_API_KEY"); else Deno.env.set("ANTHROPIC_API_KEY", existingKey);
+    if (existingWorkspace === undefined) Deno.env.delete("ANTHROPIC_WORKSPACE_ID"); else Deno.env.set("ANTHROPIC_WORKSPACE_ID", existingWorkspace);
+  }
+});

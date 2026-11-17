@@ -24,6 +24,8 @@
 # Automation Studio analysis upgrade
 
 ## Claude process analysis
+- [x] Diagnose media 400 with a minimal provider request: organization-scoped key requires the anthropic-workspace-id header; add shared workspace support and safe configuration errors with regression tests.
+- [ ] Configure the real Anthropic workspace and verify live analysis — waiting for the owner's workspace ID or a workspace-scoped key; signed-in UI verification also requires external app authentication.
 - [x] Connect the saved Anthropic key to authenticated description and media analysis without table, storage, Directory or simulator changes; both services deployed.
 - [x] Preserve media machine evidence and ordered stations in the report-to-scene handoff; all existing tests and three Claude adapter tests pass.
 - [ ] Verify a real signed-in Claude response and uploaded-media Studio flow — blocked by external authentication without a preview session; deployed endpoint correctly rejects signed-out access (401), public page renders without errors, latest build passes. Provider key/account validity remains unverified.

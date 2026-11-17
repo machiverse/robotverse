@@ -26,23 +26,32 @@ export function claudeImage(url: string) {
 export async function askStudioClaude(system: string, prompt: string, images: string[] = [], maxTokens = 8000) {
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) throw new StudioError("Claude analysis is not configured.", 503);
+  const workspaceId = Deno.env.get("ANTHROPIC_WORKSPACE_ID")?.trim();
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     signal: AbortSignal.timeout(110_000),
-    headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+    headers: {
+      "x-api-key": apiKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json",
+      ...(workspaceId ? { "anthropic-workspace-id": workspaceId } : {}),
+    },
     body: JSON.stringify({
       model: "claude-sonnet-4-6", max_tokens: maxTokens, temperature: 0.2, system,
       messages: [{ role: "user", content: [...images.map(claudeImage), { type: "text", text: prompt }] }],
     }),
   });
   if (!response.ok) {
-    // Never log provider response bodies: credential failures may contain sensitive values.
-    console.error("Claude analysis failed", response.status);
-    const message = response.status === 429 ? "Claude is busy or its usage limit was reached. Try again shortly."
+    // Classify only known reasons; never expose or log the raw provider message.
+    const failure = await response.json().catch(() => null);
+    const reason = typeof failure?.error?.message === "string" ? failure.error.message.toLowerCase() : "";
+    const needsWorkspace = response.status === 400 && reason.includes("anthropic-workspace-id");
+    const needsCredit = response.status === 402 || (response.status === 400 && reason.includes("credit balance"));
+    console.error("Claude analysis failed", response.status, needsWorkspace ? "workspace_configuration" : needsCredit ? "account_credit" : "provider_rejection");
+    const message = needsWorkspace ? "Claude requires an Anthropic workspace ID for this key. Configure ANTHROPIC_WORKSPACE_ID for Studio analysis, or use a workspace-scoped API key."
+      : needsCredit ? "Add credit to the Anthropic account to continue analysis."
+      : response.status === 429 ? "Claude is busy or its usage limit was reached. Try again shortly."
       : response.status === 401 || response.status === 403 ? "Claude could not authorize analysis. Check the saved key and Anthropic account access."
-      : response.status === 402 ? "Add credit to the Anthropic account to continue analysis."
       : `Claude could not complete analysis (${response.status}). Please try again.`;
-    throw new StudioError(message, response.status === 429 ? 429 : 502);
+    throw new StudioError(message, needsWorkspace ? 503 : response.status === 429 ? 429 : 502);
   }
   const data = await response.json();
   if (data.stop_reason === "max_tokens") throw new StudioError("Claude's analysis was incomplete. Try a shorter brief or fewer photos.", 502);
