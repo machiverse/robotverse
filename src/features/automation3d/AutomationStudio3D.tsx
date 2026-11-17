@@ -35,8 +35,8 @@ import { imageFunctionUrl, storedImageUrl } from "@/components/directory/directo
 import type { AiStation } from "./aiSolution";
 import { requestSolution, solutionProcesses, type AiSolution } from "./aiSolution";
 import { engineSolution } from "./solutionEngine";
-import { sceneBrief } from "./productEvidence";
-import { groundSceneProcesses, sceneProcessesFromSolution, sceneProcessesFromMedia, MACHINERY_REFERENCE } from "./machineScene";
+import { sceneBrief, type ProductEvidence } from "./productEvidence";
+import { groundSceneProcesses, sceneProcessesFromSolution, sceneProcessesFromMedia, mediaSceneInput, MACHINERY_REFERENCE } from "./machineScene";
 import type { SceneOperation } from "./machineSceneTypes";
 
 // Construction 3D concrete printing is a whole system (printer, material plant, PLC, HMI),
@@ -214,7 +214,7 @@ export default function AutomationStudio3D({
   // planned in the same handler that sets the brief.
   const briefRef = useRef<string | undefined>(initialDescription);
   // Raw material / finished output extracted by the AI engineer, read by the 3D scene's product.
-  const productRef = useRef<AiSolution["workpiece"]>(null);
+  const productRef = useRef<ProductEvidence | null>(mediaAnalysis?.workpiece ?? null);
   const setBrief = (d: string | undefined) => {
     briefRef.current = d;
     setDescription(d);
@@ -254,12 +254,12 @@ export default function AutomationStudio3D({
   const engine = useMemo(() => (description && description.length >= 8 ? engineSolution(description) : null), [description]);
   const runAi = (brief: string) => {
     setAi({ brief, solution: null, loading: true, error: null });
-    requestSolution(brief).then(
+    requestSolution(brief, undefined, media ? JSON.stringify(media) : undefined).then(
       (solution) => {
         setAi((cur) => (cur.brief === brief ? { brief, solution, loading: false, error: null } : cur));
-        if (briefRef.current === brief && solution.workpiece) productRef.current = solution.workpiece;
+        if (briefRef.current === brief && solution.workpiece && !media) productRef.current = solution.workpiece;
         // A line already on screen picks up the real product and finished output.
-        if (briefRef.current === brief && solution.workpiece && !genericLine.current)
+        if (briefRef.current === brief && solution.workpiece && !genericLine.current && !media)
           setPlan((cur) => {
             if (cur) simRef.current?.setPlan({ ...cur.sim, brief: sceneBrief(brief, solution.workpiece) });
             return cur;
@@ -407,6 +407,27 @@ export default function AutomationStudio3D({
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
+
+  // Props can change without remounting (same job names, new video or finished part).
+  const incomingSceneKey = JSON.stringify([processes, initialDescription, mediaAnalysis, referenceImage]);
+  const previousSceneKey = useRef(incomingSceneKey);
+  useEffect(() => {
+    if (previousSceneKey.current === incomingSceneKey) return;
+    previousSceneKey.current = incomingSceneKey;
+    if (!simRef.current) return;
+    setReference(referenceImage);
+    setMedia(mediaAnalysis ?? null);
+    productRef.current = mediaAnalysis?.workpiece ?? null;
+    setBrief(initialDescription);
+    genericLine.current = false;
+    if (processes?.length) runLine(processes);
+    else if (mediaAnalysis) {
+      const next = mediaSceneInput(mediaAnalysis, initialDescription);
+      setBrief(next.brief);
+      if (next.processes.length) runLine(next.processes);
+    } else if (initialDescription) build(initialDescription);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingSceneKey]);
 
   function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen?.();
@@ -666,12 +687,15 @@ export default function AutomationStudio3D({
 
   // Photos / video analysed by AI: plan exactly the tasks it found and show the photo in 3D.
   function applyMedia(r: MediaAnalysis, frames: string[]) {
+    const next = mediaSceneInput(r);
+    productRef.current = next.workpiece;
+    genericLine.current = false;
     setMedia(r);
     setReference(frames[0]);
-    const words = r.description || r.summary;
+    const words = next.brief;
     if (words) setText(words);
     setBrief(words || undefined);
-    const procs = sceneProcessesFromMedia(r);
+    const procs = next.processes;
     if (procs.length) runLine(procs);
     else build(words || "pick and place");
   }
@@ -910,7 +934,7 @@ export default function AutomationStudio3D({
               <p className="mb-1.5 mt-3 text-[11px] font-semibold text-muted-foreground">
                 Or show us the manual work (AI photo / video analysis)
               </p>
-              <MediaAnalyzer onResult={applyMedia} />
+              <MediaAnalyzer onResult={applyMedia} jobDescription={description ?? ""} />
               <p className="mb-1.5 mt-3 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
                 {related ? "Templates related to your process" : "Templates"}
                 {related && (

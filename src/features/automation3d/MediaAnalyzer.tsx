@@ -12,11 +12,13 @@ interface Props {
   onResult: (result: MediaAnalysis, frames: string[]) => void;
   /** Files already chosen elsewhere (e.g. Automation Studio step 1). */
   files?: File[];
+  /** Keep the job description alongside the uploaded evidence. */
+  jobDescription?: string;
   className?: string;
 }
 
 // Upload photos or a video of manual work; AI finds the tasks a robot line takes over.
-export default function MediaAnalyzer({ onResult, files: external, className }: Props) {
+export default function MediaAnalyzer({ onResult, files: external, jobDescription = "", className }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -39,10 +41,11 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
       setBusy(list.some((f) => f.type.startsWith("video/")) ? "Reading video frames…" : "Preparing photos…");
       const frames = await framesFromFiles(list);
       if (!frames.length) throw new Error("No photo or video frame could be read.");
-      setBusy("Claude is analysing the process…");
-      const findings = await analyzeMedia(frames, note);
+      setBusy("AI analysis in progress…");
+      const context = [jobDescription.trim(), note.trim()].filter(Boolean).join(". ");
+      const findings = await analyzeMedia(frames, context);
       // Retain the user's machine identity in the local scene; no service contract changes.
-      const withNote = note.trim() ? { ...findings, description: `${findings.description || findings.summary}. ${note.trim()}` } : findings;
+      const withNote = context ? { ...findings, description: `${findings.description || findings.summary}. ${context}` } : findings;
       // The extracted raw material and finished output travel with the description into the 3D scene.
       const r = { ...withNote, description: sceneBrief(withNote.description || withNote.summary, withNote.workpiece) ?? "" };
       if (!r.tasks.length && !r.description) throw new Error("No automatable task was found. Try a clearer photo of the work.");
@@ -136,7 +139,7 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
       {result && (
         <div className="space-y-1.5 rounded-md border border-primary/30 bg-primary/5 p-2.5 text-[11px]">
           <p className="flex items-center justify-between gap-2 font-semibold text-foreground">
-            {result.provider === "anthropic" ? "Claude process analysis" : "AI found in your media"}
+            AI analysis
             <Badge variant="outline" className="h-4 px-1 text-[9px] font-normal">
               {result.confidence} confidence
             </Badge>

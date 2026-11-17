@@ -517,13 +517,18 @@ function AutomationStudioAI() {
                       <p className="mb-2 text-sm font-medium">Let the studio read the steps from your photos or video</p>
                       <MediaAnalyzer
                         files={files.map((f) => f.file)}
+                        jobDescription={description}
                         onResult={(result, frames) => {
                           const text = result.description || result.summary;
                           setDescription(text);
                           setMedia({ result, frame: frames[0], text });
+                          setAi({ brief: "", solution: null, loading: false, error: null });
+                          setVisualTab("robot");
+                          setSimIndex(-1);
+                          setStep(4);
                           toast({
                             title: "Photo / video analysed",
-                            description: `${result.tasks.length} robot task${result.tasks.length === 1 ? "" : "s"} found. Click "Analyze my process" to continue.`,
+                            description: `${result.tasks.length} robot task${result.tasks.length === 1 ? "" : "s"} found. Your uploaded process is now in the 3D view.`,
                           });
                         }}
                       />

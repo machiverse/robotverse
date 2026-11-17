@@ -4,6 +4,7 @@ import { processKind, PROCESS_HEAD } from "./processProfiles";
 import type { AiSolution } from "./aiSolution";
 import type { MediaAnalysis } from "./mediaAnalysis";
 import type { MachineFamily, SceneMachine, SceneOperation } from "./machineSceneTypes";
+import { sceneBrief } from "./productEvidence";
 
 export type SceneProcess = ProcessCard & { scene?: SceneOperation };
 export const MACHINERY_REFERENCE = "https://marketing-in.github.io/plant-machinery-portal/";
@@ -67,7 +68,7 @@ export function sceneProcessesFromSolution(solution: AiSolution, brief: string):
 }
 
 export function sceneProcessesFromMedia(media: MediaAnalysis, note = ""): SceneProcess[] {
-  const brief = [note, media.summary, media.description, ...media.manual_steps].filter(Boolean).join(". ");
+  const brief = sceneBrief([note, media.summary, media.description, ...media.manual_steps].filter(Boolean).join(". "), media.workpiece) ?? "";
   if (media.stations?.length) {
     // Reuse the station adapter rather than flattening repeated machines into generic tasks.
     const ordered = sceneProcessesFromSolution({ stations: media.stations, tasks: media.tasks } as AiSolution, brief);
@@ -76,4 +77,10 @@ export function sceneProcessesFromMedia(media: MediaAnalysis, note = ""): SceneP
   return groundSceneProcesses(media.tasks.flatMap((name) => processesFromSkills([name])), brief).map((p) => ({
     ...p, scene: p.scene ? { ...p.scene, machine: p.scene.machine ? { ...p.scene.machine, origin: "analysis" } : undefined } : undefined,
   }));
+}
+
+/** One source of truth for the uploaded process, its raw part and finished output. */
+export function mediaSceneInput(media: MediaAnalysis, note = "") {
+  const brief = sceneBrief([note.trim(), media.description || media.summary].filter(Boolean).join(". "), media.workpiece) ?? "";
+  return { brief, processes: sceneProcessesFromMedia(media, brief), workpiece: media.workpiece };
 }

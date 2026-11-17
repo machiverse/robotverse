@@ -23,6 +23,12 @@
 
 # Automation Studio analysis upgrade
 
+## Uploaded process to 3D
+- [x] Include the user's job description in media analysis, open the signed-in 3D results after upload analysis, and rename visible provider labels to AI analysis.
+- [x] Initialize and refresh raw/finished item evidence with scene inputs, keep uploaded evidence from being replaced by text-only refinements, and test machine/item mapping.
+- [x] Verify photo and four-frame video UI handoffs with controlled analysis responses on desktop and phone: CNC evidence, steel shaft item, finished-output text and no horizontal overflow; planner regressions pass.
+- [ ] Verify the owner's real video through signed-in analysis and exact output appearance — blocked by unavailable external authentication and representative media; current 3D geometry remains an approximation, not image/video reconstruction or model training.
+
 ## Claude process analysis
 - [x] Diagnose media 400 with a minimal provider request: organization-scoped key requires the anthropic-workspace-id header; add shared workspace support and safe configuration errors with regression tests.
 - [x] Configure the supplied Anthropic workspace and redeploy both analysis services; live shared-adapter text and photo requests succeed, with photo analysis retaining stated steel, CNC lathe, finished shafts and ordered steps; five adapter tests and station-preservation checks pass.
