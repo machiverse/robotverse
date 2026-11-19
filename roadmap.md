@@ -1,5 +1,9 @@
 # Phone and tablet fit
 
+# Yeemak project page
+- [x] Add the supplied standalone welding document at /projects/yeemak without modifying the Studio or backend.
+- [x] Verify live animation, pause/resume, restart, cameras and component/sequence panels at desktop and phone widths without page errors or horizontal page overflow.
+
 # RoboBook post management
 - [x] Restore owner edit/delete controls in grid and feed, including drafts and scheduled posts in both post stores; prevent dialog clicks navigating away.
 - [x] Verify status preservation and ownership rules with tests; all existing tests pass and public RoboBook renders without errors.
