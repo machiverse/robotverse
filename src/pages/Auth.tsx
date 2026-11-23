@@ -1210,7 +1210,9 @@ const Auth = () => {
         
         if (signInError) {
           console.error('❌ Sign in failed:', signInError);
-          throw new Error(signInError.message);
+          throw new Error(/banned/i.test(signInError.message || '')
+            ? 'Your account has been deactivated. Please contact RobotVerse support.'
+            : signInError.message);
         }
 
         console.log('✅ Sign in successful');

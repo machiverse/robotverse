@@ -3,6 +3,7 @@ import { BookOpen, Eye, FileText, Heart, Image as ImageIcon, MessageCircle, Play
 import { cn } from "@/lib/utils";
 import { normalizePostMedia } from "@/components/post/postMedia";
 import { buildRoboBookPostPath, calcReadingTime } from "@/utils/blogSeo";
+import PostOwnerActions from './PostOwnerActions';
 
 export interface ArticleCardPost {
   id: string;
@@ -22,6 +23,10 @@ export interface ArticleCardPost {
   created_at: string;
   published_at?: string;
   status?: string;
+  author_id?: string;
+  tags?: string[];
+  source?: string;
+  scheduled_publish_at?: string | null;
   profiles?: { full_name: string; company_name?: string; avatar_url?: string } | null;
 }
 
@@ -49,7 +54,7 @@ const initials = (name?: string) =>
 
 // RoboBook post as an editorial card, in the same visual grammar as the news cards.
 // `featured` lays the first post out wide: cover left, text right.
-export default function ArticleCard({ post, featured = false }: { post: ArticleCardPost; featured?: boolean }) {
+export default function ArticleCard({ post, featured = false, onPostUpdated, onPostDeleted }: { post: ArticleCardPost; featured?: boolean; onPostUpdated?: () => void; onPostDeleted?: (id: string) => void }) {
   const cover = coverOf(post);
   const type = TYPE[post.post_type] ?? TYPE.blog;
   const text = plain(post.excerpt) || plain(post.content);
@@ -59,10 +64,11 @@ export default function ArticleCard({ post, featured = false }: { post: ArticleC
   const author = post.profiles?.full_name || post.profiles?.company_name || "RobotVerse member";
 
   return (
+    <article className={cn('flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-card', featured && 'md:col-span-2')}>
     <Link
       to={buildRoboBookPostPath(post.slug || post.id)}
       className={cn(
-        "group flex h-full overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] transition-colors duration-150 hover:border-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.995]",
+        "group flex flex-1 overflow-hidden bg-card transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.995]",
         featured ? "flex-col md:col-span-2 md:flex-row" : "flex-col",
       )}
     >
@@ -140,5 +146,7 @@ export default function ArticleCard({ post, featured = false }: { post: ArticleC
         </div>
       </div>
     </Link>
+    {post.author_id && <PostOwnerActions post={{ ...post, author_id: post.author_id, tags: post.tags || [] }} onUpdated={onPostUpdated} onDeleted={onPostDeleted} />}
+    </article>
   );
 }

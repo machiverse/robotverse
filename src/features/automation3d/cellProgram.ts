@@ -15,6 +15,7 @@
 
 import { PROCESS_HEAD, processKind, type ProcessKind } from "./processProfiles";
 import { stepLabel, type SimStep } from "./robotSim.js";
+import type { MotionType } from "./robotMotion";
 
 export type StationKey = "conveyor" | "out" | "table" | "weld" | "cnc" | "press" | "mould" | "test" | "marker" | "bin" | "pallet" | "vision" | "carton" | "rack";
 
@@ -35,7 +36,14 @@ export const CELL_STATIONS: { key: StationKey; label: string; hint: string }[] =
   { key: "carton", label: "Packing carton", hint: "Cartons the robot packs products into" },
   { key: "rack", label: "Tool stand", hint: "Holds the second tool for the tool changer" },
 ];
-export const stationLabel = (k: string) => (k === "in" ? "Transfer conveyor" : CELL_STATIONS.find((s) => s.key === k)?.label ?? k);
+export const stationLabel = (k: string) => {
+  // "cnc_2": the CNC machine at the far end of the robot's travel.
+  const key = k.replace(/_\d+$/, "");
+  const label = key === "in" ? "Transfer conveyor" : CELL_STATIONS.find((s) => s.key === key)?.label ?? key;
+  return key === k ? label : `${label} (far end)`;
+};
+/** Equipment that can stand at the far end of a robot's track, gantry or AMR route. */
+export const FAR_STATIONS: StationKey[] = ["cnc", "press", "mould", "test", "marker", "table", "weld", "pallet", "carton", "vision", "bin"];
 /** A station's name inside a sentence. */
 const lower = (k: string) => stationLabel(k).toLowerCase().replace(/\b3d\b/g, "3D");
 
@@ -133,6 +141,18 @@ export interface ProgramInput {
   camera?: boolean;
   /** The previous robot passes parts to this one on its outfeed conveyor. */
   fromPrev?: boolean;
+  /** Equipment at the far end of the robot's travel (its keys end in "_2" in the 3D cell). */
+  far?: StationKey[];
+  /** How the robot travels between the two ends. */
+  motion?: MotionType;
+}
+
+const RIDES: Partial<Record<MotionType, string>> = {
+  track: "rides its floor track between both ends",
+  overhead: "travels along its overhead track between both ends",
+  gantry: "moves on its gantry between both ends",
+  amr: "drives on its mobile base between both ends",
+  rgv: "rides its rail cart between both ends",
 }
 
 const putOn = (k: string) => (k === "pallet" ? "stacks it on the pallet" : k === "carton" ? "packs it into the carton" : `puts it on the ${lower(k)}`);
@@ -143,7 +163,10 @@ const step = (action: string, station: string, label?: string, extra: Partial<Si
 };
 
 export function cellProgram(p: ProgramInput): CellProgram {
-  const has = new Set(p.stations);
+  // Equipment at the far end of a track counts too; the 3D cell tells the two apart with a "_2" key.
+  const near = new Set(p.stations);
+  const farSet = new Set(p.motion && p.motion !== "fixed" && p.motion !== "lift" ? p.far ?? [] : []);
+  const has = new Set([...p.stations, ...farSet]);
   const notes: ProgramNote[] = [];
   const steps: SimStep[] = [];
   const uses = new Set<StationKey>();
@@ -193,7 +216,7 @@ export function cellProgram(p: ProgramInput): CellProgram {
     if (has.has("rack")) uses.add("rack");
     cur = i;
   };
-  const at = (k: string) => k !== "in" && uses.add(k as StationKey);
+  const at = (k: string) => k !== "in" && uses.add(k.replace(/_\d+$/, "") as StationKey);
   const pickFrom = (k: string, label?: string) => {
     // Loose parts in a bin: the 3D camera finds one first.
     if (k === "bin") steps.push(step("scan", "bin", "Find a part with the 3D camera"));
@@ -234,6 +257,13 @@ export function cellProgram(p: ProgramInput): CellProgram {
         steps.push(step("process", M, cycle));
         pickFrom(M, unload);
         say.push(`loads the ${name} from the ${lower(source!)}`, `waits for the ${M === "test" ? "test" : M === "marker" ? "marking" : "cycle"}`, "unloads it");
+        // The same machine at both ends of the track: the part goes on to the second one (operation 20).
+        if (near.has(M) && farSet.has(M)) {
+          placeOn(`${M}_2`, `${load} at the far end (OP20)`);
+          steps.push(step("process", `${M}_2`, `${cycle} (OP20)`));
+          pickFrom(`${M}_2`, `${unload} at the far end`);
+          say.push(`takes it on to the second ${name} at the far end`);
+        }
       }
       if (dest) {
         finishPart();
@@ -314,6 +344,16 @@ export function cellProgram(p: ProgramInput): CellProgram {
 
   // Back to the starting tool, so every cycle is the same.
   if (start >= 0) holdTool(start);
+  // Equipment only at the far end: the robot travels there for it.
+  let travels = false;
+  for (const s of steps) {
+    if (s.station && !/_\d+$/.test(s.station) && farSet.has(s.station as StationKey) && !near.has(s.station as StationKey)) {
+      s.station = `${s.station}_2`;
+      s.label = `${s.label} (far end)`;
+    }
+    if (/_\d+$/.test(s.station)) travels = true;
+  }
+  if (travels && p.motion && RIDES[p.motion]) say.unshift(RIDES[p.motion]!);
   const idle = steps.length === 0;
   if (idle) steps.push(step("idle", "", "Waiting — see the cell checks"));
   for (const k of has) if (!uses.has(k)) notes.push({ level: "info", text: `${stationLabel(k)} is in the cell but this program does not use it` });

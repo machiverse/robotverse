@@ -326,8 +326,8 @@ const EnhancedHeader = () => {
           </div>
 
           {/* Centered Search Bar */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl mx-8">
-            <div className="relative w-full group">
+          <form onSubmit={handleSearch} className="hidden md:flex min-w-0 flex-1 max-w-2xl mx-3 xl:mx-8">
+            <div className="relative min-w-0 w-full group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5 transition-colors group-focus-within:text-primary" />
               <input
                 type="text"
@@ -1323,20 +1323,13 @@ const EnhancedHeader = () => {
                 </Link>
               </div>
 
-              {/* Automation Studio: the free cell planner, in the main menu */}
-              <div className="flex-1">
-                <Link to="/automation-studio" title="Plan your robot cell — free" className="nav-item flex items-center justify-center gap-2 w-full">
-                  <Sparkles className="h-4 w-4" />
-                  <span>Plan a Cell</span>
-                </Link>
-              </div>
             </div>
           </div>
         </nav>
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="lg:hidden border-t border-border bg-background px-4 pb-4 max-h-[80vh] overflow-y-auto">
+          <div className="lg:hidden border-t border-border bg-background px-4 pb-4 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
             {/* Mobile Search */}
             <form onSubmit={handleSearch} className="pt-4 mb-4">
               <div className="relative">
@@ -1352,7 +1345,7 @@ const EnhancedHeader = () => {
             </form>
 
             {/* Mobile Quick Actions */}
-            <div className="flex items-center justify-around py-3 mb-4 border-b border-border">
+            <div className="grid grid-cols-3 sm:grid-cols-5 items-center gap-x-2 gap-y-4 py-3 mb-4 border-b border-border">
               <Link to="/automation-studio" onClick={() => setMenuOpen(false)} className="flex flex-col items-center gap-1">
                 <Sparkles className="h-5 w-5 text-primary" />
                 <span className="text-xs text-primary font-medium">Studio</span>
@@ -1725,15 +1718,6 @@ const EnhancedHeader = () => {
                 Directory
               </Link>
 
-              {/* Automation Studio */}
-              <Link
-                to="/automation-studio"
-                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition"
-                onClick={() => setMenuOpen(false)}
-              >
-                <Sparkles className="h-4 w-4" />
-                Plan your robot cell — free
-              </Link>
             </nav>
 
             {/* Mobile Auth */}

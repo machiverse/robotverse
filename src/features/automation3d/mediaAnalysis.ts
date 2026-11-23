@@ -3,16 +3,19 @@
  *
  * Photos are downscaled in the browser; videos are sampled into a few still
  * frames. The frames go to the "automation-media-analyze" edge function
- * (Gemini vision), which answers with the studio's own skill names so the
+ * (Claude vision), which answers with the studio's own skill names so the
  * planner and 3D simulator can use them directly.
  */
 
 import { supabase } from "@/integrations/supabase/client";
 import { SKILL_LIBRARY } from "@/utils/processAnalyzer";
+import type { AiStation } from "./aiSolution";
 
 export interface MediaAnalysis {
+  stations?: AiStation[];
+  provider?: string;
   summary: string;
-  workpiece: { name?: string; material?: string; size?: string; weight_kg?: number | null } | null;
+  workpiece: { name?: string; material?: string; size?: string; weight_kg?: number | null; output?: string; finish?: string } | null;
   manual_steps: string[];
   tasks: string[];
   description: string;
@@ -28,7 +31,9 @@ function drawToDataUrl(source: CanvasImageSource, w: number, h: number): string 
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(w * k);
   canvas.height = Math.round(h * k);
-  canvas.getContext("2d")!.drawImage(source, 0, 0, canvas.width, canvas.height);
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Could not prepare the photo.");
+  context.drawImage(source, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL("image/jpeg", 0.78);
 }
 
@@ -78,7 +83,9 @@ function videoFrames(file: File, count = VIDEO_FRAMES): Promise<string[]> {
           resolve(frames);
           return;
         }
-        video.currentTime = Math.min(times.shift()!, Math.max(0, d - 0.05));
+        const time = times.shift();
+        if (time === undefined) return;
+        video.currentTime = Math.min(time, Math.max(0, d - 0.05));
       };
       video.onseeked = () => {
         try {

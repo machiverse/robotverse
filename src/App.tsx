@@ -78,6 +78,7 @@ const Directory = lazy(() => import("./pages/Directory"));
 const TrainingPosterPage = lazy(() => import("./pages/TrainingPosterPage"));
 const DirectoryPhotosAdmin = lazy(() => import("./pages/DirectoryPhotosAdmin"));
 const RobotNews = lazy(() => import("./pages/RobotNews"));
+const YeemakProject = lazy(() => import("./pages/YeemakProject"));
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
 import BuyerGuide from "./pages/BuyerGuide";
@@ -160,6 +161,9 @@ const RedirectWithId = ({ base }: { base: string }) => {
 
 
 const App = () => (
+  window.location.pathname.replace(/\/$/, "") === "/projects/yeemak" ? (
+    <Suspense fallback={<AppLoadingFallback />}><YeemakProject /></Suspense>
+  ) : (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <RobotComparisonProvider>
@@ -177,6 +181,7 @@ const App = () => (
               <ModerationGate />
               <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/projects/yeemak" element={<Suspense fallback={null}><YeemakProject /></Suspense>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/account-status" element={<AccountStatus />} />
@@ -297,6 +302,7 @@ const App = () => (
       </RobotComparisonProvider>
     </AuthProvider>
   </QueryClientProvider>
+  )
 );
 
 export default App;

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { sceneBrief } from "./productEvidence";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +12,13 @@ interface Props {
   onResult: (result: MediaAnalysis, frames: string[]) => void;
   /** Files already chosen elsewhere (e.g. Automation Studio step 1). */
   files?: File[];
+  /** Keep the job description alongside the uploaded evidence. */
+  jobDescription?: string;
   className?: string;
 }
 
 // Upload photos or a video of manual work; AI finds the tasks a robot line takes over.
-export default function MediaAnalyzer({ onResult, files: external, className }: Props) {
+export default function MediaAnalyzer({ onResult, files: external, jobDescription = "", className }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -38,8 +41,13 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
       setBusy(list.some((f) => f.type.startsWith("video/")) ? "Reading video frames…" : "Preparing photos…");
       const frames = await framesFromFiles(list);
       if (!frames.length) throw new Error("No photo or video frame could be read.");
-      setBusy("AI is studying the manual work…");
-      const r = await analyzeMedia(frames, note);
+      setBusy("AI analysis in progress…");
+      const context = [jobDescription.trim(), note.trim()].filter(Boolean).join(". ");
+      const findings = await analyzeMedia(frames, context);
+      // Retain the user's machine identity in the local scene; no service contract changes.
+      const withNote = context ? { ...findings, description: `${findings.description || findings.summary}. ${context}` } : findings;
+      // The extracted raw material and finished output travel with the description into the 3D scene.
+      const r = { ...withNote, description: sceneBrief(withNote.description || withNote.summary, withNote.workpiece) ?? "" };
       if (!r.tasks.length && !r.description) throw new Error("No automatable task was found. Try a clearer photo of the work.");
       setResult(r);
       onResult(r, frames);
@@ -131,7 +139,7 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
       {result && (
         <div className="space-y-1.5 rounded-md border border-primary/30 bg-primary/5 p-2.5 text-[11px]">
           <p className="flex items-center justify-between gap-2 font-semibold text-foreground">
-            AI found in your media
+            AI analysis
             <Badge variant="outline" className="h-4 px-1 text-[9px] font-normal">
               {result.confidence} confidence
             </Badge>
@@ -142,6 +150,11 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
               Part: {result.workpiece.name}
               {result.workpiece.material && result.workpiece.material !== "unknown" ? ` · ${result.workpiece.material}` : ""}
               {result.workpiece.weight_kg ? ` · ~${result.workpiece.weight_kg} kg` : ""}
+            </p>
+          )}
+          {(result.workpiece?.output || result.workpiece?.finish) && (
+            <p className="text-muted-foreground">
+              Finished output: {[result.workpiece.finish, result.workpiece.output].filter(Boolean).join(" · ")}
             </p>
           )}
           {result.manual_steps.length > 0 && (
@@ -160,6 +173,14 @@ export default function MediaAnalyzer({ onResult, files: external, className }: 
               {result.tasks.join(" → ")}
             </p>
           )}
+          {result.stations?.map((station, i) => (
+            <div key={`${station.name}-${i}`} className="border-t border-border pt-2">
+              <p className="font-semibold">{i + 1}. {station.name}</p>
+              <p>{station.what}</p>
+              {station.tooling && <p className="text-muted-foreground">Tool: {station.tooling}</p>}
+              {station.notes && <p className="text-muted-foreground">{station.notes}</p>}
+            </div>
+          ))}
           {result.observations.length > 0 && (
             <p className="text-muted-foreground">Seen: {result.observations.join("; ")}</p>
           )}

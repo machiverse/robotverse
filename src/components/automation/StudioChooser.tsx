@@ -1,182 +1,375 @@
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Box, Brain, GripVertical, MessageSquareText, MousePointerClick, Play, Wrench } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
+import { BevelBox, ConsoleButton, ConsoleLink } from "@/components/console/ConsoleUI";
+import { PixelArrow } from "@/components/hero/HeroConsole";
+import { BLOCKS } from "@/features/automation3d/ProcessBuilder";
+import { processKind, type ProcessKind } from "@/features/automation3d/processProfiles";
+import { Eyebrow, KitButton, Readouts } from "@/features/automation3d/StudioKit";
+import { SKILL_LIBRARY } from "@/utils/processAnalyzer";
+import { cn } from "@/lib/utils";
 
-/* ---------------------------------------------------------------- pictures */
+/* The pictures on this page are stills from the studio's own 3D simulator (public/automation-studio). */
+const LiveCell = lazy(() => import("@/features/automation3d/LiveCell"));
 
-/** A simple 6-axis arm on a base, drawn in the current text colour. */
-const Arm = ({ x, y, s = 1 }: { x: number; y: number; s?: number }) => (
-  <g transform={`translate(${x} ${y}) scale(${s})`} strokeLinecap="round" strokeLinejoin="round">
-    <rect x="-16" y="-6" width="32" height="8" rx="2" className="fill-current opacity-30" />
-    <path d="M0 -6 L0 -26 L22 -44 L40 -34" className="stroke-current" strokeWidth="7" fill="none" />
-    <circle cx="0" cy="-26" r="5" className="fill-background stroke-current" strokeWidth="2.5" />
-    <circle cx="22" cy="-44" r="4.5" className="fill-background stroke-current" strokeWidth="2.5" />
-    <path d="M40 -34 l6 4 M40 -34 l2 7" className="stroke-primary" strokeWidth="3" />
-  </g>
-);
-
-/** Parts dragged from a list into the robot cell. */
-function BuildPicture() {
-  const chips = [
-    { y: 30, label: "Robot" },
-    { y: 62, label: "Gripper" },
-    { y: 94, label: "Fence" },
-  ];
-  return (
-    <svg viewBox="0 0 320 140" className="h-full w-full text-foreground" role="img" aria-label="Parts dragged into a robot cell">
-      {chips.map((c, i) => (
-        <g key={c.label}>
-          <rect x="14" y={c.y - 11} width="78" height="22" rx="6" className={i === 1 ? "fill-primary/15 stroke-primary" : "fill-background stroke-border"} strokeWidth="1.5" />
-          <circle cx="27" cy={c.y} r="3" className={i === 1 ? "fill-primary" : "fill-current opacity-40"} />
-          <text x="37" y={c.y + 4} className="fill-current text-[11px] font-medium">{c.label}</text>
-        </g>
-      ))}
-      <path d="M96 62 C 130 62, 140 70, 168 70" className="stroke-primary" strokeWidth="2" strokeDasharray="4 4" fill="none" />
-      <path d="M162 65 l7 5 -7 5" className="stroke-primary" strokeWidth="2" fill="none" />
-      <rect x="176" y="16" width="130" height="108" rx="10" className="fill-muted stroke-border" strokeWidth="1.5" strokeDasharray="5 4" />
-      <rect x="186" y="96" width="44" height="10" rx="2" className="fill-current opacity-15" />
-      <Arm x={258} y={108} />
-    </svg>
-  );
-}
-
-/** A described job turned into a designed robot cell. */
-function AiPicture() {
-  return (
-    <svg viewBox="0 0 320 140" className="h-full w-full text-foreground" role="img" aria-label="A described job turned into a robot cell">
-      <g>
-        <rect x="14" y="30" width="96" height="58" rx="10" className="fill-background stroke-border" strokeWidth="1.5" />
-        <path d="M30 88 l-6 14 16 -14" className="fill-background stroke-border" strokeWidth="1.5" strokeLinejoin="round" />
-        <rect x="26" y="44" width="70" height="5" rx="2.5" className="fill-current opacity-30" />
-        <rect x="26" y="56" width="56" height="5" rx="2.5" className="fill-current opacity-30" />
-        <rect x="26" y="68" width="40" height="5" rx="2.5" className="fill-current opacity-30" />
-      </g>
-      <path d="M114 60 H136" className="stroke-primary" strokeWidth="2" strokeDasharray="4 4" />
-      <circle cx="156" cy="60" r="18" className="fill-primary/15 stroke-primary" strokeWidth="2" />
-      <path d="M149 60 l5 5 9 -11" className="stroke-primary" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M176 60 H196" className="stroke-primary" strokeWidth="2" strokeDasharray="4 4" />
-      <rect x="200" y="16" width="106" height="108" rx="10" className="fill-muted stroke-border" strokeWidth="1.5" />
-      <rect x="210" y="96" width="34" height="10" rx="2" className="fill-current opacity-15" />
-      <rect x="276" y="92" width="22" height="14" rx="2" className="fill-current opacity-15" />
-      <Arm x={262} y={108} s={0.9} />
-    </svg>
-  );
-}
+/** The line in the hero still; "Run it live" starts the same line from the same camera. */
+const HERO = {
+  jobs: ["MIG/MAG Welding", "Painting & Coating", "Palletizing"],
+  camera: { position: [-1.6, 1.8, 3.3] as [number, number, number], target: [1.9, 0.85, -0.2] as [number, number, number] },
+};
 
 /* ---------------------------------------------------------------- content */
 
 const PATHS = [
   {
     to: "/automation-studio/build",
+    tag: "Build",
     eyebrow: "You know the robot",
     title: "Build it yourself",
-    line: "Pick a robot, add its tool, watch it work.",
-    Picture: BuildPicture,
-    steps: [
-      { icon: GripVertical, label: "Drag a robot" },
-      { icon: Wrench, label: "Add the tool" },
-      { icon: Play, label: "Run in 3D" },
-    ],
+    line: "Pick real robots and tools from the marketplace and Directory, place the cell equipment, and watch the program run.",
+    image: "/automation-studio/build.webp",
+    alt: "A cobot cell with an infeed conveyor, work table and pallet, built in the studio",
+    steps: ["Drag a robot onto the floor", "Add its gripper, torch or tool", "Choose the job and run it in 3D"],
     cta: "Start building",
   },
   {
     to: "/automation-studio?mode=ai",
+    tag: "Plan",
     eyebrow: "Not sure where to start",
     title: "Describe your job",
-    line: "Tell us how the work is done. We design the cell.",
-    Picture: AiPicture,
-    steps: [
-      { icon: MessageSquareText, label: "Describe the work" },
-      { icon: Brain, label: "We plan it" },
-      { icon: Box, label: "See your cell" },
-    ],
+    line: "Tell us how the work is done today. We size the robots, tools, safety and budget, then build the cell.",
+    image: "/automation-studio/plan.webp",
+    alt: "A robot line laid out on the factory floor with its zones, aisle and dimensions",
+    steps: ["Describe the work in plain words", "Get the engineering plan", "See your line in 3D"],
     cta: "Describe my job",
   },
 ] as const;
 
+/** Jobs as the simulator shows them: each opens that job, live, in the 3D simulator. */
+const SHOWCASE = [
+  {
+    job: "MIG/MAG Welding",
+    title: "Arc welding",
+    line: "Torch, wire feed and seam on a steel bracket, in a fenced cell.",
+    image: "/automation-studio/job-weld.webp",
+  },
+  {
+    job: "Injection Moulding Tending",
+    title: "Machine tending",
+    line: "The robot loads the moulding machine from the conveyor, takes the moulded part out and packs it in a crate.",
+    image: "/automation-studio/job-tend.webp",
+  },
+  {
+    job: "Palletizing",
+    title: "Palletizing",
+    line: "Cartons stacked layer by layer, ready for the stretch wrapper.",
+    image: "/automation-studio/job-pallet.webp",
+  },
+  {
+    job: "CNC Machining",
+    motion: "overhead",
+    title: "Overhead track",
+    line: "One robot hangs from a rail and tends two CNC machines.",
+    image: "/automation-studio/job-overhead.webp",
+  },
+] as const;
+
 const FACTS = [
-  { value: "1,500+", label: "robot models" },
-  { value: "200+", label: "end-of-arm tools" },
-  { value: "22", label: "jobs to simulate" },
-  { value: "Live", label: "3D, free to use" },
+  { label: "Robot models", value: "1,500+" },
+  { label: "End-of-arm tools", value: "250" },
+  { label: "Ready jobs", value: String(BLOCKS.length) },
+  { label: "3D cell", value: "Live · free" },
 ];
+
+const simHref = (job: string, motion?: string) =>
+  `/automation-studio/3d?line=${encodeURIComponent(job)}${motion ? `&motion=${motion}` : ""}`;
+
+/** The four big families of factory robot work, each with a sourced fact and jobs that open live in 3D. */
+const FACTORY_WORK: { title: string; fact: string; kinds: ProcessKind[]; jobs: string[] }[] = [
+  {
+    title: "Handling & machine tending",
+    fact: "About half of all new industrial robots: 280,000 of the 541,000 installed worldwide in 2023.",
+    kinds: ["handling", "palletizing", "transport", "machining"],
+    jobs: ["CNC Machining", "Loading & Unloading", "Palletizing", "Bin Picking"],
+  },
+  {
+    title: "Welding",
+    fact: "The second biggest job: 92,000 welding robots installed in 2023.",
+    kinds: ["welding"],
+    jobs: ["MIG/MAG Welding", "Spot Welding", "Laser Welding", "TIG Welding"],
+  },
+  {
+    title: "Assembly",
+    fact: "About one robot in ten fits, screws or rivets parts together.",
+    kinds: ["assembly"],
+    jobs: ["Assembly", "Screw Driving", "Riveting Assembly"],
+  },
+  {
+    title: "Painting & dispensing",
+    fact: "Paint, sealant and glue laid on the same path every time.",
+    kinds: ["coating", "sealing", "filling"],
+    jobs: ["Painting & Coating", "Adhesive & Sealant Dispensing", "Sealing"],
+  },
+];
+
+const SOURCES = [
+  { label: "IFR World Robotics 2025 — India", href: "https://ifr.org/downloads/press_docs/2025-09-25-IFR_press_release_India_in_English.pdf" },
+  { label: "IFR World Robotics 2024 (via ASME)", href: "https://magazine.asme.org/issues/may-2025/infographic-humans-share-the-factory-floor-with-4-million-robots" },
+  { label: "Interact Analysis via Design News", href: "https://www.designnews.com/industry/an-army-of-new-robots-swarm-supplier-news" },
+];
+
+/* ---------------------------------------------------------------- stage */
+
+/** The hero: a still of a real line from the simulator, which turns into the running simulator in place. */
+function Stage() {
+  const [live, setLive] = useState(false);
+  const chip = "rounded-[3px] bg-black/55 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-white/90 backdrop-blur-sm";
+  const caption = live
+    ? "Drag to look around, scroll to zoom. Every move is planned by the simulator, not animated by hand."
+    : "Two cobots share a line: the first welds the part, the second coats it and stacks it on a pallet.";
+  return (
+    <figure>
+      <BevelBox console cut={16} innerClassName="relative">
+        <div className="relative aspect-[4/3] overflow-hidden sm:aspect-[16/9] lg:aspect-[12/5]">
+          <img
+            src="/automation-studio/hero.webp"
+            alt="Two cobots in a welding and palletizing line, in the studio's 3D factory"
+            width={1920}
+            height={800}
+            fetchPriority="high"
+            className="absolute inset-0 h-full w-full object-cover object-[40%_55%]"
+          />
+          {live && (
+            <Suspense fallback={null}>
+              <LiveCell jobs={HERO.jobs} camera={HERO.camera} className="absolute inset-0" />
+            </Suspense>
+          )}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 sm:left-4 sm:top-4">
+            <span className={cn(chip, "inline-flex items-center gap-2")}>
+              <span className={cn("h-1.5 w-1.5 rounded-full", live ? "bg-emerald-400" : "bg-white/60")} />
+              {live ? "Live 3D" : "Studio render"}
+            </span>
+            <span className={cn(chip, "hidden sm:inline")}>Weld → Coat → Pallet</span>
+          </div>
+          <div className="pointer-events-none absolute inset-x-3 bottom-3 flex flex-wrap items-end justify-between gap-3 sm:inset-x-4 sm:bottom-4">
+            {/* Over the picture on wider screens; below it on phones, where it would cover the robots. */}
+            <p aria-hidden className="hidden max-w-[46ch] text-sm leading-snug text-white/85 sm:block">
+              {caption}
+            </p>
+            {live ? (
+              <KitButton variant="outline" size="sm" arrow={false} className="pointer-events-auto" onClick={() => setLive(false)}>
+                Stop live view
+              </KitButton>
+            ) : (
+              <KitButton size="sm" className="pointer-events-auto" onClick={() => setLive(true)} aria-label="Run this line live in 3D">
+                Run it live
+              </KitButton>
+            )}
+          </div>
+        </div>
+      </BevelBox>
+      <figcaption className="mt-3 text-sm leading-snug text-muted-foreground sm:sr-only">{caption}</figcaption>
+    </figure>
+  );
+}
+
+/** Section 004: what robots actually do in factories, with sourced numbers and live job links. */
+function FactoryWork() {
+  // Count each family's jobs in the studio once; filter chips to jobs that still exist so a rename never dead-links.
+  const cards = useMemo(() => {
+    const names = new Set(SKILL_LIBRARY.map((s) => s.template.name));
+    return FACTORY_WORK.map((f) => ({
+      ...f,
+      count: SKILL_LIBRARY.filter((s) => f.kinds.includes(processKind({ name: s.template.name }))).length,
+      jobs: f.jobs.filter((j) => names.has(j)),
+    }));
+  }, []);
+  return (
+    <section className="mt-16 sm:mt-20" aria-labelledby="factory-work">
+      <Eyebrow index="004" label="What robots do in factories" />
+      <h2 id="factory-work" className="mt-6 text-balance text-2xl font-semibold uppercase leading-tight tracking-[-0.01em] md:text-[32px]">
+        Four jobs cover most of the world's robots
+      </h2>
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map((c) => (
+          <BevelBox key={c.title} cut={10} innerClassName="flex h-full flex-col p-5">
+            <h3 className="text-[15px] font-semibold uppercase tracking-[-0.005em]">{c.title}</h3>
+            <p className="mt-2 text-[13px] leading-snug text-muted-foreground">{c.fact}</p>
+            <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              {c.count} jobs in the studio
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {c.jobs.map((job) => (
+                <Link
+                  key={job}
+                  to={simHref(job)}
+                  className="rounded-[3px] border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {job}
+                </Link>
+              ))}
+            </div>
+          </BevelBox>
+        ))}
+      </div>
+      <p className="mt-6 max-w-[70ch] text-sm leading-relaxed text-muted-foreground">
+        India installed 9,120 industrial robots in 2024 (up 7%), sixth in the world; car makers and their parts suppliers took 45% of them.
+      </p>
+      <p className="mt-3 max-w-[70ch] text-sm leading-relaxed text-muted-foreground">
+        See a conveyor feed a robot the way a line PLC runs it — photo-eye, part-ready handshake, grip check, live signals:{" "}
+        <Link to="/automation-studio/build#starter=conveyor" className="font-medium text-primary underline-offset-4 hover:underline">
+          Open the conveyor pick &amp; place →
+        </Link>
+      </p>
+      <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+        Sources:{" "}
+        {SOURCES.map((s, i) => (
+          <span key={s.href}>
+            {i > 0 && " · "}
+            <a href={s.href} target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-4 hover:underline">
+              {s.label}
+            </a>
+          </span>
+        ))}
+      </p>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------------- page */
 
 /** Automation Studio entry: build a cell yourself, or describe the job and let us design it. */
 export default function StudioChooser() {
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
-      <main className="container mx-auto max-w-6xl px-4 pb-16">
-        <header className="pb-8 pt-12 text-center sm:pt-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Automation Studio</p>
-          <h1 className="mx-auto mt-3 max-w-[20ch] text-3xl font-bold leading-[1.15] tracking-tight text-foreground sm:text-[2.6rem]">
-            See your robot cell before you buy it
-          </h1>
-          <p className="mt-3 text-base text-muted-foreground">Two ways to begin. Both end in a live 3D cell.</p>
+      <main className="container mx-auto max-w-6xl px-4 pb-20">
+        <header className="grid gap-6 pb-8 pt-10 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-12">
+          <div>
+            <Eyebrow index="001" label="Automation Studio" />
+            <h1 className="mt-6 max-w-[18ch] text-balance text-4xl font-semibold uppercase leading-[1.02] tracking-[-0.02em] text-foreground md:text-[56px]">
+              See your robot cell before you buy it
+            </h1>
+            <p className="mt-4 max-w-[58ch] text-base leading-relaxed text-muted-foreground md:text-lg">
+              Real robots, real tools and the parts they handle, running in a 3D factory. Build the cell yourself or describe the job, and get the robots and budget behind it.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-4 lg:pb-1">
+            <ConsoleButton to="/automation-studio/build">Start building</ConsoleButton>
+            <ConsoleLink to="/automation-studio?mode=ai">Describe my job</ConsoleLink>
+          </div>
         </header>
 
-        <section className="grid gap-5 md:grid-cols-2" aria-label="Choose how to start">
-          {PATHS.map((p) => (
-            <Link
-              key={p.to}
-              to={p.to}
-              className="group flex flex-col rounded-2xl border border-border bg-card p-3 shadow-[0_1px_2px_rgb(0_0_0/0.06),0_4px_12px_-6px_rgb(0_0_0/0.12)] transition-[transform,border-color,box-shadow] duration-150 ease-out hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[0_1px_2px_rgb(0_0_0/0.06),0_10px_24px_-10px_rgb(0_0_0/0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-0 motion-reduce:transform-none"
-            >
-              <div className="aspect-[16/7] overflow-hidden rounded-xl bg-muted/50 p-2">
-                <p.Picture />
-              </div>
-              <div className="flex flex-1 flex-col px-3 pb-3 pt-5">
-                <p className="text-xs font-medium text-muted-foreground">{p.eyebrow}</p>
-                <h2 className="mt-1 text-2xl font-semibold tracking-tight">{p.title}</h2>
-                <p className="mt-1.5 text-[15px] text-muted-foreground">{p.line}</p>
+        <Stage />
 
-                <ol className="mt-5 grid grid-cols-3 gap-2">
-                  {p.steps.map((s, i) => (
-                    <li key={s.label} className="flex flex-col items-center gap-1.5 rounded-lg bg-muted/50 px-2 py-3 text-center">
-                      <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-background text-primary ring-1 ring-border">
-                        <s.icon className="h-4 w-4" aria-hidden />
-                        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                          {i + 1}
-                        </span>
-                      </span>
-                      <span className="text-xs font-medium leading-tight">{s.label}</span>
-                    </li>
-                  ))}
-                </ol>
+        <Readouts items={FACTS} className="mt-6" />
 
-                <span className="mt-6 inline-flex items-center gap-1.5 self-start rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
-                  {p.cta}
-                  <ArrowRight className="h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-0.5 motion-reduce:transform-none" aria-hidden />
-                </span>
-              </div>
-            </Link>
-          ))}
+        <section className="mt-16 sm:mt-20" aria-labelledby="ways-in">
+          <Eyebrow index="002" label="Two ways in" />
+          <h2 id="ways-in" className="sr-only">
+            Choose how to start
+          </h2>
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            {PATHS.map((p, i) => (
+              <Link
+                key={p.to}
+                to={p.to}
+                className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+              >
+                <BevelBox cut={14} innerClassName="flex flex-col">
+                  <div className="relative aspect-[16/8] overflow-hidden border-b border-border bg-muted">
+                    <img
+                      src={p.image}
+                      alt={p.alt}
+                      width={1200}
+                      height={600}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-300 ease-out motion-safe:group-hover:scale-[1.02]"
+                    />
+                    <span className="absolute left-3 top-3 rounded-[3px] bg-black/55 px-2 py-1 font-mono text-[10px] tabular-nums text-white/90 backdrop-blur-sm">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="absolute right-3 top-3 rounded-[3px] bg-black/55 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm">
+                      {p.tag}
+                    </span>
+                  </div>
+                  <div className="flex flex-1 flex-col p-6">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{p.eyebrow}</p>
+                    <h3 className="mt-2 text-2xl font-semibold uppercase leading-tight tracking-[-0.01em]">{p.title}</h3>
+                    <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-muted-foreground">{p.line}</p>
+                    <ol className="mt-5 border-t border-border">
+                      {p.steps.map((step, n) => (
+                        <li key={step} className="flex items-baseline gap-4 border-b border-border py-2.5 text-sm">
+                          <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{String(n + 1).padStart(2, "0")}</span>
+                          {step}
+                        </li>
+                      ))}
+                    </ol>
+                    <span className="mt-6 inline-flex items-center gap-2.5 self-start font-mono text-xs uppercase tracking-[0.16em] text-primary">
+                      <PixelArrow />
+                      {p.cta}
+                    </span>
+                  </div>
+                </BevelBox>
+              </Link>
+            ))}
+          </div>
         </section>
 
-        <section aria-label="What is inside" className="mt-10 grid grid-cols-2 divide-border overflow-hidden rounded-2xl border border-border sm:grid-cols-4 sm:divide-x">
-          {FACTS.map((f) => (
-            <div key={f.label} className="px-4 py-5 text-center">
-              <p className="text-3xl font-bold tabular-nums tracking-tight text-foreground">{f.value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{f.label}</p>
+        <section className="mt-16 sm:mt-20" aria-labelledby="jobs-in-3d">
+          <Eyebrow index="003" label="Jobs in 3D" />
+          <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 id="jobs-in-3d" className="text-balance text-2xl font-semibold uppercase leading-tight tracking-[-0.01em] md:text-[32px]">
+                Every job with its real tools and parts
+              </h2>
+              <p className="mt-2 max-w-[60ch] text-sm leading-relaxed text-muted-foreground md:text-[15px]">
+                {BLOCKS.length} jobs, each with the gripper, torch or head it really uses and the product it really handles. Open one and it runs.
+              </p>
             </div>
-          ))}
+            <ConsoleLink to="/automation-studio/3d">Open the simulator</ConsoleLink>
+          </div>
+          <ul className="-mx-4 mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
+            {SHOWCASE.map((s) => (
+              <li key={s.title} className="w-[78%] shrink-0 snap-start sm:w-auto">
+                <Link
+                  to={simHref(s.job, "motion" in s ? s.motion : undefined)}
+                  className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+                >
+                  <BevelBox cut={10} innerClassName="flex h-full flex-col">
+                    <div className="relative aspect-[3/2] overflow-hidden bg-muted">
+                      <img
+                        src={s.image}
+                        alt={`${s.title}: ${s.line}`}
+                        width={1200}
+                        height={800}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-300 ease-out motion-safe:group-hover:scale-[1.03]"
+                      />
+                    </div>
+                    <div className="flex flex-1 flex-col border-t border-border p-4">
+                      <h3 className="text-[15px] font-semibold uppercase tracking-[-0.005em]">{s.title}</h3>
+                      <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{s.line}</p>
+                      <span className="mt-3 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-primary">
+                        <PixelArrow />
+                        Run in 3D
+                      </span>
+                    </div>
+                  </BevelBox>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
 
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          <MousePointerClick className="mr-1.5 inline h-4 w-4 align-[-3px] text-primary" aria-hidden />
-          Already have your steps?{" "}
-          <Link to="/automation-studio/3d" className="font-medium text-primary underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none">
-            Type them into the 3D simulator
-          </Link>
-        </p>
-        <p className="mt-2 text-center text-sm text-muted-foreground">
-          <Brain className="mr-1.5 inline h-4 w-4 align-[-3px] text-primary" aria-hidden />
-          New to robot automation?{" "}
-          <Link to="/automation-studio/playbook" className="font-medium text-primary underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none">
-            See how an automation engineer thinks
-          </Link>
-        </p>
+        <FactoryWork />
+
+        <nav aria-label="More in the studio" className="mt-14 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:gap-10">
+          <ConsoleLink to="/automation-studio/3d">Type your steps into the 3D simulator</ConsoleLink>
+          <ConsoleLink to="/automation-studio/playbook">How an automation engineer thinks</ConsoleLink>
+        </nav>
       </main>
       <Footer />
     </div>

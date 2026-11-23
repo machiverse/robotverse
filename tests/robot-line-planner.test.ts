@@ -31,7 +31,9 @@ function assertFlows(steps: SimStep[], context: string, first: boolean, last: bo
   }
   const end = steps[steps.length - 1];
   assert.equal(end.action, "place", `${context}: ends with a place`);
-  assert.ok(last ? ["pallet", "carton"].includes(end.station) : end.station === "out", `${context}: ends at ${end.station}`);
+  // A robot on a track or gantry may finish at the far end of its travel ("pallet_2").
+  const endAt = end.station.replace(/_\d+$/, "");
+  assert.ok(last ? ["pallet", "carton"].includes(endAt) : end.station === "out", `${context}: ends at ${end.station}`);
 }
 
 const QUERY =

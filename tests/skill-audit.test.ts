@@ -92,6 +92,12 @@ assert.ok(kitGuide("Meat Cutting & Deboning").also.some((x) => /sterili/i.test(x
 assert.ok(!kitGuide("Meat Cutting & Deboning").also.some((x) => /chuck|chips/i.test(x)), "no machine-tending kit for a cutting robot");
 assert.ok(kitGuide("Waterjet Cutting").also.some((x) => /pump/i.test(x)));
 assert.ok(kitGuide("Order Picking").also.some((x) => /camera/i.test(x)));
+// Joining without an arc torch gets no MIG kit: friction stir has no wire and no fumes.
+for (const job of ["Friction Stir Welding", "Soldering", "Stud Welding"]) {
+  const k = kitGuide(job);
+  assert.ok(![...k.components, ...k.also].some((x) => /wire feeder \(mig|torch cleaning|power source/i.test(x)), `${job}: ${[...k.components, ...k.also].join("; ")}`);
+}
+assert.ok(!kitGuide("Friction Stir Welding").also.some((x) => /fume|arc-flash/i.test(x)));
 // Finding a job in the builder: words match the start of words ("tile" is not "textile").
 assert.deepEqual(findJobs("tile").map((b) => b.name), ["Ceramic Tile Sorting & Packing"]);
 assert.ok(findJobs("foundry").length >= 6 && findJobs("weld").length >= 10);

@@ -85,7 +85,7 @@ const CRMDashboard = ({ sellerId, itemType }: CRMDashboardProps) => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       {/* Page header */}
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div className="space-y-1">
@@ -104,12 +104,12 @@ const CRMDashboard = ({ sellerId, itemType }: CRMDashboardProps) => {
           <Card key={stat.title} className="border-muted/60 bg-card shadow-sm transition-shadow hover:shadow-md">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
-                <div className="space-y-1">
+                <div className="min-w-0 space-y-1">
                   <p className="text-xs font-medium uppercase text-muted-foreground">{stat.title}</p>
                   {stat.subtitle && <p className="text-[11px] text-muted-foreground">{stat.subtitle}</p>}
-                  <p className="mt-1 text-2xl font-semibold">{stat.value}</p>
+                  <p className="mt-1 break-words text-xl font-semibold sm:text-2xl">{stat.value}</p>
                 </div>
-                <div className={`rounded-lg p-2 ${stat.bg}`}>
+                <div className={`shrink-0 rounded-lg p-2 ${stat.bg}`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
               </div>
@@ -129,7 +129,7 @@ const CRMDashboard = ({ sellerId, itemType }: CRMDashboardProps) => {
               </div>
             </div>
 
-            <TabsList className="mt-4 h-auto justify-start gap-2 bg-transparent p-0">
+            <TabsList className="mt-4 flex h-auto w-full flex-wrap justify-start gap-2 bg-transparent p-0">
               <TabsTrigger
                 value="leads"
                 className="data-[state=active]:border-primary data-[state=active]:text-primary border-b-2 border-transparent px-4 py-2 text-sm font-medium data-[state=active]:bg-transparent rounded-none"

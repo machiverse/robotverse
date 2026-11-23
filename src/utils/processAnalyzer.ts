@@ -613,6 +613,27 @@ const TEMPLATES: Record<string, Template> = {
     ["Orbital head or robot with a pipe positioner", "Every pass on the same parameters", "Pass data logged for the weld map"],
     "Yaskawa AR1440", "12 kg", "1440 mm", "YRC1000", ["Orbital Weld Head / Torch", "Pipe Rotator Positioner", "Laser Seam Tracker"],
     { risk: "High" }),
+  /* Robots that travel: one robot for places spread wider than its reach (7th-axis track, gantry) */
+  trackcnc: t("Multi-Machine Tending on a 7th-Axis Track", "TrackCNC", "full",
+    ["Each machine needs its own operator, or its own robot", "Machines stand idle while the operator is at another one", "A row of machines is too long for one robot's reach"],
+    ["One robot on a 7th-axis floor track tends 2–6 machines", "The robot rides to whichever machine finishes next", "Raw and finished parts buffered at the track ends"],
+    "FANUC M-20iD/25 on a 7th-axis track", "25 kg", "1831 mm", "R-30iB Plus (track as 7th axis)", ["Dual Pneumatic Chuck Gripper", "7th-Axis Floor Track", "Part Buffer Drawers"],
+    { stock: "6-10 Weeks", risk: "Medium" }),
+  gantryload: t("Overhead Gantry Machine Loading", "Gantry", "full",
+    ["Lathes loaded by hand or with a crane", "Robots and fences take the floor round the machines", "Heavy shafts and flanges lifted by operators"],
+    ["An overhead gantry loads the machines from above", "The floor stays clear for operators and chip carts", "One gantry serves a row of lathes"],
+    "Gantry loader with 2-axis arm (Güdel class)", "100 kg", "Gantry travel 4–20 m", "Robot / CNC controller", ["Dual Pneumatic Chuck Gripper", "Gantry Axis Module", "Part Turnover Station"],
+    { stock: "10-14 Weeks", risk: "Medium" }),
+  trackpal: t("Multi-Line Palletizing on a 7th-Axis Track", "TrackPal", "full",
+    ["Each packing line has its own palletizing operator", "Lines stop when full pallets are not changed in time", "One robot per line costs too much"],
+    ["One palletizing robot on a track serves several lines", "A pallet is built at each line's end of the track", "Full pallets are changed while the robot works the other lines"],
+    "FANUC M-410iC/185 on a 7th-axis track", "185 kg", "3143 mm", "R-30iB Plus (track as 7th axis)", ["Clamp + Vacuum Combi Tool", "7th-Axis Floor Track", "Pallet Station Sensors"],
+    { stock: "8-12 Weeks", risk: "High" }),
+  trackweld: t("Long-Part Welding on a 7th-Axis Track", "TrackWeld", "full",
+    ["Long beams, chassis and frames welded by hand", "Parts moved by crane to reach every seam", "Long seams welded with stops and restarts"],
+    ["The welding robot rides a floor track along the part", "Seams welded end to end without re-clamping", "Touch sensing and seam tracking along the whole length"],
+    "Yaskawa AR1440 on a 7th-axis track", "12 kg", "1440 mm", "YRC1000 (track as 7th axis)", ["MIG Torch Package", "7th-Axis Floor Track", "Wire Feeder"],
+    { stock: "6-10 Weeks", risk: "High" }),
   heavyweld: t("Heavy Fabrication & Gantry Welding", "Heavy", "full",
     ["Large frames and beams welded by hand on site", "Long seams, many welders, fatigue", "Crane moves between every pass"],
     ["Robot on a gantry or track welds long seams", "Touch sensing finds each joint on big parts", "Multi-pass welds run unattended"],
@@ -1010,6 +1031,11 @@ const PROCESS_KEYWORDS: Record<string, keyof typeof TEMPLATES> = {
 
   // More logistics and service skills
   asrs: "asrs", "as rs": "asrs", "goods to person": "asrs", "storage and retrieval": "asrs", "automated storage": "asrs",
+  // Robots that travel between places: one robot for several machines, lines or a long part.
+  "multi machine tending": "trackcnc", "multiple machines": "trackcnc", "several machines": "trackcnc", "row of machines": "trackcnc", "two machines": "trackcnc", "three machines": "trackcnc", "four machines": "trackcnc", "two cnc": "trackcnc", "three cnc": "trackcnc", "multiple cnc": "trackcnc", "machines on a track": "trackcnc", "tending on a track": "trackcnc", "robot on a track tend": "trackcnc",
+  "gantry loading": "gantryload", "gantry loader": "gantryload", "overhead gantry": "gantryload", "load from above": "gantryload", "loading from above": "gantryload",
+  "multi line palletizing": "trackpal", "multi line palletising": "trackpal", "several lines": "trackpal", "multiple lines": "trackpal", "palletizing on a track": "trackpal", "palletising on a track": "trackpal", "palletize several": "trackpal",
+  "long part welding": "trackweld", "long parts": "trackweld", "long beams": "trackweld", "long seams": "trackweld", "chassis welding": "trackweld", "trailer chassis": "trackweld", "welding on a track": "trackweld", "beam welding": "trackweld",
   "mobile manipulator": "mobman", "cobot on amr": "mobman", "cobot on an amr": "mobman", "robot on amr": "mobman", "robot on an amr": "mobman", "arm on amr": "mobman", "arm on an amr": "mobman",
   pharmacy: "pharmacy", prescription: "pharmacy", "medicine pick": "pharmacy",
   "ev charging": "evcharge", "charging robot": "evcharge", "charge vehicle": "evcharge", "charging station": "evcharge", "charging port": "evcharge",
@@ -1104,11 +1130,11 @@ export const matchTemplateIds = (description: string): string[] => {
   const ids = new Set(hits.map((h) => h.id));
   // A specific process replaces its generic parent, and stacking onto pallets is palletizing.
   const SUPERSEDED: Record<string, string[]> = {
-    weld: ["mig", "tig", "spotweld", "laserweld", "stud", "waam", "ultrasonic", "fsw", "pipeweld", "heavyweld"],
+    weld: ["mig", "tig", "spotweld", "laserweld", "stud", "waam", "ultrasonic", "fsw", "pipeweld", "heavyweld", "trackweld"],
     paint: ["powdercoat", "dispense", "spray", "glaze", "thermal", "potting", "plating", "plaster"],
     spray: ["dispense", "glaze", "thermal", "potting", "plaster"],
     stack: ["palletize", "depal", "bag", "brick", "crate", "battery", "lamination", "tile", "bale"],
-    cnc: ["mill", "turn", "route", "mobman"],
+    cnc: ["mill", "turn", "route", "mobman", "trackcnc", "gantryload"],
     assembly: ["screw", "rivet", "battery", "harness", "bearing", "stator", "solar", "wiring", "crimp", "tht", "rebar", "disassembly", "glazing", "lamination"],
     dispense: ["sole", "icing", "concrete3dp", "potting", "glazing"],
     inspect: ["vision", "measure", "xray", "leak", "concrete3dp", "ndt"],
@@ -1127,8 +1153,8 @@ export const matchTemplateIds = (description: string): string[] => {
     glass: ["bottle", "solar", "slab", "glazing"],
     food: ["icing", "trayseal", "meat", "fruit", "slice", "bakery", "blister", "pouch", "kitchen", "denest", "cartoning", "egg"],
     sort: ["parcel", "fruit", "recycle", "sheetload", "egg", "tile", "cellgrade", "gem", "labtube"],
-    palletize: ["depal", "bag", "brick", "crate", "nail"],
-    load: ["press", "mould", "cast", "forge", "bend", "depal", "tyre", "truck", "glass", "crate", "sheetload", "harden", "bakery", "coil", "extrude", "core", "mobman", "wafer", "kitchen", "plating", "tubebend", "blister", "shell", "lamination", "egg", "tile", "glazing", "bale", "food"],
+    palletize: ["depal", "bag", "brick", "crate", "nail", "trackpal"],
+    load: ["press", "mould", "cast", "forge", "bend", "depal", "tyre", "truck", "glass", "crate", "sheetload", "harden", "bakery", "coil", "extrude", "core", "mobman", "wafer", "kitchen", "plating", "tubebend", "blister", "shell", "lamination", "egg", "tile", "glazing", "bale", "food", "gantryload", "trackcnc"],
     pack: ["wrap", "battery", "blister", "cartoning", "strap", "bagplace", "tile", "egg"],
     seal: ["dispense", "cap", "trayseal"],
     label: ["mark"],
@@ -1152,6 +1178,13 @@ export const matchTemplateIds = (description: string): string[] => {
     // Moulding machines of their own kind; molten-steel probing is not pouring.
     mould: ["compression", "blowmould", "pour"],
     pour: ["steelprobe"],
+    // A gantry or track robot loading lathes and mills is the tending job; the machines are what it serves.
+    turn: ["gantryload", "trackcnc"],
+    mill: ["gantryload", "trackcnc"],
+    // Trailer chassis being welded are parts, not a truck to unload.
+    truck: ["trackweld"],
+    // A robot on an AMR driving between machines is mobile tending, not a floor track.
+    trackcnc: ["mobman"],
     lift: ["slab", "glazing", "bale"],
     solar: ["solarclean"],
     pcb: ["smt"],

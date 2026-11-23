@@ -7,6 +7,7 @@ import { SKILL_LIBRARY } from "@/utils/processAnalyzer";
 import { PROCESS_PROFILES, processKind, type ProcessKind } from "./processProfiles";
 import { SKILLS } from "./robotKnowledge";
 import { EQUIPMENT, inrRange, robotPrice } from "./solutionCost";
+import RobotSystemSheet from "./RobotSystemSheet";
 
 interface Props {
   open: boolean;
@@ -19,6 +20,7 @@ interface Props {
 // what the robot does, typical robot, tooling and equipment price ranges.
 export default function SkillsLibrary({ open, onOpenChange, onTry }: Props) {
   const [q, setQ] = useState("");
+  const [full, setFull] = useState<string | null>(null);
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const m = new Map<ProcessKind, typeof SKILL_LIBRARY>();
@@ -67,18 +69,30 @@ export default function SkillsLibrary({ open, onOpenChange, onTry }: Props) {
                     <div key={id} className="rounded-lg border border-border p-3 text-sm">
                       <div className="flex items-start justify-between gap-2">
                         <b>{template.name}</b>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 shrink-0 px-2 text-xs"
-                          onClick={() => {
-                            onTry(`We need robots for ${template.name.toLowerCase()}.`);
-                            onOpenChange(false);
-                          }}
-                        >
-                          <Play className="mr-1 h-3 w-3" /> Simulate
-                        </Button>
+                        <div className="flex shrink-0 gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs"
+                            aria-expanded={full === id}
+                            onClick={() => setFull(full === id ? null : id)}
+                          >
+                            Full system
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 shrink-0 px-2 text-xs"
+                            onClick={() => {
+                              onTry(`We need robots for ${template.name.toLowerCase()}.`);
+                              onOpenChange(false);
+                            }}
+                          >
+                            <Play className="mr-1 h-3 w-3" /> Simulate
+                          </Button>
+                        </div>
                       </div>
+                      {full === id && <RobotSystemSheet job={template.name} className="mt-2 rounded-md border border-border bg-background/60 p-2" />}
                       <p className="mt-1 text-xs text-muted-foreground">{template.automated.join(". ")}.</p>
                       <p className="mt-1.5 text-xs">
                         <span className="font-semibold">Typical robot:</span> {template.robot.model} ({template.robot.payload},{" "}

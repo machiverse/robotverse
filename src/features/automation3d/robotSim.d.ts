@@ -1,4 +1,20 @@
 // Types for the framework-free simulation engine in robotSim.js.
+import type { BeltOptions, BeltSnapshot } from "./conveyorLogic.js";
+import type { MachineBinding } from "./machineSceneTypes";
+
+/** Conveyor pick and place for the first robot's infeed (conveyorAutomation.ts planConveyorAutomation().sim). */
+export interface SimAutomation {
+  /** Belt length end to end, width and top height (m); the side of the robot it comes from. */
+  infeed: { length: number; width: number; height: number; side: "left" | "right" };
+  belt: BeltOptions;
+  product: { key: string; size?: [number, number, number]; kg?: number };
+}
+/** The infeed's PLC, sensors and parts, and what the first robot is doing, as the I/O view shows them. */
+export interface AutomationState extends BeltSnapshot {
+  robot: { phase: string; holding: boolean; placed: number; cycles: number; lastCycle: number | null };
+  product: { label: string; size: [number, number, number]; kg: number } | null;
+  bottleneck: { by: "robot" | "feed" | "balanced"; text: string } | null;
+}
 export type SimStep = { action: string; station: string; label: string; auto?: boolean; text?: string; /** Tool to change to (0 = arm tool, 1 = tool-stand tool). */ tool?: number };
 
 export interface SimUpdate {
@@ -17,19 +33,114 @@ export interface SimUpdate {
   /** Index of the robot whose joints/step are reported (multi-robot lines). */
   focus?: number;
   cells?: { title: string; stepIndex: number; step: SimStep | null; cycles: number; lastCycle?: number | null }[];
+  /** The real product the line handles, and the gripper it needs. */
+  product?: { key: string; label: string; kg: number; size: [number, number, number]; gripper: string } | null;
+  /** Every tool the line uses: the gripper and the process tools its steps need. */
+  tools?: string[];
+  /** How the focused robot travels (track, overhead, gantry, AMR, lift, RGV), its travel and where it is now (m). */
+  motion?: SimMotionState;
+  /** Picture quality in use (it drops to "standard" by itself when the frame rate cannot keep up). */
+  quality?: SimQuality;
+  /** Closest approach of each robot's arm over its current and last cycle. */
+  clearance?: MotionClearance[];
+  moveMode?: boolean;
+  showPaths?: boolean;
+  /** Number of layout edits (moved robots, stations, equipment). */
+  layoutEdits?: number;
+  /** The first robot's conveyor pick: PLC state, signals, parts and counters (null when it does not pick from a belt). */
+  automation?: AutomationState | null;
+}
+
+export interface MotionClearance {
+  robot: number;
+  /** Shortest distance (m) between the arm and anything it must not touch; null before the robot has moved. */
+  min: number | null;
+  against: string | null;
+  link: string | null;
+  step: string | null;
+  at: [number, number, number] | null;
+  collisions: number;
+}
+
+export interface LayoutEdit {
+  cell: number;
+  kind: "robot" | "station" | "equipment";
+  key: string;
+  dx: number;
+  dz: number;
+  /** Quarter turns (equipment, tables and pallets). */
+  rot: number;
+}
+
+export function planSignature(plan: SimPlan | { cells: { title?: string; steps?: { action: string; station: string }[]; stations?: string[]; motion?: { type: string } | null }[] }): string;
+
+export type SimQuality = "high" | "standard";
+export type SimMotionType = "fixed" | "track" | "overhead" | "gantry" | "amr" | "lift" | "rgv";
+export interface SimMotion {
+  type: SimMotionType;
+  /** Travel in metres (a lift column's is vertical). */
+  length?: number;
+}
+export interface SimMotionState {
+  type: SimMotionType;
+  length: number;
+  travel: number;
+  min: number;
+  max: number;
 }
 
 export interface SimPlan {
   /** stations: equipment to show even when no step uses it (cell builder); startTool: tool in use when a cycle starts. */
-  cells: { title?: string; steps: SimStep[]; stations?: string[]; startTool?: number }[];
+  /** motion: how the robot moves between places; stations at the far end of its travel have keys ending in "_2". */
+  cells: { title?: string; steps: SimStep[]; stations?: string[]; startTool?: number; motion?: SimMotion | null; machines?: MachineBinding[] }[];
+  /** The user's own words: a product they name (mangoes, cement bags) is the one the robots handle. */
+  brief?: string;
+  /** The product, when already known (see workpieces.js productFor). */
+  product?: { key: string; variant?: string; coat?: string };
+}
+
+export type LineSpacing = "compact" | "clear" | "roomy";
+/** Robot `robot` (index) can reach `what` of robot `other`'s cell, `depth` metres inside its reach; or both share space. */
+export interface Interference {
+  kind: "reach" | "shared";
+  robot: number;
+  other: number;
+  what: string;
+  depth: number;
 }
 
 export interface Simulation {
+  /** Conveyor pick and place for the first robot's infeed; null for the standard belt. One rebuild. */
+  setAutomation(cfg: SimAutomation | null): void;
+  /** While paused: run on to the next event (a sensor, the PLC or a robot changes state), at most `max` seconds. */
+  stepEvent(max?: number): void;
+  stats(): { drawCalls: number; triangles: number; geometries: number; textures: number; fps: number; pixelRatio: number; quality: SimQuality; rebuilds: number };
+  setLabels(mode: "key" | "all" | "off"): void;
+  motionClearance(): MotionClearance[];
+  showClash(robot: number): void;
+  setShowPaths(on: boolean): void;
+  readonly showPaths: boolean;
+  setMoveMode(on: boolean): void;
+  readonly moveMode: boolean;
+  getLayoutEdits(): LayoutEdit[];
+  layoutTargets(): { kind: LayoutEdit["kind"]; cell: number; key: string; name: string; screen: [number, number]; at: [number, number] }[];
+  setLayoutEdits(edits: LayoutEdit[]): void;
+  undoMove(): boolean;
+  resetLayout(): void;
+  reload(): void;
+  setEquipmentAll(list: Parameters<Simulation["setEquipment"]>[1][]): void;
   setSteps(steps: SimStep[]): void;
   setPlan(plan: SimPlan): void;
   setFocus(i: number): void;
   setReference(url: string | null, label?: string): void;
-  setFencing(on: boolean | boolean[]): void;
+  /** Fence the robot cells (one flag each); neighbours share an enclosure unless `separate`. */
+  setFencing(on: boolean | boolean[], opts?: { separate?: boolean }): void;
+  /** Which robots are cobots (paint, control box, scanner). Call before setFencing. */
+  setCobots(flags: boolean[]): void;
+  /** Space between robots: neighbours share space (compact), 0.5 m between reaches (clear), or a metre more (roomy). */
+  setSpacing(mode: LineSpacing): void;
+  /** Robots that can reach another robot's stations, equipment, base or working space. */
+  interference(): Interference[];
   play(): void;
   pause(): void;
   reset(): void;
@@ -45,6 +156,10 @@ export interface Simulation {
   /** Cell builder: show only the equipment the user chose (no default robot, tool or stations). */
   setBuildMode(on: boolean): void;
   setOverlay(name: "none" | "layout" | "flow"): void;
+  /** The picture as it is now, as a PNG data URL (for "Save image"). */
+  snapshot(): string;
+  /** Frame a shot by hand: camera at `position`, looking at `target` (metres, world axes); `orbit` circles it slowly. */
+  setCamera(position: [number, number, number], target: [number, number, number], orbit?: boolean): void;
   setEquipment(
     cell: number,
     eq: {
@@ -53,10 +168,19 @@ export interface Simulation {
       /** Tools the robot can use: on the arm first, then on the tool stand (tool changer). */
       tools?: { name: string; kind?: string }[];
       accessories?: ("changer" | "sensor" | "camera")[];
+      /** Components the user chose (power source, wire feeder, torch cleaner…): their names label the matching equipment. */
+      components?: string[];
     } | null,
   ): void;
   setJoint(i: number, deg: number | string): void;
+  /** Move the focused robot along its track, lift or gantry by hand (m); only while paused. */
+  setTravel(m: number): void;
+  /** "high": cinematic (ambient occlusion, glow on lamps and hot metal, smooth edges); "standard": fast, for phones. */
+  setQuality(q: SimQuality): void;
+  readonly quality: SimQuality;
   checkReach(steps?: SimStep[]): string[];
+  /** Stations, conveyors, robot bases and equipment that stand on each other's floor (none in a good layout). */
+  layoutIssues(): string[];
   dispose(): void;
 }
 
@@ -73,6 +197,22 @@ export function createSimulation(opts: {
   THREE: typeof import("three");
   OrbitControls: unknown;
   RoomEnvironment?: unknown;
+  /** three/examples post-processing classes for the cinematic look; without them the picture is "standard". */
+  post?: {
+    EffectComposer: unknown;
+    RenderPass: unknown;
+    OutputPass: unknown;
+    GTAOPass?: unknown;
+    UnrealBloomPass?: unknown;
+    ShaderPass?: unknown;
+    VignetteShader?: unknown;
+  };
+  /** Start in this quality; by default high on desktops, standard on phones. */
+  quality?: SimQuality;
   container: HTMLElement;
   onUpdate?: (s: SimUpdate) => void;
+  onStatus?: (status: "building" | "ready" | "lost") => void;
+  onPerformance?: (mode: "smooth") => void;
+  /** Layout edits, Move mode or robot paths changed. */
+  onLayout?: (info: { edits: LayoutEdit[]; moveMode: boolean; showPaths: boolean }) => void;
 }): Simulation;

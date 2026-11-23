@@ -38,7 +38,7 @@ export interface AiSolution {
   understanding: string;
   feasibility: "high" | "medium" | "low";
   automation_level: "full" | "semi" | "assist";
-  workpiece: { name: string; material: string; size: string; weight_kg: number | null } | null;
+  workpiece: { name: string; material: string; size: string; weight_kg: number | null; output?: string; finish?: string } | null;
   throughput: { target: string; takt_s: number | null };
   tasks: string[];
   stations: AiStation[];
@@ -63,11 +63,11 @@ export interface AiSolution {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 const cache = new Map<string, Promise<AiSolution>>();
-const key = (brief: string, industry?: string | null) => `${industry ?? ""}::${brief.trim().replace(/\s+/g, " ").toLowerCase()}`;
+const key = (brief: string, industry?: string | null, evidence?: string) => `${industry ?? ""}::${brief.trim().replace(/\s+/g, " ").toLowerCase()}::${evidence ?? ""}`;
 
 /** One request per distinct brief; repeated calls share the answer. */
-export function requestSolution(brief: string, industry?: string | null): Promise<AiSolution> {
-  const k = key(brief, industry);
+export function requestSolution(brief: string, industry?: string | null, evidence?: string): Promise<AiSolution> {
+  const k = key(brief, industry, evidence);
   const hit = cache.get(k);
   if (hit) return hit;
   const p = (async () => {
@@ -83,7 +83,7 @@ export function requestSolution(brief: string, industry?: string | null): Promis
           apikey: SUPABASE_KEY,
           Authorization: `Bearer ${s.session?.access_token ?? SUPABASE_KEY}`,
         },
-        body: JSON.stringify({ brief: brief.trim(), industry: industry ?? undefined, skills: SKILL_LIBRARY.map((x) => x.template.name) }),
+        body: JSON.stringify({ brief: brief.trim(), evidence: evidence?.slice(0, 12000), industry: industry ?? undefined, skills: SKILL_LIBRARY.map((x) => x.template.name) }),
       });
       data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || `the AI service answered ${res.status}`);

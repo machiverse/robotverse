@@ -522,7 +522,7 @@ const Services = () => {
                         )}
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base font-bold text-foreground truncate">{service.name}</CardTitle>
+                        <CardTitle className="break-words text-base font-bold text-foreground">{service.name}</CardTitle>
                         <p className="text-xs text-muted-foreground truncate">{service.provider}</p>
                       </div>
                       {service.rating !== null && (

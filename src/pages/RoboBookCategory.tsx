@@ -241,7 +241,11 @@ const RoboBookCategory = () => {
               <Card 
                 key={post.id} 
                 className="group bg-card border-border hover:shadow-lg transition-all cursor-pointer overflow-hidden"
-                onClick={() => navigate(post.source === 'blog' ? `/blogs/${post.id}` : `/robobook/${post.id}`)}
+                onClick={(event) => {
+                  const target = event.target as HTMLElement;
+                  if (!event.currentTarget.contains(target) || target.closest('button') || target.closest('a')) return;
+                  navigate(post.source === 'blog' ? `/blogs/${post.id}` : `/robobook/${post.id}`);
+                }}
               >
                 {(post.image_url || post.media_url) && (
                   <div className="relative aspect-video overflow-hidden">

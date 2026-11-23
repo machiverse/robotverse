@@ -30,6 +30,7 @@ import BlogSEOPanel, { type SeoFields } from "@/components/blog/BlogSEOPanel";
 import BlogSocialPreview from "@/components/blog/BlogSocialPreview";
 import { calcReadingTime, slugify, sanitizeHtml, SITE_URL } from "@/utils/blogSeo";
 import { cn } from "@/lib/utils";
+import { useAuthReady } from '@/hooks/useAuthReady';
 
 interface BlogFormData {
   title: string;
@@ -45,6 +46,7 @@ interface BlogFormData {
 const BlogEditor = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { isReady } = useAuthReady();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
 
@@ -79,13 +81,14 @@ const BlogEditor = () => {
   const recordIdRef = useRef<string | undefined>(id);
   const lastSavedRef = useRef<string>("");
   const skipAutosaveRef = useRef(false);
+  const publicationRef = useRef<{ status: 'draft' | 'published'; scheduled_publish_at: string | null; published_at: string | null }>({ status: 'draft', scheduled_publish_at: null, published_at: null });
 
   const readingTime = calcReadingTime(formData.content);
 
   useEffect(() => {
-    if (isEditing && id) fetchBlog();
+    if (isEditing && id && isReady && user) fetchBlog();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditing, id]);
+  }, [isEditing, id, isReady, user?.id]);
 
   const fetchBlog = async () => {
     try {
@@ -105,6 +108,8 @@ const BlogEditor = () => {
       }
 
       skipAutosaveRef.current = true;
+      publicationRef.current = { status: data.status === 'published' ? 'published' : 'draft', scheduled_publish_at: data.scheduled_publish_at ?? null, published_at: data.published_at ?? null };
+      recordIdRef.current = data.id;
       setFormData({
         title: data.title || "",
         content: data.content || "",
@@ -114,7 +119,7 @@ const BlogEditor = () => {
         featured_image_alt: (data as any).featured_image_alt || "",
         featured_image_caption: (data as any).featured_image_caption || "",
         scheduled_publish_at: (data as any).scheduled_publish_at
-          ? new Date((data as any).scheduled_publish_at).toISOString().slice(0, 16)
+          ? new Date(new Date(data.scheduled_publish_at).getTime() - new Date(data.scheduled_publish_at).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
           : "",
       });
       setSeoFields({
@@ -170,7 +175,7 @@ const BlogEditor = () => {
         category: seoFields.category || null,
         scheduled_publish_at: asScheduled ? scheduled : null,
         published_at:
-          status === "published" && !asScheduled ? new Date().toISOString() : undefined,
+          status === "published" && !asScheduled ? publicationRef.current.published_at || new Date().toISOString() : undefined,
       };
     },
     [formData, seoFields, user?.id]
@@ -178,6 +183,7 @@ const BlogEditor = () => {
 
   const persist = useCallback(
     async (payload: any) => {
+      if (!user) throw new Error('Please sign in to save your post');
       // Strip undefined
       const data: Record<string, any> = {};
       Object.entries(payload).forEach(([k, v]) => {
@@ -185,8 +191,9 @@ const BlogEditor = () => {
       });
 
       if (recordIdRef.current) {
-        const { error } = await supabase.from("blogs").update(data).eq("id", recordIdRef.current);
+        const { error } = await supabase.from("blogs").update(data).eq("id", recordIdRef.current).eq('author_id', user.id).select('id').single();
         if (error) throw error;
+        publicationRef.current = { status: data.status, scheduled_publish_at: data.scheduled_publish_at ?? null, published_at: data.published_at ?? publicationRef.current.published_at };
         return recordIdRef.current;
       }
       const { data: row, error } = await supabase.from("blogs").insert([data] as any).select("id").single();
@@ -194,12 +201,12 @@ const BlogEditor = () => {
       recordIdRef.current = row.id;
       return row.id as string;
     },
-    []
+    [user?.id]
   );
 
   // Auto-save every 25s when content changed and we have a title
   useEffect(() => {
-    if (!user || skipAutosaveRef.current) return;
+    if (!user || loading || skipAutosaveRef.current) return;
     if (!formData.title.trim() || !formData.content.trim()) return;
 
     const t = setInterval(async () => {
@@ -208,6 +215,7 @@ const BlogEditor = () => {
       try {
         setAutosaveStatus("Saving…");
         const payload = buildPayload("draft", false);
+        Object.assign(payload, publicationRef.current, { is_draft: publicationRef.current.status === 'draft' });
         await persist(payload);
         lastSavedRef.current = snap;
         setAutosaveStatus(`Saved ${new Date().toLocaleTimeString()}`);
@@ -216,7 +224,7 @@ const BlogEditor = () => {
       }
     }, 25_000);
     return () => clearInterval(t);
-  }, [formData, seoFields, user, buildPayload, persist]);
+  }, [formData, seoFields, user, loading, buildPayload, persist]);
 
   const validate = () => {
     if (!formData.title.trim()) {

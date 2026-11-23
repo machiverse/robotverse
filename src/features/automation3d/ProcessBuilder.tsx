@@ -22,6 +22,8 @@ export const BLOCKS: { name: string; label: string; group: string }[] = [
   { name: "Textile Bobbin & Cone Handling", label: "Yarn bobbins / cones", group: "Handling" },
   { name: "Injection Moulding Tending", label: "Moulding machine tending", group: "Machine tending" },
   { name: "CNC Machining", label: "CNC machine tending", group: "Machine tending" },
+  { name: "Multi-Machine Tending on a 7th-Axis Track", label: "Several machines on a track", group: "Machine tending" },
+  { name: "Overhead Gantry Machine Loading", label: "Gantry machine loading", group: "Machine tending" },
   { name: "CNC Turning", label: "CNC lathe tending", group: "Machine tending" },
   { name: "Compression Moulding Tending", label: "Rubber / compression moulding", group: "Machine tending" },
   { name: "Blow Moulding Trimming & Handling", label: "Blow moulding", group: "Machine tending" },
@@ -31,6 +33,7 @@ export const BLOCKS: { name: string; label: string; group: string }[] = [
   { name: "Forging Handling", label: "Forging press tending", group: "Machine tending" },
   { name: "Sheet Loading & Nested Part Sorting", label: "Laser / punch sheet loading", group: "Machine tending" },
   { name: "MIG/MAG Welding", label: "MIG/MAG welding", group: "Welding" },
+  { name: "Long-Part Welding on a 7th-Axis Track", label: "Long parts on a track", group: "Welding" },
   { name: "TIG Welding", label: "TIG welding", group: "Welding" },
   { name: "Spot Welding", label: "Spot welding", group: "Welding" },
   { name: "Laser Welding", label: "Laser welding", group: "Welding" },
@@ -66,6 +69,7 @@ export const BLOCKS: { name: string; label: string; group: string }[] = [
   { name: "Packing & Box Forming", label: "Packing in boxes", group: "Packing" },
   { name: "Wrapping & Packing", label: "Wrapping", group: "Packing" },
   { name: "Palletizing", label: "Palletizing", group: "Packing" },
+  { name: "Multi-Line Palletizing on a 7th-Axis Track", label: "Several lines on a track", group: "Packing" },
   { name: "Cartoning (Product into Cartons)", label: "Cartoning", group: "Packing" },
   { name: "Bag & Sack Palletizing", label: "Bag / sack palletizing", group: "Packing" },
   { name: "Brick & Block Stacking", label: "Brick / block stacking", group: "Packing" },
@@ -206,7 +210,8 @@ export default function ProcessBuilder({ onBuild }: { onBuild: (names: string[])
           />
         </label>
         {shown.length === 0 && <p className="text-[11px] text-muted-foreground">No job matches “{find}”.</p>}
-        <div className="space-y-1.5">
+        {/* 151 jobs: a scrolling list, so the line below stays in view (search narrows it). */}
+        <div className="max-h-72 space-y-1.5 overflow-y-auto overscroll-contain pr-1">
           {GROUPS.filter((g) => shown.some((b) => b.group === g)).map((g) => (
             <div key={g}>
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{g}</p>

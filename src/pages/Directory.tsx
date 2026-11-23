@@ -63,7 +63,7 @@ const Directory = () => {
 
       {/* Top title */}
       <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <h1 className="mb-2 text-3xl font-bold text-primary">Robotics Directory</h1>
             <p className="text-muted-foreground">
@@ -95,10 +95,10 @@ const Directory = () => {
         <Tabs value={tab} onValueChange={changeTab}>
           <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-1 p-1 md:grid-cols-5">
             {TABS.map((t) => (
-              <TabsTrigger key={t.id} value={t.id} className="flex items-center gap-2 py-2.5">
+              <TabsTrigger key={t.id} value={t.id} className="flex min-w-0 items-center gap-1.5 px-2 py-2.5 xl:gap-2">
                 <t.icon className="h-4 w-4 shrink-0" />
-                <span className="hidden sm:inline">{t.label}</span>
-                <span className="sm:hidden">{t.short}</span>
+                <span className="hidden xl:inline">{t.label}</span>
+                <span className="xl:hidden">{t.short}</span>
                 <span className="text-xs text-muted-foreground">({t.count})</span>
               </TabsTrigger>
             ))}

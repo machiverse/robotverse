@@ -37,6 +37,8 @@ export function processKind(process: Pick<ProcessCard, "name">): ProcessKind {
   if (/fill|dos/.test(name)) return "filling";
   if (/cap|seal|stopper/.test(name)) return "sealing";
   if (/cnc|mill|turning|drill|cut|bend|profil|chamfer|press|stamp|mould|mold|cast|forg|hemm/.test(name)) return "machining";
+  // A robot (on a track or a gantry) loading machines is machine tending; an arm on an AMR stays a handling job.
+  if (/machine (tending|loading)/.test(name) && !/mobile manipulator/.test(name)) return "machining";
   if (/assembly|screw/.test(name)) return "assembly";
   if (/pack|box|carton/.test(name)) return "packing";
   return "handling";

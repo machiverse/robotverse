@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { processesFromSkills } from "@/utils/processAnalyzer";
-import { createSimulation, eoatKind, STATION_NAMES, type Simulation, type SimUpdate } from "./robotSim.js";
+import { createSimulation, eoatKind, STATION_NAMES, type LayoutEdit, type Simulation, type SimUpdate } from "./robotSim.js";
+import { CINEMATIC_POST } from "./cinematicPost";
 import { planLine, type LinePlan } from "./robotKnowledge";
 import { Thumb, type Choice } from "./EquipmentPicker";
 import { BLOCKS, findJobs } from "./ProcessBuilder";
@@ -18,16 +19,21 @@ import { loadDirectoryRobots, loadDirectoryTools, loadMarketRobots, loadMarketTo
 import LeadDialog from "@/components/leads/LeadDialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cellState, checkCell, type CheckItem, type CheckState } from "./cellCheck";
+import CellEquipmentList from "./CellEquipmentList";
+import RobotSystemSheet from "./RobotSystemSheet";
 import { budgetFor, CycleTracker, decodeLine, encodeLine, isCobotMatch, reportHtml, roi, STARTERS, STEP_GROUP, suggest, suggestSwap, type Raw, type StarterCell, type StepTime } from "./builderExtras";
 import { inr as inrShort } from "./solutionCost";
 import { KIND_JOB, thinkCell, type Thought } from "./engineerPlaybook";
 import { attachmentIssues, type FitIssue } from "./attachmentFit";
 import { analyzeJob, JOB_EXAMPLES, type JobTask } from "./customJob";
 import { processKind } from "./processProfiles";
-import { CELL_STATIONS, cellProgram, stationLabel, stationsFor, TOOL_NAMES, type CellProgram, type StationKey } from "./cellProgram";
+import { CELL_STATIONS, cellProgram, FAR_STATIONS, stationLabel, stationsFor, TOOL_NAMES, type CellProgram, type StationKey } from "./cellProgram";
+import RobotBaseControl, { type MotionChoice } from "./RobotBaseControl";
 import { isComponent } from "./jobGear";
 import { jobKit, type JobKit } from "./jobKit";
 import { providerPlan, understandJob } from "./jobUnderstanding";
+import { AutomationBriefBox, AutomationIO, AutomationProposalDialog, ConveyorAutomationDialog } from "./ConveyorAutomationPanel";
+import { defaultSetup, describedIn, planConveyorAutomation, type AutomationProposal, type ConveyorSetup } from "./conveyorAutomation";
 
 /* ------------------------------------------------------------------ data */
 
@@ -59,6 +65,23 @@ interface Cell {
   stations?: StationKey[];
   /** Components the user added: power source, wire feeder, torch cleaner, vacuum generator, adapters… */
   parts?: Match[];
+  /** How the robot is mounted and moves: fixed, a 7th-axis track, overhead track, gantry, AMR, lift or rail cart. */
+  motion?: MotionChoice;
+  /** Equipment repeated at the far end of the robot's travel (a second machine, a second pallet…). */
+  far?: StationKey[];
+  /** Where the user moved this cell's robot, stations and equipment in the 3D view (Move mode). */
+  layout?: Omit<LayoutEdit, "cell">[];
+  /** Conveyor pick and place (first cell): the belt, the product, the feed and how the robot picks. */
+  automation?: ConveyorSetup;
+}
+
+/** What stands at the far end of a travelling robot: the user's choice, else its machine or its pallet. */
+function farOf(c: Cell): StationKey[] {
+  if (!c.motion || c.motion.type === "fixed" || c.motion.type === "lift") return [];
+  const placed = (c.stations ?? []).filter((k) => FAR_STATIONS.includes(k));
+  if (c.far) return c.far.filter((k) => placed.includes(k));
+  const main = (["cnc", "press", "mould", "weld", "pallet", "table"] as StationKey[]).find((k) => placed.includes(k));
+  return main ? [main] : [];
 }
 type PaletteTab = "robots" | "tools" | "acc" | "layout" | "cell";
 
@@ -122,6 +145,10 @@ const withStations = (c: Cell): Cell =>
 export default function CellBuilder() {
   const stageRef = useRef<HTMLDivElement>(null);
   const simRef = useRef<Simulation | null>(null);
+  const [sceneStatus, setSceneStatus] = useState<"building" | "ready" | "lost">("building");
+  const [labels, setLabels] = useState<"key" | "all" | "off">("key");
+  const [layout, setLayout] = useState({ edits: 0, moveMode: false, showPaths: false });
+  const [smoothNotice, setSmoothNotice] = useState(false);
   const [data, setData] = useState<{ robots: Match[]; tools: Match[] } | null>(null);
   const [tab, setTab] = useState<PaletteTab>("robots");
   const [q, setQ] = useState("");
@@ -144,7 +171,10 @@ export default function CellBuilder() {
   const stageBoxRef = useRef<HTMLElement>(null);
   const [overStage, setOverStage] = useState(false);
   const [playing, setPlaying] = useState(true);
-  const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle"> | null>(null);
+  const [sim, setSim] = useState<Pick<SimUpdate, "cells" | "currentCycle" | "product" | "quality" | "automation"> | null>(null);
+  const [autoOpen, setAutoOpen] = useState(false);
+  /** The user's description of the automation, while its proposal is open. */
+  const [brief, setBrief] = useState<string | null>(null);
   const lastEmit = useRef(0);
   const cellCount = useRef(0);
   const [reportOpen, setReportOpen] = useState(false);
@@ -205,13 +235,29 @@ export default function CellBuilder() {
   useEffect(() => {
     if (!stageRef.current) return;
     const s = createSimulation({
-      THREE, OrbitControls, RoomEnvironment, container: stageRef.current,
+      THREE, OrbitControls, RoomEnvironment, post: CINEMATIC_POST, container: stageRef.current,
+      onStatus: setSceneStatus,
+      onPerformance: () => setSmoothNotice(true),
+      onLayout: (info) => {
+        setLayout({ edits: info.edits.length, moveMode: info.moveMode, showPaths: info.showPaths });
+        // Kept with the saved cells: each cell holds its own moves.
+        setCells((prev) => {
+          let changed = false;
+          const next = prev.map((c, i) => {
+            const mine = info.edits.filter((e) => e.cell === i).map(({ cell: _cell, ...rest }) => rest);
+            if (JSON.stringify(mine) === JSON.stringify(c.layout ?? [])) return c;
+            changed = true;
+            return { ...c, layout: mine };
+          });
+          return changed ? next : prev;
+        });
+      },
       onUpdate: (u: SimUpdate) => {
         if (tracker.current.update(u.simTime, u.cells, stepsRef.current)) setBreakdown([...tracker.current.last]);
         const now = performance.now();
         if (now - lastEmit.current < 250) return;
         lastEmit.current = now;
-        setSim({ cells: u.cells, currentCycle: u.currentCycle });
+        setSim({ cells: u.cells, currentCycle: u.currentCycle, product: u.product, quality: u.quality, automation: u.automation });
       },
     });
     simRef.current = s;
@@ -268,6 +314,8 @@ export default function CellBuilder() {
           camera: !!c.choice.camera,
           // The previous robot hands parts over on its outfeed conveyor.
           fromPrev: !!prev && !!cells[i - 1]?.choice.robot && prev.steps.some((s) => s.action === "place" && s.station === "out"),
+          motion: c.motion?.type,
+          far: farOf(c),
         }),
       );
     });
@@ -281,13 +329,14 @@ export default function CellBuilder() {
         steps: c.choice.robot ? programs[i].steps : [],
         stations: c.stations ?? [],
         startTool: programs[i].startTool,
+        motion: c.motion && c.motion.type !== "fixed" ? c.motion : null,
       })),
     }),
     [cells, programs, plan],
   );
 
   // Push the plan and every cell's equipment into the 3D scene.
-  const planKey = JSON.stringify(simPlan.cells.map((c) => [c.title, c.steps.map((s) => `${s.action}@${s.station}${s.tool ?? ""}`), c.stations, c.startTool]));
+  const planKey = JSON.stringify(simPlan.cells.map((c) => [c.title, c.steps.map((s) => `${s.action}@${s.station}${s.tool ?? ""}`), c.stations, c.startTool, c.motion]));
   useEffect(() => {
     const s = simRef.current;
     if (!s) return;
@@ -296,6 +345,7 @@ export default function CellBuilder() {
       return;
     }
     s.setPlan(simPlan);
+    s.setLayoutEdits(cells.flatMap((c, i) => (c.layout ?? []).map((e) => ({ ...e, cell: i }))));
     stepsRef.current = simPlan.cells.map((c) => c.steps.map((st) => ({ label: st.label, action: st.action })));
     tracker.current.reset(simPlan.cells.length);
     setBreakdown([]);
@@ -317,16 +367,14 @@ export default function CellBuilder() {
       s.setFencing(cells.map((c) => !!c.fenced));
     }
     let changed = false;
-    cells.forEach((c, i) => {
+    const equipment = cells.map((c, i) => {
       const eq = c.choice;
-      const key = SLOTS.map((sl) => (eq[sl.key] ? `${eq[sl.key]!.source}:${eq[sl.key]!.id}` : "")).join("|");
-      if (eqKeys.current[i] === key) return;
+      const key = [...SLOTS.map((sl) => (eq[sl.key] ? `${eq[sl.key]!.source}:${eq[sl.key]!.id}` : "")), ...(c.parts ?? []).map((m) => `${m.source}:${m.id}`)].join("|");
+      if (eqKeys.current[i] !== key) changed = true;
       eqKeys.current[i] = key;
-      changed = true;
       const any = eq.robot || eq.tool || eq.tool2 || eq.changer || eq.sensor || eq.camera;
       const tools = [eq.tool, eq.tool2].filter(Boolean).map((m) => ({ name: `${m!.name} ${m!.type ?? ""}` }));
-      s.setEquipment(
-        i,
+      return (
         any
           ? {
               robot: eq.robot ? { name: eq.robot.name, brand: eq.robot.brand, reachMm: eq.robot.reach, payloadKg: eq.robot.payload, collaborative: isCobot(eq.robot) } : undefined,
@@ -334,15 +382,46 @@ export default function CellBuilder() {
               // Arm tool first, then the tool on the stand (the robot swaps them with the tool changer).
               tools: eq.tool ? tools : [{ name: "none", kind: "none" }, ...tools],
               accessories: [eq.changer && "changer", eq.sensor && "sensor", eq.camera && "camera"].filter(Boolean) as ("changer" | "sensor" | "camera")[],
+              // The power source, feeder, cleaner… the user chose: their names label the equipment in the cell.
+              components: (c.parts ?? []).map((m) => m.name),
             }
-          : null,
+          : null
       );
     });
     if (!changed) return;
+    s.setEquipmentAll(equipment);
     // Equipment changes restart the line, so the cycle measurement starts again too.
     tracker.current.reset(cells.length);
     setBreakdown([]);
   }, [cells, plan]);
+  // The first cell's conveyor automation: belt, product, feed and pick mode (no change, no rebuild).
+  const autoKey = JSON.stringify([cells[0]?.automation ?? null, cells.length]);
+  useEffect(() => {
+    const a = cells[0]?.automation;
+    simRef.current?.setAutomation(a ? planConveyorAutomation({ setup: a, robots: cells.length }).sim : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoKey]);
+  // Where the first robot puts what it picks from the infeed conveyor.
+  const autoDest = useMemo(() => {
+    const st = programs[0]?.steps ?? [];
+    const k = st.findIndex((x) => x.action === "pick" && x.station === "conveyor");
+    return (k >= 0 ? st.slice(k + 1).find((x) => x.action === "place")?.station : undefined) ?? null;
+  }, [programs]);
+  const startAutomation = (setup: ConveyorSetup, dest: string) => {
+    const DEST = ["pallet", "carton", "out", "table"];
+    update(0, (x) => ({
+      ...x,
+      job: x.job || "Loading & Unloading",
+      automation: setup,
+      // The belt the robot picks from, and the one place it puts the parts.
+      stations: [...new Set([...(x.stations ?? []).filter((k) => !DEST.includes(k) || k === dest || (k === "table" && dest !== "table")), "conveyor", dest])] as StationKey[],
+    }));
+    setAutoOpen(false);
+    simRef.current?.play();
+    setPlaying(true);
+    // On a phone the cell cards are below the stage: bring the running cell into view (it only runs on screen).
+    stageBoxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   // Desktop: panels float over the stage, so frame the line in the free middle.
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
@@ -399,17 +478,32 @@ export default function CellBuilder() {
     const needs = needsFor(jobs);
     const next: Cell[] = jobs.map((job, i) => {
       const spec = specs?.[i];
-      let choice: Choice = raw ? suggest(job, needs[i] ?? 10, raw) : {};
+      let choice: Choice = raw ? suggest(job, needs[i] ?? 10, raw, false, spec?.brand) : {};
       // Robots that load their own parts carry a gripper on the tool stand and a tool changer, both for that robot.
       const swap = raw && spec?.swap ? suggestSwap(raw, choice.robot) : {};
       const swapping = !!spec?.swap && !!swap.tool2 && !!swap.changer;
       if (swapping) choice = { ...choice, tool2: swap.tool2, changer: swap.changer };
       const stations = spec && (swapping || !spec.swap) ? spec.stations : stationsFor(job, [toolKindOf(choice.tool), toolKindOf(choice.tool2)], !!choice.changer);
-      return { id: newId(), job, choice, fenced: !isCobot(choice.robot), stations };
+      const automation = i === 0 && spec?.conveyor ? { ...defaultSetup(spec.conveyor.product), mode: spec.conveyor.mode, rejectRate: spec.conveyor.rejectRate ?? 0 } : undefined;
+      return { id: newId(), job, choice, fenced: !isCobot(choice.robot), stations, ...(automation ? { automation } : {}) };
     });
     quietFit.current = true;
     setCells(next);
     setSelected(0);
+  };
+  const buildFromProposal = (p: AutomationProposal) => {
+    if (!raw) return;
+    const next: Cell[] = p.cells.map((c, i) => {
+      const choice: Choice = suggest(c.job, p.needKg, raw, !!c.cobot, c.brand);
+      return { id: newId(), job: c.job, choice, fenced: !c.cobot && !isCobot(choice.robot), stations: c.stations, ...(i === 0 && p.setup ? { automation: p.setup } : {}) };
+    });
+    quietFit.current = true;
+    setCells(next);
+    setSelected(0);
+    setBrief(null);
+    simRef.current?.play();
+    setPlaying(true);
+    stageBoxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const suggestFor = (i: number) => {
     if (!raw || !cells[i]) return;
@@ -503,9 +597,15 @@ export default function CellBuilder() {
     data?.tools.forEach((x) => m.set(`${x.source}:${x.id}`, x));
     return m;
   }, [data]);
-  // Open a job from the engineer's playbook (#job=…) with a suggested robot and tool.
+  // Open a job from the engineer's playbook (#job=…) with a suggested robot and tool, or a ready cell (#starter=conveyor).
   useEffect(() => {
     if (!raw) return;
+    const starter = STARTERS.find((st) => st.id === window.location.hash.match(/starter=([\w-]+)/)?.[1]);
+    if (starter) {
+      applyStarter(starter.jobs, starter.cells);
+      window.history.replaceState(null, "", window.location.pathname);
+      return;
+    }
     // One job, or a whole line as job|job|job; names outside the builder's list map to their family's job.
     const wanted = decodeURIComponent(window.location.hash.match(/job=([^&]+)/)?.[1] ?? "");
     const jobs = wanted
@@ -518,6 +618,13 @@ export default function CellBuilder() {
     window.history.replaceState(null, "", window.location.pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raw]);
+  // A description from the AI planner (#describe=…): open what the studio understood, ready to confirm, build and simulate.
+  useEffect(() => {
+    if (!/describe=/.test(window.location.hash)) return;
+    const text = describedIn(window.location.hash);
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    if (text) setBrief(text);
+  }, []);
   // Open a shared line (#line=…) once the catalogue is loaded.
   useEffect(() => {
     if (!data) return;
@@ -791,6 +898,28 @@ export default function CellBuilder() {
   const budget = useMemo(() => (plan ? budgetFor(plan, cells.map((c) => c.choice)) : null), [plan, cells]);
   const operators = roiIn.operators || cells.length;
   const payback = budget ? roi(budget.bom.total, operators, roiIn.shifts, roiIn.wage) : null;
+  /** The first cell's conveyor automation for the report: its settings in one line, the sequence and the I/O. */
+  const automationReport = () => {
+    const a = cells[0]?.automation;
+    const c = cells[0];
+    if (!a || !c) return null;
+    const plan = planConveyorAutomation({
+      setup: a,
+      robot: c.choice.robot ? { name: c.choice.robot.name, brand: c.choice.robot.brand, payloadKg: c.choice.robot.payload, reachMm: c.choice.robot.reach } : null,
+      tool: c.choice.tool ? { name: c.choice.tool.name, type: c.choice.tool.type } : null,
+      destination: autoDest,
+      robots: cells.length,
+    });
+    const [l, h, w] = a.product.size ?? [0, 0, 0];
+    const setup = [
+      a.mode === "track" ? "Conveyor tracking" : "Stop and pick",
+      `belt ${a.conveyor.length} m × ${Math.round(a.conveyor.width * 1000)} mm at ${Math.round(a.conveyor.height * 1000)} mm, ${a.conveyor.speed} m/s`,
+      `product ${Math.round(l * 1000)} × ${Math.round(w * 1000)} × ${Math.round(h * 1000)} mm${a.product.kg ? `, ${a.product.kg} kg` : ""}`,
+      a.feed.rate > 0 ? `${a.feed.rate} parts a minute` : "parts whenever the gap allows",
+      `${Math.round(a.feed.gap * 1000)} mm gap`,
+    ].join(" · ");
+    return { setup, plan };
+  };
   const printReport = () => {
     const w = window.open("", "_blank");
     if (!w) return;
@@ -801,6 +930,7 @@ export default function CellBuilder() {
           parts: (c.parts ?? []).map((m) => m.name), also: kits[i].also, software: kits[i].software,
         })),
         bottleneck, perHour, budget, roi: payback, inputs: { operators, shifts: roiIn.shifts, wage: roiIn.wage },
+        automation: automationReport(),
       }),
     );
     w.document.close();
@@ -881,7 +1011,7 @@ export default function CellBuilder() {
           {ghost.label}
         </div>
       )}
-    <ol aria-label="Steps" className="grid grid-cols-6 gap-1 sm:gap-2">
+    <ol aria-label="Steps" className="grid grid-cols-3 gap-1 sm:gap-2 lg:grid-cols-6">
       {STEPS.map((st) => {
         const active = st.n === current;
         return (
@@ -899,8 +1029,8 @@ export default function CellBuilder() {
                 {st.done ? <CheckCircle2 className="h-4 w-4" /> : st.n}
               </span>
               <span className="min-w-0">
-                <b className="block text-xs sm:text-sm">{st.label}</b>
-                <span className="hidden text-xs text-muted-foreground sm:block">
+                <b className="block break-words text-xs sm:text-sm">{st.label}</b>
+                <span className="hidden text-xs text-muted-foreground lg:block">
                   {st.done ? (st.n === 6 ? `Line runs · ${perHour} parts/hour — open the report` : "Done") : st.n === 6 && safetyDone ? (stalled.some(Boolean) ? "A cell is not completing its cycle — open the report to see why" : "Measuring cycle time… the first full cycle takes a moment") : st.hint}
                 </span>
               </span>
@@ -913,6 +1043,10 @@ export default function CellBuilder() {
       {/* 3D stage */}
       <section ref={stageBoxRef} aria-label="3D robot cell" className="relative h-[58vh] min-h-[380px] overflow-hidden rounded-xl border border-border bg-slate-900 lg:absolute lg:inset-0 lg:h-auto">
         <div ref={stageRef} className="absolute inset-0" />
+        {sceneStatus !== "ready" && <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/90" role="status">
+          {sceneStatus === "lost" ? <Button variant="outline" onClick={() => simRef.current?.reload()}>3D view paused by the browser — tap to reload the view</Button> : <span className="flex items-center gap-2 text-foreground"><Loader2 className="h-5 w-5 animate-spin" />Building your line…</span>}
+        </div>}
+        {smoothNotice && <div role="status" className="absolute left-3 top-28 z-30 flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground">Switched to smooth mode for this device<Button variant="ghost" size="icon" aria-label="Dismiss smooth mode notice" onClick={() => setSmoothNotice(false)}><X className="h-3 w-3" /></Button></div>}
         <div
           onDragOver={(e) => {
             if (!drag) return;
@@ -990,20 +1124,41 @@ export default function CellBuilder() {
               </option>
             ))}
           </select>
-          {(["iso", "front", "top"] as const).map((v) => (
+          <Button variant="secondary" size="sm" onClick={() => { const next = labels === "key" ? "all" : labels === "all" ? "off" : "key"; setLabels(next); simRef.current?.setLabels(next); }}>Labels: {labels === "key" ? "Key" : labels === "all" ? "All" : "Off"}</Button>
+          <Button size="sm" variant={layout.moveMode ? "default" : "secondary"} aria-pressed={layout.moveMode} title="Move robots, stations and equipment (M)" onClick={() => simRef.current?.setMoveMode(!layout.moveMode)}>Move</Button>
+          <Button size="sm" variant={layout.showPaths ? "default" : "secondary"} aria-pressed={layout.showPaths} onClick={() => simRef.current?.setShowPaths(!layout.showPaths)}>Show robot paths</Button>
+          {layout.edits > 0 && (
+            <Button size="sm" variant="secondary" onClick={() => simRef.current?.resetLayout()}>Reset layout</Button>
+          )}
+          {(["iso", "cinematic", "front", "top", "product"] as const).map((v) => (
             <Button key={v} size="sm" variant="secondary" onClick={() => simRef.current?.setView(v)}>
-              {v === "iso" ? "3D" : v[0].toUpperCase() + v.slice(1)}
+              {v === "iso" ? "3D" : v === "product" ? "Close-up" : v[0].toUpperCase() + v.slice(1)}
             </Button>
           ))}
+          <Button
+            size="sm"
+            variant={sim?.quality === "high" ? "default" : "secondary"}
+            aria-pressed={sim?.quality === "high"}
+            title="Realistic picture: soft contact shadows, glowing lamps and arcs. Turn it off for a faster picture on slow devices."
+            onClick={() => simRef.current?.setQuality(sim?.quality === "high" ? "standard" : "high")}
+          >
+            Realistic
+          </Button>
+          {sim?.product && cells.some((c) => c.job) && (
+            <span className="hidden truncate rounded-md border border-border bg-background/90 px-2 py-1 text-xs md:inline" title={`Workpiece: ${sim.product.label}`}>
+              Workpiece: <b className="font-medium">{sim.product.label}</b>
+            </span>
+          )}
           <Button size="sm" variant={showLine ? "default" : "secondary"} className="ml-auto hidden lg:inline-flex" onClick={() => setShowLine((v) => !v)} aria-pressed={showLine}>
             Your line ({cells.length}) <PanelRight className="ml-1 h-3.5 w-3.5" />
           </Button>
         </div>
         {!cells.length && !drag && (
-          <div className="absolute inset-0 flex items-center justify-center overflow-y-auto px-3 pb-3 pt-14">
-            <div className="w-full max-w-md rounded-xl bg-background/95 p-3 shadow-lg sm:p-5">
-              <p className="flex items-center gap-2 font-semibold">
-                <Bot className="h-5 w-5 text-primary" /> Drag a robot here — or start from a ready cell
+          <div className="absolute inset-0 flex justify-center overflow-y-auto px-3 pb-3 pt-14">
+            <div className="my-auto w-full max-w-md rounded-xl bg-background/95 p-3 shadow-lg sm:p-5">
+              <AutomationBriefBox compact disabled={!raw} onUnderstand={setBrief} />
+              <p className="mt-4 flex items-center gap-2 font-semibold">
+                <Bot className="h-5 w-5 text-primary" /> Or drag a robot here — or start from a ready cell
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {STARTERS.map((st) => (
@@ -1021,6 +1176,17 @@ export default function CellBuilder() {
               </div>
               <p className="mt-3 text-[11px] text-muted-foreground">Ready cells come with a matching robot and tool from the marketplace or Directory — change anything after.</p>
             </div>
+          </div>
+        )}
+        {sim?.automation && !drag && (
+          <div className={cn("pointer-events-none absolute inset-x-2 bottom-2 z-20 flex justify-center", wide && showLib && "lg:left-[324px]", wide && showLine && "lg:right-[334px]")}>
+            <AutomationIO
+              state={sim.automation}
+              playing={playing}
+              onPause={() => (simRef.current?.pause(), setPlaying(false))}
+              onPlay={() => (simRef.current?.play(), setPlaying(true))}
+              onStep={() => simRef.current?.stepEvent()}
+            />
           </div>
         )}
       </section>
@@ -1165,6 +1331,10 @@ export default function CellBuilder() {
             </div>
           ) : tab === "cell" ? (
             <div className="space-y-3 p-2">
+              <div className="rounded-lg border border-primary/40 bg-primary/5 p-2">
+                <AutomationBriefBox compact disabled={!raw} onUnderstand={setBrief} />
+                <p className="mt-1 px-1 text-[10px] text-muted-foreground">Designs the robots, gripper, conveyor, sensors and logic — replaces the current line.</p>
+              </div>
               <div className="rounded-lg border border-primary/40 bg-primary/5 p-2">
                 <label htmlFor="own-job" className="mb-1 block px-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
                   Your own job
@@ -1467,6 +1637,19 @@ export default function CellBuilder() {
                   >
                     <ShieldCheck className="h-3 w-3" /> {c.fenced === undefined ? "Choose safety" : c.fenced ? "Fenced cell" : "Open (cobot)"}
                   </button>
+                  {i === 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => (e.stopPropagation(), setSelected(0), setAutoOpen(true))}
+                      title="Set up the conveyor, product, feed and photo-eye, then run the pick and place"
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-primary transition-colors duration-150 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                        c.automation ? "border-primary" : "border-dashed border-primary/60",
+                      )}
+                    >
+                      <Workflow className="h-3 w-3" /> {c.automation ? "Conveyor automation" : "Set up conveyor automation"}
+                    </button>
+                  )}
                   <StateBadge state={states[i]} />
                   {cycles[i] && <span className="ml-auto tabular-nums text-muted-foreground">{cycles[i]!.toFixed(1)} s · {cellSim?.cycles ?? 0} parts</span>}
                 </div>
@@ -1508,6 +1691,43 @@ export default function CellBuilder() {
                         </button>
                       ))}
                       {!placed.length && !wanted.length && <span className="text-muted-foreground">No cell equipment yet — add it from Layout</span>}
+                    </div>
+                  );
+                })()}
+                {selected === i && (() => {
+                  // How the robot is mounted: bolt it down, or put it on a 7th-axis track (or gantry, AMR…) to serve
+                  // equipment at both ends — one robot for two machines or two pallets.
+                  const m = c.motion ?? { type: "fixed" as const, length: 0 };
+                  const far = farOf(c);
+                  const farChoices = (c.stations ?? []).filter((k) => FAR_STATIONS.includes(k));
+                  return (
+                    <div className="mt-2 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                      <RobotBaseControl value={m} onChange={(next) => update(i, (x) => ({ ...x, motion: next }))} />
+                      {m.type !== "fixed" && m.type !== "lift" && (
+                        <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                          <span className="text-muted-foreground">At the far end:</span>
+                          {farChoices.length ? (
+                            farChoices.map((k) => {
+                              const on = far.includes(k);
+                              return (
+                                <button
+                                  key={k}
+                                  type="button"
+                                  aria-pressed={on}
+                                  title={on ? "The robot travels to a second one at the far end" : "Add a second one at the far end"}
+                                  onClick={() => update(i, (x) => ({ ...x, far: on ? far.filter((f) => f !== k) : [...far, k] }))}
+                                  className={cn("rounded-full border px-2 py-0.5", on ? "border-primary bg-primary/10 text-primary" : "border-dashed border-border text-muted-foreground hover:border-primary/60")}
+                                >
+                                  {on ? "✓ " : "+ "}
+                                  {stationLabel(k)}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <span className="text-muted-foreground">place a machine, table or pallet first</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
@@ -1566,10 +1786,18 @@ export default function CellBuilder() {
                           )}
                         </div>
                       )}
-                      {selected === i && kit.also.length > 0 && (
-                        <p className="text-muted-foreground">
-                          <b className="font-medium text-foreground">Also needed:</b> {kit.also.join(" · ")}
-                        </p>
+                      {selected === i && c.job && (
+                        <div className="rounded-md border border-border bg-background/60 p-2">
+                          <p className="mb-1 font-medium text-foreground">Everything this cell needs</p>
+                          <CellEquipmentList jobs={[c.job]} fenced={!!c.fenced} products={parts.map((m) => m.name)} compact withLine={false} />
+                          <p className="mb-1 mt-3 font-medium text-foreground">Robot system & cables</p>
+                          <RobotSystemSheet
+                            compact
+                            job={c.job}
+                            fenced={!!c.fenced}
+                            robot={c.choice.robot}
+                          />
+                        </div>
                       )}
                       {kit.software.length > 0 && (
                         <p className="flex flex-wrap items-center gap-1">
@@ -1648,6 +1876,18 @@ export default function CellBuilder() {
       </aside>
     </div>
 
+      <AutomationProposalDialog text={brief} onOpenChange={(open) => !open && setBrief(null)} onBuild={buildFromProposal} ready={!!raw} />
+      <ConveyorAutomationDialog
+        open={autoOpen}
+        onOpenChange={setAutoOpen}
+        setup={cells[0]?.automation}
+        productKey={sim?.product?.key}
+        robot={cells[0]?.choice.robot}
+        tool={cells[0]?.choice.tool}
+        destination={autoDest}
+        robots={cells.length}
+        onStart={startAutomation}
+      />
       <Dialog open={fitOpen} onOpenChange={setFitOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
