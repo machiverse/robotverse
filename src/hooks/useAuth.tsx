@@ -24,6 +24,21 @@ interface AuthContextType {
   cleanupAuthState: () => void;
 }
 
+// Accounts an admin deactivated (suspended/blocked) must not stay signed in.
+const isAccountBlocked = async (userId: string): Promise<boolean> => {
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('account_status')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const status = (data as { account_status?: string } | null)?.account_status;
+    return !!status && status !== 'active';
+  } catch {
+    return false;
+  }
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const cleanupAuthState = () => {
@@ -129,6 +144,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Sign out anyone whose account was deactivated while already signed in.
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    isAccountBlocked(user.id).then(async (blocked) => {
+      if (!blocked || cancelled) return;
+      await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+      cleanupAuthState();
+      setUser(null);
+      setSession(null);
+      window.location.href = '/auth?deactivated=1';
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   // ✅ Modified signUp for email confirmation
   const signUp = useCallback(
     async (email: string, password: string, fullName?: string) => {
@@ -207,6 +237,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return error;
         }
         
+        if (data.user && (await isAccountBlocked(data.user.id))) {
+          await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+          cleanupAuthState();
+          return { name: 'AuthApiError', message: 'Your account has been deactivated. Please contact RobotVerse support.', status: 403 } as AuthError;
+        }
+
         if (data.user) {
           console.log('✅ Sign in successful for user:', data.user.id);
           // Force page reload for clean state
